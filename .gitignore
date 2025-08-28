@@ -1,0 +1,21 @@
+# Binaries
+.archive
+#pgarachne
+bin/*.json
+/pgarachne
+
+# Secrets
+pgarachne.env
+
+# Go
+*.dll
+*.so
+*.dylib
+
+# Temps
+*.tmp
+*.log
+
+# OS specifics
+.DS_Store
+Thumbs.db

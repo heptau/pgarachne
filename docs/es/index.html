@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="PgArachne: La pasarela de alto rendimiento de PostgreSQL a JSON-RPC.">
+	<title>PgArachne - API de PostgreSQL Instantánea</title>
+	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+
+	<!-- Barra de Navegación Fija -->
+	<nav class="navbar">
+		<div class="container nav-container">
+
+			<!-- Enlaces de Navegación -->
+			<div class="nav-links">
+				<a href="#features">Características</a>
+				<a href="#install">Instalación</a>
+				<a href="#docs">Documentación</a>
+				<a href="#support" class="nav-btn-donate">Apoyar el Proyecto</a>
+			</div>
+
+			<!-- Selector de Idioma -->
+			<div class="lang-dropdown">
+				<button class="lang-btn">Idioma ▾</button>
+				<div class="lang-content">
+					<a href="../en/index.html">English</a>
+					<a href="../cs/index.html">Čeština</a>
+					<a href="../es/index.html" class="active">Español</a>
+					<a href="../de/index.html">Deutsch</a>
+					<a href="../fr/index.html">Français</a>
+					<a href="../it/index.html">Italiano</a>
+					<a href="../pt/index.html">Português</a>
+				</div>
+			</div>
+
+		</div>
+	</nav>
+
+	<!-- Sección Hero -->
+	<header class="hero-section">
+		<div class="container hero-flex">
+
+			<!-- Izquierda: Logo Grande -->
+			<div class="hero-logo-wrapper">
+				<img src="../assets/pgarachne-logo.jpeg" alt="Logo de PgArachne" class="hero-logo-img">
+			</div>
+
+			<!-- Derecha: Contenido -->
+			<div class="hero-content">
+				<!-- Nombre de la marca como Título Principal -->
+				<h1 class="brand-title">PgArachne</h1>
+
+				<!-- El "Qué" -->
+				<p class="hero-lead">
+					Convierte PostgreSQL en una API segura. Al instante.
+				</p>
+
+				<!-- El "Cómo" -->
+				<p class="hero-desc">
+					Cero código repetitivo. Alto rendimiento. El middleware que mapea las peticiones HTTP directamente a
+					funciones de la base de datos.
+				</p>
+
+				<div class="hero-actions">
+					<a href="#install" class="btn btn-primary">Empezar</a>
+					<a href="https://github.com/heptau/pgarachne" target="_blank" class="btn btn-secondary">
+						GitHub
+					</a>
+					<a href="#explorer" class="btn btn-secondary">Ver Demo (Explorer)</a>
+				</div>
+			</div>
+
+		</div>
+	</header>
+
+	<!-- Propuesta de Valor / Casos de Uso -->
+	<section id="features" class="section-light bg-offset">
+		<div class="container">
+			<h2>¿Es PgArachne adecuado para ti?</h2>
+			<p class="section-intro">
+				PgArachne no es solo para prototipado.<br>Cierra la brecha entre el rendimiento puro de la base de datos y
+				los requisitos de las API modernas.
+			</p>
+
+			<div class="grid-3">
+				<div class="card">
+					<h3>🚀 Prototipado Rápido</h3>
+					<p>Deja de escribir controladores CRUD repetitivos. Define una función SQL y tu endpoint de API estará
+						listo al instante. Perfecto para MVPs y Hackathons.</p>
+				</div>
+				<div class="card">
+					<h3>🏢 Listo para Producción</h3>
+					<p>Diseñado para manejar **más del 90% de las tareas backend estándar** (CRUD, validación,
+						autenticación). Con pool de conexiones, apagado ordenado y métricas de Prometheus, impulsa sistemas de
+						producción de manera confiable.
+					</p>
+				</div>
+				<div class="card">
+					<h3>🧠 Amigable con IA y LLM</h3>
+					<p>Dado que la API se autodocumenta mediante comentarios SQL, puedes alimentar el esquema directamente a
+						los LLM (ChatGPT, Claude). Esto permite que los agentes de IA entiendan tu lógica de negocio y
+						construyan llamadas API válidas sin alucinaciones.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Contenedor Principal de Documentación -->
+	<div id="docs" class="main-wrapper">
+
+		<!-- Tabla de Contenidos -->
+		<aside class="toc">
+			<h3>Contenido</h3>
+			<ul>
+				<li><a href="#about">Acerca de y Arquitectura</a></li>
+				<li><a href="#install">Instalación</a></li>
+				<li><a href="#config">Configuración</a></li>
+				<li><a href="#explorer">Explorador de API</a></li>
+				<li><a href="#security">Seguridad y Roles</a></li>
+				<li><a href="#deployment">Despliegue (HTTPS)</a></li>
+				<li><a href="#errors">Códigos de Error</a></li>
+				<li><a href="#support">Soporte y Donaciones</a></li>
+				<li><a href="#license">Licencia</a></li>
+			</ul>
+		</aside>
+
+		<!-- Área de Contenido -->
+		<main class="doc-content">
+
+			<section id="about">
+				<h2>Acerca de y Arquitectura</h2>
+				<p>
+					PgArachne sirve como un <strong>servidor web</strong> ligero y de alto rendimiento que se sitúa entre tus
+					clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
+					(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
+				</p>
+
+				<div class="card"
+					style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+					<h3>Capacidades Técnicas Principales</h3>
+					<ul style="margin-left: 20px; list-style-type: disc;">
+						<li style="margin-bottom: 10px;">
+							<strong>Pasarela JSON-RPC 2.0:</strong> Todas las interacciones de la API siguen la estricta
+							especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
+							por su nombre mediante peticiones POST.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Autenticación Nativa de BD:</strong> Sin tablas de usuarios separadas. Los usuarios inician
+							sesión con sus credenciales reales de PostgreSQL para recibir un <strong>JWT</strong>.
+							Alternativamente, las cuentas de servicio pueden usar <strong>Tokens de API</strong> persistentes.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Enmascaramiento de Roles:</strong> PgArachne se conecta como un usuario proxy pero ejecuta
+							cada petición usando <code>SET LOCAL ROLE</code> para cambiar a la identidad del usuario
+							autenticado. La seguridad a nivel de fila (Row-Level Security - RLS) funciona automáticamente.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Servidor de Archivos Estáticos:</strong> PgArachne puede servir activos estáticos (HTML,
+							JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer
+							directamente.
+						</li>
+					</ul>
+				</div>
+
+				<p>
+					Esta arquitectura simplifica drásticamente el stack: <strong>Base de Datos ↔ PgArachne ↔
+						Frontend</strong>.
+				</p>
+
+				<div class="tip">
+					<strong>Formato del Endpoint de API:</strong> Todas las funciones de la base de datos están expuestas en:
+					<div
+						style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+						<div>POST http://{servidor}:{puerto}</div>
+						<div style="padding-left: 50px;">/api</div>
+						<div style="padding-left: 50px;">/{nombre_base_datos}</div>
+						<div style="padding-left: 50px;">/{nombre_esquema}.{nombre_funcion}</div>
+					</div>
+				</div>
+			</section>
+
+			<section id="install">
+				<h2>Instalación</h2>
+
+				<!-- Opción A: Descargar Binarios -->
+				<h3>Opción A: Descargar Binarios</h3>
+				<p>Descarga la última versión precompilada para tu sistema operativo:</p>
+
+				<div class="donation-grid" style="margin-top: 20px; margin-bottom: 40px;">
+
+					<!-- Linux (Tux Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" />
+						</svg>
+						<h4>Linux</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-amd64"
+								class="btn-download">x64/Intel/AMD</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-arm64"
+								class="btn-download">ARM64/Aarch64</a>
+						</div>
+					</div>
+
+					<!-- macOS (Apple Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+						</svg>
+						<h4>macOS</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-arm64"
+								class="btn-download">ARM64/Apple Silicon</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-amd64"
+								class="btn-download">x64/Intel</a>
+						</div>
+					</div>
+
+					<!-- Windows (Microsoft Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" />
+						</svg>
+						<h4>Windows</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-amd64.exe"
+								class="btn-download">x64/Intel/AMD</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-arm64.exe"
+								class="btn-download">ARM64</a>
+						</div>
+					</div>
+
+				</div>
+
+				<div class="step-box">
+					<h3>Opción B: Compilar desde el Código Fuente</h3>
+					<pre><code>git clone https://github.com/heptau/pgarachne.git
+cd pgarachne
+go build -o pgarachne cmd/pgarachne/main.go</code></pre>
+				</div>
+
+				<div class="step-box">
+					<h3>Configuración de la Base de Datos</h3>
+					<p>Inicializa el esquema <code>pgarachne</code> requerido para los tokens de API.</p>
+					<pre><code>psql -d my_database -f sql/schema.sql</code></pre>
+				</div>
+			</section>
+
+			<section id="config">
+				<h2>Configuración</h2>
+				<p>PgArachne carga la configuración desde variables de entorno o un archivo.</p>
+
+				<div class="tip">
+					<strong>Nota de Seguridad:</strong> PgArachne no maneja contraseñas de base de datos en el archivo de
+					configuración.
+					Confía en el mecanismo estándar de archivo <code>.pgpass</code> de PostgreSQL (o la variable del sistema
+					<code>PGPASSWORD</code>) para la autenticación.
+				</div>
+
+				<div class="tip">
+					<strong>Orden de Búsqueda:</strong> Si no se especifica ningún archivo de configuración a través de CLI,
+					busca en:
+					<ol>
+						<li>Directorio actual: <code>./pgarachne.env</code> (Todos los SO)</li>
+						<li>Configuración de usuario:
+							<ul>
+								<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+								<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+								</li>
+							</ul>
+						</li>
+						<li>Configuración del sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
+					</ol>
+				</div>
+
+				<table>
+					<thead>
+						<tr>
+							<th style="width: 30%;">Variable</th>
+							<th style="width: 15%;">Requerido</th>
+							<th>Descripción</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Configuración de Base de Datos -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Conexión a Base
+								de Datos</td>
+						</tr>
+						<tr>
+							<td><code>DB_HOST</code></td>
+							<td>Sí</td>
+							<td>Dirección del servidor PostgreSQL (ej. <code>localhost</code>).</td>
+						</tr>
+						<tr>
+							<td><code>DB_PORT</code></td>
+							<td>No</td>
+							<td>Puerto de la base de datos. Por defecto: <code>5432</code>.</td>
+						</tr>
+						<tr>
+							<td><code>DB_USER</code></td>
+							<td>Sí</td>
+							<td>El usuario de base de datos con el que se conecta PgArachne.</td>
+						</tr>
+
+						<!-- Configuración del Servidor -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Servidor HTTP
+							</td>
+						</tr>
+						<tr>
+							<td><code>HTTP_PORT</code></td>
+							<td>No</td>
+							<td>Puerto para escuchar. Por defecto: <code>8080</code>.</td>
+						</tr>
+						<tr>
+							<td><code>ALLOWED_ORIGINS</code></td>
+							<td>No</td>
+							<td>Configuración de CORS. Lista separada por comas de dominios permitidos (ej.
+								<code>https://miapp.com</code>).
+								Por defecto: <code>*</code>.
+							</td>
+						</tr>
+						<tr>
+							<td><code>STATIC_FILES_PATH</code></td>
+							<td>No</td>
+							<td>Ruta absoluta para servir archivos estáticos (Explorer/Frontend).</td>
+						</tr>
+
+						<!-- Configuración de Seguridad -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Seguridad (JWT)
+							</td>
+						</tr>
+						<tr>
+							<td><code>JWT_SECRET</code></td>
+							<td>Sí</td>
+							<td>Una cadena larga y aleatoria utilizada para firmar tokens de sesión.</td>
+						</tr>
+						<tr>
+							<td><code>JWT_EXPIRY_HOURS</code></td>
+							<td>No</td>
+							<td>Validez de la sesión en horas. Por defecto: <code>8</code>.</td>
+						</tr>
+
+						<!-- Configuración de Logging -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
+						</tr>
+						<tr>
+							<td><code>LOG_LEVEL</code></td>
+							<td>No</td>
+							<td>Verbosidad: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+								Por defecto: <code>INFO</code>.</td>
+						</tr>
+						<tr>
+							<td><code>LOG_OUTPUT</code></td>
+							<td>No</td>
+							<td>Dónde escribir los logs: <code>stdout</code> o ruta del archivo.</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+
+			<!-- Sección API Explorer -->
+			<section id="explorer">
+				<h2>Explorador de PgArachne</h2>
+				<p>El <strong>Explorer</strong> es una potente interfaz web incluida en el directorio `tools/`. No es
+					solo documentación; es una **aplicación de demostración** completamente funcional construida usando
+					HTML/JS
+					que se comunica con la base de datos exclusivamente a través de PgArachne.</p>
+
+				<p><strong>¿Qué puede hacer?</strong></p>
+				<ul>
+					<li><strong>Inspeccionar API:</strong> Lee la función `capabilities` para mostrar todos los
+						endpoints disponibles y sus parámetros.</li>
+					<li><strong>Pruebas en Vivo:</strong> Puedes ejecutar funciones directamente desde el navegador.</li>
+					<li><strong>Autodocumentación:</strong> Renderiza los comentarios SQL (incluyendo metadatos `--- PARAMS
+						---`)
+						en documentación legible.</li>
+				</ul>
+
+				<div class="tip">
+					<strong>Cómo habilitarlo:</strong> Establece la variable de entorno `STATIC_FILES_PATH` para que apunte a
+					la
+					carpeta `tools/pgarachne-explorer` en tu disco. Luego visita <code>http://localhost:8080</code>.
+				</div>
+			</section>
+
+			<!-- Sección de Seguridad -->
+			<section id="security">
+				<h2>Seguridad y Autenticación</h2>
+				<p>PgArachne se basa completamente en el sistema de permisos de PostgreSQL. No reinventa las Listas de
+					Control de Acceso (ACLs).
+					Todas las consultas se ejecutan bajo el rol de base de datos específico del usuario autenticado usando
+					<code>SET LOCAL ROLE</code>.
+				</p>
+
+				<h3>1. Inicio de Sesión Interactivo (JWT)</h3>
+				<p>Los usuarios se autentican usando su <strong>nombre de usuario y contraseña reales de PostgreSQL</strong>
+					a través de la función de inicio de sesión.
+					Si tiene éxito, reciben un JWT genérico. Cuando se usa este token, PgArachne cambia el rol activo a ese
+					usuario
+					durante la duración de la petición.</p>
+
+				<h3>2. Cuentas de Servicio (Tokens de API)</h3>
+				<p>Para sistemas automatizados o scripts, puedes usar claves API de larga duración.</p>
+				<ul>
+					<li>Los tokens se almacenan en la tabla <code>pgarachne.api_tokens</code>.</li>
+					<li>Cada token se asigna a un usuario/rol de base de datos específico.</li>
+					<li>Envía el token a través del encabezado <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+				</ul>
+
+				<div class="warning">
+					<h3>Configuración Crítica: Privilegios del Proxy</h3>
+					<p>Dado que PgArachne se conecta como el usuario definido en <code>DB_USER</code> (ej.
+						<code>pgarachne</code>) y cambia la identidad a otros usuarios, el usuario proxy <strong>debe ser
+							miembro</strong> de esos roles objetivo.
+					</p>
+
+					<p>Ejecuta este SQL para cada usuario/rol que necesite iniciar sesión:</p>
+					<pre><code>-- Permitir a 'pgarachne' cambiar a 'app_user'
+GRANT app_user TO pgarachne;</code></pre>
+				</div>
+			</section>
+
+			<section id="deployment">
+				<h2>Despliegue y HTTPS</h2>
+				<p>PgArachne está diseñado para realizar bien una sola tarea: API Gateway. Para SSL/TLS (HTTPS), seguridad
+					de encabezados y
+					enrutamiento público, deberías colocar un <strong>Proxy Inverso</strong> delante de él.</p>
+
+				<div class="deployment-option">
+					<h3>Opción A: Servidor Caddy</h3>
+					<p><strong>Mejor para:</strong> Despliegues de producción modernos, facilidad de uso.</p>
+					<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> es el único servidor web que obtiene
+						y renueva certificados SSL (Let's Encrypt) automáticamente por defecto. Requiere casi cero
+						configuración.</p>
+					<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+				</div>
+
+				<div class="deployment-option">
+					<h3>Opción B: Nginx</h3>
+					<p><strong>Mejor para:</strong> Entornos empresariales, enrutamiento complejo.</p>
+					<p><a href="https://nginx.org/" target="_blank">Nginx</a> es el estándar de la industria para
+						balanceo de carga de alto rendimiento. Úsalo si ya tienes una infraestructura Nginx. Necesitarás
+						gestionar Certbot manualmente.</p>
+					<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+				</div>
+
+				<div class="deployment-option">
+					<h3>Opción C: Ngrok</h3>
+					<p><strong>Mejor para:</strong> Desarrollo local, Demos, pruebas de Webhook.</p>
+					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un túnel seguro desde internet público
+						directamente a tu portátil sin configurar firewalls. Ideal para mostrar tu trabajo a
+						colegas al instante.</p>
+					<pre><code>./ngrok http 8080</code></pre>
+				</div>
+			</section>
+
+			<section id="errors">
+				<h2>Códigos de Error</h2>
+				<p>PgArachne devuelve objetos de error estándar JSON-RPC 2.0. A continuación se muestran los códigos
+					específicos que puedes
+					encontrar:</p>
+				<table>
+					<tr>
+						<th>Código</th>
+						<th>Mensaje</th>
+						<th>Significado</th>
+					</tr>
+					<tr>
+						<td><code>-32700</code></td>
+						<td>Parse error</td>
+						<td>El servidor recibió un JSON inválido.</td>
+					</tr>
+					<tr>
+						<td><code>-32601</code></td>
+						<td>Method not found</td>
+						<td>La función no existe en el esquema.</td>
+					</tr>
+					<tr>
+						<td><code>-32602</code></td>
+						<td>Invalid params</td>
+						<td>Los argumentos no coinciden con la firma de la función.</td>
+					</tr>
+					<tr>
+						<td><code>-32001</code></td>
+						<td>Permission denied</td>
+						<td>El rol de usuario actual carece de privilegios para ejecutar la función (nivel DB).</td>
+					</tr>
+					<tr>
+						<td><code>-32000</code></td>
+						<td>Internal Error</td>
+						<td>Error genérico del servidor (revisar logs).</td>
+					</tr>
+				</table>
+			</section>
+
+			<hr>
+
+			<!-- Sección de Soporte -->
+			<section id="support" class="support-section">
+				<h2>Apoya el Desarrollo</h2>
+				<p>Desarrollar software de código abierto como PgArachne requiere mucho tiempo. Si esta herramienta te
+					ahorra tiempo,
+					por favor considera apoyar su mantenimiento.</p>
+
+				<div class="donation-grid">
+
+					<!-- 1. Buy Me a Coffee (Destacado) -->
+					<div class="donation-card featured">
+						<h4>☕ Hazte Miembro</h4>
+						<p>Únete a la comunidad en <strong>Buy Me a Coffee</strong>. Obtén actualizaciones exclusivas, acceso
+							anticipado
+							a nuevas características y más.</p>
+						<a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured">Apoyar
+							en Buy Me a Coffee</a>
+					</div>
+
+					<!-- 2. Bank Transfer -->
+					<div class="donation-card">
+						<h4>Transferencia Bancaria</h4>
+						<p>Apoyo directo con 0% de comisiones.</p>
+
+						<details>
+							<summary>🇺🇸 ACH (USA)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Nombre</span>
+									<div class="support-val-box">
+										<code>Zbynek Vanzura</code>
+										<button class="btn-copy" data-clipboard-text="Zbynek Vanzura" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Número de Cuenta</span>
+									<div class="support-val-box">
+										<code>827908168786406</code>
+										<button class="btn-copy" data-clipboard-text="827908168786406" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Tipo de Cuenta</span>
+									<div class="support-val-box">
+										<code>Deposit</code>
+										<button class="btn-copy" data-clipboard-text="Deposit" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Número de Ruta</span>
+									<div class="support-val-box">
+										<code>084009519</code>
+										<button class="btn-copy" data-clipboard-text="084009519" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Swift/BIC</span>
+									<div class="support-val-box">
+										<code>TRWIUS35XXX</code>
+										<button class="btn-copy" data-clipboard-text="TRWIUS35XXX" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Dirección del Banco</span>
+									<div class="support-val-box">
+										<code>Wise US Inc, 108 W 13th St, Wilmington, DE, 19801, United States</code>
+										<button class="btn-copy"
+											data-clipboard-text="Wise US Inc, 108 W 13th St, Wilmington, DE, 19801, United States"
+											title="Copiar">📋</button>
+									</div>
+								</div>
+							</div>
+						</details>
+
+						<details>
+							<summary>🇪🇺 SEPA (Euro)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Nombre</span>
+									<div class="support-val-box">
+										<code>Zbynek Vanzura</code>
+										<button class="btn-copy" data-clipboard-text="Zbynek Vanzura" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">IBAN</span>
+									<div class="support-val-box">
+										<code>BE68<span class="iban-space"></span>9058<span class="iban-space"></span>1347<span class="iban-space"></span>3834</code>
+										<button class="btn-copy" data-clipboard-text="BE68905813473834" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Swift/BIC</span>
+									<div class="support-val-box">
+										<code>TRWIBEB1XXX</code>
+										<button class="btn-copy" data-clipboard-text="TRWIBEB1XXX" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Dirección del Banco</span>
+									<div class="support-val-box">
+										<code>Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</code>
+										<button class="btn-copy"
+											data-clipboard-text="Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium"
+											title="Copiar">📋</button>
+									</div>
+								</div>
+
+								<div class="qr-code" data-qr-text="BCD
+002
+1
+SCT
+TRWIBEB1XXX
+Zbynek Vanzura
+BE68905813473834
+EUR10.00
+
+
+Support PgArachne"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>🇨🇿 CZK (Chequia)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Nombre</span>
+									<div class="support-val-box">
+										<code>Zbynek Vanzura</code>
+										<button class="btn-copy" data-clipboard-text="Zbynek Vanzura" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Nº de Cuenta</span>
+									<div class="support-val-box">
+										<code>2300354<span class="bank-space"></span>/<span class="bank-space"></span>2010</code>
+										<button class="btn-copy" data-clipboard-text="2300354/2010" title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="qr-code"
+									data-qr-text="SPD*1.0*ACC:CZ3220100000002300354125*CC:CZK*MSG:Support PgArachne"></div>
+							</div>
+						</details>
+					</div>
+
+					<!-- 3. Cryptocurrency -->
+					<div class="donation-card">
+						<h4>Criptomonedas</h4>
+						<p>Apoyo mediante activos digitales.</p>
+
+						<details>
+							<summary>Bitcoin (BTC)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Dirección BTC</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6</code>
+										<button class="btn-copy" data-clipboard-text="bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6"
+											title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="bitcoin:bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>USDT (TetherUS)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Dirección TRC20</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T</code>
+										<button class="btn-copy" data-clipboard-text="TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T"
+											title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T"></div>
+							</div>
+
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Dirección ERC20</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">0xa689e1c6c8da09fcecca1b9733a22619f56288ff</code>
+										<button class="btn-copy" data-clipboard-text="0xa689e1c6c8da09fcecca1b9733a22619f56288ff"
+											title="Copiar">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="0xa689e1c6c8da09fcecca1b9733a22619f56288ff"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>Binance Pay</summary>
+
+							<div class="btn-group">
+								<a href="https://app.binance.com/uni-qr/DbrFdVHA" target="_blank" class="btn-donate">Donar vía
+									Binance Pay</a>
+							</div>
+
+							<div class="qr-code" data-qr-text="https://app.binance.com/uni-qr/DbrFdVHA"></div>
+
+						</details>
+
+					</div>
+
+					<!-- 4. Revolut -->
+					<div class="donation-card revolut">
+						<h4>Revolut</h4>
+						<p>La forma más rápida de donar. Soporta <b>Apple Pay</b>, <b>tarjetas de débito o crédito</b>.</p>
+						<div class="btn-group">
+							<a href="https://revolut.me/zbynekvanzura?amount=1000&currency=EUR&note=Support%20PgArachne"
+								target="_blank" class="btn-donate">Donar vía Revolut</a>
+						</div>
+
+					</div>
+
+					<!-- 5. PayPal -->
+					<div class="donation-card paypal">
+						<h4>PayPal</h4>
+						<p>Pagos seguros y fáciles. Soporta <b>tarjetas de débito o crédito</b>.</p>
+
+						<div style="margin-bottom: 15px;">
+							<a href="https://www.paypal.com/donate/?hosted_button_id=YUAEVQGPYZU8U" target="_blank"
+								class="btn-donate">Donar vía PayPal</a>
+						</div>
+					</div>
+
+					<!-- 6. Wise -->
+					<div class="donation-card wise">
+						<h4>Wise</h4>
+						<p>Pagos seguros y fáciles.</p>
+
+						<div>
+							<a href="https://wise.com/pay/me/zbynekv17" target="_blank" class="btn-donate">Donar vía Wise</a>
+						</div>
+					</div>
+
+
+				</div>
+			</section>
+
+			<!-- Sección de Licencia -->
+			<section id="license">
+				<h2>Licencia y Marca Registrada</h2>
+				<div class="license-box">
+					<p><strong>El Código (Licencia MIT):</strong><br>
+						Puedes usar el código fuente gratis para cualquier proyecto personal o comercial. Puedes modificarlo,
+						bifurcarlo (fork) y distribuirlo.</p>
+
+					<p style="margin-top: 15px;"><strong>La Marca (Marca Registrada):</strong><br>
+						El nombre "PgArachne" y el Logo son marcas registradas de <em>Zbyněk Vanžura</em>. Si bifurcas el
+						proyecto u ofreces un servicio comercial "PgArachne Gestionado", debes eliminar la marca y el logo
+						originales a menos que hayas obtenido una licencia especial.</p>
+				</div>
+				<p class="copyright">Copyright &copy; 2025 Zbyněk Vanžura.</p>
+			</section>
+
+		</main>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+	<script src="../assets/script.js"></script>
+</body>
+
+</html>

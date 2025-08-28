@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<title>PgArachne Explorer</title>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			max-width: 800px;
+			margin: 0 auto;
+			padding: 20px;
+		}
+
+		#form,
+		#login-form {
+			margin-bottom: 20px;
+			border: 1px solid #ddd;
+			padding: 20px;
+			border-radius: 5px;
+		}
+
+		h2 {
+			border-bottom: 1px solid #eee;
+			padding-bottom: 10px;
+		}
+
+		#result {
+			border: 1px solid #ccc;
+			padding: 10px;
+			min-height: 150px;
+			background-color: #f9f9f9;
+			overflow-x: auto;
+		}
+
+		label,
+		input,
+		button,
+		textarea {
+			margin: 10px 0;
+			display: block;
+		}
+
+		input[type="text"],
+		input[type="password"],
+		textarea {
+			width: calc(100% - 18px);
+			padding: 8px;
+			border: 1px solid #ccc;
+			border-radius: 4px;
+			font-family: monospace;
+		}
+
+		textarea {
+			height: 80px;
+			resize: vertical;
+		}
+
+		button {
+			padding: 10px 20px;
+			background-color: #007bff;
+			color: white;
+			border: none;
+			cursor: pointer;
+			border-radius: 4px;
+		}
+
+		button:hover {
+			background-color: #0056b3;
+		}
+
+		.button-secondary {
+			background-color: #6c757d;
+		}
+
+		.button-secondary:hover {
+			background-color: #5a6268;
+		}
+
+		.button-danger {
+			background-color: #dc3545;
+		}
+
+		.button-danger:hover {
+			background-color: #c82333;
+		}
+
+		.button-group {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+		}
+
+		pre {
+			white-space: pre-wrap;
+			word-wrap: break-word;
+		}
+
+		#user-status {
+			font-style: italic;
+			color: #555;
+		}
+
+		.hidden {
+			display: none;
+		}
+
+		/* Tab styles */
+		.auth-tabs {
+			display: flex;
+			border-bottom: 1px solid #ccc;
+			margin-bottom: 15px;
+		}
+
+		.auth-tab-button {
+			background-color: #e9ecef;
+			color: #495057;
+			border: 1px solid #ccc;
+			border-bottom: none;
+			border-radius: 4px 4px 0 0;
+			padding: 10px 15px;
+			cursor: pointer;
+			margin: 0;
+		}
+
+		.auth-tab-button.active {
+			background-color: white;
+			border-bottom: 1px solid white;
+			margin-bottom: -1px;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>PgArachne Explorer</h1>
+
+	<!-- Login Form -->
+	<div id="login-form">
+		<h2>1. Authentication</h2>
+		<label for="apiUrl">API URL (e.g., http://localhost:8080):</label>
+		<input type="text" id="apiUrl" placeholder="Enter API URL">
+
+		<label for="databaseName">Database Name:</label>
+		<input type="text" id="databaseName" placeholder="Enter database name">
+
+		<!-- Method Selection Tabs -->
+		<div class="auth-tabs">
+			<button id="tab-password" class="auth-tab-button active"
+				onclick="switchAuthMode('password')">Password</button>
+			<button id="tab-token" class="auth-tab-button" onclick="switchAuthMode('token')">API Token</button>
+		</div>
+
+		<!-- Password Auth Content -->
+		<div id="password-auth-content">
+			<label for="login">Login:</label>
+			<input type="text" id="login" placeholder="Enter username">
+			<label for="password">Password:</label>
+			<input type="password" id="password" placeholder="Enter password">
+		</div>
+
+		<!-- API Token Auth Content -->
+		<div id="token-auth-content" class="hidden">
+			<label for="apiToken">API Token:</label>
+			<textarea id="apiToken" placeholder="Paste your long-lived API token"></textarea>
+		</div>
+
+		<div class="button-group">
+			<button onclick="authenticate()">Verify & Continue</button>
+			<span id="user-status">Status: Not logged in</span>
+			<button onclick="logout()" id="logout-button" class="button-danger hidden">Logout</button>
+		</div>
+	</div>
+
+	<!-- Main Function Call Form (initially hidden) -->
+	<div id="form" class="hidden">
+		<h2>2. Function Call</h2>
+		<label for="endpoint">Endpoint (load functions to see suggestions):</label>
+		<input type="text" id="endpoint" list="endpoint-suggestions" placeholder="Enter function name"
+			oninput="updateParametersTemplate()">
+		<datalist id="endpoint-suggestions"></datalist>
+
+		<label for="parameters">Parameters (JSON):</label>
+		<textarea id="parameters" placeholder='{}'></textarea>
+
+		<div class="button-group">
+			<button onclick="loadCapabilities()" class="button-secondary">Load/Refresh Functions</button>
+			<button onclick="callFunction()">Send JSON-RPC Request</button>
+		</div>
+	</div>
+
+	<h2>Result:</h2>
+	<div id="result">Response will appear here...</div>
+
+	<script>
+		let availableFunctions = new Map();
+		let authToken = null; // Universal token (can be JWT or API token)
+		let currentAuthMode = 'password';
+
+		// --- UI Management ---
+		function setLoggedInUI(authIdentifier) {
+			document.getElementById('login-form').style.borderColor = '#28a745';
+			document.getElementById('user-status').textContent = `Status: Verified (${authIdentifier})`;
+			document.getElementById('logout-button').classList.remove('hidden');
+			document.getElementById('form').classList.remove('hidden');
+			document.getElementById('apiUrl').disabled = true;
+			document.getElementById('databaseName').disabled = true;
+			document.querySelectorAll('.auth-tab-button, #login, #password, #apiToken').forEach(el => el.disabled = true);
+		}
+
+		function setLoggedOutUI() {
+			document.getElementById('login-form').style.borderColor = '#ddd';
+			document.getElementById('user-status').textContent = 'Status: Not logged in';
+			document.getElementById('logout-button').classList.add('hidden');
+			document.getElementById('form').classList.add('hidden');
+			document.getElementById('result').innerHTML = 'Please authenticate first.';
+			document.getElementById('endpoint-suggestions').innerHTML = '';
+			document.getElementById('apiUrl').disabled = false;
+			document.getElementById('databaseName').disabled = false;
+			document.querySelectorAll('.auth-tab-button, #login, #password, #apiToken').forEach(el => el.disabled = false);
+			authToken = null;
+			availableFunctions.clear();
+		}
+
+		function switchAuthMode(mode) {
+			currentAuthMode = mode;
+			document.getElementById('password-auth-content').classList.toggle('hidden', mode !== 'password');
+			document.getElementById('token-auth-content').classList.toggle('hidden', mode !== 'token');
+			document.getElementById('tab-password').classList.toggle('active', mode === 'password');
+			document.getElementById('tab-token').classList.toggle('active', mode === 'token');
+		}
+
+		// --- Local Storage Logic ---
+		function saveToLocalStorage(id) { localStorage.setItem(id, document.getElementById(id).value); }
+		function loadFromLocalStorage(id, defaultValue) {
+			const element = document.getElementById(id);
+			const storedValue = localStorage.getItem(id);
+			element.value = storedValue || defaultValue || '';
+			element.addEventListener('input', () => saveToLocalStorage(id));
+		}
+
+		// --- Main Authentication Functions ---
+		async function authenticate() {
+			if (currentAuthMode === 'password') {
+				await loginWithPassword();
+			} else {
+				await loginWithApiToken();
+			}
+		}
+
+		async function loginWithPassword() {
+			const apiUrl = document.getElementById('apiUrl').value.trim();
+			const dbName = document.getElementById('databaseName').value.trim();
+			const login = document.getElementById('login').value.trim();
+			const password = document.getElementById('password').value;
+			const resultDiv = document.getElementById('result');
+
+			if (!apiUrl || !dbName || !login || !password) {
+				resultDiv.innerHTML = '<pre>Error: Please fill in URL, database name, login and password.</pre>';
+				return;
+			}
+
+			// Sending plain password, server handles hashing
+			try {
+				resultDiv.innerHTML = '<pre>Logging in...</pre>';
+				const response = await fetch(`${apiUrl}/api/${dbName}/login`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ login: login, password: password })
+				});
+
+				const data = await response.json();
+				if (response.ok && data.token) {
+					authToken = data.token;
+					resultDiv.innerHTML = '<pre>Login successful. You can now load and call functions.</pre>';
+					setLoggedInUI(`user ${login}`);
+					loadCapabilities();
+				} else {
+					resultDiv.innerHTML = '<pre>Login error: ' + (data.error || 'Unknown error') + '</pre>';
+				}
+			} catch (e) {
+				resultDiv.innerHTML = '<pre>Server communication error: ' + e.message + '</pre>';
+			}
+		}
+
+		async function loginWithApiToken() {
+			const resultDiv = document.getElementById('result');
+			const tokenInput = document.getElementById('apiToken');
+			const token = tokenInput.value.trim();
+			if (!token) {
+				resultDiv.innerHTML = '<pre>Error: Please enter an API token.</pre>';
+				return;
+			}
+			// Temporarily set token and try calling 'capabilities' to verify
+			authToken = token;
+			resultDiv.innerHTML = '<pre>Verifying API token...</pre>';
+			try {
+				await loadCapabilities(true); // true = silent mode
+				resultDiv.innerHTML = '<pre>API token is valid. You can call functions.</pre>';
+				setLoggedInUI('API Token');
+			} catch (error) {
+				resultDiv.innerHTML = '<pre>Error: API token is invalid or communication failed. ' + error.message + '</pre>';
+				authToken = null; // Clear invalid token
+			}
+		}
+
+
+		function logout() {
+			setLoggedOutUI();
+		}
+
+		// --- API Request Functions ---
+		async function makeApiRequest(url, payload) {
+			if (!authToken) {
+				throw new Error("Not authenticated (missing token).");
+			}
+			return fetch(url, {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${authToken}`
+				},
+				body: JSON.stringify(payload)
+			});
+		}
+
+		async function loadCapabilities(silent = false) {
+			const apiUrl = document.getElementById('apiUrl').value.trim();
+			const dbName = document.getElementById('databaseName').value.trim();
+			const endpointSuggestions = document.getElementById('endpoint-suggestions');
+			const resultDiv = document.getElementById('result');
+
+			if (!silent) {
+				resultDiv.innerHTML = '<pre>Loading available functions...</pre>';
+			}
+			availableFunctions.clear();
+
+			try {
+				const payload = { jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 };
+				const response = await makeApiRequest(`${apiUrl}/api/${dbName}/capabilities`, payload);
+				const data = await response.json();
+
+				if (response.ok && data.result) {
+					endpointSuggestions.innerHTML = '';
+					data.result.forEach(func => {
+						availableFunctions.set(func.method, func);
+						const option = document.createElement('option');
+						option.value = func.method;
+						option.text = `${func.method} - ${func.description.split('.')[0]}`;
+						endpointSuggestions.appendChild(option);
+					});
+					if (!silent) {
+						resultDiv.innerHTML = '<pre>Functions loaded successfully. Select an endpoint and parameters will auto-fill.</pre>';
+					}
+					updateParametersTemplate();
+				} else {
+					const errorMsg = data.error ? data.error.message : `HTTP ${response.status}: ${response.statusText}`;
+					throw new Error(errorMsg);
+				}
+			} catch (e) {
+				if (!silent) {
+					resultDiv.innerHTML = '<pre>Error loading functions: ' + e.message + '</pre>';
+				}
+				throw e; // Rethrow to be caught by loginWithApiToken
+			}
+		}
+
+		async function callFunction() {
+			const apiUrl = document.getElementById('apiUrl').value.trim();
+			const dbName = document.getElementById('databaseName').value.trim();
+			const endpoint = document.getElementById('endpoint').value.trim();
+			const parametersInput = document.getElementById('parameters').value;
+			const resultDiv = document.getElementById('result');
+
+			if (!endpoint) {
+				resultDiv.innerHTML = '<pre>Error: Enter an endpoint.</pre>';
+				return;
+			}
+			let parameters;
+			try {
+				parameters = JSON.parse(parametersInput || '{}');
+			} catch (e) {
+				resultDiv.innerHTML = '<pre>Error: Invalid JSON in parameters: ' + e.message + '</pre>';
+				return;
+			}
+
+			const payload = { jsonrpc: '2.0', method: endpoint, params: parameters, id: 1 };
+
+			try {
+				const fullUrl = `${apiUrl}/api/${dbName}/${endpoint}`;
+				resultDiv.innerHTML = '<pre>Sending request to ' + fullUrl + '...</pre>';
+
+				const response = await makeApiRequest(fullUrl, payload);
+				const data = await response.json();
+
+				if (response.ok && data.result) {
+					resultDiv.innerHTML = '<pre>' + JSON.stringify(data.result, null, 2) + '</pre>';
+				} else {
+					const errorMsg = data.error ? data.error.message : `HTTP ${response.status}: ${response.statusText}`;
+					resultDiv.innerHTML = '<pre>Error: ' + errorMsg + '</pre>';
+				}
+			} catch (e) {
+				resultDiv.innerHTML = '<pre>Error: ' + e.message + '</pre>';
+			}
+		}
+
+		// --- Parameter Generation ---
+		function updateParametersTemplate() {
+			const endpointInput = document.getElementById('endpoint');
+			const parametersTextarea = document.getElementById('parameters');
+			const funcDetails = availableFunctions.get(endpointInput.value);
+
+			if (!funcDetails || !funcDetails.parameters || !funcDetails.parameters.properties) {
+				if (document.activeElement !== parametersTextarea) parametersTextarea.value = "{}";
+				return;
+			}
+			const paramsTemplate = {};
+			const properties = funcDetails.parameters.properties;
+			for (const paramName in properties) {
+				const paramDetails = properties[paramName];
+				switch (paramDetails.type) {
+					case 'integer': case 'number': paramsTemplate[paramName] = paramDetails.default ?? 0; break;
+					case 'boolean': paramsTemplate[paramName] = paramDetails.default ?? false; break;
+					case 'string': paramsTemplate[paramName] = paramDetails.default ?? ""; break;
+					default: paramsTemplate[paramName] = paramDetails.default ?? null; break;
+				}
+			}
+			if (document.activeElement !== parametersTextarea) {
+				parametersTextarea.value = JSON.stringify(paramsTemplate, null, 2);
+			}
+		}
+
+		// --- Page Initialization ---
+		window.onload = () => {
+			loadFromLocalStorage('apiUrl', 'http://localhost:8080');
+			loadFromLocalStorage('databaseName', 'clients_and_terminals');
+			loadFromLocalStorage('login');
+			loadFromLocalStorage('endpoint', 'capabilities');
+			setLoggedOutUI();
+			switchAuthMode('password'); // Always start on password tab
+		};
+	</script>
+</body>
+
+</html>

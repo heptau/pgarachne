@@ -1,0 +1,175 @@
+openapi: 3.0.3
+info:
+  title: PgArachne JSON-RPC Gateway
+  description: >
+    A JSON-RPC 2.0 API gateway that dynamically maps URL paths to PostgreSQL functions in the 'api' schema.
+
+
+    **Core Concept**: The path `/api/{database}/{schema_name}.{function_name}` routes to the PostgreSQL function `{schema_name}.{function_name}` within the specified database.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+paths:
+  /api/{database}/login:
+    post:
+      summary: Login to obtain a JWT
+      description: >
+        Authenticate using a login and password to receive a short-lived JWT.
+        The password hash is verified against `api.users` in the target database.
+      operationId: login
+      parameters:
+        - name: database
+          in: path
+          description: Target database name
+          required: true
+          schema:
+            type: string
+            example: pgarachne_demo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    description: JWT Bearer token
+        '401':
+          description: Invalid credentials
+        '503':
+          description: Database connection failed
+
+  /api/{database}/{schema_name}.{function_name}:
+    post:
+      summary: Execute a PostgreSQL function via JSON-RPC
+      description: >
+        Executes a function in the `api` schema of the target database.
+        The function must accept a single `jsonb` or `json` argument.
+      operationId: executeFunction
+      parameters:
+        - name: database
+          in: path
+          description: Target database name
+          required: true
+          schema:
+            type: string
+            example: pgarachne_demo
+        - name: function
+          in: path
+          description: PostgreSQL function name (in `api` schema)
+          required: true
+          schema:
+            type: string
+            example: list_users
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JsonRpcRequest'
+      responses:
+        '200':
+          description: JSON-RPC Response (Success or Error)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JsonRpcResponse'
+        '404':
+          description: Function not found
+        '401':
+          description: Unauthorized (Missing or invalid token)
+        '500':
+          description: Internal Server Error
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: "Format: `Token <your_api_token>`"
+
+  schemas:
+    LoginRequest:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+        password:
+          type: string
+
+    JsonRpcRequest:
+      type: object
+      required:
+        - jsonrpc
+        - method
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          enum: ["2.0"]
+          example: "2.0"
+        method:
+          type: string
+          description: "Must match the function name in the URL"
+          example: "list_users"
+        params:
+          type: object
+          description: "Parameters passed to the SQL function as a JSON object"
+          example: {"limit": 10}
+        id:
+          type: integer # or string
+          example: 1
+
+    JsonRpcResponse:
+      type: object
+      required:
+        - jsonrpc
+        - id
+      properties:
+        jsonrpc:
+          type: string
+          example: "2.0"
+        result:
+          type: object # or any type
+          description: "Successful result from the function"
+        error:
+          $ref: '#/components/schemas/JsonRpcError'
+        id:
+          type: integer # or string
+          example: 1
+
+    JsonRpcError:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          example: -32600
+        message:
+          type: string
+          example: "Invalid Request"
+        data:
+          type: object
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []

@@ -1,0 +1,19 @@
+{
+	"schema_version": "v1",
+	"name_for_human": "PgArachne Corporate Data API",
+	"name_for_model": "pgarachne_multi_db_api",
+	"description_for_human": "Accesses data for multiple companies. The model will ask which company you want to work with.",
+	"description_for_model": "API for accessing corporate databases. ALWAYS start by calling the 'list_companies' function to get a list of available companies and their 'db_name'. Use the returned 'db_name' for all subsequent requests to access company-specific data. The OpenAPI specification for each company is available at the 'openapi_spec_url' returned by 'list_companies'.",
+	"auth": {
+		"type": "user_http",
+		"authorization_type": "bearer"
+	},
+	"api": {
+		"type": "openapi",
+		"url": "http://localhost:8080/api/main/openapi.json",
+		"is_user_authenticated": false
+	},
+	"logo_url": "http://localhost:8080/logo.png",
+	"contact_email": "support@yourdomain.com",
+	"legal_info_url": "http://yourdomain.com/legal"
+}
