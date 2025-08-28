@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="cs">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="PgArachne: Vysoce výkonná brána z PostgreSQL na JSON-RPC.">
+	<title>PgArachne - Okamžité PostgreSQL API</title>
+	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
+	<link rel="stylesheet" href="../assets/style.css">
+</head>
+
+<body>
+
+	<!-- Fixní navigační lišta -->
+	<nav class="navbar">
+		<div class="container nav-container">
+
+			<!-- Navigační odkazy -->
+			<div class="nav-links">
+				<a href="#features">Funkce</a>
+				<a href="#install">Instalace</a>
+				<a href="#docs">Dokumentace</a>
+				<a href="#support" class="nav-btn-donate">Podpořit projekt</a>
+			</div>
+
+			<!-- Přepínač jazyků -->
+			<div class="lang-dropdown">
+				<button class="lang-btn">Jazyk ▾</button>
+				<div class="lang-content">
+					<a href="../en/index.html">English</a>
+					<a href="../cs/index.html" class="active">Čeština</a>
+					<a href="../es/index.html">Español</a>
+					<a href="../de/index.html">Deutsch</a>
+					<a href="../fr/index.html">Français</a>
+					<a href="../it/index.html">Italiano</a>
+					<a href="../pt/index.html">Português</a>
+				</div>
+			</div>
+
+		</div>
+	</nav>
+
+	<!-- Hero sekce -->
+	<header class="hero-section">
+		<div class="container hero-flex">
+
+			<!-- Vlevo: Velké logo -->
+			<div class="hero-logo-wrapper">
+				<img src="../assets/pgarachne-logo.jpeg" alt="Logo PgArachne" class="hero-logo-img">
+			</div>
+
+			<!-- Vpravo: Obsah -->
+			<div class="hero-content">
+				<!-- Název značky jako hlavní nadpis -->
+				<h1 class="brand-title">PgArachne</h1>
+
+				<!-- Co to je -->
+				<p class="hero-lead">
+					Proměňte PostgreSQL v bezpečné API. Okamžitě.
+				</p>
+
+				<!-- Jak to funguje -->
+				<p class="hero-desc">
+					Žádný zbytečný kód. Vysoký výkon. Middleware, který mapuje HTTP požadavky přímo na databázové funkce.
+				</p>
+
+				<div class="hero-actions">
+					<a href="#install" class="btn btn-primary">Začínáme</a>
+					<a href="https://github.com/heptau/pgarachne" target="_blank" class="btn btn-secondary">
+						GitHub
+					</a>
+					<a href="#explorer" class="btn btn-secondary">Zobrazit demo (Explorer)</a>
+				</div>
+			</div>
+
+		</div>
+	</header>
+
+	<!-- Hodnota pro uživatele / Případy užití -->
+	<section id="features" class="section-light bg-offset">
+		<div class="container">
+			<h2>Je PgArachne pro vás to pravé?</h2>
+			<p class="section-intro">
+				PgArachne není jen pro prototypování.<br>Překlenuje propast mezi hrubým výkonem databáze a požadavky
+				moderních API.
+			</p>
+
+			<div class="grid-3">
+				<div class="card">
+					<h3>🚀 Rychlé prototypování</h3>
+					<p>Přestaňte psát opakující se CRUD controllery. Definujte SQL funkci a váš API endpoint je okamžitě
+						hotový. Ideální pro MVP a hackathony.</p>
+				</div>
+				<div class="card">
+					<h3>🏢 Připraven pro produkci</h3>
+					<p>Navržen tak, aby zvládal <strong>více než 90&nbsp% standardních backendových úloh</strong> (CRUD,
+						validace, auth). Díky poolování připojení, bezpečnému vypínání a metrikám Prometheus spolehlivě pohání
+						produkční systémy.
+					</p>
+				</div>
+				<div class="card">
+					<h3>🧠 Vhodné pro AI a LLM</h3>
+					<p>Jelikož API se samo dokumentuje pomocí SQL komentářů, můžete schéma předhodit přímo LLM (ChatGPT,
+						Claude). To umožňuje AI agentům pochopit vaši business logiku a vytvářet platná volání API bez
+						halucinací.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+
+	<!-- Hlavní kontejner dokumentace -->
+	<div id="docs" class="main-wrapper">
+
+		<!-- Obsah (TOC) -->
+		<aside class="toc">
+			<h3>Obsah</h3>
+			<ul>
+				<li><a href="#about">O projektu a architektuře</a></li>
+				<li><a href="#install">Instalace</a></li>
+				<li><a href="#config">Konfigurace</a></li>
+				<li><a href="#explorer">Průzkumník API</a></li>
+				<li><a href="#security">Bezpečnost a role</a></li>
+				<li><a href="#deployment">Nasazení (HTTPS)</a></li>
+				<li><a href="#errors">Chybové kódy</a></li>
+				<li><a href="#support">Podpora a dary</a></li>
+				<li><a href="#license">Licence</a></li>
+			</ul>
+		</aside>
+
+		<!-- Obsahová část -->
+		<main class="doc-content">
+
+			<section id="about">
+				<h2>O projektu a architektuře</h2>
+				<p>
+					PgArachne slouží jako lehký, vysoce výkonný <strong>webový server</strong>, který stojí mezi vašimi HTTP
+					klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+					nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
+				</p>
+
+				<div class="card"
+					style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+					<h3>Klíčové technické schopnosti</h3>
+					<ul style="margin-left: 20px; list-style-type: disc;">
+						<li style="margin-bottom: 10px;">
+							<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+							2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
+							požadavků.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Nativní DB autentizace:</strong> Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
+							svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
+							mohou alternativně využívat trvalé <strong>API Tokeny</strong>.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Maskování rolí (Role Masquerading):</strong> PgArachne se připojuje jako proxy uživatel,
+							ale každý požadavek provádí pomocí <code>SET LOCAL ROLE</code>, čímž se přepne do identity
+							ověřeného uživatele. Zabezpečení na úrovni řádků (RLS) funguje automaticky.
+						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Server statických souborů:</strong> PgArachne může servírovat statické assety (HTML, JS,
+							CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+						</li>
+					</ul>
+				</div>
+
+				<p>
+					Tato architektura dramaticky zjednodušuje stack: <strong>Databáze ↔ PgArachne ↔ Frontend</strong>.
+				</p>
+
+				<div class="tip">
+					<strong>Formát API endpointu:</strong> Všechny databázové funkce jsou vystaveny na:
+					<div
+						style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+						<div>POST http://{server}:{port}</div>
+						<div style="padding-left: 50px;">/api</div>
+						<div style="padding-left: 50px;">/{nazev_databaze}</div>
+						<div style="padding-left: 50px;">/{nazev_schema}.{nazev_funkce}</div>
+					</div>
+				</div>
+			</section>
+
+			<section id="install">
+				<h2>Instalace</h2>
+
+				<!-- Možnost A: Stažení binárek -->
+				<h3>Možnost A: Stáhnout binární soubory</h3>
+				<p>Stáhněte si nejnovější předkompilovanou verzi pro váš operační systém:</p>
+
+				<div class="donation-grid" style="margin-top: 20px; margin-bottom: 40px;">
+
+					<!-- Linux (Tux Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="M12.504 0c-.155 0-.315.008-.48.021-4.226.333-3.105 4.807-3.17 6.298-.076 1.092-.3 1.953-1.05 3.02-.885 1.051-2.127 2.75-2.716 4.521-.278.832-.41 1.684-.287 2.489a.424.424 0 00-.11.135c-.26.268-.45.6-.663.839-.199.199-.485.267-.797.4-.313.136-.658.269-.864.68-.09.189-.136.394-.132.602 0 .199.027.4.055.536.058.399.116.728.04.97-.249.68-.28 1.145-.106 1.484.174.334.535.47.94.601.81.2 1.91.135 2.774.6.926.466 1.866.67 2.616.47.526-.116.97-.464 1.208-.946.587-.003 1.23-.269 2.26-.334.699-.058 1.574.267 2.577.2.025.134.063.198.114.333l.003.003c.391.778 1.113 1.132 1.884 1.071.771-.06 1.592-.536 2.257-1.306.631-.765 1.683-1.084 2.378-1.503.348-.199.629-.469.649-.853.023-.4-.2-.811-.714-1.376v-.097l-.003-.003c-.17-.2-.25-.535-.338-.926-.085-.401-.182-.786-.492-1.046h-.003c-.059-.054-.123-.067-.188-.135a.357.357 0 00-.19-.064c.431-1.278.264-2.55-.173-3.694-.533-1.41-1.465-2.638-2.175-3.483-.796-1.005-1.576-1.957-1.56-3.368.026-2.152.236-6.133-3.544-6.139zm.529 3.405h.013c.213 0 .396.062.584.198.19.135.33.332.438.533.105.259.158.459.166.724 0-.02.006-.04.006-.06v.105a.086.086 0 01-.004-.021l-.004-.024a1.807 1.807 0 01-.15.706.953.953 0 01-.213.335.71.71 0 00-.088-.042c-.104-.045-.198-.064-.284-.133a1.312 1.312 0 00-.22-.066c.05-.06.146-.133.183-.198.053-.128.082-.264.088-.402v-.02a1.21 1.21 0 00-.061-.4c-.045-.134-.101-.2-.183-.333-.084-.066-.167-.132-.267-.132h-.016c-.093 0-.176.03-.262.132a.8.8 0 00-.205.334 1.18 1.18 0 00-.09.4v.019c.002.089.008.179.02.267-.193-.067-.438-.135-.607-.202a1.635 1.635 0 01-.018-.2v-.02a1.772 1.772 0 01.15-.768c.082-.22.232-.406.43-.533a.985.985 0 01.594-.2zm-2.962.059h.036c.142 0 .27.048.399.135.146.129.264.288.344.465.09.199.14.4.153.667v.004c.007.134.006.2-.002.266v.08c-.03.007-.056.018-.083.024-.152.055-.274.135-.393.2.012-.09.013-.18.003-.267v-.015c-.012-.133-.04-.2-.082-.333a.613.613 0 00-.166-.267.248.248 0 00-.183-.064h-.021c-.071.006-.13.04-.186.132a.552.552 0 00-.12.27.944.944 0 00-.023.33v.015c.012.135.037.2.08.334.046.134.098.2.166.268.01.009.02.018.034.024-.07.057-.117.07-.176.136a.304.304 0 01-.131.068 2.62 2.62 0 01-.275-.402 1.772 1.772 0 01-.155-.667 1.759 1.759 0 01.08-.668 1.43 1.43 0 01.283-.535c.128-.133.26-.2.418-.2zm1.37 1.706c.332 0 .733.065 1.216.399.293.2.523.269 1.052.468h.003c.255.136.405.266.478.399v-.131a.571.571 0 01.016.47c-.123.31-.516.643-1.063.842v.002c-.268.135-.501.333-.775.465-.276.135-.588.292-1.012.267a1.139 1.139 0 01-.448-.067 3.566 3.566 0 01-.322-.198c-.195-.135-.363-.332-.612-.465v-.005h-.005c-.4-.246-.616-.512-.686-.71-.07-.268-.005-.47.193-.6.224-.135.38-.271.483-.336.104-.074.143-.102.176-.131h.002v-.003c.169-.202.436-.47.839-.601.139-.036.294-.065.466-.065zm2.8 2.142c.358 1.417 1.196 3.475 1.735 4.473.286.534.855 1.659 1.102 3.024.156-.005.33.018.513.064.646-1.671-.546-3.467-1.089-3.966-.22-.2-.232-.335-.123-.335.59.534 1.365 1.572 1.646 2.757.13.535.16 1.104.021 1.67.067.028.135.06.205.067 1.032.534 1.413.938 1.23 1.537v-.043c-.06-.003-.12 0-.18 0h-.016c.151-.467-.182-.825-1.065-1.224-.915-.4-1.646-.336-1.77.465-.008.043-.013.066-.018.135-.068.023-.139.053-.209.064-.43.268-.662.669-.793 1.187-.13.533-.17 1.156-.205 1.869v.003c-.02.334-.17.838-.319 1.35-1.5 1.072-3.58 1.538-5.348.334a2.645 2.645 0 00-.402-.533 1.45 1.45 0 00-.275-.333c.182 0 .338-.03.465-.067a.615.615 0 00.314-.334c.108-.267 0-.697-.345-1.163-.345-.467-.931-.995-1.788-1.521-.63-.4-.986-.87-1.15-1.396-.165-.534-.143-1.085-.015-1.645.245-1.07.873-2.11 1.274-2.763.107-.065.037.135-.408.974-.396.751-1.14 2.497-.122 3.854a8.123 8.123 0 01.647-2.876c.564-1.278 1.743-3.504 1.836-5.268.048.036.217.135.289.202.218.133.38.333.59.465.21.201.477.335.876.335.039.003.075.006.11.006.412 0 .73-.134.997-.268.29-.134.52-.334.74-.4h.005c.467-.135.835-.402 1.044-.7zm2.185 8.958c.037.6.343 1.245.882 1.377.588.134 1.434-.333 1.791-.765l.211-.01c.315-.007.577.01.847.268l.003.003c.208.199.305.53.391.876.085.4.154.78.409 1.066.486.527.645.906.636 1.14l.003-.007v.018l-.003-.012c-.015.262-.185.396-.498.595-.63.401-1.746.712-2.457 1.57-.618.737-1.37 1.14-2.036 1.191-.664.053-1.237-.2-1.574-.898l-.005-.003c-.21-.4-.12-1.025.056-1.69.176-.668.428-1.344.463-1.897.037-.714.076-1.335.195-1.814.12-.465.308-.797.641-.984l.045-.022zm-10.814.049h.01c.053 0 .105.005.157.014.376.055.706.333 1.023.752l.91 1.664.003.003c.243.533.754 1.064 1.189 1.637.434.598.77 1.131.729 1.57v.006c-.057.744-.48 1.148-1.125 1.294-.645.135-1.52.002-2.395-.464-.968-.536-2.118-.469-2.857-.602-.369-.066-.61-.2-.723-.4-.11-.2-.113-.602.123-1.23v-.004l.002-.003c.117-.334.03-.752-.027-1.118-.055-.401-.083-.71.043-.94.16-.334.396-.4.69-.533.294-.135.64-.202.915-.47h.002v-.002c.256-.268.445-.601.668-.838.19-.201.38-.336.663-.336zm7.159-9.074c-.435.201-.945.535-1.488.535-.542 0-.97-.267-1.28-.466-.154-.134-.28-.268-.373-.335-.164-.134-.144-.333-.074-.333.109.016.129.134.199.2.096.066.215.2.36.333.292.2.68.467 1.167.467.485 0 1.053-.267 1.398-.466.195-.135.445-.334.648-.467.156-.136.149-.267.279-.267.128.016.034.134-.147.332a8.097 8.097 0 01-.69.468zm-1.082-1.583V5.64c-.006-.02.013-.042.029-.05.074-.043.18-.027.26.004.063 0 .16.067.15.135-.006.049-.085.066-.135.066-.055 0-.092-.043-.141-.068-.052-.018-.146-.008-.163-.065zm-.551 0c-.02.058-.113.049-.166.066-.047.025-.086.068-.14.068-.05 0-.13-.02-.136-.068-.01-.066.088-.133.15-.133.08-.031.184-.047.259-.005.019.009.036.03.03.05v.02h.003z" />
+						</svg>
+						<h4>Linux</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-amd64"
+								class="btn-download">x64/Intel/AMD</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-arm64"
+								class="btn-download">ARM64/Aarch64</a>
+
+						</div>
+					</div>
+
+					<!-- macOS (Apple Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
+						</svg>
+						<h4>macOS</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-arm64"
+								class="btn-download">ARM64/Apple Silicon</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-amd64"
+								class="btn-download">x64/Intel</a>
+						</div>
+					</div>
+
+					<!-- Windows (Microsoft Logo) -->
+					<div class="os-card">
+						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+							<path fill="currentColor"
+								d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" />
+						</svg>
+						<h4>Windows</h4>
+						<div class="os-btn-group">
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-amd64.exe"
+								class="btn-download">x64/Intel/AMD</a>
+							<a href="https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-arm64.exe"
+								class="btn-download">ARM64</a>
+
+						</div>
+					</div>
+				</div>
+
+				<div class="step-box">
+					<h3>Možnost B: Sestavení ze zdrojového kódu</h3>
+					<pre><code>git clone https://github.com/heptau/pgarachne.git
+cd pgarachne
+go build -o pgarachne cmd/pgarachne/main.go</code></pre>
+				</div>
+
+				<div class="step-box">
+					<h3>Nastavení databáze</h3>
+					<p>Inicializujte schéma <code>pgarachne</code> vyžadované pro API tokeny.</p>
+					<pre><code>psql -d my_database -f sql/schema.sql</code></pre>
+				</div>
+			</section>
+
+			<section id="config">
+				<h2>Konfigurace</h2>
+				<p>PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.</p>
+
+				<div class="tip">
+					<strong>Bezpečnostní poznámka:</strong> PgArachne nepracuje s hesly k databázi v konfiguračním souboru.
+					Pro autentizaci spoléhá na standardní mechanismus PostgreSQL souboru <code>.pgpass</code> (nebo
+					systémovou proměnnou <code>PGPASSWORD</code>).
+				</div>
+
+				<div class="tip">
+					<strong>Pořadí hledání:</strong> Pokud není konfigurační soubor specifikován přes CLI, hledá se v tomto
+					pořadí:
+					<ol>
+						<li>Aktuální složka: <code>./pgarachne.env</code> (Všechny OS)</li>
+						<li>Uživatelská konfigurace:
+							<ul>
+								<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+								<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+								</li>
+							</ul>
+						</li>
+						<li>Systémová konfigurace: <code>/etc/pgarachne/pgarachne.env</code> (pouze Linux / macOS)</li>
+					</ol>
+				</div>
+
+				<table>
+					<thead>
+						<tr>
+							<th style="width: 30%;">Proměnná</th>
+							<th style="width: 15%;">Povinné</th>
+							<th>Popis</th>
+						</tr>
+					</thead>
+					<tbody>
+						<!-- Konfigurace databáze -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Připojení k
+								databázi</td>
+						</tr>
+						<tr>
+							<td><code>DB_HOST</code></td>
+							<td>Ano</td>
+							<td>Adresa PostgreSQL serveru (např. <code>localhost</code>).</td>
+						</tr>
+						<tr>
+							<td><code>DB_PORT</code></td>
+							<td>Ne</td>
+							<td>Port databáze. Výchozí: <code>5432</code>.</td>
+						</tr>
+						<tr>
+							<td><code>DB_USER</code></td>
+							<td>Ano</td>
+							<td>Databázový uživatel, pod kterým se PgArachne připojuje.</td>
+						</tr>
+
+						<!-- Konfigurace serveru -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">HTTP Server</td>
+						</tr>
+						<tr>
+							<td><code>HTTP_PORT</code></td>
+							<td>Ne</td>
+							<td>Port pro naslouchání. Výchozí: <code>8080</code>.</td>
+						</tr>
+						<tr>
+							<td><code>ALLOWED_ORIGINS</code></td>
+							<td>Ne</td>
+							<td>Nastavení CORS. Čárkou oddělený seznam povolených domén (např.
+								<code>https://mojeaplikace.cz</code>).
+								Výchozí: <code>*</code>.
+							</td>
+						</tr>
+						<tr>
+							<td><code>STATIC_FILES_PATH</code></td>
+							<td>Ne</td>
+							<td>Absolutní cesta k servírování statických souborů (Explorer/Frontend).</td>
+						</tr>
+
+						<!-- Konfigurace bezpečnosti -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Bezpečnost (JWT)
+							</td>
+						</tr>
+						<tr>
+							<td><code>JWT_SECRET</code></td>
+							<td>Ano</td>
+							<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů.</td>
+						</tr>
+						<tr>
+							<td><code>JWT_EXPIRY_HOURS</code></td>
+							<td>Ne</td>
+							<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
+						</tr>
+
+						<!-- Konfigurace logování -->
+						<tr>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logování</td>
+						</tr>
+						<tr>
+							<td><code>LOG_LEVEL</code></td>
+							<td>Ne</td>
+							<td>Úroveň detailů: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+								Výchozí: <code>INFO</code>.</td>
+						</tr>
+						<tr>
+							<td><code>LOG_OUTPUT</code></td>
+							<td>Ne</td>
+							<td>Kam zapisovat logy: <code>stdout</code> nebo cesta k souboru.</td>
+						</tr>
+					</tbody>
+				</table>
+			</section>
+
+			<!-- Sekce API Explorer -->
+			<section id="explorer">
+				<h2>Průzkumník API (Explorer)</h2>
+				<p><strong>Explorer</strong> je webové rozhraní přiložené ve složce `tools/`. Nejedná se
+					jen o dokumentaci; je to plně funkční <strong>demo aplikace</strong> postavená na HTML/JS,
+					která komunikuje s databází výhradně prostřednictvím PgArachne.</p>
+
+				<p><strong>Co umí?</strong></p>
+				<ul>
+					<li><strong>Inspekce API:</strong> Čte funkci `capabilities` a zobrazuje všechny dostupné
+						endpointy a jejich parametry.</li>
+					<li><strong>Živé testování:</strong> Funkce můžete spouštět přímo z prohlížeče.</li>
+					<li><strong>Automatická dokumentace:</strong> Vykresluje SQL komentáře (včetně metadat `--- PARAMS ---`)
+						do čitelné dokumentace.</li>
+				</ul>
+
+				<div class="tip">
+					<strong>Jak jej povolit:</strong> Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
+					složku
+					`tools/pgarachne-explorer` na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
+				</div>
+			</section>
+
+			<!-- Sekce Bezpečnost -->
+			<section id="security">
+				<h2>Bezpečnost a autentizace</h2>
+				<p>PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
+					Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
+					<code>SET LOCAL ROLE</code>.
+				</p>
+
+				<h3>1. Interaktivní přihlášení (JWT)</h3>
+				<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
+					přes přihlašovací funkci.
+					Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne aktivní roli na tohoto
+					uživatele
+					po dobu trvání požadavku.</p>
+
+				<h3>2. Služby (API tokeny)</h3>
+				<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API klíče.</p>
+				<ul>
+					<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
+					<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
+					<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+				</ul>
+
+				<div class="warning">
+					<h3>Kritická konfigurace: Oprávnění proxy</h3>
+					<p>Jelikož se PgArachne připojuje jako uživatel definovaný v <code>DB_USER</code> (např.
+						<code>postgres</code> nebo
+						<code>pgarachne_proxy</code>)
+						a přepíná identitu na jiné uživatele, proxy uživatel <strong>musí být členem</strong> těchto cílových
+						rolí.
+					</p>
+
+					<p>Spusťte toto SQL pro každého uživatele/roli, která se potřebuje přihlásit:</p>
+					<pre><code>-- Povolit 'pgarachne_proxy' přepnout se na 'app_user'
+GRANT app_user TO pgarachne_proxy;</code></pre>
+				</div>
+			</section>
+
+			<section id="deployment">
+				<h2>Nasazení a HTTPS</h2>
+				<p>PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
+					hlaviček a
+					veřejné směrování byste před něj měli umístit <strong>Reverzní proxy</strong>.</p>
+
+				<div class="deployment-option">
+					<h3>Možnost A: Caddy Server</h3>
+					<p><strong>Nejlepší pro:</strong> Moderní produkční nasazení, snadné použití.</p>
+					<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> je jediný webový server, který ve
+						výchozím nastavení automaticky získává
+						a obnovuje SSL certifikáty (Let's Encrypt). Vyžaduje téměř nulovou konfiguraci.</p>
+					<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+				</div>
+
+				<div class="deployment-option">
+					<h3>Možnost B: Nginx</h3>
+					<p><strong>Nejlepší pro:</strong> Enterprise prostředí, komplexní směrování.</p>
+					<p><a href="https://nginx.org/" target="_blank">Nginx</a> je průmyslovým standardem pro
+						vysoce výkonné vyvažování zátěže (load balancing). Použijte jej, pokud již máte infrastrukturu Nginx.
+						Certbot budete muset spravovat ručně.</p>
+					<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+				</div>
+
+				<div class="deployment-option">
+					<h3>Možnost C: Ngrok</h3>
+					<p><strong>Nejlepší pro:</strong> Lokální vývoj, dema, testování webhooků.</p>
+					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> vytváří bezpečný tunel z veřejného
+						internetu přímo do vašeho notebooku bez konfigurace firewallu. Ideální pro okamžité ukázky kolegům.
+					</p>
+					<pre><code>./ngrok http 8080</code></pre>
+				</div>
+			</section>
+
+			<section id="errors">
+				<h2>Chybové kódy</h2>
+				<p>PgArachne vrací standardní chybové objekty JSON-RPC 2.0. Níže jsou uvedeny specifické kódy, se kterými se
+					můžete setkat:</p>
+				<table>
+					<tr>
+						<th>Kód</th>
+						<th>Zpráva</th>
+						<th>Význam</th>
+					</tr>
+					<tr>
+						<td><code>-32700</code></td>
+						<td>Parse error</td>
+						<td>Server obdržel neplatný JSON.</td>
+					</tr>
+					<tr>
+						<td><code>-32601</code></td>
+						<td>Method not found</td>
+						<td>Funkce ve schématu neexistuje.</td>
+					</tr>
+					<tr>
+						<td><code>-32602</code></td>
+						<td>Invalid params</td>
+						<td>Argumenty neodpovídají signatuře funkce.</td>
+					</tr>
+					<tr>
+						<td><code>-32001</code></td>
+						<td>Permission denied</td>
+						<td>Role aktuálního uživatele nemá oprávnění k provedení funkce (na úrovni DB).</td>
+					</tr>
+					<tr>
+						<td><code>-32000</code></td>
+						<td>Internal Error</td>
+						<td>Obecná chyba serveru (zkontrolujte logy).</td>
+					</tr>
+				</table>
+			</section>
+
+			<hr>
+
+			<!-- Sekce Podpora -->
+			<section id="support" class="support-section">
+				<h2>Podpořte vývoj</h2>
+				<p>Vývoj open-source softwaru, jako je PgArachne, zabere značné množství času. Pokud vám tento nástroj šetří
+					čas,
+					zvažte, prosím, podporu jeho údržby.</p>
+
+				<div class="donation-grid">
+
+					<!-- 1. Buy Me a Coffee (Featured) -->
+					<div class="donation-card featured">
+						<h4>☕ Staňte se členem</h4>
+						<p>Připojte se ke komunitě na <strong>Buy Me a Coffee</strong>. Získejte exkluzivní aktualizace,
+							dřívější přístup
+							k novým funkcím a další.</p>
+						<a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured">Podpořit
+							na Buy Me a Coffee</a>
+					</div>
+
+					<!-- 2. Bank Transfer -->
+					<div class="donation-card">
+						<h4>Bankovní převod</h4>
+						<p>Přímá podpora s 0% poplatky.</p>
+
+						<details>
+							<summary>🇺🇸 ACH (USA)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Jméno</span>
+									<div class="support-val-box">
+										<code>Zbynek Vanzura</code>
+										<button class="btn-copy" data-clipboard-text="Zbynek Vanzura"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Číslo účtu</span>
+									<div class="support-val-box">
+										<code>827908168786406</code>
+										<button class="btn-copy" data-clipboard-text="827908168786406"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Typ účtu</span>
+									<div class="support-val-box">
+										<code>Deposit</code>
+										<button class="btn-copy" data-clipboard-text="Deposit" title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Směrovací číslo (Routing)</span>
+									<div class="support-val-box">
+										<code>084009519</code>
+										<button class="btn-copy" data-clipboard-text="084009519" title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Swift/BIC</span>
+									<div class="support-val-box">
+										<code>TRWIUS35XXX</code>
+										<button class="btn-copy" data-clipboard-text="TRWIUS35XXX" title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Adresa banky</span>
+									<div class="support-val-box">
+										<code>Wise US Inc, 108 W 13th St, Wilmington, DE, 19801, United States</code>
+										<button class="btn-copy"
+											data-clipboard-text="Wise US Inc, 108 W 13th St, Wilmington, DE, 19801, United States"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+							</div>
+						</details>
+
+						<details>
+							<summary>🇪🇺 SEPA (Euro)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Jméno</span>
+									<div class="support-val-box">
+										<code>Zbynek Vanzura</code>
+										<button class="btn-copy" data-clipboard-text="Zbynek Vanzura"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">IBAN</span>
+									<div class="support-val-box">
+										<code>BE68<span class="iban-space"></span>9058<span class="iban-space"></span>1347<span class="iban-space"></span>3834</code>
+										<button class="btn-copy" data-clipboard-text="BE68905813473834"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Swift/BIC</span>
+									<div class="support-val-box">
+										<code>TRWIBEB1XXX</code>
+										<button class="btn-copy" data-clipboard-text="TRWIBEB1XXX" title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Adresa banky</span>
+									<div class="support-val-box">
+										<code>Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium</code>
+										<button class="btn-copy"
+											data-clipboard-text="Wise, Rue du Trône 100, 3rd floor, Brussels, 1050, Belgium"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+
+								<div class="qr-code" data-qr-text="BCD
+002
+1
+SCT
+TRWIBEB1XXX
+Zbynek Vanzura
+BE68905813473834
+EUR10.00
+
+
+Support PgArachne"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>🇨🇿 CZK (Česká rep.)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">Jméno</span>
+									<div class="support-val-box">
+										<code>Zbyněk Vanžura</code>
+										<button class="btn-copy" data-clipboard-text="Zbyněk Vanžura"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="support-row">
+									<span class="support-label">Číslo účtu</span>
+									<div class="support-val-box">
+										<code>2300354<span class="bank-space"></span>/<span class="bank-space"></span>2010</code>
+										<button class="btn-copy" data-clipboard-text="2300354/2010" title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="qr-code"
+									data-qr-text="SPD*1.0*ACC:CZ3220100000002300354125*CC:CZK*MSG:Support PgArachne"></div>
+							</div>
+						</details>
+					</div>
+
+					<!-- 3. Cryptocurrency -->
+					<div class="donation-card">
+						<h4>Kryptoměny</h4>
+						<p>Podpora prostřednictvím digitálních aktiv.</p>
+
+						<details>
+							<summary>Bitcoin (BTC)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">BTC Adresa</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6</code>
+										<button class="btn-copy" data-clipboard-text="bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="bitcoin:bc1qw8swmnvk48lhcatyw55wz8g4gyjq3vkw0h78g6"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>USDT (TetherUS)</summary>
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">TRC20 Adresa</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T</code>
+										<button class="btn-copy" data-clipboard-text="TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="TPemgxu8jxkjyiHpqrUJyc3dNEs3aPSb2T"></div>
+							</div>
+
+							<div class="details-content">
+								<div class="support-row">
+									<span class="support-label">ERC20 Adresa</span>
+									<div class="support-val-box">
+										<code class="wallet-addr">0xa689e1c6c8da09fcecca1b9733a22619f56288ff</code>
+										<button class="btn-copy" data-clipboard-text="0xa689e1c6c8da09fcecca1b9733a22619f56288ff"
+											title="Kopírovat">📋</button>
+									</div>
+								</div>
+								<div class="qr-code" data-qr-text="0xa689e1c6c8da09fcecca1b9733a22619f56288ff"></div>
+							</div>
+						</details>
+
+						<details>
+							<summary>Binance Pay</summary>
+
+							<div class="btn-group">
+								<a href="https://app.binance.com/uni-qr/DbrFdVHA" target="_blank" class="btn-donate">Darovat
+									přes
+									Binance Pay</a>
+							</div>
+
+							<div class="qr-code" data-qr-text="https://app.binance.com/uni-qr/DbrFdVHA"></div>
+
+						</details>
+
+					</div>
+
+					<!-- 4. Revolut -->
+					<div class="donation-card revolut">
+						<h4>Revolut</h4>
+						<p>Nejrychlejší způsob, jak darovat. Podporuje <b>Apple Pay</b>, <b>debetní či kreditní karty</b>.</p>
+						<div class="btn-group">
+							<a href="https://revolut.me/zbynekvanzura?amount=1000&currency=EUR&note=Support%20PgArachne"
+								target="_blank" class="btn-donate">Darovat přes Revolut</a>
+						</div>
+
+					</div>
+
+					<!-- 5. PayPal -->
+					<div class="donation-card paypal">
+						<h4>PayPal</h4>
+						<p>Snadné a bezpečné platby. Podporuje <b>debetní či kreditní karty</b>.</p>
+
+						<div style="margin-bottom: 15px;">
+							<a href="https://www.paypal.com/donate/?hosted_button_id=YUAEVQGPYZU8U" target="_blank"
+								class="btn-donate">Darovat přes PayPal</a>
+						</div>
+					</div>
+
+					<!-- 6. Wise -->
+					<div class="donation-card wise">
+						<h4>Wise</h4>
+						<p>Snadné a bezpečné platby.</p>
+
+						<div>
+							<a href="https://wise.com/pay/me/zbynekv17" target="_blank" class="btn-donate">Darovat přes
+								Wise</a>
+						</div>
+					</div>
+
+
+				</div>
+			</section>
+
+			<!-- Sekce Licence -->
+			<section id="license">
+				<h2>Licence a ochranná známka</h2>
+				<div class="license-box">
+					<p><strong>Kód (MIT Licence):</strong><br>
+						Zdrojový kód můžete zdarma použít pro jakýkoli osobní nebo komerční projekt. Můžete jej upravovat,
+						forkovat a šířit.</p>
+
+					<p style="margin-top: 15px;"><strong>Značka (Ochranná známka):</strong><br>
+						Název "PgArachne" a Logo jsou ochranné známky <em>Zbyňka Vanžury</em>. Pokud projekt forknete
+						nebo nabízíte komerční službu "Managed PgArachne", musíte odstranit původní branding a logo,
+						pokud jste nezískali speciální licenci.</p>
+				</div>
+				<p class="copyright">Copyright &copy; 2025 Zbyněk Vanžura.</p>
+			</section>
+
+		</main>
+	</div>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+	<script src="../assets/script.js"></script>
+</body>
+
+</html>
