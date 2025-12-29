@@ -6,7 +6,7 @@ info:
 
 
     **Core Concept**: The path `/api/{database}/{schema_name}.{function_name}` routes to the PostgreSQL function `{schema_name}.{function_name}` within the specified database.
-  version: 1.0.0
+  version: 1.0.1
 servers:
   - url: http://localhost:8080
     description: Local development server
