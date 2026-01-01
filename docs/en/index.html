@@ -117,6 +117,7 @@
 			<h3>Contents</h3>
 			<ul>
 				<li><a href="#about">About & Architecture</a></li>
+				<li><a href="#comparison">Comparison with PostgREST</a></li>
 				<li><a href="#install">Installation</a></li>
 				<li><a href="#config">Configuration</a></li>
 				<li><a href="#explorer">API Explorer</a></li>
@@ -180,6 +181,84 @@
 						<div style="padding-left: 50px;">/{schema_name}.{function_name}</div>
 					</div>
 				</div>
+			</section>
+
+			<section id="comparison">
+				<h2>Comparison: PgArachne vs. PostgREST</h2>
+				<div class="comparison-table-wrapper">
+					<table>
+						<thead>
+							<tr>
+								<th>Feature</th>
+								<th>PgArachne (+ Universal Functions)</th>
+								<th>PostgREST</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><strong>Setup Speed</strong></td>
+								<td>High. Universal functions allow instant CRUD similar to PostgREST.</td>
+								<td>High. Automatically generates endpoints for all tables.</td>
+							</tr>
+							<tr>
+								<td><strong>Logic Flexibility</strong></td>
+								<td>Unlimited. Ability to combine universal CRUD with specific RPC functions.</td>
+								<td>Limited. Most logic must reside in URL filters or Database Views.</td>
+							</tr>
+							<tr>
+								<td><strong>Schema Handling</strong></td>
+								<td>Native. Access via <code>schema.function</code>.</td>
+								<td>Flat/Global. Requires switching profiles in HTTP headers to change schemas.</td>
+							</tr>
+							<tr>
+								<td><strong>Abstraction</strong></td>
+								<td>Optional. You can either expose data directly (proxy) or encapsulate it safely.</td>
+								<td>Low. The API is essentially a mirror of the database schema.</td>
+							</tr>
+							<tr>
+								<td><strong>AI & LLM Ready</strong></td>
+								<td>Extreme. JSON-RPC and ability to define "Tool" functions specifically for AI agents.</td>
+								<td>Medium. AI has to struggle with strict URL parameter syntax.</td>
+							</tr>
+							<tr>
+								<td><strong>Static Files</strong></td>
+								<td>Yes. Serves HTML/JS/CSS directly from a single binary.</td>
+								<td>No. You must configure and manage an external Nginx in front of it.</td>
+							</tr>
+							<tr>
+								<td><strong>Multi-Database Support</strong></td>
+								<td><strong>Server-wide (N:1).</strong> A single PgArachne instance connects to the server
+									(IP:Port) and can serve all databases hosted there.</td>
+								<td><strong>Per-Database (1:1).</strong> One instance is bound to one specific database. Serving
+									multiple databases requires running multiple instances on different ports.</td>
+							</tr>
+							<tr>
+								<td><strong>Authentication</strong></td>
+								<td>JWT & API Keys. Natively supports both worlds.</td>
+								<td>Primarily JWT.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<h3>Why "Hybrid PgArachne" is the Winner?</h3>
+				<p>Thanks to the <strong>Universal Functions</strong> (acting as an emulator), you get the best of both
+					worlds:</p>
+				<ul>
+					<li><strong>Start-up Phase (MVP):</strong> Deploy PgArachne with a few proxy functions (like the ones in
+						<code>universal_table_access.sql</code>) and in minutes you have a functional API for all tables. At
+						this stage, it behaves exactly like PostgREST.
+					</li>
+					<li><strong>Production Phase:</strong> As the application grows, start writing dedicated functions for
+						sensitive operations (e.g., <code>process_payment</code>). This increases security and performance
+						without changing the underlying technology stack.</li>
+					<li><strong>Frontend & AI:</strong> At the same time, your application runs on the same port as the API
+						(thanks to static file serving), and AI agents can call your functions directly via JSON-RPC.</li>
+				</ul>
+				<p>
+					<em>Note: The "Universal Functions" are a set of standard PL/pgSQL functions you can add to your database
+						to enable generic Read, Create, Update, and Delete operations on any table.</em>
+				</p>
 			</section>
 
 			<section id="install">
@@ -756,7 +835,7 @@ Support PgArachne"></div>
 						project or offer a commercial "Managed PgArachne" service, you must remove the original branding
 						and logo unless you have obtained a special license.</p>
 				</div>
-				<p class="copyright">Copyright &copy; 2025 Zbyněk Vanžura.</p>
+				<p class="copyright">Copyright &copy; 2025-2026 Zbyněk Vanžura.</p>
 			</section>
 
 		</main>

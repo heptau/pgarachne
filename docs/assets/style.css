@@ -153,7 +153,7 @@ body {
 }
 
 .hero-section {
-	background: white;
+	background: #fafcfb;
 	color: var(--text-main);
 	padding: 80px 0;
 	border-bottom: 1px solid #eee;
@@ -348,6 +348,21 @@ body {
 .doc-content h3 {
 	color: var(--teal);
 	margin-top: 30px;
+}
+
+.doc-content p a,
+.doc-content li a {
+	color: var(--teal);
+	font-weight: 600;
+	text-decoration: underline;
+	text-underline-offset: 3px;
+	transition: color 0.2s;
+}
+
+.doc-content p a:hover,
+.doc-content li a:hover {
+	color: var(--purple);
+	text-decoration-color: var(--purple);
 }
 
 .download-buttons {
@@ -666,37 +681,6 @@ details[open] summary::after {
 	font-size: 0.9rem;
 }
 
-@media (max-width: 768px) {
-	.hero-flex {
-		flex-direction: column;
-		text-align: center;
-		gap: 30px;
-	}
-
-	.hero-logo-wrapper {
-		flex: auto;
-		max-width: 200px;
-		margin: 0 auto;
-	}
-
-	.hero-actions {
-		justify-content: center;
-	}
-
-	.hero-lead {
-		font-size: 1.4rem;
-	}
-
-	.brand-title {
-		font-size: 3rem;
-	}
-
-	.nav-links {
-		display: none;
-	}
-
-}
-
 .break-text {
 	word-break: break-all;
 	white-space: normal;
@@ -843,4 +827,140 @@ details[open] summary::after {
 	padding: 0;
 	color: #333;
 	word-break: break-all;
+}
+
+@media (max-width: 768px) {
+	html {
+		font-size: 14px;
+	}
+
+	.container {
+		padding: 0 12px;
+	}
+
+	.nav-container {
+		display: flex;
+		flex-wrap: nowrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 10px;
+		position: relative;
+		overflow: visible;
+	}
+
+	.nav-links {
+		display: flex;
+		align-items: center;
+		flex: 1;
+		min-width: 0;
+		width: 100%;
+		overflow-x: auto;
+		white-space: nowrap;
+		-webkit-overflow-scrolling: touch;
+		padding-bottom: 0;
+		mask-image: linear-gradient(to right, black 80%, transparent 100%);
+		-webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+	}
+
+	.nav-links::-webkit-scrollbar {
+		display: none;
+	}
+
+	.nav-links a {
+		margin-right: 15px;
+		font-size: 0.9rem;
+		padding: 5px 0;
+	}
+
+	.nav-btn-donate {
+		background-color: transparent;
+		color: rgba(255, 255, 255, 0.9) !important;
+		padding: 0;
+		border-radius: 0;
+		font-weight: 500 !important;
+		border-bottom: 1px solid var(--gold);
+	}
+
+	.lang-dropdown {
+		flex-shrink: 0;
+		margin-left: auto;
+		padding-left: 10px;
+		border-left: 1px solid rgba(255, 255, 255, 0.2);
+		position: static;
+	}
+
+	.lang-dropdown .lang-content {
+		right: 0;
+		left: auto;
+		top: 100%;
+		margin-top: 5px;
+	}
+
+	.hero-section {
+		padding-top: 30px;
+		padding-bottom: 50px;
+	}
+
+	.hero-flex {
+		flex-direction: column;
+		text-align: center;
+		gap: 20px;
+		padding-top: 0;
+	}
+
+	.hero-logo-wrapper {
+		flex: auto;
+		max-width: 200px;
+		margin: 0 auto;
+	}
+
+	.brand-title {
+		font-size: 2.5rem;
+		word-break: break-word;
+	}
+
+	.hero-lead {
+		font-size: 1.3rem;
+	}
+
+	.hero-actions {
+		justify-content: center;
+		flex-direction: column;
+		width: 100%;
+		gap: 10px;
+	}
+
+	.hero-actions .btn {
+		width: 100%;
+		text-align: center;
+	}
+
+	.card {
+		padding: 20px;
+		margin-bottom: 15px;
+	}
+
+	table {
+		display: block;
+		overflow-x: auto;
+		white-space: nowrap;
+	}
+
+	pre {
+		padding: 15px;
+		font-size: 0.85rem;
+	}
+
+	code {
+		word-break: break-all;
+		white-space: normal;
+	}
+
+	.donation-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.os-card {
+		margin-bottom: 10px;
+	}
 }

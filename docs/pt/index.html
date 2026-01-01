@@ -118,6 +118,7 @@
 			<h3>Conteúdo</h3>
 			<ul>
 				<li><a href="#about">Sobre e Arquitetura</a></li>
+				<li><a href="#comparison">Comparação com PostgREST</a></li>
 				<li><a href="#install">Instalação</a></li>
 				<li><a href="#config">Configuração</a></li>
 				<li><a href="#explorer">Explorador de API</a></li>
@@ -184,6 +185,94 @@
 						<div style="padding-left: 50px;">/{nome_do_esquema}.{nome_da_funcao}</div>
 					</div>
 				</div>
+			</section>
+
+			<section id="comparison">
+				<h2>Comparação: PgArachne vs. PostgREST</h2>
+				<div class="comparison-table-wrapper">
+					<table>
+						<thead>
+							<tr>
+								<th>Funcionalidade</th>
+								<th>PgArachne (+ Funções Universais)</th>
+								<th>PostgREST</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><strong>Velocidade de Configuração</strong></td>
+								<td>Alta. Funções universais permitem CRUD instantâneo semelhante ao PostgREST.</td>
+								<td>Alta. Gera automaticamente endpoints para todas as tabelas.</td>
+							</tr>
+							<tr>
+								<td><strong>Flexibilidade Lógica</strong></td>
+								<td>Ilimitada. Capacidade de combinar CRUD universal com funções RPC específicas.</td>
+								<td>Limitada. A maior parte da lógica deve residir em filtros de URL ou Views do Banco de Dados.
+								</td>
+							</tr>
+							<tr>
+								<td><strong>Manuseio de Esquemas</strong></td>
+								<td>Nativo. Acesso via <code>schema.function</code>.</td>
+								<td>Plano/Global. Requer a troca de perfis nos cabeçalhos HTTP para mudar esquemas.</td>
+							</tr>
+							<tr>
+								<td><strong>Abstração</strong></td>
+								<td>Opcional. Você pode expor dados diretamente (proxy) ou encapsulá-los com segurança.</td>
+								<td>Baixa. A API é essencialmente um espelho do esquema do banco de dados.</td>
+							</tr>
+							<tr>
+								<td><strong>Pronto para IA e LLM</strong></td>
+								<td>Extrema. JSON-RPC e capacidade de definir funções "Tool" especificamente para agentes de IA.
+								</td>
+								<td>Média. A IA tem que lutar com a sintaxe estrita de parâmetros de URL.</td>
+							</tr>
+							<tr>
+								<td><strong>Arquivos Estáticos</strong></td>
+								<td>Sim. Serve HTML/JS/CSS diretamente de um único binário.</td>
+								<td>Não. Você deve configurar e gerenciar um Nginx externo à frente dele.</td>
+							</tr>
+							<tr>
+								<td><strong>Suporte Multi-Banco de Dados</strong></td>
+								<td><strong>Em todo o servidor (N:1).</strong> Uma única instância do PgArachne conecta-se ao
+									servidor
+									(IP:Porta) e pode servir todos os bancos de dados hospedados lá.</td>
+								<td><strong>Por Banco de Dados (1:1).</strong> Uma instância está vinculada a um banco de dados
+									específico. Servir
+									vários bancos de dados requer a execução de várias instâncias em portas diferentes.</td>
+							</tr>
+							<tr>
+								<td><strong>Autenticação</strong></td>
+								<td>JWT e Chaves de API. Suporta nativamente ambos os mundos.</td>
+								<td>Principalmente JWT.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<h3>Por que o "PgArachne Híbrido" é o Vencedor?</h3>
+				<p>Graças às <strong>Funções Universais</strong> (agindo como um emulador), você obtém o melhor dos dois
+					mundos:</p>
+				<ul>
+					<li><strong>Fase de Inicialização (MVP):</strong> Implante o PgArachne com algumas funções de proxy (como
+						as em
+						<code>universal_table_access.sql</code>) e em minutos você tem uma API funcional para todas as
+						tabelas. Nesta
+						fase, ele se comporta exatamente como o PostgREST.
+					</li>
+					<li><strong>Fase de Produção:</strong> À medida que a aplicação cresce, comece a escrever funções
+						dedicadas para operações sensíveis (ex: <code>process_payment</code>). Isso aumenta a segurança e o
+						desempenho
+						sem alterar a pilha de tecnologia subjacente.</li>
+					<li><strong>Frontend e IA:</strong> Ao mesmo tempo, sua aplicação roda na mesma porta que a API
+						(graças ao serviço de arquivos estáticos), e agentes de IA podem chamar suas funções diretamente via
+						JSON-RPC.</li>
+				</ul>
+				<p>
+					<em>Nota: As "Funções Universais" são um conjunto de funções PL/pgSQL padrão que você pode adicionar ao
+						seu banco de dados
+						para habilitar operações genéricas de Leitura, Criação, Atualização e Exclusão em qualquer
+						tabela.</em>
+				</p>
 			</section>
 
 			<section id="install">
@@ -774,7 +863,7 @@ Support PgArachne"></div>
 						projeto ou oferecer um serviço comercial "Managed PgArachne", você deve remover a marca e o logo
 						originais, a menos que tenha obtido uma licença especial.</p>
 				</div>
-				<p class="copyright">Copyright &copy; 2025 Zbyněk Vanžura.</p>
+				<p class="copyright">Copyright &copy; 2025-2026 Zbyněk Vanžura.</p>
 			</section>
 
 		</main>

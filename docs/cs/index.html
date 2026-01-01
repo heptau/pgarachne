@@ -117,6 +117,7 @@
 			<h3>Obsah</h3>
 			<ul>
 				<li><a href="#about">O projektu a architektuře</a></li>
+				<li><a href="#comparison">Srovnání s PostgREST</a></li>
 				<li><a href="#install">Instalace</a></li>
 				<li><a href="#config">Konfigurace</a></li>
 				<li><a href="#explorer">Průzkumník API</a></li>
@@ -179,6 +180,85 @@
 						<div style="padding-left: 50px;">/{nazev_schema}.{nazev_funkce}</div>
 					</div>
 				</div>
+			</section>
+
+			<section id="comparison">
+				<h2>Srovnání: PgArachne vs. PostgREST</h2>
+				<div class="comparison-table-wrapper">
+					<table>
+						<thead>
+							<tr>
+								<th>Vlastnost</th>
+								<th>PgArachne (+ Univerzální funkce)</th>
+								<th>PostgREST</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><strong>Rychlost nasazení</strong></td>
+								<td>Vysoká. Univerzální funkce umožňují okamžité CRUD podobně jako PostgREST.</td>
+								<td>Vysoká. Automaticky generuje endpointy pro všechny tabulky.</td>
+							</tr>
+							<tr>
+								<td><strong>Flexibilita logiky</strong></td>
+								<td>Neomezená. Schopnost kombinovat univerzální CRUD se specifickými RPC funkcemi.</td>
+								<td>Omezená. Většina logiky musí být v URL filtrech nebo v databázových pohledech (Views).</td>
+							</tr>
+							<tr>
+								<td><strong>Práce se schématy</strong></td>
+								<td>Nativní. Přístup přes <code>schema.funkce</code>.</td>
+								<td>Plochá/Globální. Vyžaduje přepínání profilů v HTTP hlavičkách pro změnu schémat.</td>
+							</tr>
+							<tr>
+								<td><strong>Abstrakce</strong></td>
+								<td>Volitelná. Můžete data vystavit přímo (proxy) nebo je bezpečně zapouzdřit.</td>
+								<td>Nízká. API je v podstatě zrcadlem databázového schématu.</td>
+							</tr>
+							<tr>
+								<td><strong>Připravenost pro AI a LLM</strong></td>
+								<td>Extrémní. JSON-RPC a možnost definovat funkce typu "Tool" specificky pro AI agenty.</td>
+								<td>Střední. AI se musí potýkat s přísnou syntaxí parametrů URL.</td>
+							</tr>
+							<tr>
+								<td><strong>Statické soubory</strong></td>
+								<td>Ano. Obsluhuje HTML/JS/CSS přímo z jediného binárního souboru.</td>
+								<td>Ne. Musíte před něj nakonfigurovat a spravovat externí Nginx.</td>
+							</tr>
+							<tr>
+								<td><strong>Podpora více databází</strong></td>
+								<td><strong>Server-wide (N:1).</strong> Jediná instance PgArachne se připojí k serveru (IP:Port)
+									a dokáže obsloužit všechny databáze, které na něm běží.</td>
+								<td><strong>Per-Database (1:1).</strong> Jedna instance je vázána na jednu konkrétní databázi.
+									Pro obsluhu více databází musíte spustit více instancí na různých portech.</td>
+							</tr>
+							<tr>
+								<td><strong>Autentizace</strong></td>
+								<td>JWT a API klíče. Nativně podporuje oba světy.</td>
+								<td>Primárně JWT.</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<h3>Proč je "Hybridní PgArachne" vítězem?</h3>
+				<p>Díky <strong>Univerzálním funkcím</strong> (fungujícím jako emulátor) získáte to nejlepší z obou
+					světů:</p>
+				<ul>
+					<li><strong>Fáze startu (MVP):</strong> Nasaďte PgArachne s několika proxy funkcemi (jako jsou ty v
+						<code>universal_table_access.sql</code>) a během minut máte funkční API pro všechny tabulky. V této
+						fázi se chová přesně jako PostgREST.
+					</li>
+					<li><strong>Produkční fáze:</strong> Jak aplikace roste, začněte psát dedikované funkce pro
+						citlivé operace (např. <code>process_payment</code>). To zvyšuje bezpečnost a výkon bez změny
+						podkladového technologického stacku.</li>
+					<li><strong>Frontend a AI:</strong> Zároveň vaše aplikace běží na stejném portu jako API
+						(díky obsluze statických souborů) a AI agenti mohou volat vaše funkce přímo přes JSON-RPC.</li>
+				</ul>
+				<p>
+					<em>Poznámka: "Univerzální funkce" jsou sadou standardních PL/pgSQL funkcí, které můžete přidat do své
+						databáze pro povolení obecných operací čtení, vytváření, aktualizace a mazání na jakékoli
+						tabulce.</em>
+				</p>
 			</section>
 
 			<section id="install">
@@ -265,7 +345,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 					<strong>Pořadí hledání:</strong> Pokud není konfigurační soubor specifikován přes CLI, hledá se v tomto
 					pořadí:
 					<ol>
-						<li>Aktuální složka: <code>./pgarachne.env</code> (Všechny OS)</li>
+						<li>Aktuální složka: <code>./pgarachne.env</code> (všechny OS)</li>
 						<li>Uživatelská konfigurace:
 							<ul>
 								<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
@@ -768,7 +848,7 @@ Support PgArachne"></div>
 						nebo nabízíte komerční službu "Managed PgArachne", musíte odstranit původní branding a logo,
 						pokud jste nezískali speciální licenci.</p>
 				</div>
-				<p class="copyright">Copyright &copy; 2025 Zbyněk Vanžura.</p>
+				<p class="copyright">Copyright &copy; 2025-2026 Zbyněk Vanžura.</p>
 			</section>
 
 		</main>
