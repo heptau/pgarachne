@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="PgArachne: Il gateway ad alte prestazioni da PostgreSQL a JSON-RPC.">
-	<title>PgArachne - API PostgreSQL Istantanea</title>
+	<title>PgArachne – API PostgreSQL Istantanea</title>
 	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
 	<link rel="stylesheet" href="../assets/style.css">
 </head>
@@ -21,20 +21,20 @@
 				<a href="#features">Funzionalità</a>
 				<a href="#install">Installazione</a>
 				<a href="#docs">Documentazione</a>
-				<a href="#support" class="nav-btn-donate">Sostieni il Progetto</a>
+				<a href="#support" class="nav-btn-donate">Sostieni il Progetto</a>
 			</div>
 
 			<!-- Selettore Lingua -->
 			<div class="lang-dropdown">
 				<button class="lang-btn">Lingua ▾</button>
 				<div class="lang-content">
-					<a href="../en/index.html">English</a>
-					<a href="../cs/index.html">Čeština</a>
-					<a href="../es/index.html">Español</a>
-					<a href="../de/index.html">Deutsch</a>
-					<a href="../fr/index.html">Français</a>
-					<a href="../it/index.html" class="active">Italiano</a>
-					<a href="../pt/index.html">Português</a>
+					<a href="../en/">English</a>
+					<a href="../cs/">Čeština</a>
+					<a href="../es/">Español</a>
+					<a href="../de/">Deutsch</a>
+					<a href="../fr/">Français</a>
+					<a href="../it/" class="active">Italiano</a>
+					<a href="../pt/">Português</a>
 				</div>
 			</div>
 
@@ -57,12 +57,12 @@
 
 				<!-- Il "Cosa" -->
 				<p class="hero-lead">
-					Trasforma PostgreSQL in un'API sicura. Istantaneamente.
+					Trasforma PostgreSQL in un’API sicura. Istantaneamente.
 				</p>
 
 				<!-- Il "Come" -->
 				<p class="hero-desc">
-					Zero codice boilerplate. Alte prestazioni. Il middleware che mappa le richieste HTTP direttamente alle
+					Zero codice boilerplate. Alte prestazioni. Il middleware che mappa le richieste HTTP direttamente alle
 					funzioni del database.
 				</p>
 
@@ -83,27 +83,27 @@
 		<div class="container">
 			<h2>PgArachne fa al caso tuo?</h2>
 			<p class="section-intro">
-				PgArachne non serve solo per la prototipazione.<br>Colma il divario tra le prestazioni pure del database e i
+				PgArachne non serve solo per la prototipazione.<br>Colma il divario tra le prestazioni pure del database e i
 				requisiti delle moderne API.
 			</p>
 
 			<div class="grid-3">
 				<div class="card">
 					<h3>🚀 Prototipazione Rapida</h3>
-					<p>Smetti di scrivere controller CRUD ripetitivi. Definisci una funzione SQL e il tuo endpoint API è
-						pronto all'istante. Perfetto per MVP e Hackathon.</p>
+					<p>Smetti di scrivere controller CRUD ripetitivi. Definisci una funzione SQL e il tuo endpoint API è
+						pronto all’istante. Perfetto per MVP e Hackathon.</p>
 				</div>
 				<div class="card">
-					<h3>🏢 Pronto per la Produzione</h3>
-					<p>Progettato per gestire **oltre il 90% delle attività backend standard** (CRUD, validazione,
-						autenticazione). Con connection pooling, graceful shutdown e metriche Prometheus, alimenta i sistemi
-						di produzione in modo affidabile.
+					<h3>🏢 Pronto per la Produzione</h3>
+					<p>Progettato per gestire **oltre il 90% delle attività backend standard** (CRUD, validazione,
+						autenticazione). Con connection pooling, graceful shutdown e metriche Prometheus, alimenta i sistemi
+						di produzione in modo affidabile.
 					</p>
 				</div>
 				<div class="card">
-					<h3>🧠 Ideale per IA e LLM</h3>
-					<p>Poiché l'API si autodocumenta tramite commenti SQL, puoi fornire lo schema direttamente agli LLM
-						(ChatGPT, Claude). Ciò consente agli agenti IA di comprendere la logica di business e costruire
+					<h3>🧠 Ideale per IA e LLM</h3>
+					<p>Poiché l’API si autodocumenta tramite commenti SQL, puoi fornire lo schema direttamente agli LLM
+						(ChatGPT, Claude). Ciò consente agli agenti IA di comprendere la logica di business e costruire
 						chiamate API valide senza allucinazioni.</p>
 				</div>
 			</div>
@@ -117,15 +117,15 @@
 		<aside class="toc">
 			<h3>Indice</h3>
 			<ul>
-				<li><a href="#about">Chi siamo e Architettura</a></li>
-				<li><a href="#comparison">Confronto con PostgREST</a></li>
+				<li><a href="#about">Chi siamo e Architettura</a></li>
+				<li><a href="#comparison">Confronto con PostgREST</a></li>
 				<li><a href="#install">Installazione</a></li>
 				<li><a href="#config">Configurazione</a></li>
 				<li><a href="#explorer">API Explorer</a></li>
-				<li><a href="#security">Sicurezza e Ruoli</a></li>
+				<li><a href="#security">Sicurezza e Ruoli</a></li>
 				<li><a href="#deployment">Deployment (HTTPS)</a></li>
-				<li><a href="#errors">Codici di Errore</a></li>
-				<li><a href="#support">Supporto e Donazioni</a></li>
+				<li><a href="#errors">Codici di Errore</a></li>
+				<li><a href="#support">Supporto e Donazioni</a></li>
 				<li><a href="#license">Licenza</a></li>
 			</ul>
 		</aside>
@@ -134,11 +134,11 @@
 		<main class="doc-content">
 
 			<section id="about">
-				<h2>Chi siamo e Architettura</h2>
+				<h2>Chi siamo e Architettura</h2>
 				<p>
-					PgArachne funge da <strong>server web</strong> leggero e ad alte prestazioni che si interpone tra i tuoi
-					client HTTP e il database PostgreSQL. Elimina la necessità di linguaggi backend tradizionali (come
-					Python, Node.js o PHP) mappando le richieste HTTP direttamente alle funzioni del database.
+					PgArachne funge da <strong>server web</strong> leggero e ad alte prestazioni che si interpone tra i tuoi
+					client HTTP e il database PostgreSQL. Elimina la necessità di linguaggi backend tradizionali (come
+					Python, Node.js o PHP) mappando le richieste HTTP direttamente alle funzioni del database.
 				</p>
 
 				<div class="card"
@@ -146,33 +146,33 @@
 					<h3>Capacità Tecniche Principali</h3>
 					<ul style="margin-left: 20px; list-style-type: disc;">
 						<li style="margin-bottom: 10px;">
-							<strong>Gateway JSON-RPC 2.0:</strong> Tutte le interazioni API seguono la rigorosa specifica
-							JSON-RPC 2.0. Non ci sono endpoint REST da progettare; chiami semplicemente le funzioni SQL per
-							nome tramite richieste POST.
+							<strong>Gateway JSON-RPC 2.0:</strong> Tutte le interazioni API seguono la rigorosa specifica
+							JSON-RPC 2.0. Non ci sono endpoint REST da progettare; chiami semplicemente le funzioni SQL
+							per nome tramite richieste POST.
 						</li>
 						<li style="margin-bottom: 10px;">
-							<strong>Autenticazione Nativa DB:</strong> Nessuna tabella utenti separata. Gli utenti accedono con
-							le loro reali credenziali PostgreSQL per ricevere un <strong>JWT</strong>. In alternativa, gli
-							account di servizio possono utilizzare <strong>Token API</strong> persistenti.
+							<strong>Autenticazione Nativa DB:</strong> Nessuna tabella utenti separata. Gli utenti accedono
+							con le loro reali credenziali PostgreSQL per ricevere un <strong>JWT</strong>. In alternativa,
+							gli account di servizio possono utilizzare <strong>Token API</strong> persistenti.
 						</li>
 						<li style="margin-bottom: 10px;">
-							<strong>Mascheramento dei Ruoli:</strong> PgArachne si connette come utente proxy ma esegue ogni
-							richiesta utilizzando <code>SET LOCAL ROLE</code> per passare all'identità dell'utente autenticato.
-							La sicurezza a livello di riga (Row-Level Security - RLS) funziona automaticamente.
+							<strong>Mascheramento dei Ruoli:</strong> PgArachne si connette come utente proxy ma esegue ogni
+							richiesta utilizzando <code>SET LOCAL ROLE</code> per passare all’identità dell’utente autenticato.
+							La sicurezza a livello di riga (Row-Level Security – RLS) funziona automaticamente.
 						</li>
 						<li style="margin-bottom: 10px;">
-							<strong>Server di File Statici:</strong> PgArachne può servire asset statici (HTML, JS, CSS),
-							consentendoti di ospitare Single Page Application (SPA) o lo strumento Explorer direttamente.
+							<strong>Server di File Statici:</strong> PgArachne può servire asset statici (HTML, JS, CSS),
+							consentendoti di ospitare Single Page Application (SPA) o lo strumento Explorer direttamente.
 						</li>
 					</ul>
 				</div>
 
 				<p>
-					Questa architettura semplifica drasticamente lo stack: <strong>Database ↔ PgArachne ↔ Frontend</strong>.
+					Questa architettura semplifica drasticamente lo stack: <strong>Database ↔ PgArachne ↔ Frontend</strong>.
 				</p>
 
 				<div class="tip">
-					<strong>Formato Endpoint API:</strong> Tutte le funzioni del database sono esposte su:
+					<strong>Formato Endpoint API:</strong> Tutte le funzioni del database sono esposte su:
 					<div
 						style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
 						<div>POST http://{server}:{porta}</div>
@@ -196,77 +196,71 @@
 						</thead>
 						<tbody>
 							<tr>
-								<td><strong>Velocità di configurazione</strong></td>
-								<td>Alta. Le funzioni universali permettono CRUD istantaneo simile a PostgREST.</td>
-								<td>Alta. Genera automaticamente endpoint per tutte le tabelle.</td>
+								<td><strong>Velocità di configurazione</strong></td>
+								<td>Alta. Le funzioni universali permettono CRUD istantaneo simile a PostgREST.</td>
+								<td>Alta. Genera automaticamente endpoint per tutte le tabelle.</td>
 							</tr>
 							<tr>
 								<td><strong>Flessibilità logica</strong></td>
-								<td>Illimitata. Capacità di combinare CRUD universale con funzioni RPC specifiche.</td>
-								<td>Limitata. La maggior parte della logica deve risiedere nei filtri URL o nelle Viste del
+								<td>Illimitata. Capacità di combinare CRUD universale con funzioni RPC specifiche.</td>
+								<td>Limitata. La maggior parte della logica deve risiedere nei filtri URL o nelle Viste del
 									Database.</td>
 							</tr>
 							<tr>
 								<td><strong>Gestione degli schemi</strong></td>
 								<td>Nativa. Accesso via <code>schema.funzione</code>.</td>
-								<td>Piatta/Globale. Richiede il cambio di profili negli header HTTP per cambiare schema.</td>
+								<td>Piatta/Globale. Richiede il cambio di profili negli header HTTP per cambiare schema.</td>
 							</tr>
 							<tr>
 								<td><strong>Astrazione</strong></td>
-								<td>Opzionale. Puoi esporre i dati direttamente (proxy) o incapsularli in modo sicuro.</td>
-								<td>Bassa. L'API è essenzialmente uno specchio dello schema del database.</td>
+								<td>Opzionale. Puoi esporre i dati direttamente (proxy) o incapsularli in modo sicuro.</td>
+								<td>Bassa. L’API è essenzialmente uno specchio dello schema del database.</td>
 							</tr>
 							<tr>
-								<td><strong>Pronto per AI e LLM</strong></td>
-								<td>Estrema. JSON-RPC e capacità di definire funzioni "Tool" specificamente per agenti AI.</td>
-								<td>Media. L'AI deve lottare con la sintassi rigida dei parametri URL.</td>
+								<td><strong>Pronto per AI e LLM</strong></td>
+								<td>Estrema. JSON-RPC e capacità di definire funzioni «Tool» specificamente per agenti AI.</td>
+								<td>Media. L’AI deve lottare con la sintassi rigida dei parametri URL.</td>
 							</tr>
 							<tr>
 								<td><strong>File statici</strong></td>
-								<td>Sì. Serve HTML/JS/CSS direttamente da un singolo binario.</td>
-								<td>No. Devi configurare e gestire un Nginx esterno davanti ad esso.</td>
+								<td>Sì. Serve HTML/JS/CSS direttamente da un singolo binario.</td>
+								<td>No. Devi configurare e gestire un Nginx esterno davanti ad esso.</td>
 							</tr>
 							<tr>
 								<td><strong>Supporto Multi-Database</strong></td>
-								<td><strong>A livello di server (N:1).</strong> Una singola istanza di PgArachne si connette al
-									server
-									(IP:Porta) e può servire tutti i database ospitati lì.</td>
-								<td><strong>Per Database (1:1).</strong> Un'istanza è legata a un database specifico. Servire
-									più database richiede l'esecuzione di più istanze su porte diverse.</td>
+								<td><strong>A livello di server (N:1).</strong> Una singola istanza di PgArachne si connette al
+									server (IP:Porta) e può servire tutti i database ospitati lì.</td>
+								<td><strong>Per Database (1:1).</strong> Un’istanza è legata a un database specifico. Servire
+									più database richiede l’esecuzione di più istanze su porte diverse.</td>
 							</tr>
 							<tr>
 								<td><strong>Autenticazione</strong></td>
-								<td>JWT e Chiavi API. Supporta nativamente entrambi i mondi.</td>
+								<td>JWT e Chiavi API. Supporta nativamente entrambi i mondi.</td>
 								<td>Principalmente JWT.</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
 
-				<h3>Perché "PgArachne Ibrido" è il Vincitore?</h3>
-				<p>Grazie alle <strong>Funzioni Universali</strong> (che agiscono come un emulatore), ottieni il meglio di
-					entrambi i
-					mondi:</p>
+				<h3>Perché «PgArachne Ibrido» è il Vincitore?</h3>
+				<p>Grazie alle <strong>Funzioni Universali</strong> (che agiscono come un emulatore), ottieni il meglio
+					di entrambi i mondi:</p>
 				<ul>
-					<li><strong>Fase di Avvio (MVP):</strong> Distribuisci PgArachne con poche funzioni proxy (come quelle in
-						<code>universal_table_access.sql</code>) e in pochi minuti hai un'API funzionale per tutte le tabelle.
-						In
-						questa fase, si comporta esattamente come PostgREST.
+					<li><strong>Fase di Avvio (MVP):</strong> Distribuisci PgArachne con poche funzioni proxy (come quelle in
+						<code>universal_table_access.sql</code>) e in pochi minuti hai un’API funzionale per tutte le tabelle.
+						In questa fase, si comporta esattamente come PostgREST.
 					</li>
-					<li><strong>Fase di Produzione:</strong> Man mano che l'applicazione cresce, inizia a scrivere funzioni
-						dedicate per operazioni sensibili (es. <code>process_payment</code>). Questo aumenta la sicurezza e le
-						prestazioni
-						senza cambiare lo stack tecnologico sottostante.</li>
-					<li><strong>Frontend e AI:</strong> Allo stesso tempo, la tua applicazione gira sulla stessa porta
-						dell'API
-						(grazie al servizio di file statici) e gli agenti AI possono chiamare le tue funzioni direttamente via
-						JSON-RPC.</li>
+					<li><strong>Fase di Produzione:</strong> Man mano che l’applicazione cresce, inizia a scrivere funzioni
+						dedicate per operazioni sensibili (es. <code>process_payment</code>). Questo aumenta la sicurezza e le
+						prestazioni senza cambiare lo stack tecnologico sottostante.</li>
+					<li><strong>Frontend e AI:</strong> Allo stesso tempo, la tua applicazione gira sulla stessa porta
+						dell’API (grazie al servizio di file statici) e gli agenti AI possono chiamare le tue funzioni
+						direttamente via JSON-RPC.</li>
 				</ul>
 				<p>
-					<em>Nota: Le "Funzioni Universali" sono un set di funzioni PL/pgSQL standard che puoi aggiungere al tuo
-						database
-						per abilitare operazioni generiche di Lettura, Creazione, Aggiornamento ed Eliminazione su qualsiasi
-						tabella.</em>
+					<em>Nota: Le «Funzioni Universali» sono un set di funzioni PL/pgSQL standard che puoi aggiungere al tuo
+						database per abilitare operazioni generiche di Lettura, Creazione, Aggiornamento ed Eliminazione
+						su qualsiasi tabella.</em>
 				</p>
 			</section>
 
@@ -274,14 +268,14 @@
 				<h2>Installazione</h2>
 
 				<!-- Option A: Download Binaries -->
-				<h3>Opzione A: Scarica i Binari</h3>
-				<p>Scarica l'ultima versione precompilata per il tuo sistema operativo:</p>
+				<h3>Opzione A: Scarica i Binari</h3>
+				<p>Scarica l’ultima versione precompilata per il tuo sistema operativo:</p>
 
 				<div class="donation-grid" style="margin-top: 20px; margin-bottom: 40px;">
 
 					<!-- Linux (Tux Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" />
 						</svg>
@@ -296,7 +290,7 @@
 
 					<!-- macOS (Apple Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
 						</svg>
@@ -311,7 +305,7 @@
 
 					<!-- Windows (Microsoft Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" />
 						</svg>
@@ -335,26 +329,25 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 
 				<div class="step-box">
 					<h3>Configurazione Database</h3>
-					<p>Inizializza lo schema <code>pgarachne</code> richiesto per i token API.</p>
+					<p>Inizializza lo schema <code>pgarachne</code> richiesto per i token API.</p>
 					<pre><code>psql -d my_database -f sql/schema.sql</code></pre>
 				</div>
 			</section>
 
 			<section id="config">
 				<h2>Configurazione</h2>
-				<p>PgArachne carica la configurazione dalle variabili d'ambiente o da un file.</p>
+				<p>PgArachne carica la configurazione dalle variabili d’ambiente o da un file.</p>
 
 				<div class="tip">
-					<strong>Nota di Sicurezza:</strong> PgArachne non gestisce le password del database nel file di
-					configurazione.
-					Si affida al meccanismo standard del file <code>.pgpass</code> di PostgreSQL (o alla variabile di sistema
-					<code>PGPASSWORD</code>) per l'autenticazione.
+					<strong>Nota di Sicurezza:</strong> PgArachne non gestisce le password del database nel file
+					di configurazione. Si affida al meccanismo standard del file <code>.pgpass</code> di PostgreSQL (o alla
+					variabile di sistema <code>PGPASSWORD</code>) per l’autenticazione.
 				</div>
 
 				<div class="tip">
-					<strong>Ordine di Ricerca:</strong> Se nessun file di configurazione è specificato via CLI, cerca in:
+					<strong>Ordine di Ricerca:</strong> Se nessun file di configurazione è specificato via CLI, cerca in:
 					<ol>
-						<li>Directory corrente: <code>./pgarachne.env</code> (Tutti i SO)</li>
+						<li>Directory corrente: <code>./pgarachne.env</code> (Tutti i SO)</li>
 						<li>Configurazione utente:
 							<ul>
 								<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
@@ -362,7 +355,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 								</li>
 							</ul>
 						</li>
-						<li>Configurazione di sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
+						<li>Configurazione di sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
 					</ol>
 				</div>
 
@@ -393,7 +386,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>DB_USER</code></td>
 							<td>Sì</td>
-							<td>L'utente del database con cui PgArachne si connette.</td>
+							<td>L’utente del database con cui PgArachne si connette.</td>
 						</tr>
 
 						<!-- Server Config -->
@@ -403,12 +396,12 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>HTTP_PORT</code></td>
 							<td>No</td>
-							<td>Porta su cui ascoltare. Default: <code>8080</code>.</td>
+							<td>Porta su cui ascoltare. Default: <code>8080</code>.</td>
 						</tr>
 						<tr>
 							<td><code>ALLOWED_ORIGINS</code></td>
 							<td>No</td>
-							<td>Impostazioni CORS. Elenco separato da virgole dei domini consentiti (es.
+							<td>Impostazioni CORS. Elenco separato da virgole dei domini consentiti (es.
 								<code>https://miapp.com</code>).
 								Default: <code>*</code>.
 							</td>
@@ -416,7 +409,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>STATIC_FILES_PATH</code></td>
 							<td>No</td>
-							<td>Percorso assoluto per servire file statici (Explorer/Frontend).</td>
+							<td>Percorso assoluto per servire file statici (Explorer/Frontend).</td>
 						</tr>
 
 						<!-- Security Config -->
@@ -427,12 +420,12 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>JWT_SECRET</code></td>
 							<td>Sì</td>
-							<td>Una stringa lunga e casuale usata per firmare i token di sessione.</td>
+							<td>Una stringa lunga e casuale usata per firmare i token di sessione.</td>
 						</tr>
 						<tr>
 							<td><code>JWT_EXPIRY_HOURS</code></td>
 							<td>No</td>
-							<td>Validità della sessione in ore. Default: <code>8</code>.</td>
+							<td>Validità della sessione in ore. Default: <code>8</code>.</td>
 						</tr>
 
 						<!-- Logging Config -->
@@ -448,7 +441,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>LOG_OUTPUT</code></td>
 							<td>No</td>
-							<td>Dove scrivere i log: <code>stdout</code> o percorso del file.</td>
+							<td>Dove scrivere i log: <code>stdout</code> o percorso del file.</td>
 						</tr>
 					</tbody>
 				</table>
@@ -457,76 +450,71 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 			<!-- API Explorer Section -->
 			<section id="explorer">
 				<h2>PgArachne Explorer</h2>
-				<p>L'<strong>Explorer</strong> è una potente interfaccia web inclusa nella directory `tools/`. Non è solo
+				<p>L’<strong>Explorer</strong> è una potente interfaccia web inclusa nella directory `tools/`. Non è solo
 					documentazione; è una **applicazione demo** completamente funzionale costruita usando HTML/JS
-					che comunica con il database esclusivamente tramite PgArachne.</p>
+					che comunica con il database esclusivamente tramite PgArachne.</p>
 
 				<p><strong>Cosa può fare?</strong></p>
 				<ul>
-					<li><strong>Ispezionare API:</strong> Legge la funzione `capabilities` per mostrare tutti gli
-						endpoint disponibili e i loro parametri.</li>
-					<li><strong>Test dal Vivo:</strong> Puoi eseguire le funzioni direttamente dal browser.</li>
-					<li><strong>Auto-Documentazione:</strong> Renderizza i commenti SQL (inclusi i metadati `--- PARAMS ---`)
-						in una documentazione leggibile.</li>
+					<li><strong>Ispezionare API:</strong> Legge la funzione `capabilities` per mostrare tutti gli endpoint
+						disponibili e i loro parametri.</li>
+					<li><strong>Test dal Vivo:</strong> Puoi eseguire le funzioni direttamente dal browser.</li>
+					<li><strong>Auto-Documentazione:</strong> Renderizza i commenti SQL (inclusi i metadati `--- PARAMS ---`)
+						in una documentazione leggibile.</li>
 				</ul>
 
 				<div class="tip">
-					<strong>Come abilitarlo:</strong> Imposta la variabile d'ambiente `STATIC_FILES_PATH` in modo che punti
-					alla
-					cartella `tools/pgarachne-explorer` sul tuo disco. Poi visita <code>http://localhost:8080</code>.
+					<strong>Come abilitarlo:</strong> Imposta la variabile d’ambiente `STATIC_FILES_PATH` in modo che punti
+					alla cartella `tools/pgarachne-explorer` sul tuo disco. Poi visita <code>http://localhost:8080</code>.
 				</div>
 			</section>
 
 			<!-- Security Section -->
 			<section id="security">
-				<h2>Sicurezza e Autenticazione</h2>
-				<p>PgArachne si affida interamente al sistema di permessi di PostgreSQL. Non reinventa le Liste di Controllo
-					degli Accessi (ACL).
-					Tutte le query vengono eseguite sotto il ruolo database specifico dell'utente autenticato utilizzando
-					<code>SET LOCAL ROLE</code>.
+				<h2>Sicurezza e Autenticazione</h2>
+				<p>PgArachne si affida interamente al sistema di permessi di PostgreSQL. Non reinventa le Liste di Controllo
+					degli Accessi (ACL). Tutte le query vengono eseguite sotto il ruolo database specifico dell’utente
+					autenticato utilizzando <code>SET LOCAL ROLE</code>.
 				</p>
 
 				<h3>1. Login Interattivo (JWT)</h3>
-				<p>Gli utenti si autenticano utilizzando il loro <strong>reale nome utente e password PostgreSQL</strong>
-					tramite la funzione di login.
-					In caso di successo, ricevono un JWT generico. Quando questo token viene utilizzato, PgArachne cambia il
-					ruolo attivo in quell'utente
-					per la durata della richiesta.</p>
+				<p>Gli utenti si autenticano utilizzando il loro <strong>reale nome utente e password PostgreSQL</strong>
+					tramite la funzione di login. In caso di successo, ricevono un JWT generico. Quando questo token viene
+					utilizzato, PgArachne cambia il ruolo attivo in quell’utente per la durata della richiesta.</p>
 
-				<h3>2. Account di Servizio (Token API)</h3>
-				<p>Per sistemi automatizzati o script, puoi utilizzare chiavi API a lunga durata.</p>
+				<h3>2. Account di Servizio (Token API)</h3>
+				<p>Per sistemi automatizzati o script, puoi utilizzare chiavi API a lunga durata.</p>
 				<ul>
-					<li>I token sono memorizzati nella tabella <code>pgarachne.api_tokens</code>.</li>
-					<li>Ogni token è mappato a un utente/ruolo database specifico.</li>
-					<li>Invia il token tramite l'header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+					<li>I token sono memorizzati nella tabella <code>pgarachne.api_tokens</code>.</li>
+					<li>Ogni token è mappato a un utente/ruolo database specifico.</li>
+					<li>Invia il token tramite l’header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 				</ul>
 
 				<div class="warning">
 					<h3>Configurazione Critica: Privilegi Proxy</h3>
-					<p>Poiché PgArachne si connette come l'utente definito in <code>DB_USER</code> (es.
-						<code>pgarachne</code>) e cambia identità in altri utenti, l'utente proxy <strong>deve essere
-							membro</strong> di quei ruoli di destinazione.
+					<p>Poiché PgArachne si connette come l’utente definito in <code>DB_USER</code> (es.
+						<code>pgarachne</code>) e cambia identità in altri utenti, l’utente proxy <strong>deve essere
+							membro</strong> di quei ruoli di destinazione.
 					</p>
 
-					<p>Esegui questo SQL per ogni utente/ruolo che deve accedere:</p>
+					<p>Esegui questo SQL per ogni utente/ruolo che deve accedere:</p>
 					<pre><code>-- Consenti a 'pgarachne' di passare a 'app_user'
 GRANT app_user TO pgarachne;</code></pre>
 				</div>
 			</section>
 
 			<section id="deployment">
-				<h2>Deployment e HTTPS</h2>
-				<p>PgArachne è progettato per svolgere bene un solo compito: API Gateway. Per SSL/TLS (HTTPS), sicurezza
-					degli header e
-					routing pubblico, dovresti posizionare un <strong>Reverse Proxy</strong> davanti ad esso.</p>
+				<h2>Deployment e HTTPS</h2>
+				<p>PgArachne è progettato per svolgere bene un solo compito: API Gateway. Per SSL/TLS (HTTPS), sicurezza
+					degli header e routing pubblico, dovresti posizionare un <strong>Reverse Proxy</strong> davanti ad esso.
+				</p>
 
 				<div class="deployment-option">
 					<h3>Opzione A: Server Caddy</h3>
-					<p><strong>Ideale per:</strong> Deployment di produzione moderni, facilità d'uso.</p>
-					<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> è l'unico server web che ottiene
-						e rinnova automaticamente i certificati SSL (Let's Encrypt) per impostazione predefinita. Richiede
-						quasi zero
-						configurazione.</p>
+					<p><strong>Ideale per:</strong> Deployment di produzione moderni, facilità d’uso.</p>
+					<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> è l’unico server web che ottiene
+						e rinnova automaticamente i certificati SSL (Let’s Encrypt) per impostazione predefinita. Richiede
+						quasi zero configurazione.</p>
 					<pre><code># Caddyfile
 example.com {
     reverse_proxy localhost:8080
@@ -536,8 +524,8 @@ example.com {
 				<div class="deployment-option">
 					<h3>Opzione B: Nginx</h3>
 					<p><strong>Ideale per:</strong> Ambienti enterprise, routing complesso.</p>
-					<p><a href="https://nginx.org/" target="_blank">Nginx</a> è lo standard industriale per
-						il bilanciamento del carico ad alte prestazioni. Usalo se hai già un'infrastruttura Nginx. Dovrai
+					<p><a href="https://nginx.org/" target="_blank">Nginx</a> è lo standard industriale per il bilanciamento
+						del carico ad alte prestazioni. Usalo se hai già un’infrastruttura Nginx. Dovrai
 						gestire Certbot manualmente.</p>
 					<pre><code>server {
     server_name example.com;
@@ -550,17 +538,17 @@ example.com {
 				<div class="deployment-option">
 					<h3>Opzione C: Ngrok</h3>
 					<p><strong>Ideale per:</strong> Sviluppo locale, Demo, test Webhook.</p>
-					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un tunnel sicuro da internet pubblico
-						direttamente al tuo portatile senza configurare firewall. Ideale per mostrare il tuo lavoro ai
-						colleghi all'istante.</p>
+					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un tunnel sicuro da internet pubblico
+						direttamente al tuo portatile senza configurare firewall. Ideale per mostrare il tuo lavoro ai
+						colleghi all’istante.</p>
 					<pre><code>./ngrok http 8080</code></pre>
 				</div>
 			</section>
 
 			<section id="errors">
-				<h2>Codici di Errore</h2>
-				<p>PgArachne restituisce oggetti di errore standard JSON-RPC 2.0. Di seguito sono riportati i codici
-					specifici che potresti
+				<h2>Codici di Errore</h2>
+				<p>PgArachne restituisce oggetti di errore standard JSON-RPC 2.0. Di seguito sono riportati i codici
+					specifici che potresti
 					incontrare:</p>
 				<table>
 					<tr>
@@ -571,27 +559,27 @@ example.com {
 					<tr>
 						<td><code>-32700</code></td>
 						<td>Parse error</td>
-						<td>Il server ha ricevuto JSON non valido.</td>
+						<td>Il server ha ricevuto JSON non valido.</td>
 					</tr>
 					<tr>
 						<td><code>-32601</code></td>
 						<td>Method not found</td>
-						<td>La funzione non esiste nello schema.</td>
+						<td>La funzione non esiste nello schema.</td>
 					</tr>
 					<tr>
 						<td><code>-32602</code></td>
 						<td>Invalid params</td>
-						<td>Gli argomenti non corrispondono alla firma della funzione.</td>
+						<td>Gli argomenti non corrispondono alla firma della funzione.</td>
 					</tr>
 					<tr>
 						<td><code>-32001</code></td>
 						<td>Permission denied</td>
-						<td>Il ruolo utente corrente non ha i privilegi per eseguire la funzione (livello DB).</td>
+						<td>Il ruolo utente corrente non ha i privilegi per eseguire la funzione (livello DB).</td>
 					</tr>
 					<tr>
 						<td><code>-32000</code></td>
 						<td>Internal Error</td>
-						<td>Errore generico del server (controlla i log).</td>
+						<td>Errore generico del server (controlla i log).</td>
 					</tr>
 				</table>
 			</section>
@@ -600,27 +588,25 @@ example.com {
 
 			<!-- Support Section -->
 			<section id="support" class="support-section">
-				<h2>Sostieni lo Sviluppo</h2>
-				<p>Sviluppare software open source come PgArachne richiede molto tempo. Se questo strumento ti fa
-					risparmiare tempo,
-					ti preghiamo di considerare di sostenerne la manutenzione.</p>
+				<h2>Sostieni lo Sviluppo</h2>
+				<p>Sviluppare software open source come PgArachne richiede molto tempo. Se questo strumento ti fa
+					risparmiare tempo, ti preghiamo di considerare di sostenerne la manutenzione.</p>
 
 				<div class="donation-grid">
 
 					<!-- 1. Buy Me a Coffee (Featured) -->
 					<div class="donation-card featured">
-						<h4>☕ Diventa un Membro</h4>
-						<p>Unisciti alla community su <strong>Buy Me a Coffee</strong>. Ottieni aggiornamenti esclusivi,
-							accesso anticipato
-							alle nuove funzionalità e altro ancora.</p>
+						<h4>☕ Diventa un Membro</h4>
+						<p>Unisciti alla community su <strong>Buy Me a Coffee</strong>. Ottieni aggiornamenti esclusivi,
+							accesso anticipato alle nuove funzionalità e altro ancora.</p>
 						<a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured">Sostieni
-							su Buy Me a Coffee</a>
+							su Buy Me a Coffee</a>
 					</div>
 
 					<!-- 2. Bank Transfer -->
 					<div class="donation-card">
 						<h4>Bonifico Bancario</h4>
-						<p>Supporto diretto con 0% di commissioni.</p>
+						<p>Supporto diretto con 0% di commissioni.</p>
 
 						<details>
 							<summary>🇺🇸 ACH (USA)</summary>
@@ -795,8 +781,7 @@ Support PgArachne"></div>
 
 							<div class="btn-group">
 								<a href="https://app.binance.com/uni-qr/DbrFdVHA" target="_blank" class="btn-donate">Dona
-									tramite
-									Binance Pay</a>
+									tramite Binance Pay</a>
 							</div>
 
 							<div class="qr-code" data-qr-text="https://app.binance.com/uni-qr/DbrFdVHA"></div>
@@ -808,7 +793,7 @@ Support PgArachne"></div>
 					<!-- 4. Revolut -->
 					<div class="donation-card revolut">
 						<h4>Revolut</h4>
-						<p>Il modo più veloce per donare. Supporta <b>Apple Pay</b>, <b>carte di debito o credito</b>.</p>
+						<p>Il modo più veloce per donare. Supporta <b>Apple Pay</b>, <b>carte di debito o credito</b>.</p>
 						<div class="btn-group">
 							<a href="https://revolut.me/zbynekvanzura?amount=1000&currency=EUR&note=Support%20PgArachne"
 								target="_blank" class="btn-donate">Dona tramite Revolut</a>
@@ -819,7 +804,7 @@ Support PgArachne"></div>
 					<!-- 5. PayPal -->
 					<div class="donation-card paypal">
 						<h4>PayPal</h4>
-						<p>Pagamenti facili e sicuri. Supporta <b>carte di debito o credito</b>.</p>
+						<p>Pagamenti facili e sicuri. Supporta <b>carte di debito o credito</b>.</p>
 
 						<div style="margin-bottom: 15px;">
 							<a href="https://www.paypal.com/donate/?hosted_button_id=YUAEVQGPYZU8U" target="_blank"
@@ -830,7 +815,7 @@ Support PgArachne"></div>
 					<!-- 6. Wise -->
 					<div class="donation-card wise">
 						<h4>Wise</h4>
-						<p>Pagamenti facili e sicuri.</p>
+						<p>Pagamenti facili e sicuri.</p>
 
 						<div>
 							<a href="https://wise.com/pay/me/zbynekv17" target="_blank" class="btn-donate">Dona tramite
@@ -844,17 +829,16 @@ Support PgArachne"></div>
 
 			<!-- License Section -->
 			<section id="license">
-				<h2>Licenza e Marchio</h2>
+				<h2>Licenza e Marchio</h2>
 				<div class="license-box">
-					<p><strong>Il Codice (Licenza MIT):</strong><br>
-						Puoi utilizzare il codice sorgente gratuitamente per qualsiasi progetto personale o commerciale. Puoi
-						modificarlo,
-						farne un fork e distribuirlo.</p>
+					<p><strong>Il Codice (Licenza MIT):</strong><br>
+						Puoi utilizzare il codice sorgente gratuitamente per qualsiasi progetto personale o commerciale. Puoi
+						modificarlo, farne un fork e distribuirlo.</p>
 
-					<p style="margin-top: 15px;"><strong>Il Marchio (Trademark):</strong><br>
-						Il nome "PgArachne" e il Logo sono marchi registrati di <em>Zbyněk Vanžura</em>. Se fai un fork del
-						progetto o offri un servizio commerciale "Managed PgArachne", devi rimuovere il marchio e il logo
-						originali a meno che tu non abbia ottenuto una licenza speciale.</p>
+					<p style="margin-top: 15px;"><strong>Il Marchio (Trademark):</strong><br>
+						Il nome «PgArachne» e il Logo sono marchi registrati di <em>Zbyněk Vanžura</em>. Se fai un fork del
+						progetto o offri un servizio commerciale «Managed PgArachne», devi rimuovere il marchio e il logo
+						originali a meno che tu non abbia ottenuto una licenza speciale.</p>
 				</div>
 				<p class="copyright">Copyright &copy; 2025-2026 Zbyněk Vanžura.</p>
 			</section>

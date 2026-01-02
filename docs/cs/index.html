@@ -5,7 +5,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="PgArachne: Vysoce výkonná brána z PostgreSQL na JSON-RPC.">
-	<title>PgArachne - Okamžité PostgreSQL API</title>
+	<title>PgArachne – Okamžité PostgreSQL API</title>
 	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
 	<link rel="stylesheet" href="../assets/style.css">
 </head>
@@ -28,13 +28,13 @@
 			<div class="lang-dropdown">
 				<button class="lang-btn">Jazyk ▾</button>
 				<div class="lang-content">
-					<a href="../en/index.html">English</a>
-					<a href="../cs/index.html" class="active">Čeština</a>
-					<a href="../es/index.html">Español</a>
-					<a href="../de/index.html">Deutsch</a>
-					<a href="../fr/index.html">Français</a>
-					<a href="../it/index.html">Italiano</a>
-					<a href="../pt/index.html">Português</a>
+					<a href="../en/">English</a>
+					<a href="../cs/" class="active">Čeština</a>
+					<a href="../es/">Español</a>
+					<a href="../de/">Deutsch</a>
+					<a href="../fr/">Français</a>
+					<a href="../it/">Italiano</a>
+					<a href="../pt/">Português</a>
 				</div>
 			</div>
 
@@ -57,7 +57,7 @@
 
 				<!-- Co to je -->
 				<p class="hero-lead">
-					Proměňte PostgreSQL v bezpečné API. Okamžitě.
+					Proměňte PostgreSQL v bezpečné API. Okamžitě.
 				</p>
 
 				<!-- Jak to funguje -->
@@ -82,27 +82,27 @@
 		<div class="container">
 			<h2>Je PgArachne pro vás to pravé?</h2>
 			<p class="section-intro">
-				PgArachne není jen pro prototypování.<br>Překlenuje propast mezi hrubým výkonem databáze a požadavky
+				PgArachne není jen pro prototypování.<br>Překlenuje propast mezi hrubým výkonem databáze a požadavky
 				moderních API.
 			</p>
 
 			<div class="grid-3">
 				<div class="card">
 					<h3>🚀 Rychlé prototypování</h3>
-					<p>Přestaňte psát opakující se CRUD controllery. Definujte SQL funkci a váš API endpoint je okamžitě
-						hotový. Ideální pro MVP a hackathony.</p>
+					<p>Přestaňte psát opakující se CRUD controllery. Definujte SQL funkci a váš API endpoint je okamžitě
+						hotový. Ideální pro MVP a hackathony.</p>
 				</div>
 				<div class="card">
 					<h3>🏢 Připraven pro produkci</h3>
-					<p>Navržen tak, aby zvládal <strong>více než 90&nbsp% standardních backendových úloh</strong> (CRUD,
-						validace, auth). Díky poolování připojení, bezpečnému vypínání a metrikám Prometheus spolehlivě pohání
+					<p>Navržen tak, aby zvládal <strong>více než 90 % standardních backendových úloh</strong> (CRUD,
+						validace, auth). Díky poolování připojení, bezpečnému vypínání a metrikám Prometheus spolehlivě pohání
 						produkční systémy.
 					</p>
 				</div>
 				<div class="card">
-					<h3>🧠 Vhodné pro AI a LLM</h3>
+					<h3>🧠 Vhodné pro AI a LLM</h3>
 					<p>Jelikož API se samo dokumentuje pomocí SQL komentářů, můžete schéma předhodit přímo LLM (ChatGPT,
-						Claude). To umožňuje AI agentům pochopit vaši business logiku a vytvářet platná volání API bez
+						Claude). To umožňuje AI agentům pochopit vaši business logiku a vytvářet platná volání API bez
 						halucinací.</p>
 				</div>
 			</div>
@@ -116,15 +116,15 @@
 		<aside class="toc">
 			<h3>Obsah</h3>
 			<ul>
-				<li><a href="#about">O projektu a architektuře</a></li>
-				<li><a href="#comparison">Srovnání s PostgREST</a></li>
+				<li><a href="#about">O projektu a architektuře</a></li>
+				<li><a href="#comparison">Srovnání s PostgREST</a></li>
 				<li><a href="#install">Instalace</a></li>
 				<li><a href="#config">Konfigurace</a></li>
 				<li><a href="#explorer">Průzkumník API</a></li>
-				<li><a href="#security">Bezpečnost a role</a></li>
+				<li><a href="#security">Bezpečnost a role</a></li>
 				<li><a href="#deployment">Nasazení (HTTPS)</a></li>
 				<li><a href="#errors">Chybové kódy</a></li>
-				<li><a href="#support">Podpora a dary</a></li>
+				<li><a href="#support">Podpora a dary</a></li>
 				<li><a href="#license">Licence</a></li>
 			</ul>
 		</aside>
@@ -133,10 +133,10 @@
 		<main class="doc-content">
 
 			<section id="about">
-				<h2>O projektu a architektuře</h2>
+				<h2>O projektu a architektuře</h2>
 				<p>
 					PgArachne slouží jako lehký, vysoce výkonný <strong>webový server</strong>, který stojí mezi vašimi HTTP
-					klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+					klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
 					nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
 				</p>
 
@@ -145,13 +145,13 @@
 					<h3>Klíčové technické schopnosti</h3>
 					<ul style="margin-left: 20px; list-style-type: disc;">
 						<li style="margin-bottom: 10px;">
-							<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+							<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
 							2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
 							požadavků.
 						</li>
 						<li style="margin-bottom: 10px;">
 							<strong>Nativní DB autentizace:</strong> Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
-							svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
+							svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
 							mohou alternativně využívat trvalé <strong>API Tokeny</strong>.
 						</li>
 						<li style="margin-bottom: 10px;">
@@ -202,61 +202,61 @@
 							<tr>
 								<td><strong>Flexibilita logiky</strong></td>
 								<td>Neomezená. Schopnost kombinovat univerzální CRUD se specifickými RPC funkcemi.</td>
-								<td>Omezená. Většina logiky musí být v URL filtrech nebo v databázových pohledech (Views).</td>
+								<td>Omezená. Většina logiky musí být v URL filtrech nebo v databázových pohledech (Views).</td>
 							</tr>
 							<tr>
 								<td><strong>Práce se schématy</strong></td>
 								<td>Nativní. Přístup přes <code>schema.funkce</code>.</td>
-								<td>Plochá/Globální. Vyžaduje přepínání profilů v HTTP hlavičkách pro změnu schémat.</td>
+								<td>Plochá/Globální. Vyžaduje přepínání profilů v HTTP hlavičkách pro změnu schémat.</td>
 							</tr>
 							<tr>
 								<td><strong>Abstrakce</strong></td>
 								<td>Volitelná. Můžete data vystavit přímo (proxy) nebo je bezpečně zapouzdřit.</td>
-								<td>Nízká. API je v podstatě zrcadlem databázového schématu.</td>
+								<td>Nízká. API je v podstatě zrcadlem databázového schématu.</td>
 							</tr>
 							<tr>
-								<td><strong>Připravenost pro AI a LLM</strong></td>
-								<td>Extrémní. JSON-RPC a možnost definovat funkce typu "Tool" specificky pro AI agenty.</td>
-								<td>Střední. AI se musí potýkat s přísnou syntaxí parametrů URL.</td>
+								<td><strong>Připravenost pro AI a LLM</strong></td>
+								<td>Extrémní. JSON-RPC a možnost definovat funkce typu „Tool“ specificky pro AI agenty.</td>
+								<td>Střední. AI se musí potýkat s přísnou syntaxí parametrů URL.</td>
 							</tr>
 							<tr>
 								<td><strong>Statické soubory</strong></td>
-								<td>Ano. Obsluhuje HTML/JS/CSS přímo z jediného binárního souboru.</td>
-								<td>Ne. Musíte před něj nakonfigurovat a spravovat externí Nginx.</td>
+								<td>Ano. Obsluhuje HTML/JS/CSS přímo z jediného binárního souboru.</td>
+								<td>Ne. Musíte před něj nakonfigurovat a spravovat externí Nginx.</td>
 							</tr>
 							<tr>
 								<td><strong>Podpora více databází</strong></td>
-								<td><strong>Server-wide (N:1).</strong> Jediná instance PgArachne se připojí k serveru (IP:Port)
-									a dokáže obsloužit všechny databáze, které na něm běží.</td>
+								<td><strong>Server-wide (N:1).</strong> Jediná instance PgArachne se připojí k serveru (IP:Port)
+									a dokáže obsloužit všechny databáze, které na něm běží.</td>
 								<td><strong>Per-Database (1:1).</strong> Jedna instance je vázána na jednu konkrétní databázi.
 									Pro obsluhu více databází musíte spustit více instancí na různých portech.</td>
 							</tr>
 							<tr>
 								<td><strong>Autentizace</strong></td>
-								<td>JWT a API klíče. Nativně podporuje oba světy.</td>
+								<td>JWT a API klíče. Nativně podporuje oba světy.</td>
 								<td>Primárně JWT.</td>
 							</tr>
 						</tbody>
 					</table>
 				</div>
 
-				<h3>Proč je "Hybridní PgArachne" vítězem?</h3>
-				<p>Díky <strong>Univerzálním funkcím</strong> (fungujícím jako emulátor) získáte to nejlepší z obou
+				<h3>Proč je „Hybridní PgArachne“ vítězem?</h3>
+				<p>Díky <strong>Univerzálním funkcím</strong> (fungujícím jako emulátor) získáte to nejlepší z obou
 					světů:</p>
 				<ul>
-					<li><strong>Fáze startu (MVP):</strong> Nasaďte PgArachne s několika proxy funkcemi (jako jsou ty v
-						<code>universal_table_access.sql</code>) a během minut máte funkční API pro všechny tabulky. V této
+					<li><strong>Fáze startu (MVP):</strong> Nasaďte PgArachne s několika proxy funkcemi (jako jsou ty v
+						<code>universal_table_access.sql</code>) a během minut máte funkční API pro všechny tabulky. V této
 						fázi se chová přesně jako PostgREST.
 					</li>
 					<li><strong>Produkční fáze:</strong> Jak aplikace roste, začněte psát dedikované funkce pro
-						citlivé operace (např. <code>process_payment</code>). To zvyšuje bezpečnost a výkon bez změny
+						citlivé operace (např. <code>process_payment</code>). To zvyšuje bezpečnost a výkon bez změny
 						podkladového technologického stacku.</li>
-					<li><strong>Frontend a AI:</strong> Zároveň vaše aplikace běží na stejném portu jako API
-						(díky obsluze statických souborů) a AI agenti mohou volat vaše funkce přímo přes JSON-RPC.</li>
+					<li><strong>Frontend a AI:</strong> Zároveň vaše aplikace běží na stejném portu jako API
+						(díky obsluze statických souborů) a AI agenti mohou volat vaše funkce přímo přes JSON-RPC.</li>
 				</ul>
 				<p>
-					<em>Poznámka: "Univerzální funkce" jsou sadou standardních PL/pgSQL funkcí, které můžete přidat do své
-						databáze pro povolení obecných operací čtení, vytváření, aktualizace a mazání na jakékoli
+					<em>Poznámka: „Univerzální funkce“ jsou sadou standardních PL/pgSQL funkcí, které můžete přidat do své
+						databáze pro povolení obecných operací čtení, vytváření, aktualizace a mazání na jakékoli
 						tabulce.</em>
 				</p>
 			</section>
@@ -272,7 +272,7 @@
 
 					<!-- Linux (Tux Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" />
 						</svg>
@@ -287,7 +287,7 @@
 
 					<!-- macOS (Apple Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" />
 						</svg>
@@ -302,7 +302,7 @@
 
 					<!-- Windows (Microsoft Logo) -->
 					<div class="os-card">
-						<svg class="os-icon" viewBox="0 0 24 24" style="color: #444">
+						<svg class="os-icon" viewbox="0 0 24 24" style="color: #444">
 							<path fill="currentColor"
 								d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" />
 						</svg>
@@ -333,16 +333,16 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 
 			<section id="config">
 				<h2>Konfigurace</h2>
-				<p>PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.</p>
+				<p>PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.</p>
 
 				<div class="tip">
-					<strong>Bezpečnostní poznámka:</strong> PgArachne nepracuje s hesly k databázi v konfiguračním souboru.
+					<strong>Bezpečnostní poznámka:</strong> PgArachne nepracuje s hesly k databázi v konfiguračním souboru.
 					Pro autentizaci spoléhá na standardní mechanismus PostgreSQL souboru <code>.pgpass</code> (nebo
 					systémovou proměnnou <code>PGPASSWORD</code>).
 				</div>
 
 				<div class="tip">
-					<strong>Pořadí hledání:</strong> Pokud není konfigurační soubor specifikován přes CLI, hledá se v tomto
+					<strong>Pořadí hledání:</strong> Pokud není konfigurační soubor specifikován přes CLI, hledá se v tomto
 					pořadí:
 					<ol>
 						<li>Aktuální složka: <code>./pgarachne.env</code> (všechny OS)</li>
@@ -368,8 +368,8 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 					<tbody>
 						<!-- Konfigurace databáze -->
 						<tr>
-							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Připojení k
-								databázi</td>
+							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Připojení
+								k databázi</td>
 						</tr>
 						<tr>
 							<td><code>DB_HOST</code></td>
@@ -407,7 +407,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>STATIC_FILES_PATH</code></td>
 							<td>Ne</td>
-							<td>Absolutní cesta k servírování statických souborů (Explorer/Frontend).</td>
+							<td>Absolutní cesta k servírování statických souborů (Explorer/Frontend).</td>
 						</tr>
 
 						<!-- Konfigurace bezpečnosti -->
@@ -418,12 +418,12 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>JWT_SECRET</code></td>
 							<td>Ano</td>
-							<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů.</td>
+							<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů.</td>
 						</tr>
 						<tr>
 							<td><code>JWT_EXPIRY_HOURS</code></td>
 							<td>Ne</td>
-							<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
+							<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
 						</tr>
 
 						<!-- Konfigurace logování -->
@@ -439,7 +439,7 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 						<tr>
 							<td><code>LOG_OUTPUT</code></td>
 							<td>Ne</td>
-							<td>Kam zapisovat logy: <code>stdout</code> nebo cesta k souboru.</td>
+							<td>Kam zapisovat logy: <code>stdout</code> nebo cesta k souboru.</td>
 						</tr>
 					</tbody>
 				</table>
@@ -449,52 +449,49 @@ go build -o pgarachne cmd/pgarachne/main.go</code></pre>
 			<section id="explorer">
 				<h2>Průzkumník API (Explorer)</h2>
 				<p><strong>Explorer</strong> je webové rozhraní přiložené ve složce `tools/`. Nejedná se
-					jen o dokumentaci; je to plně funkční <strong>demo aplikace</strong> postavená na HTML/JS,
-					která komunikuje s databází výhradně prostřednictvím PgArachne.</p>
+					jen o dokumentaci; je to plně funkční <strong>demo aplikace</strong> postavená na HTML/JS,
+					která komunikuje s databází výhradně prostřednictvím PgArachne.</p>
 
 				<p><strong>Co umí?</strong></p>
 				<ul>
-					<li><strong>Inspekce API:</strong> Čte funkci `capabilities` a zobrazuje všechny dostupné
-						endpointy a jejich parametry.</li>
-					<li><strong>Živé testování:</strong> Funkce můžete spouštět přímo z prohlížeče.</li>
+					<li><strong>Inspekce API:</strong> Čte funkci `capabilities` a zobrazuje všechny dostupné
+						endpointy a jejich parametry.</li>
+					<li><strong>Živé testování:</strong> Funkce můžete spouštět přímo z prohlížeče.</li>
 					<li><strong>Automatická dokumentace:</strong> Vykresluje SQL komentáře (včetně metadat `--- PARAMS ---`)
 						do čitelné dokumentace.</li>
 				</ul>
 
 				<div class="tip">
 					<strong>Jak jej povolit:</strong> Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
-					složku
-					`tools/pgarachne-explorer` na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
+					složku `tools/pgarachne-explorer` na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
 				</div>
 			</section>
 
 			<!-- Sekce Bezpečnost -->
 			<section id="security">
-				<h2>Bezpečnost a autentizace</h2>
+				<h2>Bezpečnost a autentizace</h2>
 				<p>PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
 					Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
 					<code>SET LOCAL ROLE</code>.
 				</p>
 
 				<h3>1. Interaktivní přihlášení (JWT)</h3>
-				<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
-					přes přihlašovací funkci.
-					Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne aktivní roli na tohoto
-					uživatele
-					po dobu trvání požadavku.</p>
+				<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
+					přes přihlašovací funkci. Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne
+					aktivní roli na tohoto uživatele po dobu trvání požadavku.</p>
 
 				<h3>2. Služby (API tokeny)</h3>
 				<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API klíče.</p>
 				<ul>
-					<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
+					<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
 					<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
-					<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+					<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 				</ul>
 
 				<div class="warning">
 					<h3>Kritická konfigurace: Oprávnění proxy</h3>
 					<p>Jelikož se PgArachne připojuje jako uživatel definovaný v <code>DB_USER</code> (např.
-						<code>pgarachne</code>) a přepíná identitu na jiné uživatele, proxy uživatel <strong>musí být
+						<code>pgarachne</code>) a přepíná identitu na jiné uživatele, proxy uživatel <strong>musí být
 							členem</strong> těchto cílových rolí.
 					</p>
 
@@ -505,17 +502,16 @@ GRANT app_user TO pgarachne;</code></pre>
 			</section>
 
 			<section id="deployment">
-				<h2>Nasazení a HTTPS</h2>
+				<h2>Nasazení a HTTPS</h2>
 				<p>PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
-					hlaviček a
-					veřejné směrování byste před něj měli umístit <strong>Reverzní proxy</strong>.</p>
+					hlaviček a veřejné směrování byste před něj měli umístit <strong>Reverzní proxy</strong>.</p>
 
 				<div class="deployment-option">
 					<h3>Možnost A: Caddy Server</h3>
 					<p><strong>Nejlepší pro:</strong> Moderní produkční nasazení, snadné použití.</p>
 					<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> je jediný webový server, který ve
-						výchozím nastavení automaticky získává
-						a obnovuje SSL certifikáty (Let's Encrypt). Vyžaduje téměř nulovou konfiguraci.</p>
+						výchozím nastavení automaticky získává a obnovuje SSL certifikáty (Let's Encrypt). Vyžaduje téměř
+						nulovou konfiguraci.</p>
 					<pre><code># Caddyfile
 example.com {
     reverse_proxy localhost:8080
@@ -539,7 +535,7 @@ example.com {
 				<div class="deployment-option">
 					<h3>Možnost C: Ngrok</h3>
 					<p><strong>Nejlepší pro:</strong> Lokální vývoj, dema, testování webhooků.</p>
-					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> vytváří bezpečný tunel z veřejného
+					<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> vytváří bezpečný tunel z veřejného
 						internetu přímo do vašeho notebooku bez konfigurace firewallu. Ideální pro okamžité ukázky kolegům.
 					</p>
 					<pre><code>./ngrok http 8080</code></pre>
@@ -574,7 +570,7 @@ example.com {
 					<tr>
 						<td><code>-32001</code></td>
 						<td>Permission denied</td>
-						<td>Role aktuálního uživatele nemá oprávnění k provedení funkce (na úrovni DB).</td>
+						<td>Role aktuálního uživatele nemá oprávnění k provedení funkce (na úrovni DB).</td>
 					</tr>
 					<tr>
 						<td><code>-32000</code></td>
@@ -590,25 +586,23 @@ example.com {
 			<section id="support" class="support-section">
 				<h2>Podpořte vývoj</h2>
 				<p>Vývoj open-source softwaru, jako je PgArachne, zabere značné množství času. Pokud vám tento nástroj šetří
-					čas,
-					zvažte, prosím, podporu jeho údržby.</p>
+					čas, zvažte, prosím, podporu jeho údržby.</p>
 
 				<div class="donation-grid">
 
 					<!-- 1. Buy Me a Coffee (Featured) -->
 					<div class="donation-card featured">
 						<h4>☕ Staňte se členem</h4>
-						<p>Připojte se ke komunitě na <strong>Buy Me a Coffee</strong>. Získejte exkluzivní aktualizace,
-							dřívější přístup
-							k novým funkcím a další.</p>
+						<p>Připojte se ke komunitě na <strong>Buy Me a Coffee</strong>. Získejte exkluzivní aktualizace,
+							dřívější přístup k novým funkcím a další.</p>
 						<a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured">Podpořit
-							na Buy Me a Coffee</a>
+							na Buy Me a Coffee</a>
 					</div>
 
 					<!-- 2. Bank Transfer -->
 					<div class="donation-card">
 						<h4>Bankovní převod</h4>
-						<p>Přímá podpora s 0% poplatky.</p>
+						<p>Přímá podpora s 0% poplatky.</p>
 
 						<details>
 							<summary>🇺🇸 ACH (USA)</summary>
@@ -788,8 +782,7 @@ Support PgArachne"></div>
 
 							<div class="btn-group">
 								<a href="https://app.binance.com/uni-qr/DbrFdVHA" target="_blank" class="btn-donate">Darovat
-									přes
-									Binance Pay</a>
+									přes Binance Pay</a>
 							</div>
 
 							<div class="qr-code" data-qr-text="https://app.binance.com/uni-qr/DbrFdVHA"></div>
@@ -812,7 +805,7 @@ Support PgArachne"></div>
 					<!-- 5. PayPal -->
 					<div class="donation-card paypal">
 						<h4>PayPal</h4>
-						<p>Snadné a bezpečné platby. Podporuje <b>debetní či kreditní karty</b>.</p>
+						<p>Snadné a bezpečné platby. Podporuje <b>debetní či kreditní karty</b>.</p>
 
 						<div style="margin-bottom: 15px;">
 							<a href="https://www.paypal.com/donate/?hosted_button_id=YUAEVQGPYZU8U" target="_blank"
@@ -823,7 +816,7 @@ Support PgArachne"></div>
 					<!-- 6. Wise -->
 					<div class="donation-card wise">
 						<h4>Wise</h4>
-						<p>Snadné a bezpečné platby.</p>
+						<p>Snadné a bezpečné platby.</p>
 
 						<div>
 							<a href="https://wise.com/pay/me/zbynekv17" target="_blank" class="btn-donate">Darovat přes
@@ -837,15 +830,15 @@ Support PgArachne"></div>
 
 			<!-- Sekce Licence -->
 			<section id="license">
-				<h2>Licence a ochranná známka</h2>
+				<h2>Licence a ochranná známka</h2>
 				<div class="license-box">
 					<p><strong>Kód (MIT Licence):</strong><br>
 						Zdrojový kód můžete zdarma použít pro jakýkoli osobní nebo komerční projekt. Můžete jej upravovat,
-						forkovat a šířit.</p>
+						forkovat a šířit.</p>
 
 					<p style="margin-top: 15px;"><strong>Značka (Ochranná známka):</strong><br>
-						Název "PgArachne" a Logo jsou ochranné známky <em>Zbyňka Vanžury</em>. Pokud projekt forknete
-						nebo nabízíte komerční službu "Managed PgArachne", musíte odstranit původní branding a logo,
+						Název „PgArachne“ a Logo jsou ochranné známky <em>Zbyňka Vanžury</em>. Pokud projekt forknete
+						nebo nabízíte komerční službu „Managed PgArachne“, musíte odstranit původní branding a logo,
 						pokud jste nezískali speciální licenci.</p>
 				</div>
 				<p class="copyright">Copyright &copy; 2025-2026 Zbyněk Vanžura.</p>
