@@ -158,7 +158,7 @@ func (s *Server) handleLogin(c *gin.Context) {
 
 	// Create JWT
 	expirationTime := time.Now().Add(time.Duration(s.Cfg.JWTExpiryHours) * time.Hour)
-	claims := jwt.MapClaims{"db_role": dbRole, "exp": expirationTime.Unix()}
+	claims := jwt.MapClaims{"db_role": dbRole, "db_name": c.Param("database"), "exp": expirationTime.Unix()}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString([]byte(s.Cfg.JWTSecret))
 	if err != nil {
@@ -201,7 +201,18 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 			if err == nil && token.Valid {
 				claims, ok := token.Claims.(jwt.MapClaims)
 				dbRole, roleOk := claims["db_role"].(string)
-				if ok && roleOk && dbRole != "" {
+				dbName, dbNameOk := claims["db_name"].(string)
+
+				if ok && roleOk && dbRole != "" && dbNameOk {
+					// Validate database access scope
+					requestedDb := c.Param("database")
+					if dbName != requestedDb {
+						slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", requestedDb)
+						c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid token for this database"}})
+						c.Abort()
+						return
+					}
+
 					c.Set("db_role", dbRole)
 					c.Next()
 					return

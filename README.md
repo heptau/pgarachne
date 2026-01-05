@@ -10,7 +10,7 @@
 
 ---
 
-**PgArachne** is a high-performance JSON-RPC 2.0 API gateway that dynamically maps URL paths to PostgreSQL functions in the `api` schema. It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
+**PgArachne** is a high-performance JSON-RPC 2.0 API gateway that dynamically maps URL paths to PostgreSQL functions (access via `schema.function`). It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
 
 ## Key Features
 

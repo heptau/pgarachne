@@ -11,7 +11,7 @@ import (
 	"github.com/yourusername/pgarachne/internal/server"
 )
 
-const Version = "1.0.1"
+const Version = "1.0.2"
 
 func main() {
 	// Parse command line flags
