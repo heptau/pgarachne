@@ -21,22 +21,126 @@
 
 ## Quick Start
 
-### 1. Download Binaries
-*   **Linux**: [x64](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-amd64) | [ARM64](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-linux-arm64)
-*   **macOS**: [ARM64 (Silicon)](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-arm64) | [x64 (Intel)](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-darwin-amd64)
-*   **Windows**: [x64](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-amd64.exe) | [ARM64](https://raw.githubusercontent.com/heptau/pgarachne/master/bin/pgarachne-windows-arm64.exe)
+### 1. Installation
 
-### 2. Or Build from Source
+**Option A: Download Binaries**  
+Stáhni si nejnovější verzi přímo z releases stránky projektu:  
+👉 https://github.com/heptau/pgarachne/releases
+
+**Option B: Build from Source**
 ```bash
 git clone https://github.com/heptau/pgarachne.git
 cd pgarachne
-go build -o pgarachne cmd/pgarachne/main.go
+make build
 ```
 
-### 3. Database Setup
-Initialize the schema required for API tokens:
+### 2. Database Setup
+
+1. Create a database (e.g., `my_database`).
+2. Run the schema script to create the necessary `pgarachne` structure.
+
 ```bash
 psql -d my_database -f sql/schema.sql
+```
+
+3. Create the `pgarachne` system user (optional but recommended for production):
+
+```sql
+-- Connect to your database
+CREATE ROLE pgarachne WITH LOGIN PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE my_database TO pgarachne;
+-- Ensure it can use the schema
+GRANT USAGE ON SCHEMA pgarachne TO pgarachne;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA pgarachne TO pgarachne;
+```
+
+### 3. Configuration
+
+**1. Authentication Setup (.pgpass)**
+
+Since PgArachne does not store the database password in the configuration file, you should save it in your `~/.pgpass` file to allow the `pgarachne` user to connect:
+
+```bash
+# Format: hostname:port:database:username:password
+echo "localhost:5432:*:pgarachne:secure_password" >> ~/.pgpass
+chmod 0600 ~/.pgpass
+```
+
+**2. Environment Configuration**
+
+Create a configuration file (e.g., `.env`) with your database details:
+
+```ini
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+# Note: Password is read from .pgpass
+JWT_SECRET=change_this_to_something_secret
+HTTP_PORT=8080
+```
+
+Start the server:
+```bash
+./pgarachne -config .env
+```
+
+### 4. Hello World Example
+
+Let's create a simple API endpoint associated with a user.
+
+**1. Create User and Function**
+
+In your database (`my_database`):
+
+```sql
+-- 1. Create a user who will log in to the API
+CREATE ROLE app_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO app_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
+```
+
+**2. Login via API**
+
+Use `curl` to login with the `app_user` credentials and get a JWT token:
+
+```bash
+curl -X POST http://localhost:8080/api/my_database/login \
+  -H "Content-Type: application/json" \
+  -d '{"login": "app_user", "password": "user_password"}'
+```
+
+Response:
+```json
+{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+```
+
+**3. Call the Function**
+
+Use the token to call the `hello_world` function:
+
+```bash
+export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/api/my_database/api.hello_world \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'
+```
+
+Response:
+```json
+{"jsonrpc": "2.0", "result": "Hello World", "id": 1}
 ```
 
 ## Documentation

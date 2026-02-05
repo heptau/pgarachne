@@ -1,114 +1,297 @@
+# --- START OF FILE Makefile ---
+
 # --- Configuration ---
+# 1. Zajistime, ze make vidi Go (Homebrew / Standard paths)
+export PATH := /opt/homebrew/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin:$(PATH)
+
 BINARY_NAME=pgarachne
+APP_NAME=PgArachne
 CMD_PATH=./cmd/pgarachne
 BIN_DIR=./bin
+DIST_DIR=./dist
+
+# Cesta k ikonce (musi existovat: ./assets/pgarachne.icns)
+ICON_PATH=./assets/pgarachne.icns
+
+# Nazev skutecne binarky uvnitr .app (skryta, spousti ji skript)
+EXEC_BINARY=$(BINARY_NAME)-exec
+
+# --- Versioning ---
+# Precteme verzi ze souboru VERSION. Pokud neexistuje, pouzijeme "0.0.0-dev"
+VERSION_FILE=VERSION
+APP_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo "0.0.0-dev")
+
+# --- External Config ---
+-include config.mk
 
 # --- Commands ---
-GO=go
+GO := $(shell command -v go 2> /dev/null || echo go)
 GO_BUILD=$(GO) build
 GO_TIDY=$(GO) mod tidy
 GO_RUN=$(GO) run
-LDFLAGS=-ldflags="-s -w"
 
-# Dynamic OS and Arch detection for build
+# LDFLAGS:
+# -s -w : zmensi velikost binarky (odstrani debug symboly)
+# -X ... : Vstrikne verzi z Makefile do Go promenne "main.Version"
+LDFLAGS=-ldflags "-s -w -X 'main.Version=$(APP_VERSION)'"
+
+# Detekce OS pro lokalni build
 GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
-# Targets that are not file names
-.PHONY: help deps build build-linux-amd64 build-linux-arm64 build-windows-amd64 build-windows-arm64 build-darwin-amd64 build-darwin-arm64 build-all run clean
+.PHONY: help deps build run clean prepare-dist \
+        package-all \
+        package-linux-amd64 package-linux-arm64 \
+        package-windows-amd64 package-windows-arm64 \
+        package-macos-amd64 package-macos-arm64 package-macos-universal \
+        macos-app-amd64 macos-app-arm64 macos-app-universal
 
 # ------------------------------------------------------------------------------
-# Default target remains 'help'
 default: help
 
 help:
 	@echo ""
+	@echo "PgArachne Build System (Version: $(APP_VERSION))"
+	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Available targets:"
-	@echo "  help                  Shows this help message."
-	@echo "  build                 Builds the binary for the current operating system ($(GOOS)/$(GOARCH))."
-	@echo "                        Output: $(BIN_DIR)/$(BINARY_NAME)-$(GOOS)-$(GOARCH)"
+	@echo "Dev targets:"
+	@echo "  build                 Build binary for current OS."
+	@echo "  clean                 Remove artifacts."
 	@echo ""
-	@echo "  --- Linux ---"
-	@echo "  build-linux-amd64     Builds for Linux (x64/Intel/AMD)."
-	@echo "  build-linux-arm64     Builds for Linux (ARM64/Aarch64 - e.g. Raspberry Pi, Graviton)."
+	@echo "Packaging targets (Distribution):"
+	@echo "  package-all             Builds ALL packages (Linux, Win, Mac Intel/Arm/Universal)."
+	@echo "  package-linux-*         Builds tar.gz for Linux."
+	@echo "  package-windows-*       Builds zip for Windows."
+	@echo "  package-macos-amd64     Zip for macOS Intel."
+	@echo "  package-macos-arm64     Zip for macOS Apple Silicon."
+	@echo "  package-macos-universal Zip with Universal Binary (runs on both)."
 	@echo ""
-	@echo "  --- Windows ---"
-	@echo "  build-windows-amd64   Builds for Windows (x64/Intel/AMD)."
-	@echo "  build-windows-arm64   Builds for Windows (ARM64 - e.g. Surface Pro X, Snapdragon)."
-	@echo ""
-	@echo "  --- macOS ---"
-	@echo "  build-darwin-amd64    Builds for macOS (x64/Intel)."
-	@echo "  build-darwin-arm64    Builds for macOS (ARM64/Apple Silicon)."
-	@echo ""
-	@echo "  --- General ---"
-	@echo "  build-all             Builds for ALL target systems listed above."
-	@echo "  run                   Runs the application using 'go run' (no binary created)."
-	@echo "  clean                 Removes all build artifacts from the '$(BIN_DIR)' directory."
-	@echo "  deps                  Manually runs the dependency check and download."
+	@echo "macOS App Bundles (.app with Icon & Terminal Launcher):"
+	@echo "  macos-app-amd64       .app for Intel Macs."
+	@echo "  macos-app-arm64       .app for Apple Silicon."
+	@echo "  macos-app-universal   .app for ALL Macs (Universal)."
 	@echo ""
 
-# ------------------------------------------------------------------------------
-# Target to ensure dependencies
 deps:
-	@echo "==> Ensuring dependencies are up to date..."
+	@echo "==> Checking dependencies..."
 	@$(GO_TIDY)
 
+prepare-dist:
+	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(DIST_DIR)
+
 # ------------------------------------------------------------------------------
-# Build targets
+# Helpers (Functions)
+# ------------------------------------------------------------------------------
 
-# Build for current OS (for local development or specific build)
+# 1. Generate Info.plist with VERSION
+define generate_plist
+	echo '<?xml version="1.0" encoding="UTF-8"?>' > $(1)/Info.plist; \
+	echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> $(1)/Info.plist; \
+	echo '<plist version="1.0">' >> $(1)/Info.plist; \
+	echo '<dict>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleExecutable</key>' >> $(1)/Info.plist; \
+	echo '    <string>$(BINARY_NAME)</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleIconFile</key>' >> $(1)/Info.plist; \
+	echo '    <string>AppIcon</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleIdentifier</key>' >> $(1)/Info.plist; \
+	echo '    <string>com.example.$(BINARY_NAME)</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleName</key>' >> $(1)/Info.plist; \
+	echo '    <string>$(APP_NAME)</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundlePackageType</key>' >> $(1)/Info.plist; \
+	echo '    <string>APPL</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleShortVersionString</key>' >> $(1)/Info.plist; \
+	echo '    <string>$(APP_VERSION)</string>' >> $(1)/Info.plist; \
+	echo '    <key>CFBundleVersion</key>' >> $(1)/Info.plist; \
+	echo '    <string>$(APP_VERSION)</string>' >> $(1)/Info.plist; \
+	echo '    <key>LSUIElement</key>' >> $(1)/Info.plist; \
+	echo '    <false/>' >> $(1)/Info.plist; \
+	echo '</dict>' >> $(1)/Info.plist; \
+	echo '</plist>' >> $(1)/Info.plist
+endef
+
+# 2. Create Launcher Script (Bash)
+define create_launcher
+	echo '#!/bin/bash' > $(1)/$(BINARY_NAME)
+	echo 'DIR="$$(cd "$$(dirname "$$0")" && pwd)"' >> $(1)/$(BINARY_NAME)
+	echo 'open -a Terminal "$$DIR/$(EXEC_BINARY)"' >> $(1)/$(BINARY_NAME)
+	chmod +x $(1)/$(BINARY_NAME)
+endef
+
+# 3. Copy Icon
+define copy_icon
+	mkdir -p $(1)/Contents/Resources
+	@if [ -f "$(ICON_PATH)" ]; then \
+		echo "    ... copying icon from $(ICON_PATH)"; \
+		cp "$(ICON_PATH)" "$(1)/Contents/Resources/AppIcon.icns"; \
+	else \
+		echo "    !!! WARNING: Icon not found at $(ICON_PATH). App will use default icon."; \
+	fi
+endef
+
+# 4. Sign App
+define sign_app
+	if [ -z "$(SIGNING_IDENTITY)" ]; then \
+		echo "==> Applying AD-HOC signature (-)..."; \
+		codesign --force --deep --sign "-" $(1); \
+	else \
+		echo "==> Signing with identity: $(SIGNING_IDENTITY)"; \
+		codesign --force --deep --sign "$(SIGNING_IDENTITY)" $(1); \
+	fi; \
+	echo "==> Verifying signature..."; \
+	codesign -dv $(1)
+endef
+
+# ------------------------------------------------------------------------------
+# Linux Packaging (.tar.gz)
+# ------------------------------------------------------------------------------
+package-linux-amd64: prepare-dist
+	@echo "==> Packaging Linux amd64 (v$(APP_VERSION))..."
+	@GOOS=linux GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
+	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-linux-amd64.tar.gz -C $(BIN_DIR) $(BINARY_NAME)
+	@rm $(BIN_DIR)/$(BINARY_NAME)
+
+package-linux-arm64: prepare-dist
+	@echo "==> Packaging Linux arm64 (v$(APP_VERSION))..."
+	@GOOS=linux GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
+	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-linux-arm64.tar.gz -C $(BIN_DIR) $(BINARY_NAME)
+	@rm $(BIN_DIR)/$(BINARY_NAME)
+
+# ------------------------------------------------------------------------------
+# Windows Packaging (.zip)
+# ------------------------------------------------------------------------------
+package-windows-amd64: prepare-dist
+	@echo "==> Packaging Windows amd64 (v$(APP_VERSION))..."
+	@GOOS=windows GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME).exe $(CMD_PATH)
+	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-windows-amd64.zip $(BIN_DIR)/$(BINARY_NAME).exe
+	@rm $(BIN_DIR)/$(BINARY_NAME).exe
+
+package-windows-arm64: prepare-dist
+	@echo "==> Packaging Windows arm64 (v$(APP_VERSION))..."
+	@GOOS=windows GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME).exe $(CMD_PATH)
+	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-windows-arm64.zip $(BIN_DIR)/$(BINARY_NAME).exe
+	@rm $(BIN_DIR)/$(BINARY_NAME).exe
+
+# ------------------------------------------------------------------------------
+# macOS Packaging (CLI Binary only - .zip)
+# ------------------------------------------------------------------------------
+package-macos-amd64: prepare-dist
+	@echo "==> Packaging macOS amd64 CLI (v$(APP_VERSION))..."
+	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
+	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-amd64.zip $(BIN_DIR)/$(BINARY_NAME)
+	@rm $(BIN_DIR)/$(BINARY_NAME)
+
+package-macos-arm64: prepare-dist
+	@echo "==> Packaging macOS arm64 CLI (v$(APP_VERSION))..."
+	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
+	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-arm64.zip $(BIN_DIR)/$(BINARY_NAME)
+	@rm $(BIN_DIR)/$(BINARY_NAME)
+
+package-macos-universal: prepare-dist
+	@echo "==> Packaging macOS Universal CLI (v$(APP_VERSION))..."
+	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-amd64 $(CMD_PATH)
+	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-arm64 $(CMD_PATH)
+	@lipo -create -output $(BIN_DIR)/$(BINARY_NAME) $(BIN_DIR)/$(BINARY_NAME)-amd64 $(BIN_DIR)/$(BINARY_NAME)-arm64
+	@rm $(BIN_DIR)/$(BINARY_NAME)-amd64 $(BIN_DIR)/$(BINARY_NAME)-arm64
+	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-universal.zip $(BIN_DIR)/$(BINARY_NAME)
+	@rm $(BIN_DIR)/$(BINARY_NAME)
+
+# ------------------------------------------------------------------------------
+# macOS App Bundles (.app) with Icon & Launcher
+# ------------------------------------------------------------------------------
+
+# 1. macOS AMD64 (Intel) .app
+macos-app-amd64: prepare-dist
+	@echo "==> Building macOS .app Intel (v$(APP_VERSION))..."
+	$(eval TMP_DIR=$(DIST_DIR)/tmp-amd64)
+	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
+	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
+	
+	@# Clean temp & Prepare
+	@rm -rf $(TMP_DIR)
+	@mkdir -p $(MACOS)
+	
+	@# Build
+	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY) $(CMD_PATH)
+	@$(call create_launcher,$(MACOS))
+	@$(call copy_icon,$(APP_DIR))
+	@$(call generate_plist,$(APP_DIR)/Contents)
+	@$(call sign_app,$(APP_DIR))
+	
+	@# Zip from inside TMP to maintain "PgArachne.app" root folder
+	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-amd64-app.zip $(APP_NAME).app
+	
+	@# Cleanup
+	@rm -rf $(TMP_DIR)
+	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-amd64-app.zip"
+
+# 2. macOS ARM64 (Apple Silicon) .app
+macos-app-arm64: prepare-dist
+	@echo "==> Building macOS .app Silicon (v$(APP_VERSION))..."
+	$(eval TMP_DIR=$(DIST_DIR)/tmp-arm64)
+	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
+	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
+	
+	@rm -rf $(TMP_DIR)
+	@mkdir -p $(MACOS)
+	
+	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY) $(CMD_PATH)
+	@$(call create_launcher,$(MACOS))
+	@$(call copy_icon,$(APP_DIR))
+	@$(call generate_plist,$(APP_DIR)/Contents)
+	@$(call sign_app,$(APP_DIR))
+	
+	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-arm64-app.zip $(APP_NAME).app
+	
+	@rm -rf $(TMP_DIR)
+	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-arm64-app.zip"
+
+# 3. macOS Universal .app
+macos-app-universal: prepare-dist
+	@echo "==> Building macOS .app Universal (v$(APP_VERSION))..."
+	$(eval TMP_DIR=$(DIST_DIR)/tmp-universal)
+	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
+	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
+	
+	@rm -rf $(TMP_DIR)
+	@mkdir -p $(MACOS)
+	
+	@echo "    ... building partial binaries"
+	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY)-amd64 $(CMD_PATH)
+	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY)-arm64 $(CMD_PATH)
+	@echo "    ... merging with lipo"
+	@lipo -create -output $(MACOS)/$(EXEC_BINARY) $(MACOS)/$(EXEC_BINARY)-amd64 $(MACOS)/$(EXEC_BINARY)-arm64
+	@rm $(MACOS)/$(EXEC_BINARY)-amd64 $(MACOS)/$(EXEC_BINARY)-arm64
+	
+	@$(call create_launcher,$(MACOS))
+	@$(call copy_icon,$(APP_DIR))
+	@$(call generate_plist,$(APP_DIR)/Contents)
+	@$(call sign_app,$(APP_DIR))
+	
+	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-universal-app.zip $(APP_NAME).app
+	
+	@rm -rf $(TMP_DIR)
+	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-universal-app.zip"
+
+# ------------------------------------------------------------------------------
+# Final Logic
+# ------------------------------------------------------------------------------
+package-all: package-linux-amd64 package-linux-arm64 \
+             package-windows-amd64 package-windows-arm64 \
+             package-macos-amd64 package-macos-arm64 package-macos-universal \
+             macos-app-amd64 macos-app-arm64 macos-app-universal
+	@echo "==> All distribution packages created in $(DIST_DIR) (Version: $(APP_VERSION))"
+
 build: deps
-	@echo "==> Building for current system ($(GOOS)/$(GOARCH))..."
+	@echo "==> Building locally (v$(APP_VERSION))..."
 	@mkdir -p $(BIN_DIR)
-	@$(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-$(GOOS)-$(GOARCH) $(CMD_PATH)
-	@echo "==> Build complete: $(BIN_DIR)/$(BINARY_NAME)-$(GOOS)-$(GOARCH)"
+	@$(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
 
-# --- Linux Builds ---
-build-linux-amd64: deps
-	@echo "==> Building for Linux (amd64)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=linux GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-linux-amd64 $(CMD_PATH)
-
-build-linux-arm64: deps
-	@echo "==> Building for Linux (arm64)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=linux GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-linux-arm64 $(CMD_PATH)
-
-# --- Windows Builds ---
-build-windows-amd64: deps
-	@echo "==> Building for Windows (amd64)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=windows GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-windows-amd64.exe $(CMD_PATH)
-
-build-windows-arm64: deps
-	@echo "==> Building for Windows (arm64)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=windows GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-windows-arm64.exe $(CMD_PATH)
-
-# --- macOS Builds ---
-build-darwin-amd64: deps
-	@echo "==> Building for macOS (amd64/Intel)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-amd64 $(CMD_PATH)
-
-build-darwin-arm64: deps
-	@echo "==> Building for macOS (arm64/Apple Silicon)..."
-	@mkdir -p $(BIN_DIR)
-	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-darwin-arm64 $(CMD_PATH)
-
-# --- Batch Build ---
-# Builds everything defined above
-build-all: build-linux-amd64 build-linux-arm64 build-windows-amd64 build-windows-arm64 build-darwin-amd64 build-darwin-arm64
-	@echo "==> All cross-compilation builds finished."
-
-# Build and run the application
 run: deps
-	@echo "==> Running application (go run)..."
 	@$(GO_RUN) $(CMD_PATH)/main.go
 
-# Cleanup
 clean:
-	@echo "==> Cleaning build artifacts..."
+	@echo "==> Cleaning..."
 	@rm -rf $(BIN_DIR)
+	@rm -rf $(DIST_DIR)

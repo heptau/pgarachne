@@ -1,11 +1,12 @@
 # Binaries
 .archive
 #pgarachne
-bin/*.json
-/pgarachne
+dist/
+bin/
 
 # Secrets
 pgarachne.env
+config.mk
 
 # Go
 *.dll
@@ -17,5 +18,5 @@ pgarachne.env
 *.log
 
 # OS specifics
-.DS_Store
 Thumbs.db
+*.DS_Store
