@@ -24,7 +24,7 @@
 ### 1. Installation
 
 **Option A: Download Binaries**  
-Stáhni si nejnovější verzi přímo z releases stránky projektu:  
+Download the latest version directly from the project's releases page:  
 👉 https://github.com/heptau/pgarachne/releases
 
 **Option B: Build from Source**
