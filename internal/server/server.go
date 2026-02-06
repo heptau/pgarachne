@@ -431,10 +431,11 @@ func initLoginLimiter(cfg *config.Config) {
 }
 
 type loginLimiter struct {
-	mu      sync.Mutex
-	limit   int
-	window  time.Duration
-	entries map[string][]time.Time
+	mu          sync.Mutex
+	limit       int
+	window      time.Duration
+	entries     map[string][]time.Time
+	lastCleanup time.Time
 }
 
 func newLoginLimiter(limit int, window time.Duration) *loginLimiter {
@@ -451,6 +452,23 @@ func (l *loginLimiter) Allow(key string) bool {
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
+
+	if l.lastCleanup.IsZero() || now.Sub(l.lastCleanup) > l.window {
+		for k, entries := range l.entries {
+			kept := entries[:0]
+			for _, t := range entries {
+				if t.After(cutoff) {
+					kept = append(kept, t)
+				}
+			}
+			if len(kept) == 0 {
+				delete(l.entries, k)
+				continue
+			}
+			l.entries[k] = kept
+		}
+		l.lastCleanup = now
+	}
 
 	entries := l.entries[key]
 	kept := entries[:0]
