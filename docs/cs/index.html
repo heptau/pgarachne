@@ -349,6 +349,7 @@
 					<pre><code>git clone https://github.com/heptau/pgarachne.git
 cd pgarachne
 make build</code></pre>
+				<p><strong>Povinné proměnné:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code>.</p>
 				</div>
 
 				<h3>2. Nastavení databáze</h3>
@@ -372,11 +373,17 @@ chmod 0600 ~/.pgpass</code></pre>
 			<section id="config">
 				<h2>Konfigurace</h2>
 				<p>PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.</p>
-
+				<div class="tip">
+					<strong>Note:</strong> <code>schema.sql</code> se pokusí vytvořit roli <code>pgarachne_admin</code> a přiřadit ji roli <code>pgarachne</code>. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
+				<br>
+					Proxy uživatel (<code>DB_USER</code>) musí být členem <code>pgarachne</code> a <code>pgarachne_admin</code>, aby mohl ověřovat a vytvářet API tokeny.</div>
 				<div class="tip">
 					<strong>Bezpečnostní poznámka:</strong> PgArachne nepracuje s hesly k databázi v konfiguračním souboru.
 					Pro autentizaci spoléhá na standardní mechanismus PostgreSQL souboru <code>.pgpass</code> (nebo
 					systémovou proměnnou <code>PGPASSWORD</code>).
+				</div>
+				<div class="tip">
+					<strong>Tip:</strong> Pokud běží PgArachne za reverse proxy, nastavte <code>TRUSTED_PROXIES</code>, aby se správně určovala IP klienta a nešlo obejít rate limiting.
 				</div>
 
 				<div class="tip">
@@ -398,8 +405,8 @@ chmod 0600 ~/.pgpass</code></pre>
 				<h3>Příklad minimální konfigurace</h3>
 				<p>Pro základní spuštění aplikace postačuje následující nastavení:</p>
 				<pre><code>DB_HOST=localhost
+DB_PORT=5432
 DB_USER=pgarachne
-DB_NAME=my_database
 JWT_SECRET=change_me_to_something_secure</code></pre>
 
 				<h3>Kompletní přehled nastavení</h3>
@@ -424,8 +431,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 						</tr>
 						<tr>
 							<td><code>DB_PORT</code></td>
-							<td>Ne</td>
-							<td>Port databáze. Výchozí: <code>5432</code>.</td>
+							<td>Ano</td>
+								<td>Port databáze.</td>
 						</tr>
 						<tr>
 							<td><code>DB_USER</code></td>
@@ -495,12 +502,15 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 							<tr>
 								<td><code>LOGIN_RATE_LIMIT</code></td>
 								<td>Ne</td>
-								<td>Max. počet pokusů o přihlášení v okně. Výchozí: <code>5</code>. Nastav <code>0</code> pro vypnutí.</td>
+								<td>Max. počet pokusů o přihlášení v okně. Pro vypnutí nastavte <code>0</code>. Výchozí: <code>5</code></td>
 							</tr>
 							<tr>
 								<td><code>LOGIN_RATE_WINDOW</code></td>
 								<td>Ne</td>
 								<td>Délka časového okna pro limit. Výchozí: <code>1m</code>.</td>
+							</tr>
+							<tr>
+								<td colspan="3" style="color:#777;font-size:0.95em;">Omezení přihlášení je per instance (v paměti). Ve více instancích je potřeba sdílený limiter pro globální vynucení.</td>
 							</tr>
 							<tr>
 								<td><code>TRUSTED_PROXIES</code></td>
@@ -617,6 +627,7 @@ curl -X POST http://localhost:8080/api/my_database/api.hello_world \
 					<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
 					<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 				</ul>
+				<p><em>Vytváření API tokenů vyžaduje <code>pgarachne_admin</code>. použijte <code>pgarachne.add_api_token(...)</code> s rolí, která je členem <code>pgarachne_admin</code>.</em></p>
 
 				<div class="warning">
 					<h3>Kritická konfigurace: Oprávnění proxy</h3>
@@ -723,7 +734,7 @@ example.com {
 					<!-- 1. Buy Me a Coffee (Featured) -->
 					<div class="donation-card featured">
 						<h4>☕ Staňte se členem</h4>
-						<p>Připojte se ke komunitě na <strong>Buy Me a Coffee</strong>. Získejte exkluzivní aktualizace,
+						<p>Připojte se ke komunitě na <strong>Buy Me a Coffee</strong>. získejte exkluzivní aktualizace,
 							dřívější přístup k novým funkcím a další.</p>
 						<a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured">Podpořit
 							na Buy Me a Coffee</a>

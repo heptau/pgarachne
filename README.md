@@ -43,6 +43,9 @@ make build
 psql -d my_database -f sql/schema.sql
 ```
 
+Note: `sql/schema.sql` will try to create the `pgarachne_admin` role and grant it to `pgarachne`. If you run the script without superuser privileges, role creation is skipped. In that case, create the role and grant it manually (or run the script as a superuser).
+The proxy user (`DB_USER`) must be a member of `pgarachne` and `pgarachne_admin` so it can verify and mint API tokens.
+
 3. Create the `pgarachne` system user (optional but recommended for production):
 
 ```sql
@@ -89,6 +92,12 @@ JWT_SECRET=change_this_to_something_secret
 HTTP_PORT=8080
 ```
 
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET`.
+
+If you run PgArachne behind a reverse proxy, set `TRUSTED_PROXIES` so client IPs are resolved correctly and rate limiting cannot be spoofed.
+
+To mint long-lived API tokens, run `pgarachne.add_api_token(...)` as a role that is a member of `pgarachne_admin`.
+
 Start the server:
 ```bash
 ./pgarachne -config .env
@@ -110,6 +119,9 @@ This will:
 Requirements:
 * Docker Desktop (or Docker Engine)
 * Docker Compose v2 (`docker compose`)
+
+Notes:
+* Login rate limiting is in-memory per instance. In multi-instance deployments, use a shared limiter (e.g., Redis) if you need global enforcement.
 
 ### 4. Hello World Example
 

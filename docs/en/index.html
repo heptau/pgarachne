@@ -370,11 +370,17 @@ chmod 0600 ~/.pgpass</code></pre>
 			<section id="config">
 				<h2>Configuration</h2>
 				<p>PgArachne loads configuration from environment variables or a file.</p>
-
+				<div class="tip">
+					<strong>Note:</strong> <code>schema.sql</code> attempts to create the <code>pgarachne_admin</code> role and grant it to <code>pgarachne</code>. If you run the script without superuser privileges, role creation is skipped. Create the role and grant it manually if needed.
+				<br>
+					The proxy user (<code>DB_USER</code>) must be a member of <code>pgarachne</code> and <code>pgarachne_admin</code> to verify and mint API tokens.</div>
 				<div class="tip">
 					<strong>Security Note:</strong> PgArachne does not handle database passwords in the configuration file.
 					Rely on the standard PostgreSQL <code>.pgpass</code> file mechanism (or <code>PGPASSWORD</code> system
 					variable) for authentication.
+				</div>
+				<div class="tip">
+					<strong>Tip:</strong> If you run PgArachne behind a reverse proxy, set <code>TRUSTED_PROXIES</code> so client IPs are resolved correctly and rate limiting cannot be spoofed.
 				</div>
 
 				<div class="tip">
@@ -395,9 +401,10 @@ chmod 0600 ~/.pgpass</code></pre>
 				<h3>Minimal Configuration Example</h3>
 				<p>This is all you need to get started:</p>
 				<pre><code>DB_HOST=localhost
+DB_PORT=5432
 DB_USER=pgarachne
-DB_NAME=my_database
 JWT_SECRET=change_me_to_something_secure</code></pre>
+				<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code>.</p>
 
 				<h3>Configuration Reference</h3>
 				<table>
@@ -421,8 +428,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 						</tr>
 						<tr>
 							<td><code>DB_PORT</code></td>
-							<td>No</td>
-							<td>Database port. Default: <code>5432</code>.</td>
+							<td>Yes</td>
+								<td>Database port.</td>
 						</tr>
 						<tr>
 							<td><code>DB_USER</code></td>
@@ -496,6 +503,9 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td><code>LOGIN_RATE_WINDOW</code></td>
 								<td>No</td>
 								<td>Rate limit window duration. Default: <code>1m</code>.</td>
+							</tr>
+							<tr>
+								<td colspan="3" style="color:#777;font-size:0.95em;">Login rate limiting is per instance (in-memory). In multi-instance deployments, use a shared limiter if you need global enforcement.</td>
 							</tr>
 							<tr>
 								<td><code>TRUSTED_PROXIES</code></td>
@@ -612,6 +622,7 @@ curl -X POST http://localhost:8080/api/my_database/api.hello_world \
 					<li>Each token is mapped to a specific database user/role.</li>
 					<li>Send the token via the <code>Authorization: Bearer &lt;token&gt;</code> header.</li>
 				</ul>
+				<p><em>Minting API tokens requires <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> with a role that is a member of <code>pgarachne_admin</code>.</em></p>
 
 				<div class="warning">
 					<h3>Critical Configuration: Proxy Privileges</h3>

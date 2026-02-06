@@ -354,6 +354,7 @@
 					<pre><code>git clone https://github.com/heptau/pgarachne.git
 cd pgarachne
 make build</code></pre>
+				<p><strong>Variáveis obrigatórias:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code>.</p>
 				</div>
 
 				<h3>2. Configuração do Banco de Dados</h3>
@@ -377,11 +378,17 @@ chmod 0600 ~/.pgpass</code></pre>
 			<section id="config">
 				<h2>Configuração</h2>
 				<p>O PgArachne carrega a configuração a partir de variáveis de ambiente ou de um arquivo.</p>
-
+				<div class="tip">
+					<strong>Note:</strong> <code>schema.sql</code> tenta criar o papel <code>pgarachne_admin</code> e concedê-lo a <code>pgarachne</code>. Sem privilégios de superusuário, a criação é ignorada. Crie o papel e o grant manualmente se necessário.
+				<br>
+					O usuário proxy (<code>DB_USER</code>) deve ser membro de <code>pgarachne</code> e <code>pgarachne_admin</code> para validar e criar tokens de API.</div>
 				<div class="tip">
 					<strong>Nota de Segurança:</strong> O PgArachne não lida com senhas do banco de dados no arquivo
 					de configuração. Ele depende do mecanismo padrão de arquivo <code>.pgpass</code> do PostgreSQL (ou da
 					variável de sistema <code>PGPASSWORD</code>) para autenticação.
+				</div>
+				<div class="tip">
+					<strong>Dica:</strong> Se o PgArachne estiver atrás de um reverse proxy, defina <code>TRUSTED_PROXIES</code> para resolver corretamente o IP do cliente e evitar spoofing do rate limit.
 				</div>
 
 				<div class="tip">
@@ -403,8 +410,8 @@ chmod 0600 ~/.pgpass</code></pre>
 				<h3>Exemplo de Configuração Mínima</h3>
 				<p>É tudo o que você precisa para começar:</p>
 				<pre><code>DB_HOST=localhost
+DB_PORT=5432
 DB_USER=pgarachne
-DB_NAME=my_database
 JWT_SECRET=change_me_to_something_secure</code></pre>
 
 				<h3>Referência de Configuração</h3>
@@ -429,8 +436,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 						</tr>
 						<tr>
 							<td><code>DB_PORT</code></td>
-							<td>Não</td>
-							<td>Porta do banco de dados. Padrão: <code>5432</code>.</td>
+							<td>Sim</td>
+								<td>Porta do banco de dados.</td>
 						</tr>
 						<tr>
 							<td><code>DB_USER</code></td>
@@ -506,6 +513,9 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td><code>LOGIN_RATE_WINDOW</code></td>
 								<td>Não</td>
 								<td>Duração da janela do rate limit. Padrão: <code>1m</code>.</td>
+							</tr>
+							<tr>
+								<td colspan="3" style="color:#777;font-size:0.95em;">O rate limit de login é por instância (em memória). Em várias instâncias, use um limitador compartilhado.</td>
 							</tr>
 							<tr>
 								<td><code>TRUSTED_PROXIES</code></td>
@@ -621,6 +631,7 @@ curl -X POST http://localhost:8080/api/my_database/api.hello_world \
 					<li>Cada token é mapeado para um usuário/papel de banco de dados específico.</li>
 					<li>Envie o token através do cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 				</ul>
+				<p><em>A criação de tokens de API requer <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> com um papel membro de <code>pgarachne_admin</code>.</em></p>
 
 				<div class="warning">
 					<h3>Configuração Crítica: Privilégios do Proxy</h3>
