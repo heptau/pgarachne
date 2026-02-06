@@ -23,7 +23,25 @@ DO $$
 BEGIN
 	IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgarachne_admin')
 	THEN
-		CREATE ROLE pgarachne_admin;
+		BEGIN
+			CREATE ROLE pgarachne_admin;
+		EXCEPTION
+			WHEN insufficient_privilege
+			THEN
+				RAISE NOTICE 'Skipping CREATE ROLE pgarachne_admin (insufficient privileges).';
+		END;
+	END IF;
+
+	IF EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgarachne_admin')
+		AND EXISTS (SELECT FROM pg_roles WHERE rolname = 'pgarachne')
+	THEN
+		BEGIN
+			GRANT pgarachne_admin TO pgarachne;
+		EXCEPTION
+			WHEN insufficient_privilege
+			THEN
+				RAISE NOTICE 'Skipping GRANT pgarachne_admin TO pgarachne (insufficient privileges).';
+		END;
 	END IF;
 END;
 $$;
@@ -78,7 +96,8 @@ DECLARE
 	raw_token TEXT;
 	hashed_token TEXT;
 BEGIN
-	IF token_valid_to IS NOT NULL AND token_valid_to <= NOW() THEN
+	IF token_valid_to IS NOT NULL AND token_valid_to <= NOW()
+	THEN
 		RAISE EXCEPTION 'valid_to must be in the future';
 	END IF;
 
@@ -127,7 +146,7 @@ BEGIN
 	WHERE token_hash = input_hash
 		AND (valid_to IS NULL OR valid_to > NOW());
 
-   RETURN found_role;
+	RETURN found_role;
 END;
 $$;
 REVOKE EXECUTE ON FUNCTION pgarachne.verify_api_token(TEXT) FROM public;
