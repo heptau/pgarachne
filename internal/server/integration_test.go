@@ -107,7 +107,7 @@ func TestLoginAndJWTFlow(t *testing.T) {
 		"id":      1,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/api.hello_world", bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -157,7 +157,7 @@ func TestAPITokenFlow(t *testing.T) {
 		"id":      2,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/api.hello_world", bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -196,12 +196,12 @@ func TestInvalidFunctionName(t *testing.T) {
 
 	callPayload := map[string]interface{}{
 		"jsonrpc": "2.0",
-		"method":  "api.hello_world",
+		"method":  "api.hello-world",
 		"params":  map[string]interface{}{},
 		"id":      3,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/api.hello-world", bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -219,7 +219,7 @@ func TestInvalidFunctionName(t *testing.T) {
 	}
 }
 
-func TestMethodMismatch(t *testing.T) {
+func TestMissingMethod(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
 
@@ -230,12 +230,11 @@ func TestMethodMismatch(t *testing.T) {
 
 	callPayload := map[string]interface{}{
 		"jsonrpc": "2.0",
-		"method":  "api.other_method",
 		"params":  map[string]interface{}{},
 		"id":      5,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/api.hello_world", bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -404,7 +403,7 @@ func fetchCapabilities(env *testEnv, token string) ([]string, error) {
 		"id":      4,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/capabilities", bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
 	if err != nil {
 		return nil, err
 	}

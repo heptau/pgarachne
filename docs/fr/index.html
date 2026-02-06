@@ -202,7 +202,7 @@
 						<div>POST http://{serveur}:{port}</div>
 						<div style="padding-left: 50px;">/api</div>
 						<div style="padding-left: 50px;">/{nom_base_de_donnees}</div>
-						<div style="padding-left: 50px;">/{nom_schema}.{nom_fonction}</div>
+							<div style="padding-left: 50px; color: #666; font-size: 0.95em;">La méthode est indiquée dans le corps JSON-RPC.</div>
 					</div>
 				</div>
 			</section>
@@ -583,7 +583,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 				<p>Utilisez le token pour appeler la fonction <code>hello_world</code> :</p>
 				<pre><code>export TOKEN="VOTRE_TOKEN_JWT_ICI"
 
-curl -X POST http://localhost:8080/api/my_database/api.hello_world \
+curl -X POST http://localhost:8080/api/my_database \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>

@@ -10,7 +10,7 @@
 
 ---
 
-**PgArachne** is a high-performance JSON-RPC 2.0 API gateway that dynamically maps URL paths to PostgreSQL functions (access via `schema.function`). It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
+**PgArachne** is a high-performance JSON-RPC 2.0 API gateway that maps JSON-RPC methods to PostgreSQL functions (access via `schema.function`). It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
 
 ## Key Features
 
@@ -169,11 +169,12 @@ Response:
 **3. Call the Function**
 
 Use the token to call the `hello_world` function:
+All JSON-RPC calls go to `/api/<database>` and specify the method in the JSON body.
 
 ```bash
 export TOKEN="YOUR_JWT_TOKEN_HERE"
 
-curl -X POST http://localhost:8080/api/my_database/api.hello_world \
+curl -X POST http://localhost:8080/api/my_database \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'

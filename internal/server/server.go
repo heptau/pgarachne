@@ -142,7 +142,8 @@ func (s *Server) buildRouter() *gin.Engine {
 	// Protected API
 	protectedAPI := router.Group("/api/:database")
 	protectedAPI.Use(s.authMiddleware())
-	protectedAPI.POST("/:function", s.handleFunctionCall)
+	protectedAPI.POST("", s.handleFunctionCall)
+	protectedAPI.POST("/", s.handleFunctionCall)
 
 	// Static files
 	if s.Cfg.StaticFilesPath != "" {
@@ -327,20 +328,9 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 
 func (s *Server) handleFunctionCall(c *gin.Context) {
 	databaseName := c.Param("database")
-	functionName := c.Param("function")
 
 	if !isSafeDatabaseName(databaseName) {
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid database name"}})
-		return
-	}
-
-	if !isSafeFunctionName(functionName) {
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid function name"}})
-		return
-	}
-
-	if functionName == "login" {
-		c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Message: "Login must be called via the public endpoint"}})
 		return
 	}
 
@@ -356,8 +346,19 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
-	if req.Method != "" && req.Method != functionName {
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method does not match URL"}, ID: req.ID})
+	functionName := strings.TrimSpace(req.Method)
+	if functionName == "" {
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method is required"}, ID: req.ID})
+		return
+	}
+
+	if !isSafeFunctionName(functionName) {
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid function name"}, ID: req.ID})
+		return
+	}
+
+	if functionName == "login" {
+		c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Message: "Login must be called via the public endpoint"}, ID: req.ID})
 		return
 	}
 
@@ -394,7 +395,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	// Call the function
 	var query string
-	if functionName == "capabilities" {
+	if functionName == "capabilities" || functionName == "pgarachne.capabilities" {
 		query = `SELECT pgarachne.capabilities($1::jsonb)::json`
 	} else {
 		// Allow schema-qualified function names (e.g., api.server_info)

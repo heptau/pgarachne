@@ -336,7 +336,7 @@
 
 			try {
 				const payload = { jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 };
-				const response = await makeApiRequest(`${apiUrl}/api/${dbName}/capabilities`, payload);
+				const response = await makeApiRequest(`${apiUrl}/api/${dbName}`, payload);
 				const data = await response.json();
 
 				if (response.ok && data.result) {
@@ -386,7 +386,7 @@
 			const payload = { jsonrpc: '2.0', method: endpoint, params: parameters, id: 1 };
 
 			try {
-				const fullUrl = `${apiUrl}/api/${dbName}/${endpoint}`;
+				const fullUrl = `${apiUrl}/api/${dbName}`;
 				resultDiv.innerHTML = '<pre>Sending request to ' + fullUrl + '...</pre>';
 
 				const response = await makeApiRequest(fullUrl, payload);

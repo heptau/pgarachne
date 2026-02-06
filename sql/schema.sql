@@ -207,7 +207,7 @@ BEGIN
 			'required', jsonb_build_array()
 		),
 		'http_method', 'POST',
-		'endpoint', '/api/' || current_catalog || '/' || af.schema_name || '.' || af.function_name
+        'endpoint', '/api/' || current_catalog
 	)) INTO result
 	FROM api_functions af;
 
@@ -224,8 +224,8 @@ GRANT EXECUTE ON FUNCTION pgarachne.capabilities(jsonb) TO public;
 -- Description: Generates OpenAPI specification.
 -- =============================================================================
 CREATE OR REPLACE FUNCTION pgarachne.generate_openapi_spec(
-	server_url_base TEXT,
-	db_name TEXT DEFAULT CURRENT_CATALOG
+   server_url_base TEXT,
+   db_name TEXT DEFAULT CURRENT_CATALOG
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -233,89 +233,65 @@ SECURITY DEFINER
 STABLE
 AS $$
 DECLARE
-	paths_object JSONB;
+    paths_object JSONB;
 BEGIN
-	WITH api_functions AS (
-		SELECT
-			p.proname AS function_name,
-			obj_description(p.oid, 'pg_proc') AS full_comment
-		FROM pg_proc AS p
-		JOIN pg_namespace AS n ON p.pronamespace = n.oid
-		WHERE n.nspname = ANY(pgarachne.allowed_schemas())
-			AND p.pronargs = 1
-			AND p.proargtypes[0] = (SELECT oid FROM pg_type WHERE typname = 'jsonb')
-			AND p.proname <> 'generate_openapi_spec'
-	),
-	processed_functions AS (
-		SELECT
-			function_name,
-			split_part(full_comment, E'\n', 1) as summary,
-			full_comment as description,
-			COALESCE(
-				(substring(full_comment from '--- PARAMS ---\s*(\{.*\})'))::jsonb,
-				'{}'::jsonb
-			) AS parameter_schema
-		FROM api_functions
-	)
-	SELECT
-		jsonb_object_agg(
-			'/' || pf.function_name,
-			jsonb_build_object(
-				'post', jsonb_build_object(
-					'summary', pf.summary,
-					'description', pf.description,
-					'tags', ARRAY['API Functions'],
-					'requestBody', jsonb_build_object(
-						'required', true,
-						'content', jsonb_build_object(
-							'application/json', jsonb_build_object(
-								'schema', jsonb_build_object(
-									'type', 'object',
-									'properties', jsonb_build_object(
-										'jsonrpc', jsonb_build_object('type', 'string', 'example', '2.0'),
-										'method', jsonb_build_object('type', 'string', 'example', pf.function_name),
-										'id', jsonb_build_object('type', 'integer', 'example', 1),
-										'params', pf.parameter_schema
-									)
-								)
-							)
-						)
-					),
-					'responses', jsonb_build_object(
-						'200', jsonb_build_object('description', 'Successful JSON-RPC response')
-					),
-					'security', jsonb_build_array(
-						jsonb_build_object('BearerAuth', '{}'::jsonb)
-					)
-				)
-			)
-		)
-	INTO paths_object
-	FROM processed_functions AS pf;
+    paths_object := jsonb_build_object(
+        '/',
+        jsonb_build_object(
+            'post', jsonb_build_object(
+                'summary', 'JSON-RPC endpoint',
+                'description', 'Call database functions by setting the JSON-RPC method in the request body.',
+                'tags', ARRAY['JSON-RPC'],
+                'requestBody', jsonb_build_object(
+                    'required', true,
+                    'content', jsonb_build_object(
+                        'application/json', jsonb_build_object(
+                            'schema', jsonb_build_object(
+                                'type', 'object',
+                                'properties', jsonb_build_object(
+                                    'jsonrpc', jsonb_build_object('type', 'string', 'example', '2.0'),
+                                    'method', jsonb_build_object('type', 'string', 'example', 'api.hello_world'),
+                                    'id', jsonb_build_object('type', 'integer', 'example', 1),
+                                    'params', jsonb_build_object('type', 'object', 'description', 'Function arguments')
+                                ),
+                                'required', jsonb_build_array('jsonrpc', 'method')
+                            )
+                        )
+                    )
+                ),
+                'responses', jsonb_build_object(
+                    '200', jsonb_build_object('description', 'Successful JSON-RPC response')
+                ),
+                'security', jsonb_build_array(
+                    jsonb_build_object('BearerAuth', '{}'::jsonb)
+                )
+            )
+        )
+    );
 
-	RETURN jsonb_build_object(
-		'openapi', '3.0.1',
-		'info', jsonb_build_object(
-			'title', 'PgArachne API for ''' || CURRENT_CATALOG || ''' database',
-			'version', '1.0.0',
-			'description', 'Auto-generated OpenAPI spec.'
-		),
-		'servers', jsonb_build_array(
-			jsonb_build_object(
-				'url', server_url_base || '/api/' || CURRENT_CATALOG,
-				'description', 'API Server'
-			)
-		),
-		'paths', COALESCE(paths_object, '{}'::jsonb),
-		'components', jsonb_build_object(
-			'securitySchemes', jsonb_build_object(
-				'BearerAuth', jsonb_build_object(
-					'type', 'http',
-					'scheme', 'bearer',
-					'description', 'Accepts a short-lived JWT or a long-lived API Token.'
-				)
-			)
-		)
-	);
+    RETURN jsonb_build_object(
+        'openapi', '3.0.1',
+        'info', jsonb_build_object(
+            'title', 'PgArachne API for ''' || CURRENT_CATALOG || ''' database',
+            'version', '1.0.0',
+            'description', 'Auto-generated OpenAPI spec.'
+        ),
+        'servers', jsonb_build_array(
+            jsonb_build_object(
+                'url', server_url_base || '/api/' || CURRENT_CATALOG,
+                'description', 'API Server'
+            )
+        ),
+        'paths', COALESCE(paths_object, '{}'::jsonb),
+        'components', jsonb_build_object(
+            'securitySchemes', jsonb_build_object(
+                'BearerAuth', jsonb_build_object(
+                    'type', 'http',
+                    'scheme', 'bearer',
+                    'description', 'Accepts a short-lived JWT or a long-lived API Token.'
+                )
+            )
+        )
+    );
 END;
 $$;
