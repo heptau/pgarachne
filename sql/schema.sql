@@ -88,6 +88,9 @@ COMMENT ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) IS 'Generat
     "target_role": {"type": "string", "description": "Database role to impersonate (default: current_user)"},
     "token_valid_to": {"type": "string", "format": "date-time", "description": "Expiration time (optional)"}
 }';
+-- Restrict token minting to the proxy/admin role only.
+REVOKE EXECUTE ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) FROM public;
+GRANT EXECUTE ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) TO pgarachne;
 
 
 -- =============================================================================
