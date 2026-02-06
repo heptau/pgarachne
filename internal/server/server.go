@@ -122,6 +122,17 @@ func (s *Server) buildRouter() *gin.Engine {
 		},
 	}))
 
+	// Limit request body size to prevent DoS via oversized payloads.
+	router.Use(func(c *gin.Context) {
+		if s.Cfg.MaxRequestBytes > 0 && c.Request.ContentLength > s.Cfg.MaxRequestBytes {
+			c.JSON(http.StatusRequestEntityTooLarge, gin.H{"error": "Request body too large"})
+			c.Abort()
+			return
+		}
+		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, s.Cfg.MaxRequestBytes)
+		c.Next()
+	})
+
 	// Public API
 	router.GET("/health", s.handleHealthCheck)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))

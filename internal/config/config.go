@@ -29,6 +29,7 @@ type Config struct {
 	LoginRateLimit  int
 	LoginRateWindow time.Duration
 	TrustedProxies  []string
+	MaxRequestBytes int64
 }
 
 // Search paths for configuration
@@ -143,6 +144,18 @@ func Load(configPath string) (*Config, error) {
 				cfg.TrustedProxies = append(cfg.TrustedProxies, trimmed)
 			}
 		}
+	}
+
+	cfg.MaxRequestBytes = 2 * 1024 * 1024 // 2MB default
+	if maxBodyStr := os.Getenv("MAX_REQUEST_BYTES"); maxBodyStr != "" {
+		value, err := strconv.ParseInt(maxBodyStr, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be an integer", maxBodyStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be > 0", maxBodyStr)
+		}
+		cfg.MaxRequestBytes = value
 	}
 
 	dbPortStr := os.Getenv("DB_PORT")

@@ -87,6 +87,8 @@ LOGIN_RATE_LIMIT=5
 LOGIN_RATE_WINDOW=1m
 # Optional trusted proxies for client IP resolution (comma-separated)
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
+# Optional request body size limit in bytes (default: 2097152)
+MAX_REQUEST_BYTES=2097152
 # Note: Password is read from .pgpass
 JWT_SECRET=change_this_to_something_secret
 HTTP_PORT=8080

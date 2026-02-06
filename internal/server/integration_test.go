@@ -68,6 +68,7 @@ func requireTestEnv(t *testing.T) *testEnv {
 			}
 			return time.Minute
 		}(),
+		MaxRequestBytes: getenvInt64Default("MAX_REQUEST_BYTES", 2*1024*1024),
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -238,6 +239,34 @@ func TestLoginRateLimit(t *testing.T) {
 	status = loginAndGetStatus(env, env.testUser, "wrong_password")
 	if status != http.StatusTooManyRequests {
 		t.Fatalf("third login status = %d, want %d", status, http.StatusTooManyRequests)
+	}
+}
+
+func TestMaxRequestBodySize(t *testing.T) {
+	t.Setenv("MAX_REQUEST_BYTES", "128")
+
+	env := requireTestEnv(t)
+	defer env.close()
+
+	// Create an oversized JSON payload
+	oversized := bytes.Repeat([]byte("a"), 256)
+	body := append([]byte(`{"login":"x","password":"`), oversized...)
+	body = append(body, []byte(`"}`)...)
+
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/login", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusRequestEntityTooLarge)
 	}
 }
 
@@ -468,6 +497,15 @@ func getenvDefault(key, def string) string {
 func getenvIntDefault(key string, def int) int {
 	if val := os.Getenv(key); val != "" {
 		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
+	}
+	return def
+}
+
+func getenvInt64Default(key string, def int64) int64 {
+	if val := os.Getenv(key); val != "" {
+		if i, err := strconv.ParseInt(val, 10, 64); err == nil {
 			return i
 		}
 	}
