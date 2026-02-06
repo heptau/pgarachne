@@ -219,6 +219,40 @@ func TestInvalidFunctionName(t *testing.T) {
 	}
 }
 
+func TestMethodMismatch(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	callPayload := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "api.other_method",
+		"params":  map[string]interface{}{},
+		"id":      5,
+	}
+	callBody, _ := json.Marshal(callPayload)
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/api.hello_world", bytes.NewReader(callBody))
+	if err != nil {
+		t.Fatalf("new call request: %v", err)
+	}
+	callReq.Header.Set("Content-Type", "application/json")
+	callReq.Header.Set("Authorization", "Bearer "+token)
+
+	callResp, err := http.DefaultClient.Do(callReq)
+	if err != nil {
+		t.Fatalf("call request failed: %v", err)
+	}
+	defer callResp.Body.Close()
+
+	if callResp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("call status = %d, want %d", callResp.StatusCode, http.StatusBadRequest)
+	}
+}
+
 func TestLoginRateLimit(t *testing.T) {
 	t.Setenv("LOGIN_RATE_LIMIT", "2")
 	t.Setenv("LOGIN_RATE_WINDOW", "1m")

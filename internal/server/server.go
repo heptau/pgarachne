@@ -356,6 +356,11 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
+	if req.Method != "" && req.Method != functionName {
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method does not match URL"}, ID: req.ID})
+		return
+	}
+
 	c.Set("jsonrpc_id", req.ID)
 
 	dbRole := c.GetString("db_role")
