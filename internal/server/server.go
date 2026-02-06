@@ -255,14 +255,23 @@ func (s *Server) authMiddleware() gin.HandlerFunc {
 		// Direct call to verification function
 
 		// Direct call to verification function
-		query := `SELECT pgarachne.verify_api_token($1)`
+		query := `SELECT current_catalog, pgarachne.verify_api_token($1)`
 
 		// Note: verification function returns role name or NULL if invalid.
 		// using sql.NullString handles NULL correctly without error.
-		var nullRole sql.NullString
-		err = db.QueryRowContext(c.Request.Context(), query, tokenString).Scan(&nullRole)
+		var (
+			currentCatalog string
+			nullRole       sql.NullString
+		)
+		err = db.QueryRowContext(c.Request.Context(), query, tokenString).Scan(&currentCatalog, &nullRole)
 
 		if err == nil && nullRole.Valid {
+			if currentCatalog != databaseName {
+				slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
+				c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid token for this database"}})
+				c.Abort()
+				return
+			}
 			// Update last_used_at is not needed as per requirements (user removed it).
 
 			c.Set("db_role", nullRole.String)
