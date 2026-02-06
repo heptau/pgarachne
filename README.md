@@ -74,6 +74,11 @@ Create a configuration file (e.g., `.env`) with your database details:
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
+# Optional TLS settings (default sslmode=disable)
+DB_SSLMODE=disable
+# DB_SSLROOTCERT=/path/to/ca.pem
+# DB_SSLCERT=/path/to/client-cert.pem
+# DB_SSLKEY=/path/to/client-key.pem
 # Note: Password is read from .pgpass
 JWT_SECRET=change_this_to_something_secret
 HTTP_PORT=8080

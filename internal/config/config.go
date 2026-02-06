@@ -14,6 +14,10 @@ type Config struct {
 	DBHost          string
 	DBPort          int
 	DBUser          string
+	DBSSLMode       string
+	DBSSLRootCert   string
+	DBSSLCert       string
+	DBSSLKey        string
 	HTTPPort        string
 	JWTSecret       string
 	JWTExpiryHours  int
@@ -82,6 +86,14 @@ func Load(configPath string) (*Config, error) {
 	cfg.DBUser = os.Getenv("DB_USER")
 	cfg.HTTPPort = os.Getenv("HTTP_PORT")
 	cfg.JWTSecret = os.Getenv("JWT_SECRET")
+
+	cfg.DBSSLMode = os.Getenv("DB_SSLMODE")
+	if cfg.DBSSLMode == "" {
+		cfg.DBSSLMode = "disable"
+	}
+	cfg.DBSSLRootCert = os.Getenv("DB_SSLROOTCERT")
+	cfg.DBSSLCert = os.Getenv("DB_SSLCERT")
+	cfg.DBSSLKey = os.Getenv("DB_SSLKEY")
 
 	cfg.LogLevel = os.Getenv("LOG_LEVEL")
 	if cfg.LogLevel == "" {
@@ -159,5 +171,57 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("jwt_secret not set in config (environment variable JWT_SECRET)")
 	}
 
+	if err := validateDBSSLConfig(cfg); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
+}
+
+func validateDBSSLConfig(cfg *Config) error {
+	if cfg.DBSSLMode == "" {
+		return fmt.Errorf("db sslmode is empty")
+	}
+
+	// If any cert path is provided, ensure it exists and is a file.
+	for key, path := range map[string]string{
+		"DB_SSLROOTCERT": cfg.DBSSLRootCert,
+		"DB_SSLCERT":     cfg.DBSSLCert,
+		"DB_SSLKEY":      cfg.DBSSLKey,
+	} {
+		if path == "" {
+			continue
+		}
+		info, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			return fmt.Errorf("%s file does not exist: %s", key, path)
+		}
+		if err != nil {
+			return fmt.Errorf("error checking %s file: %w", key, err)
+		}
+		if info.IsDir() {
+			return fmt.Errorf("%s path is a directory, expected file: %s", key, path)
+		}
+	}
+
+	return nil
+}
+
+// DBSSLParams returns connection parameters for SSL/TLS configuration.
+// Values are included only when present to avoid overriding lib defaults.
+func (c *Config) DBSSLParams() string {
+	parts := []string{}
+	if c.DBSSLMode != "" {
+		parts = append(parts, fmt.Sprintf("sslmode=%s", c.DBSSLMode))
+	}
+	if c.DBSSLRootCert != "" {
+		parts = append(parts, fmt.Sprintf("sslrootcert=%s", c.DBSSLRootCert))
+	}
+	if c.DBSSLCert != "" {
+		parts = append(parts, fmt.Sprintf("sslcert=%s", c.DBSSLCert))
+	}
+	if c.DBSSLKey != "" {
+		parts = append(parts, fmt.Sprintf("sslkey=%s", c.DBSSLKey))
+	}
+	return strings.Join(parts, " ")
 }

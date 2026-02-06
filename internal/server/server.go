@@ -144,9 +144,9 @@ func (s *Server) handleLogin(c *gin.Context) {
 	// We try to open a connection to the requested database using the provided credentials.
 	// If successful, the user is authenticated and the role is the login name.
 
-	// Construct connection string for verification (disable SSL for local, adjust as needed)
-	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
-		s.Cfg.DBHost, s.Cfg.DBPort, loginReq.Login, loginReq.Password, c.Param("database"))
+	// Construct connection string for verification
+	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
+		s.Cfg.DBHost, s.Cfg.DBPort, loginReq.Login, loginReq.Password, c.Param("database"), s.Cfg.DBSSLParams())
 
 	// Try to connect
 	tempDB, err := sql.Open("postgres", connStr)
