@@ -88,9 +88,10 @@ COMMENT ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) IS 'Generat
     "target_role": {"type": "string", "description": "Database role to impersonate (default: current_user)"},
     "token_valid_to": {"type": "string", "format": "date-time", "description": "Expiration time (optional)"}
 }';
--- Restrict token minting to the proxy/admin role only.
+-- Restrict token minting to a dedicated admin role only to avoid public minting.
+-- Use a separate admin group so the proxy user (DB_USER) does not need to be granted extra privileges.
 REVOKE EXECUTE ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) FROM public;
-GRANT EXECUTE ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) TO pgarachne;
+GRANT EXECUTE ON FUNCTION pgarachne.add_api_token(TEXT, TEXT, TIMESTAMPTZ) TO pgarachne_admin;
 
 
 -- =============================================================================
