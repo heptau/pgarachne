@@ -127,9 +127,11 @@ BEGIN
 	WHERE token_hash = input_hash
 		AND (valid_to IS NULL OR valid_to > NOW());
 
-	RETURN found_role;
+   RETURN found_role;
 END;
 $$;
+REVOKE EXECUTE ON FUNCTION pgarachne.verify_api_token(TEXT) FROM public;
+GRANT EXECUTE ON FUNCTION pgarachne.verify_api_token(TEXT) TO pgarachne;
 
 
 -- =============================================================================
