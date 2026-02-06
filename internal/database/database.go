@@ -38,7 +38,13 @@ func GetConnection(cfg *config.Config, dbName string) (*sql.DB, error) {
 		}
 	}
 
-	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s %s", cfg.DBHost, cfg.DBPort, cfg.DBUser, dbName, cfg.DBSSLParams())
+	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s %s",
+		cfg.DBHost,
+		cfg.DBPort,
+		config.QuoteConninfoValue(cfg.DBUser),
+		config.QuoteConninfoValue(dbName),
+		cfg.DBSSLParams(),
+	)
 	slog.Info("Creating new connection pool", "database", dbName)
 
 	newDB, err := sql.Open("postgres", connStr)

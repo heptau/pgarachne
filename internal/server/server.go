@@ -165,7 +165,13 @@ func (s *Server) handleLogin(c *gin.Context) {
 
 	// Construct connection string for verification
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
-		s.Cfg.DBHost, s.Cfg.DBPort, loginReq.Login, loginReq.Password, c.Param("database"), s.Cfg.DBSSLParams())
+		s.Cfg.DBHost,
+		s.Cfg.DBPort,
+		config.QuoteConninfoValue(loginReq.Login),
+		config.QuoteConninfoValue(loginReq.Password),
+		config.QuoteConninfoValue(c.Param("database")),
+		s.Cfg.DBSSLParams(),
+	)
 
 	// Try to connect
 	tempDB, err := sql.Open("postgres", connStr)
