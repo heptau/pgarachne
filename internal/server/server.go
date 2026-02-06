@@ -401,5 +401,8 @@ func isSafeFunctionName(name string) bool {
 	if name == "" {
 		return false
 	}
+	if name == "capabilities" {
+		return true
+	}
 	return pgFunctionRe.MatchString(name)
 }

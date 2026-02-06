@@ -209,6 +209,41 @@ func TestInvalidFunctionName(t *testing.T) {
 	}
 }
 
+func TestCapabilitiesRespectsExecutePrivilege(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	functionName := fmt.Sprintf("api.private_fn_%d", time.Now().UnixNano())
+	if err := createPrivateFunction(env, functionName); err != nil {
+		t.Fatalf("create private function: %v", err)
+	}
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	methods, err := fetchCapabilities(env, token)
+	if err != nil {
+		t.Fatalf("capabilities fetch failed: %v", err)
+	}
+	if containsMethod(methods, functionName) {
+		t.Fatalf("expected %s to be hidden without EXECUTE", functionName)
+	}
+
+	if err := grantExecute(env, functionName); err != nil {
+		t.Fatalf("grant execute: %v", err)
+	}
+
+	methods, err = fetchCapabilities(env, token)
+	if err != nil {
+		t.Fatalf("capabilities fetch failed after grant: %v", err)
+	}
+	if !containsMethod(methods, functionName) {
+		t.Fatalf("expected %s to be visible after EXECUTE grant", functionName)
+	}
+}
+
 func createAPIToken(env *testEnv) (string, error) {
 	connStr := buildConnStr(env.cfg, env.dbName)
 	db, err := sql.Open("postgres", connStr)
@@ -225,6 +260,106 @@ func createAPIToken(env *testEnv) (string, error) {
 		return "", err
 	}
 	return token, nil
+}
+
+func createPrivateFunction(env *testEnv, functionName string) error {
+	connStr := buildConnStr(env.cfg, env.dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = db.ExecContext(ctx, fmt.Sprintf(`
+CREATE OR REPLACE FUNCTION %s(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+  SELECT '"private"'::json;
+$$;
+REVOKE EXECUTE ON FUNCTION %s(jsonb) FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION %s(jsonb) FROM %s;
+`, functionName, functionName, functionName, env.testUser))
+	return err
+}
+
+func grantExecute(env *testEnv, functionName string) error {
+	connStr := buildConnStr(env.cfg, env.dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err = db.ExecContext(ctx, fmt.Sprintf("GRANT EXECUTE ON FUNCTION %s(jsonb) TO %s;", functionName, env.testUser))
+	return err
+}
+
+func fetchCapabilities(env *testEnv, token string) ([]string, error) {
+	callPayload := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "capabilities",
+		"params":  map[string]interface{}{},
+		"id":      4,
+	}
+	callBody, _ := json.Marshal(callPayload)
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/capabilities", bytes.NewReader(callBody))
+	if err != nil {
+		return nil, err
+	}
+	callReq.Header.Set("Content-Type", "application/json")
+	callReq.Header.Set("Authorization", "Bearer "+token)
+
+	callResp, err := http.DefaultClient.Do(callReq)
+	if err != nil {
+		return nil, err
+	}
+	defer callResp.Body.Close()
+
+	if callResp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("capabilities status = %d", callResp.StatusCode)
+	}
+
+	var rpcResp struct {
+		Result json.RawMessage `json:"result"`
+		Error  *struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.NewDecoder(callResp.Body).Decode(&rpcResp); err != nil {
+		return nil, err
+	}
+	if rpcResp.Error != nil {
+		return nil, fmt.Errorf("json-rpc error: %s", rpcResp.Error.Message)
+	}
+
+	var methods []struct {
+		Method string `json:"method"`
+	}
+	if err := json.Unmarshal(rpcResp.Result, &methods); err != nil {
+		return nil, err
+	}
+
+	out := make([]string, 0, len(methods))
+	for _, m := range methods {
+		out = append(out, m.Method)
+	}
+	return out, nil
+}
+
+func containsMethod(methods []string, target string) bool {
+	for _, m := range methods {
+		if m == target {
+			return true
+		}
+	}
+	return false
 }
 
 func loginAndGetToken(env *testEnv, login, password string) (string, error) {

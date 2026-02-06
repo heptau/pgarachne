@@ -5,6 +5,7 @@
 -- Create schema for PgArachne internal functionality
 CREATE SCHEMA IF NOT EXISTS pgarachne;
 COMMENT ON SCHEMA pgarachne IS 'Schema for PgArachne internal functionality (tokens, system functions).';
+GRANT USAGE ON SCHEMA pgarachne TO public;
 
 -- Create schema for public API functions
 CREATE SCHEMA IF NOT EXISTS api;
@@ -134,7 +135,6 @@ $$;
 CREATE OR REPLACE FUNCTION pgarachne.capabilities(params jsonb DEFAULT '{}'::jsonb)
 RETURNS json
 LANGUAGE plpgsql
-SECURITY DEFINER
 AS $$
 DECLARE
     result json;
@@ -151,6 +151,7 @@ BEGIN
                OR (n.nspname = 'pgarachne' AND p.proname = 'capabilities'))
           AND p.pronargs = 1
           AND p.proargtypes[0] IN ((SELECT oid FROM pg_type WHERE typname IN ('jsonb', 'json')))
+          AND has_function_privilege(current_user, p.oid, 'EXECUTE')
     )
     SELECT json_agg(json_build_object(
         'method',
@@ -177,6 +178,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION pgarachne.capabilities(jsonb) IS 'Returns available JSON-RPC methods.';
+GRANT EXECUTE ON FUNCTION pgarachne.capabilities(jsonb) TO public;
 
 
 -- =============================================================================
