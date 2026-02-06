@@ -2,22 +2,24 @@ openapi: 3.0.3
 info:
   title: PgArachne JSON-RPC Gateway
   description: >
-    A JSON-RPC 2.0 API gateway that dynamically maps URL paths to PostgreSQL functions in the 'api' schema.
+    A JSON-RPC 2.0 API gateway that maps JSON-RPC methods to PostgreSQL functions.
 
 
-    **Core Concept**: The path `/api/{database}/{schema_name}.{function_name}` routes to the PostgreSQL function `{schema_name}.{function_name}` within the specified database.
-  version: 1.0.1
+    **Core Concept**: The path `/api/{database}` is used for all calls, and the JSON-RPC `method`
+    contains the target function name (for example `api.list_users`).
+  version: 1.0.3
 servers:
   - url: http://localhost:8080
     description: Local development server
 paths:
-  /api/{database}/login:
+  /api/{database}:
     post:
-      summary: Login to obtain a JWT
+      summary: Execute a JSON-RPC method
       description: >
-        Authenticate using a login and password to receive a short-lived JWT.
-        The password hash is verified against `api.users` in the target database.
-      operationId: login
+        Executes a PostgreSQL function via JSON-RPC. The JSON-RPC `method` should be the
+        fully-qualified function name (e.g., `api.list_users`). The special method
+        `login` authenticates a user and returns a JWT in the `result.token` field.
+      operationId: executeMethod
       parameters:
         - name: database
           in: path
@@ -26,50 +28,6 @@ paths:
           schema:
             type: string
             example: pgarachne_demo
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
-      responses:
-        '200':
-          description: Successful login
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  token:
-                    type: string
-                    description: JWT Bearer token
-        '401':
-          description: Invalid credentials
-        '503':
-          description: Database connection failed
-
-  /api/{database}/{schema_name}.{function_name}:
-    post:
-      summary: Execute a PostgreSQL function via JSON-RPC
-      description: >
-        Executes a function in the `api` schema of the target database.
-        The function must accept a single `jsonb` or `json` argument.
-      operationId: executeFunction
-      parameters:
-        - name: database
-          in: path
-          description: Target database name
-          required: true
-          schema:
-            type: string
-            example: pgarachne_demo
-        - name: function
-          in: path
-          description: PostgreSQL function name (in `api` schema)
-          required: true
-          schema:
-            type: string
-            example: list_users
       requestBody:
         required: true
         content:
@@ -83,8 +41,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/JsonRpcResponse'
-        '404':
-          description: Function not found
+        '400':
+          description: Invalid JSON-RPC request
         '401':
           description: Unauthorized (Missing or invalid token)
         '500':
@@ -103,17 +61,6 @@ components:
       description: "Format: `Token <your_api_token>`"
 
   schemas:
-    LoginRequest:
-      type: object
-      required:
-        - login
-        - password
-      properties:
-        login:
-          type: string
-        password:
-          type: string
-
     JsonRpcRequest:
       type: object
       required:

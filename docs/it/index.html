@@ -567,12 +567,12 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 GRANT demo_user TO pgarachne;</code></pre>
 
 				<h3>2. Login tramite API</h3>
-				<p>Usa <code>curl</code> per effettuare il login con le credenziali di <code>demo_user</code> e ottenere un token JWT:</p>
-				<pre><code>curl -X POST http://localhost:8080/api/my_database/login \
+				<p>Usa il metodo JSON-RPC <code>login</code> per ottenere un token JWT:</p>
+				<pre><code>curl -X POST http://localhost:8080/api/my_database \
   -H "Content-Type: application/json" \
-  -d '{"login": "demo_user", "password": "user_password"}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 				<p>Risposta:</p>
-				<pre><code>{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}</code></pre>
+				<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
 				<h3>3. Chiamata della Funzione</h3>
 				<p>Usa il token per chiamare la funzione <code>hello_world</code>:</p>

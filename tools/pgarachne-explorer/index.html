@@ -262,20 +262,26 @@
 			// Sending plain password, server handles hashing
 			try {
 				resultDiv.innerHTML = '<pre>Logging in...</pre>';
-				const response = await fetch(`${apiUrl}/api/${dbName}/login`, {
+				const response = await fetch(`${apiUrl}/api/${dbName}`, {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ login: login, password: password })
+					body: JSON.stringify({
+						jsonrpc: '2.0',
+						method: 'login',
+						params: { login: login, password: password },
+						id: 1
+					})
 				});
 
 				const data = await response.json();
-				if (response.ok && data.token) {
-					authToken = data.token;
+				if (response.ok && data.result && data.result.token) {
+					authToken = data.result.token;
 					resultDiv.innerHTML = '<pre>Login successful. You can now load and call functions.</pre>';
 					setLoggedInUI(`user ${login}`);
 					loadCapabilities();
 				} else {
-					resultDiv.innerHTML = '<pre>Login error: ' + (data.error || 'Unknown error') + '</pre>';
+					const message = data && data.error && data.error.message ? data.error.message : (data.error || 'Unknown error');
+					resultDiv.innerHTML = '<pre>Login error: ' + message + '</pre>';
 				}
 			} catch (e) {
 				resultDiv.innerHTML = '<pre>Server communication error: ' + e.message + '</pre>';

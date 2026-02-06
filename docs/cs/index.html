@@ -550,7 +550,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 
 				<h3>1. Vytvoření uživatele a funkci</h3>
 				<p>V databázi (<code>my_database</code>):</p>
-				<pre><code>-- 1. 1. Vytvoříme uživatele, který se bude přihlašovat k API
+				<pre><code>-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
@@ -570,12 +570,12 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 GRANT demo_user TO pgarachne;</code></pre>
 
 				<h3>2. Přihlášení přes API</h3>
-				<p>Pomocí <code>curl</code> se přihlaste s údaji <code>demo_user</code> a získejte JWT token:</p>
-				<pre><code>curl -X POST http://localhost:8080/api/my_database/login \
+				<p>Použijte JSON-RPC metodu <code>login</code> pro získání JWT tokenu:</p>
+				<pre><code>curl -X POST http://localhost:8080/api/my_database \
   -H "Content-Type: application/json" \
-  -d '{"login": "demo_user", "password": "user_password"}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 				<p>Odpověď:</p>
-				<pre><code>{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}</code></pre>
+				<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
 				<h3>3. Volání funkce</h3>
 				<p>Pomocí získaného tokenu zavolejte funkci <code>hello_world</code>:</p>

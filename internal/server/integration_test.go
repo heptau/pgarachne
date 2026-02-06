@@ -281,12 +281,12 @@ func TestMaxRequestBodySize(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
 
-	// Create an oversized JSON payload
+	// Create an oversized JSON-RPC payload
 	oversized := bytes.Repeat([]byte("a"), 256)
-	body := append([]byte(`{"login":"x","password":"`), oversized...)
-	body = append(body, []byte(`"}`)...)
+	body := append([]byte(`{"jsonrpc":"2.0","id":1,"method":"login","params":{"login":"x","password":"`), oversized...)
+	body = append(body, []byte(`"}}`)...)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/login", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -457,13 +457,18 @@ func containsMethod(methods []string, target string) bool {
 }
 
 func loginAndGetToken(env *testEnv, login, password string) (string, error) {
-	loginPayload := map[string]string{
-		"login":    login,
-		"password": password,
+	loginPayload := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "login",
+		"params": map[string]string{
+			"login":    login,
+			"password": password,
+		},
+		"id": 1,
 	}
 	body, _ := json.Marshal(loginPayload)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/login", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -480,25 +485,38 @@ func loginAndGetToken(env *testEnv, login, password string) (string, error) {
 	}
 
 	var loginResp struct {
-		Token string `json:"token"`
+		Result struct {
+			Token string `json:"token"`
+		} `json:"result"`
+		Error *struct {
+			Message string `json:"message"`
+		} `json:"error"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
 		return "", err
 	}
-	if loginResp.Token == "" {
+	if loginResp.Error != nil {
+		return "", fmt.Errorf("json-rpc error: %s", loginResp.Error.Message)
+	}
+	if loginResp.Result.Token == "" {
 		return "", fmt.Errorf("empty token")
 	}
-	return loginResp.Token, nil
+	return loginResp.Result.Token, nil
 }
 
 func loginAndGetStatus(env *testEnv, login, password string) int {
-	loginPayload := map[string]string{
-		"login":    login,
-		"password": password,
+	loginPayload := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "login",
+		"params": map[string]string{
+			"login":    login,
+			"password": password,
+		},
+		"id": 1,
 	}
 	body, _ := json.Marshal(loginPayload)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/login", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
 	if err != nil {
 		return 0
 	}

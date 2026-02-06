@@ -23,8 +23,8 @@
 
 ### 1. Installation
 
-**Option A: Download Binaries**  
-Download the latest version directly from the project's releases page:  
+**Option A: Download Binaries**
+Download the latest version directly from the project's releases page:
 👉 https://github.com/heptau/pgarachne/releases
 
 **Option B: Build from Source**
@@ -153,17 +153,17 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
 
 **2. Login via API**
 
-Use `curl` to login with the `app_user` credentials and get a JWT token:
+Use the JSON-RPC `login` method to obtain a JWT token:
 
 ```bash
-curl -X POST http://localhost:8080/api/my_database/login \
+curl -X POST http://localhost:8080/api/my_database \
   -H "Content-Type: application/json" \
-  -d '{"login": "app_user", "password": "user_password"}'
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"app_user","password":"user_password"},"id":1}'
 ```
 
 Response:
 ```json
-{"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."}
+{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}
 ```
 
 **3. Call the Function**
