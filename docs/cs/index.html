@@ -492,8 +492,17 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 							<td>Ne</td>
 							<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
 						</tr>
-
-						<!-- Konfigurace logování -->
+							<tr>
+								<td><code>LOGIN_RATE_LIMIT</code></td>
+								<td>Ne</td>
+								<td>Max. počet pokusů o přihlášení v okně. Výchozí: <code>5</code>. Nastav <code>0</code> pro vypnutí.</td>
+							</tr>
+							<tr>
+								<td><code>LOGIN_RATE_WINDOW</code></td>
+								<td>Ne</td>
+								<td>Délka časového okna pro limit. Výchozí: <code>1m</code>.</td>
+							</tr>
+<!-- Konfigurace logování -->
 						<tr>
 							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logování</td>
 						</tr>

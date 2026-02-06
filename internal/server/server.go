@@ -11,6 +11,7 @@ import (
 	"os/signal"
 	"regexp"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -36,9 +37,12 @@ var (
 	pgQuotedIdentRe = regexp.MustCompile(`^` + pgQuotedIdentPattern + `$`)
 	// schema.function where each part is quoted or unquoted
 	pgFunctionRe = regexp.MustCompile(`^(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)\.(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)$`)
+
+	loginAttemptLimiter *loginLimiter
 )
 
 func New(cfg *config.Config) *Server {
+	initLoginLimiter(cfg)
 	return &Server{Cfg: cfg}
 }
 
@@ -96,8 +100,8 @@ func (s *Server) buildRouter() *gin.Engine {
 	// CORS setup
 	allowAnyOrigin := len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*"
 	router.Use(cors.New(cors.Config{
-		AllowMethods:     []string{"POST", "OPTIONS", "GET"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowMethods: []string{"POST", "OPTIONS", "GET"},
+		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
 		// Do not allow credentials with wildcard origins.
 		AllowCredentials: !allowAnyOrigin,
 		AllowOriginFunc: func(origin string) bool {
@@ -142,6 +146,11 @@ func (s *Server) handleLogin(c *gin.Context) {
 	var loginReq LoginRequest
 	if err := c.ShouldBindJSON(&loginReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	if loginAttemptLimiter != nil && !loginAttemptLimiter.Allow(c.ClientIP()+"|"+loginReq.Login) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many login attempts. Please try again later."})
 		return
 	}
 
@@ -407,4 +416,56 @@ func isSafeFunctionName(name string) bool {
 		return true
 	}
 	return pgFunctionRe.MatchString(name)
+}
+
+func initLoginLimiter(cfg *config.Config) {
+	if cfg == nil {
+		loginAttemptLimiter = newLoginLimiter(5, time.Minute)
+		return
+	}
+	if cfg.LoginRateLimit == 0 {
+		loginAttemptLimiter = nil
+		return
+	}
+	loginAttemptLimiter = newLoginLimiter(cfg.LoginRateLimit, cfg.LoginRateWindow)
+}
+
+type loginLimiter struct {
+	mu      sync.Mutex
+	limit   int
+	window  time.Duration
+	entries map[string][]time.Time
+}
+
+func newLoginLimiter(limit int, window time.Duration) *loginLimiter {
+	return &loginLimiter{
+		limit:   limit,
+		window:  window,
+		entries: make(map[string][]time.Time),
+	}
+}
+
+func (l *loginLimiter) Allow(key string) bool {
+	now := time.Now()
+	cutoff := now.Add(-l.window)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entries := l.entries[key]
+	kept := entries[:0]
+	for _, t := range entries {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+
+	if len(kept) >= l.limit {
+		l.entries[key] = kept
+		return false
+	}
+
+	kept = append(kept, now)
+	l.entries[key] = kept
+	return true
 }

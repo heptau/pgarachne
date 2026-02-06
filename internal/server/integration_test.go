@@ -59,6 +59,15 @@ func requireTestEnv(t *testing.T) *testEnv {
 		AllowedOrigins: []string{"*"},
 		LogLevel:       "ERROR",
 		LogOutput:      "stdout",
+		LoginRateLimit: getenvIntDefault("LOGIN_RATE_LIMIT", 5),
+		LoginRateWindow: func() time.Duration {
+			if val := os.Getenv("LOGIN_RATE_WINDOW"); val != "" {
+				if d, err := time.ParseDuration(val); err == nil {
+					return d
+				}
+			}
+			return time.Minute
+		}(),
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -206,6 +215,29 @@ func TestInvalidFunctionName(t *testing.T) {
 
 	if callResp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("call status = %d, want %d", callResp.StatusCode, http.StatusBadRequest)
+	}
+}
+
+func TestLoginRateLimit(t *testing.T) {
+	t.Setenv("LOGIN_RATE_LIMIT", "2")
+	t.Setenv("LOGIN_RATE_WINDOW", "1m")
+
+	env := requireTestEnv(t)
+	defer env.close()
+
+	status := loginAndGetStatus(env, env.testUser, "wrong_password")
+	if status != http.StatusUnauthorized {
+		t.Fatalf("first login status = %d, want %d", status, http.StatusUnauthorized)
+	}
+
+	status = loginAndGetStatus(env, env.testUser, "wrong_password")
+	if status != http.StatusUnauthorized {
+		t.Fatalf("second login status = %d, want %d", status, http.StatusUnauthorized)
+	}
+
+	status = loginAndGetStatus(env, env.testUser, "wrong_password")
+	if status != http.StatusTooManyRequests {
+		t.Fatalf("third login status = %d, want %d", status, http.StatusTooManyRequests)
 	}
 }
 
@@ -397,6 +429,27 @@ func loginAndGetToken(env *testEnv, login, password string) (string, error) {
 	return loginResp.Token, nil
 }
 
+func loginAndGetStatus(env *testEnv, login, password string) int {
+	loginPayload := map[string]string{
+		"login":    login,
+		"password": password,
+	}
+	body, _ := json.Marshal(loginPayload)
+
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName+"/login", bytes.NewReader(body))
+	if err != nil {
+		return 0
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0
+	}
+	defer resp.Body.Close()
+	return resp.StatusCode
+}
+
 func buildConnStr(cfg *config.Config, dbName string) string {
 	return "host=" + cfg.DBHost +
 		" port=" + strconv.Itoa(cfg.DBPort) +
@@ -408,6 +461,15 @@ func buildConnStr(cfg *config.Config, dbName string) string {
 func getenvDefault(key, def string) string {
 	if val := os.Getenv(key); val != "" {
 		return val
+	}
+	return def
+}
+
+func getenvIntDefault(key string, def int) int {
+	if val := os.Getenv(key); val != "" {
+		if i, err := strconv.Atoi(val); err == nil {
+			return i
+		}
 	}
 	return def
 }

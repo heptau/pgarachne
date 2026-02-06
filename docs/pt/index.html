@@ -497,8 +497,17 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 							<td>Não</td>
 							<td>Validade da sessão em horas. Padrão: <code>8</code>.</td>
 						</tr>
-
-						<!-- Configuração de Logging -->
+							<tr>
+								<td><code>LOGIN_RATE_LIMIT</code></td>
+								<td>Não</td>
+								<td>Máximo de tentativas de login por janela. Padrão: <code>5</code>. Use <code>0</code> para desativar.</td>
+							</tr>
+							<tr>
+								<td><code>LOGIN_RATE_WINDOW</code></td>
+								<td>Não</td>
+								<td>Duração da janela do rate limit. Padrão: <code>1m</code>.</td>
+							</tr>
+<!-- Configuração de Logging -->
 						<tr>
 							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
 						</tr>

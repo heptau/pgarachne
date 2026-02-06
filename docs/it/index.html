@@ -489,8 +489,17 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 							<td>No</td>
 							<td>Validità della sessione in ore. Default: <code>8</code>.</td>
 						</tr>
-
-						<!-- Logging Config -->
+							<tr>
+								<td><code>LOGIN_RATE_LIMIT</code></td>
+								<td>No</td>
+								<td>Numero massimo di tentativi di login per finestra. Predefinito: <code>5</code>. <code>0</code> disabilita.</td>
+							</tr>
+							<tr>
+								<td><code>LOGIN_RATE_WINDOW</code></td>
+								<td>No</td>
+								<td>Durata della finestra di rate limit. Predefinito: <code>1m</code>.</td>
+							</tr>
+							<!-- Logging Config -->
 						<tr>
 							<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
 						</tr>

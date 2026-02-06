@@ -79,6 +79,9 @@ DB_SSLMODE=disable
 # DB_SSLROOTCERT=/path/to/ca.pem
 # DB_SSLCERT=/path/to/client-cert.pem
 # DB_SSLKEY=/path/to/client-key.pem
+# Optional login rate limiting (default: 5 attempts per 1m, set 0 to disable)
+LOGIN_RATE_LIMIT=5
+LOGIN_RATE_WINDOW=1m
 # Note: Password is read from .pgpass
 JWT_SECRET=change_this_to_something_secret
 HTTP_PORT=8080

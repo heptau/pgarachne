@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -25,6 +26,8 @@ type Config struct {
 	StaticFilesPath string
 	LogLevel        string
 	LogOutput       string
+	LoginRateLimit  int
+	LoginRateWindow time.Duration
 }
 
 // Search paths for configuration
@@ -103,6 +106,30 @@ func Load(configPath string) (*Config, error) {
 	cfg.LogOutput = os.Getenv("LOG_OUTPUT")
 	if cfg.LogOutput == "" {
 		cfg.LogOutput = "stdout"
+	}
+
+	cfg.LoginRateLimit = 5
+	if limitStr := os.Getenv("LOGIN_RATE_LIMIT"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_LIMIT value: '%s', must be an integer", limitStr)
+		}
+		if limit < 0 {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_LIMIT value: '%s', must be >= 0", limitStr)
+		}
+		cfg.LoginRateLimit = limit
+	}
+
+	cfg.LoginRateWindow = time.Minute
+	if windowStr := os.Getenv("LOGIN_RATE_WINDOW"); windowStr != "" {
+		window, err := time.ParseDuration(windowStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_WINDOW value: '%s', must be a duration like 1m or 30s", windowStr)
+		}
+		if window <= 0 {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_WINDOW value: '%s', must be > 0", windowStr)
+		}
+		cfg.LoginRateWindow = window
 	}
 
 	dbPortStr := os.Getenv("DB_PORT")
