@@ -96,6 +96,11 @@ func (s *Server) Run() error {
 
 func (s *Server) buildRouter() *gin.Engine {
 	router := gin.Default()
+	if len(s.Cfg.TrustedProxies) > 0 {
+		if err := router.SetTrustedProxies(s.Cfg.TrustedProxies); err != nil {
+			slog.Warn("Invalid TRUSTED_PROXIES configuration", "error", err)
+		}
+	}
 
 	// CORS setup
 	allowAnyOrigin := len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*"

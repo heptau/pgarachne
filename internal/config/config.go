@@ -28,6 +28,7 @@ type Config struct {
 	LogOutput       string
 	LoginRateLimit  int
 	LoginRateWindow time.Duration
+	TrustedProxies  []string
 }
 
 // Search paths for configuration
@@ -130,6 +131,18 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid LOGIN_RATE_WINDOW value: '%s', must be > 0", windowStr)
 		}
 		cfg.LoginRateWindow = window
+	}
+
+	trustedProxiesStr := os.Getenv("TRUSTED_PROXIES")
+	if trustedProxiesStr != "" {
+		parts := strings.Split(trustedProxiesStr, ",")
+		cfg.TrustedProxies = make([]string, 0, len(parts))
+		for _, part := range parts {
+			trimmed := strings.TrimSpace(part)
+			if trimmed != "" {
+				cfg.TrustedProxies = append(cfg.TrustedProxies, trimmed)
+			}
+		}
 	}
 
 	dbPortStr := os.Getenv("DB_PORT")
