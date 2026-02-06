@@ -28,11 +28,14 @@ type Server struct {
 
 var (
 	// Postgres identifier (unquoted): starts with letter or underscore, then letters/digits/underscore/$
-	pgIdentRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_$]*$`)
+	pgIdentPattern = `[A-Za-z_][A-Za-z0-9_$]*`
 	// Postgres quoted identifier: "..." with doubled quotes for escaping
-	pgQuotedIdentRe = regexp.MustCompile(`^"([^"]|"")+"$`)
+	pgQuotedIdentPattern = `"([^"]|"")+"`
+
+	pgIdentRe       = regexp.MustCompile(`^` + pgIdentPattern + `$`)
+	pgQuotedIdentRe = regexp.MustCompile(`^` + pgQuotedIdentPattern + `$`)
 	// schema.function where each part is quoted or unquoted
-	pgFunctionRe = regexp.MustCompile(`^(` + pgIdentRe.String() + `|` + pgQuotedIdentRe.String() + `)\.(` + pgIdentRe.String() + `|` + pgQuotedIdentRe.String() + `)$`)
+	pgFunctionRe = regexp.MustCompile(`^(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)\.(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)$`)
 )
 
 func New(cfg *config.Config) *Server {
@@ -41,48 +44,7 @@ func New(cfg *config.Config) *Server {
 
 func (s *Server) Run() error {
 	gin.SetMode(gin.ReleaseMode)
-	router := gin.Default()
-
-	// CORS setup
-	router.Use(cors.New(cors.Config{
-		AllowMethods:     []string{"POST", "OPTIONS", "GET"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowCredentials: true,
-		AllowOriginFunc: func(origin string) bool {
-			if len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*" {
-				return true
-			}
-			for _, allowedOrigin := range s.Cfg.AllowedOrigins {
-				if allowedOrigin == origin {
-					return true
-				}
-			}
-			return false
-		},
-	}))
-
-	// Public API
-	router.GET("/health", s.handleHealthCheck)
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
-	router.POST("/api/:database/login", s.handleLogin)
-
-	// Protected API
-	protectedAPI := router.Group("/api/:database")
-	protectedAPI.Use(s.authMiddleware())
-	protectedAPI.POST("/:function", s.handleFunctionCall)
-
-	// Static files
-	// Static files
-	if s.Cfg.StaticFilesPath != "" {
-		// Use NoRoute to serve static files when no other route matches.
-		// This avoids conflicts with specific routes like /health at the root level.
-		router.NoRoute(func(c *gin.Context) {
-			fileServer := http.FileServer(http.Dir(s.Cfg.StaticFilesPath))
-			fileServer.ServeHTTP(c.Writer, c.Request)
-		})
-		slog.Info("Serving static files via fallback", "path", s.Cfg.StaticFilesPath)
-	}
+	router := s.buildRouter()
 
 	slog.Info("Starting PgArachne server", "port", s.Cfg.HTTPPort)
 
@@ -126,6 +88,52 @@ func (s *Server) Run() error {
 
 	slog.Info("Server exiting")
 	return nil
+}
+
+func (s *Server) buildRouter() *gin.Engine {
+	router := gin.Default()
+
+	// CORS setup
+	router.Use(cors.New(cors.Config{
+		AllowMethods:     []string{"POST", "OPTIONS", "GET"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
+		AllowOriginFunc: func(origin string) bool {
+			if len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*" {
+				return true
+			}
+			for _, allowedOrigin := range s.Cfg.AllowedOrigins {
+				if allowedOrigin == origin {
+					return true
+				}
+			}
+			return false
+		},
+	}))
+
+	// Public API
+	router.GET("/health", s.handleHealthCheck)
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+
+	router.POST("/api/:database/login", s.handleLogin)
+
+	// Protected API
+	protectedAPI := router.Group("/api/:database")
+	protectedAPI.Use(s.authMiddleware())
+	protectedAPI.POST("/:function", s.handleFunctionCall)
+
+	// Static files
+	if s.Cfg.StaticFilesPath != "" {
+		// Use NoRoute to serve static files when no other route matches.
+		// This avoids conflicts with specific routes like /health at the root level.
+		router.NoRoute(func(c *gin.Context) {
+			fileServer := http.FileServer(http.Dir(s.Cfg.StaticFilesPath))
+			fileServer.ServeHTTP(c.Writer, c.Request)
+		})
+		slog.Info("Serving static files via fallback", "path", s.Cfg.StaticFilesPath)
+	}
+
+	return router
 }
 
 func (s *Server) handleLogin(c *gin.Context) {

@@ -89,6 +89,23 @@ Start the server:
 ./pgarachne -config .env
 ```
 
+### 3. Running Tests
+
+Tests include optional database integration checks. The easiest way is to use the provided Docker-based runner:
+
+```bash
+./scripts/run_tests.sh
+```
+
+This will:
+1. Start a local Postgres container.
+2. Create roles, database, and schema.
+3. Run `go test ./...`.
+
+Requirements:
+* Docker Desktop (or Docker Engine)
+* Docker Compose v2 (`docker compose`)
+
 ### 4. Hello World Example
 
 Let's create a simple API endpoint associated with a user.
