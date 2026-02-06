@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -24,6 +25,15 @@ import (
 type Server struct {
 	Cfg *config.Config
 }
+
+var (
+	// Postgres identifier (unquoted): starts with letter or underscore, then letters/digits/underscore/$
+	pgIdentRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_$]*$`)
+	// Postgres quoted identifier: "..." with doubled quotes for escaping
+	pgQuotedIdentRe = regexp.MustCompile(`^"([^"]|"")+"$`)
+	// schema.function where each part is quoted or unquoted
+	pgFunctionRe = regexp.MustCompile(`^(` + pgIdentRe.String() + `|` + pgQuotedIdentRe.String() + `)\.(` + pgIdentRe.String() + `|` + pgQuotedIdentRe.String() + `)$`)
+)
 
 func New(cfg *config.Config) *Server {
 	return &Server{Cfg: cfg}
@@ -125,6 +135,11 @@ func (s *Server) handleLogin(c *gin.Context) {
 		return
 	}
 
+	if !isSafeDatabaseName(c.Param("database")) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid database name"})
+		return
+	}
+
 	// Direct DB Authentication Strategy:
 	// We try to open a connection to the requested database using the provided credentials.
 	// If successful, the user is authenticated and the role is the login name.
@@ -172,6 +187,12 @@ func (s *Server) handleLogin(c *gin.Context) {
 
 func (s *Server) authMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if !isSafeDatabaseName(c.Param("database")) {
+			c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid database name"}})
+			c.Abort()
+			return
+		}
+
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
 			c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is missing"}})
@@ -258,6 +279,16 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	databaseName := c.Param("database")
 	functionName := c.Param("function")
 
+	if !isSafeDatabaseName(databaseName) {
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid database name"}})
+		return
+	}
+
+	if !isSafeFunctionName(functionName) {
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid function name"}})
+		return
+	}
+
 	if functionName == "login" {
 		c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Message: "Login must be called via the public endpoint"}})
 		return
@@ -312,7 +343,6 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		query = `SELECT pgarachne.capabilities($1::jsonb)::json`
 	} else {
 		// Allow schema-qualified function names (e.g., api.server_info)
-		// TODO: Validate functionName to prevent SQL injection (e.g., ensure it matches expected pattern like "schema.function")
 		query = fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
 	}
 
@@ -341,4 +371,18 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 func (s *Server) handleHealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
+}
+
+func isSafeDatabaseName(name string) bool {
+	if name == "" {
+		return false
+	}
+	return pgIdentRe.MatchString(name) || pgQuotedIdentRe.MatchString(name)
+}
+
+func isSafeFunctionName(name string) bool {
+	if name == "" {
+		return false
+	}
+	return pgFunctionRe.MatchString(name)
 }
