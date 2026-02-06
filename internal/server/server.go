@@ -94,12 +94,14 @@ func (s *Server) buildRouter() *gin.Engine {
 	router := gin.Default()
 
 	// CORS setup
+	allowAnyOrigin := len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*"
 	router.Use(cors.New(cors.Config{
 		AllowMethods:     []string{"POST", "OPTIONS", "GET"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
-		AllowCredentials: true,
+		// Do not allow credentials with wildcard origins.
+		AllowCredentials: !allowAnyOrigin,
 		AllowOriginFunc: func(origin string) bool {
-			if len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*" {
+			if allowAnyOrigin {
 				return true
 			}
 			for _, allowedOrigin := range s.Cfg.AllowedOrigins {
