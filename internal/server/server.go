@@ -24,7 +24,8 @@ import (
 )
 
 type Server struct {
-	Cfg *config.Config
+	Cfg    *config.Config
+	sseHub *sseHub
 }
 
 var (
@@ -43,7 +44,7 @@ var (
 
 func New(cfg *config.Config) *Server {
 	initLoginLimiter(cfg)
-	return &Server{Cfg: cfg}
+	return &Server{Cfg: cfg, sseHub: newSSEHub(cfg)}
 }
 
 func (s *Server) Run() error {
@@ -136,6 +137,7 @@ func (s *Server) buildRouter() *gin.Engine {
 	// Public API
 	router.GET("/health", s.handleHealthCheck)
 	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
+	router.GET("/sse/:database", s.handleSSE)
 
 	// JSON-RPC API (all methods are invoked via /api/:database)
 	router.POST("/api/:database", s.handleFunctionCall)
@@ -155,17 +157,15 @@ func (s *Server) buildRouter() *gin.Engine {
 	return router
 }
 
-func (s *Server) authenticateRequest(c *gin.Context, db *sql.DB, databaseName string, id interface{}) (string, bool) {
+func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName string) (string, string, int) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
-		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is missing"}, ID: id})
-		return "", false
+		return "", "Authorization header is missing", http.StatusUnauthorized
 	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
 	if len(parts) != 2 {
-		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is malformed"}, ID: id})
-		return "", false
+		return "", "Authorization header is malformed", http.StatusUnauthorized
 	}
 
 	authType := parts[0]
@@ -188,10 +188,9 @@ func (s *Server) authenticateRequest(c *gin.Context, db *sql.DB, databaseName st
 			if ok && roleOk && dbRole != "" && dbNameOk {
 				if dbName != databaseName {
 					slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
-					c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid token for this database"}, ID: id})
-					return "", false
+					return "", "Invalid token for this database", http.StatusUnauthorized
 				}
-				return dbRole, true
+				return dbRole, "", 0
 			}
 		}
 	}
@@ -208,15 +207,13 @@ func (s *Server) authenticateRequest(c *gin.Context, db *sql.DB, databaseName st
 	if err == nil && nullRole.Valid {
 		if currentCatalog != databaseName {
 			slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
-			c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid token for this database"}, ID: id})
-			return "", false
+			return "", "Invalid token for this database", http.StatusUnauthorized
 		}
 
-		return nullRole.String, true
+		return nullRole.String, "", 0
 	}
 
-	c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid or expired token"}, ID: id})
-	return "", false
+	return "", "Invalid or expired token", http.StatusUnauthorized
 }
 
 func (s *Server) handleFunctionCall(c *gin.Context) {
@@ -257,8 +254,9 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
-	dbRole, ok := s.authenticateRequest(c, db, databaseName, req.ID)
-	if !ok {
+	dbRole, errMsg, status := s.authenticateToken(c, db, databaseName)
+	if errMsg != "" {
+		c.JSON(status, JSONRPCResponse{Error: &JSONRPCError{Message: errMsg}, ID: req.ID})
 		return
 	}
 

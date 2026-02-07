@@ -143,6 +143,7 @@
 				<li><a href="#config">Configuration</a></li>
 				<li><a href="#hello-world">Exemple Hello World</a></li>
 				<li><a href="#explorer">Explorateur d’API</a></li>
+				<li><a href="#sse">Notifications temps réel (SSE)</a></li>
 				<li><a href="#security">Sécurité & Rôles</a></li>
 				<li><a href="#deployment">Déploiement (HTTPS)</a></li>
 				<li><a href="#errors">Codes d’erreur</a></li>
@@ -523,6 +524,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>No</td>
 								<td>Taille maximale du body en octets. Par défaut : <code>2097152</code>.</td>
 							</tr>
+							<tr>
+								<td><code>SSE_MAX_CHANNELS</code></td>
+								<td>No</td>
+								<td>Nombre maximal de canaux par connexion SSE. Par défaut : <code>8</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_HEARTBEAT</code></td>
+								<td>No</td>
+								<td>Intervalle de heartbeat pour SSE. Par défaut : <code>20s</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_IDLE_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Délai d’inactivité sans notifications. Par défaut : <code>90s</code>.</td>
+							</tr>
 
 <!-- Config Logging -->
 						<tr>
@@ -612,6 +628,16 @@ curl -X POST http://localhost:8080/api/my_database \
 					<strong>Comment l’activer :</strong> Définissez la variable d’environnement `STATIC_FILES_PATH`
 					pour pointer vers le dossier `tools/pgarachne-explorer` sur votre disque. Puis visitez <code>http://localhost:8080</code>.
 				</div>
+			</section>
+
+			<section id="sse">
+				<h2>Notifications temps réel (SSE)</h2>
+				<p>Abonnez-vous aux canaux <code>NOTIFY</code> de PostgreSQL via Server-Sent Events :</p>
+				<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+				<p>Chaque message est du JSON avec le canal et le payload :</p>
+				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+				<p>Si le payload est du texte, il est encapsulé en string dans <code>data</code>.</p>
 			</section>
 
 			<!-- Section Sécurité -->

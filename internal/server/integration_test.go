@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"database/sql"
@@ -10,6 +11,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -69,6 +71,23 @@ func requireTestEnv(t *testing.T) *testEnv {
 			return time.Minute
 		}(),
 		MaxRequestBytes: getenvInt64Default("MAX_REQUEST_BYTES", 2*1024*1024),
+		SSEMaxChannels:  getenvIntDefault("SSE_MAX_CHANNELS", 8),
+		SSEHeartbeat: func() time.Duration {
+			if val := os.Getenv("SSE_HEARTBEAT"); val != "" {
+				if d, err := time.ParseDuration(val); err == nil {
+					return d
+				}
+			}
+			return 20 * time.Second
+		}(),
+		SSEIdleTimeout: func() time.Duration {
+			if val := os.Getenv("SSE_IDLE_TIMEOUT"); val != "" {
+				if d, err := time.ParseDuration(val); err == nil {
+					return d
+				}
+			}
+			return 90 * time.Second
+		}(),
 	}
 
 	gin.SetMode(gin.TestMode)
@@ -303,6 +322,96 @@ func TestMaxRequestBodySize(t *testing.T) {
 	}
 }
 
+func TestSSERequiresChannels(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusBadRequest)
+	}
+}
+
+func TestSSEMaxChannelsLimit(t *testing.T) {
+	t.Setenv("SSE_MAX_CHANNELS", "1")
+
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels=one,two", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusBadRequest)
+	}
+}
+
+func TestSSEReceivesNotify(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, reader := openSSE(t, env, token, "sse_test_channel")
+	defer resp.Body.Close()
+
+	connStr := buildConnStr(env.cfg, env.dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := db.Exec("NOTIFY sse_test_channel, '{\"id\":123}'"); err != nil {
+		t.Fatalf("notify: %v", err)
+	}
+
+	payload := readSSEData(t, reader, 3*time.Second)
+	if payload["channel"] != "sse_test_channel" {
+		t.Fatalf("channel = %v, want %v", payload["channel"], "sse_test_channel")
+	}
+	data, ok := payload["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("data type = %T, want object", payload["data"])
+	}
+	if data["id"] != float64(123) {
+		t.Fatalf("data.id = %v, want 123", data["id"])
+	}
+}
+
 func TestCapabilitiesRespectsExecutePrivilege(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
@@ -528,6 +637,54 @@ func loginAndGetStatus(env *testEnv, login, password string) int {
 	}
 	defer resp.Body.Close()
 	return resp.StatusCode
+}
+
+func openSSE(t *testing.T, env *testEnv, token, channels string) (*http.Response, *bufio.Reader) {
+	t.Helper()
+
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels="+channels, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+
+	return resp, bufio.NewReader(resp.Body)
+}
+
+func readSSEData(t *testing.T, reader *bufio.Reader, timeout time.Duration) map[string]interface{} {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	for {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for SSE data")
+		}
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			t.Fatalf("read sse: %v", err)
+		}
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, ":") {
+			continue
+		}
+		if strings.HasPrefix(line, "data:") {
+			payload := strings.TrimSpace(strings.TrimPrefix(line, "data:"))
+			var out map[string]interface{}
+			if err := json.Unmarshal([]byte(payload), &out); err != nil {
+				t.Fatalf("invalid sse json: %v", err)
+			}
+			return out
+		}
+	}
 }
 
 func buildConnStr(cfg *config.Config, dbName string) string {

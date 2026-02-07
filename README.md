@@ -89,6 +89,10 @@ LOGIN_RATE_WINDOW=1m
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 # Optional request body size limit in bytes (default: 2097152)
 MAX_REQUEST_BYTES=2097152
+# Optional SSE settings
+SSE_MAX_CHANNELS=8
+SSE_HEARTBEAT=20s
+SSE_IDLE_TIMEOUT=90s
 # Note: Password is read from .pgpass
 JWT_SECRET=change_this_to_something_secret
 HTTP_PORT=8080
@@ -184,6 +188,23 @@ Response:
 ```json
 {"jsonrpc": "2.0", "result": "Hello World", "id": 1}
 ```
+
+### 5. Real-time Notifications (SSE)
+
+Clients can subscribe to PostgreSQL `NOTIFY` channels over Server-Sent Events:
+
+```bash
+curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+Each notification is delivered as JSON:
+
+```json
+{"channel":"orders","data":{"id":123,"status":"created"}}
+```
+
+If the payload is plain text, it is wrapped as a string in `data`.
 
 ## Documentation
 

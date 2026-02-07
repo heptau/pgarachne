@@ -30,6 +30,9 @@ type Config struct {
 	LoginRateWindow time.Duration
 	TrustedProxies  []string
 	MaxRequestBytes int64
+	SSEMaxChannels  int
+	SSEHeartbeat    time.Duration
+	SSEIdleTimeout  time.Duration
 }
 
 // Search paths for configuration
@@ -156,6 +159,42 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be > 0", maxBodyStr)
 		}
 		cfg.MaxRequestBytes = value
+	}
+
+	cfg.SSEMaxChannels = 8
+	if maxChannelsStr := os.Getenv("SSE_MAX_CHANNELS"); maxChannelsStr != "" {
+		value, err := strconv.Atoi(maxChannelsStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_MAX_CHANNELS value: '%s', must be an integer", maxChannelsStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_MAX_CHANNELS value: '%s', must be > 0", maxChannelsStr)
+		}
+		cfg.SSEMaxChannels = value
+	}
+
+	cfg.SSEHeartbeat = 20 * time.Second
+	if heartbeatStr := os.Getenv("SSE_HEARTBEAT"); heartbeatStr != "" {
+		value, err := time.ParseDuration(heartbeatStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_HEARTBEAT value: '%s', must be a duration like 20s", heartbeatStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_HEARTBEAT value: '%s', must be > 0", heartbeatStr)
+		}
+		cfg.SSEHeartbeat = value
+	}
+
+	cfg.SSEIdleTimeout = 90 * time.Second
+	if timeoutStr := os.Getenv("SSE_IDLE_TIMEOUT"); timeoutStr != "" {
+		value, err := time.ParseDuration(timeoutStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_IDLE_TIMEOUT value: '%s', must be a duration like 90s", timeoutStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_IDLE_TIMEOUT value: '%s', must be > 0", timeoutStr)
+		}
+		cfg.SSEIdleTimeout = value
 	}
 
 	dbPortStr := os.Getenv("DB_PORT")

@@ -143,6 +143,7 @@
 				<li><a href="#config">Configurazione</a></li>
 				<li><a href="#hello-world">Esempio Hello World</a></li>
 				<li><a href="#explorer">API Explorer</a></li>
+				<li><a href="#sse">Notifiche in tempo reale (SSE)</a></li>
 				<li><a href="#security">Sicurezza e Ruoli</a></li>
 				<li><a href="#deployment">Deployment (HTTPS)</a></li>
 				<li><a href="#errors">Codici di Errore</a></li>
@@ -519,6 +520,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>No</td>
 								<td>Dimensione massima del body in byte. Predefinito: <code>2097152</code>.</td>
 							</tr>
+							<tr>
+								<td><code>SSE_MAX_CHANNELS</code></td>
+								<td>No</td>
+								<td>Numero massimo di canali per connessione SSE. Predefinito: <code>8</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_HEARTBEAT</code></td>
+								<td>No</td>
+								<td>Intervallo heartbeat per SSE. Predefinito: <code>20s</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_IDLE_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Timeout di inattività senza notifiche. Predefinito: <code>90s</code>.</td>
+							</tr>
 
 							<!-- Logging Config -->
 						<tr>
@@ -606,6 +622,16 @@ curl -X POST http://localhost:8080/api/my_database \
 					<strong>Come abilitarlo:</strong> Imposta la variabile d’ambiente `STATIC_FILES_PATH` in modo che punti
 					alla cartella `tools/pgarachne-explorer` sul tuo disco. Poi visita <code>http://localhost:8080</code>.
 				</div>
+			</section>
+
+			<section id="sse">
+				<h2>Notifiche in tempo reale (SSE)</h2>
+				<p>Iscriviti ai canali PostgreSQL <code>NOTIFY</code> tramite Server-Sent Events:</p>
+				<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+				<p>Ogni messaggio è JSON con il canale e il payload:</p>
+				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+				<p>Se il payload è testo, viene incapsulato come stringa in <code>data</code>.</p>
 			</section>
 
 			<!-- Security Section -->

@@ -142,6 +142,7 @@
 				<li><a href="#config">Configuration</a></li>
 				<li><a href="#hello-world">Hello World Example</a></li>
 				<li><a href="#explorer">API Explorer</a></li>
+				<li><a href="#sse">Real-time Notifications (SSE)</a></li>
 				<li><a href="#security">Security & Roles</a></li>
 				<li><a href="#deployment">Deployment (HTTPS)</a></li>
 				<li><a href="#errors">Error Codes</a></li>
@@ -517,6 +518,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>No</td>
 								<td>Max request body size in bytes. Default: <code>2097152</code>.</td>
 							</tr>
+							<tr>
+								<td><code>SSE_MAX_CHANNELS</code></td>
+								<td>No</td>
+								<td>Max channels per SSE connection. Default: <code>8</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_HEARTBEAT</code></td>
+								<td>No</td>
+								<td>Heartbeat interval for SSE connections. Default: <code>20s</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_IDLE_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Idle timeout without notifications. Default: <code>90s</code>.</td>
+							</tr>
 
 							<!-- Logging Config -->
 						<tr>
@@ -605,6 +621,16 @@ curl -X POST http://localhost:8080/api/my_database \
 					<strong>How to enable it:</strong> Set the `STATIC_FILES_PATH` environment variable to point to the
 					`tools/pgarachne-explorer` folder on your disk. Then visit <code>http://localhost:8080</code>.
 				</div>
+			</section>
+
+			<section id="sse">
+				<h2>Real-time Notifications (SSE)</h2>
+				<p>Subscribe to PostgreSQL <code>NOTIFY</code> channels over Server-Sent Events:</p>
+				<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+				<p>Each message is JSON with the channel name and payload:</p>
+				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+				<p>If the payload is plain text, it is wrapped as a string in <code>data</code>.</p>
 			</section>
 
 			<!-- Security Section -->

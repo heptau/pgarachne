@@ -145,6 +145,7 @@
 				<li><a href="#config">Configuração</a></li>
 				<li><a href="#hello-world">Exemplo Hello World</a></li>
 				<li><a href="#explorer">Explorador de API</a></li>
+				<li><a href="#sse">Notificações em tempo real (SSE)</a></li>
 				<li><a href="#security">Segurança e Papéis</a></li>
 				<li><a href="#deployment">Deployment (HTTPS)</a></li>
 				<li><a href="#errors">Códigos de Erro</a></li>
@@ -527,6 +528,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>No</td>
 								<td>Tamanho máximo do body em bytes. Padrão: <code>2097152</code>.</td>
 							</tr>
+							<tr>
+								<td><code>SSE_MAX_CHANNELS</code></td>
+								<td>No</td>
+								<td>Máximo de canais por conexão SSE. Padrão: <code>8</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_HEARTBEAT</code></td>
+								<td>No</td>
+								<td>Intervalo de heartbeat para SSE. Padrão: <code>20s</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_IDLE_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Timeout de inatividade sem notificações. Padrão: <code>90s</code>.</td>
+							</tr>
 
 <!-- Configuração de Logging -->
 						<tr>
@@ -614,6 +630,16 @@ curl -X POST http://localhost:8080/api/my_database \
 					<strong>Como habilitá-lo:</strong> Defina a variável de ambiente `STATIC_FILES_PATH` para apontar para a
 					pasta `tools/pgarachne-explorer` no seu disco. Em seguida, visite <code>http://localhost:8080</code>.
 				</div>
+			</section>
+
+			<section id="sse">
+				<h2>Notificações em tempo real (SSE)</h2>
+				<p>Assine canais PostgreSQL <code>NOTIFY</code> via Server-Sent Events:</p>
+				<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+				<p>Cada mensagem é JSON com o canal e o payload:</p>
+				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+				<p>Se o payload for texto, ele é encapsulado como string em <code>data</code>.</p>
 			</section>
 
 			<!-- Seção de Segurança -->

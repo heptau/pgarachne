@@ -144,6 +144,7 @@
 				<li><a href="#config">Konfigurace</a></li>
 				<li><a href="#hello-world">Příklad Hello World</a></li>
 				<li><a href="#explorer">Průzkumník API</a></li>
+				<li><a href="#sse">Real-time notifikace (SSE)</a></li>
 				<li><a href="#security">Bezpečnost a role</a></li>
 				<li><a href="#deployment">Nasazení (HTTPS)</a></li>
 				<li><a href="#errors">Chybové kódy</a></li>
@@ -520,7 +521,22 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 							<tr>
 								<td><code>MAX_REQUEST_BYTES</code></td>
 								<td>No</td>
-								<td>Maximální velikost request body v bajtech. Výchozí: <code>2097152</code>.</td>
+								<td>Maximální velikost request body v bajtech. Výchozí: <code>2097152</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_MAX_CHANNELS</code></td>
+								<td>No</td>
+								<td>Maximální počet kanálů na SSE připojení. Výchozí: <code>8</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_HEARTBEAT</code></td>
+								<td>No</td>
+								<td>Interval heartbeat zpráv pro SSE. Výchozí: <code>20s</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_IDLE_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Timeout neaktivity bez notifikací. Výchozí: <code>90s</code>.</td>
 							</tr>
 
 <!-- Konfigurace logování -->
@@ -610,6 +626,16 @@ curl -X POST http://localhost:8080/api/my_database \
 					<strong>Jak jej povolit:</strong> Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
 					složku `tools/pgarachne-explorer` na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
 				</div>
+			</section>
+
+			<section id="sse">
+				<h2>Real-time notifikace (SSE)</h2>
+				<p>Přihlaste se k PostgreSQL <code>NOTIFY</code> kanálům přes Server-Sent Events:</p>
+				<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"</code></pre>
+				<p>Každá zpráva je JSON s názvem kanálu a payloadem:</p>
+				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+				<p>Pokud je payload text, zabalí se jako string do <code>data</code>.</p>
 			</section>
 
 			<!-- Sekce Bezpečnost -->
