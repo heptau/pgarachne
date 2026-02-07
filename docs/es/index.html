@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="description" content="PgArachne: La pasarela de alto rendimiento de PostgreSQL a JSON-RPC.">
+	<meta name="description" content="PgArachne: Pasarela JSON-RPC PostgreSQL de alto rendimiento con SSE en tiempo real y métricas Prometheus.">
 	<title>PgArachne – API de PostgreSQL Instantánea</title>
 	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
 	<link rel="manifest" href="../manifest.json">
@@ -26,7 +26,7 @@
 	<!-- Open Graph / Social Media -->
 	<meta property="og:title" content="PgArachne - API de PostgreSQL Instantánea" />
 	<meta property="og:description"
-		content="Convierte PostgreSQL en una API segura. Al instante. Middleware-free, high-performance JSON-RPC gateway." />
+		content="Convierte PostgreSQL en una API segura. Al instante. JSON-RPC gateway con SSE en tiempo real y métricas Prometheus." />
 	<meta property="og:image" content="https://www.pgarachne.com/assets/pgarachne-logo.jpeg" />
 	<meta property="og:url" content="https://www.pgarachne.com/es/" />
 	<meta property="og:type" content="website" />
@@ -85,7 +85,7 @@
 				<!-- El "Cómo" -->
 				<p class="hero-desc">
 					Cero código repetitivo. Alto rendimiento. El middleware que mapea las peticiones HTTP directamente
-					a funciones de la base de datos.
+					a funciones de la base de datos, con SSE en tiempo real y métricas Prometheus.
 				</p>
 
 				<div class="hero-actions">
@@ -140,6 +140,7 @@
 			<h3>Contenido</h3>
 			<ul>
 				<li><a href="#about">Acerca de y Arquitectura</a></li>
+				<li><a href="#whats-new">Novedades en 1.1</a></li>
 				<li><a href="#comparison">Comparación con PostgREST</a></li>
 				<li><a href="#install">Instalación</a></li>
 				<li><a href="#config">Configuración</a></li>
@@ -189,6 +190,10 @@
 							<strong>Servidor de Archivos Estáticos:</strong> PgArachne puede servir activos estáticos (HTML,
 							JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer directamente.
 						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Notificaciones en tiempo real (SSE):</strong> Suscríbete a canales <code>NOTIFY</code>
+							de PostgreSQL mediante SSE para actualizaciones en vivo sin polling.
+						</li>
 					</ul>
 				</div>
 
@@ -207,6 +212,15 @@
 							<div style="padding-left: 50px; color: #666; font-size: 0.95em;">El método se especifica en el cuerpo JSON-RPC.</div>
 					</div>
 				</div>
+			</section>
+
+			<section id="whats-new" class="section-light">
+				<h2>Novedades en 1.1</h2>
+				<ul>
+					<li>Endpoint unificado: <code>POST /api/&lt;db&gt;</code> (método en el body JSON-RPC).</li>
+					<li>Notificaciones en tiempo real vía <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
+					<li>Métricas Prometheus para HTTP, auth, JSON-RPC y SSE.</li>
+				</ul>
 			</section>
 
 			<section id="comparison">
@@ -255,6 +269,11 @@
 								<td>No. Debe configurar y gestionar un Nginx externo delante de él.</td>
 							</tr>
 							<tr>
+								<td><strong>Tiempo real (SSE)</strong></td>
+								<td>Sí. Endpoint SSE integrado para PostgreSQL <code>NOTIFY</code>.</td>
+								<td>No. Requiere wiring propio (LISTEN/NOTIFY + servicio separado).</td>
+							</tr>
+							<tr>
 								<td><strong>Soporte Multi-Base de Datos</strong></td>
 								<td><strong>A nivel de servidor (N:1).</strong> Una sola instancia de PgArachne se conecta al
 									servidor
@@ -267,6 +286,11 @@
 								<td><strong>Autenticación</strong></td>
 								<td>JWT y Claves API. Soporta nativamente ambos mundos.</td>
 								<td>Principalmente JWT.</td>
+							</tr>
+							<tr>
+								<td><strong>Rate limiting</strong></td>
+								<td>Sí. Límite de login integrado (configurable).</td>
+								<td>No. Requiere proxy o middleware externo.</td>
 							</tr>
 						</tbody>
 					</table>

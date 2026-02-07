@@ -4,7 +4,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<meta name="description" content="PgArachne: Vysoce výkonná brána z PostgreSQL na JSON-RPC.">
+	<meta name="description" content="PgArachne: Vysoce výkonná PostgreSQL JSON-RPC brána s real-time SSE a Prometheus metrikami.">
 	<title>PgArachne – Okamžité PostgreSQL API</title>
 	<link rel="icon" type="image/png" href="../assets/pgarachne-icon.png">
 	<link rel="manifest" href="../manifest.json">
@@ -26,7 +26,7 @@
 	<!-- Open Graph / Social Media -->
 	<meta property="og:title" content="PgArachne - Okamžité PostgreSQL API" />
 	<meta property="og:description"
-		content="Proměňte PostgreSQL v bezpečné API. Okamžitě. Middleware-free, high-performance JSON-RPC gateway." />
+		content="Proměňte PostgreSQL v bezpečné API. Okamžitě. JSON-RPC gateway s real-time SSE a Prometheus metrikami." />
 	<meta property="og:image" content="https://www.pgarachne.com/assets/pgarachne-logo.jpeg" />
 	<meta property="og:url" content="https://www.pgarachne.com/cs/" />
 	<meta property="og:type" content="website" />
@@ -84,7 +84,8 @@
 
 				<!-- Jak to funguje -->
 				<p class="hero-desc">
-					Žádný zbytečný kód. Vysoký výkon. Middleware, který mapuje HTTP požadavky přímo na databázové funkce.
+					Žádný zbytečný kód. Vysoký výkon. Middleware, který mapuje HTTP požadavky přímo na databázové funkce,
+					s real-time SSE notifikacemi a Prometheus metrikami.
 				</p>
 
 				<div class="hero-actions">
@@ -139,6 +140,7 @@
 			<h3>Obsah</h3>
 			<ul>
 				<li><a href="#about">O projektu a architektuře</a></li>
+				<li><a href="#whats-new">Novinky ve verzi 1.1</a></li>
 				<li><a href="#comparison">Srovnání s PostgREST</a></li>
 				<li><a href="#install">Instalace</a></li>
 				<li><a href="#config">Konfigurace</a></li>
@@ -188,6 +190,10 @@
 							<strong>Server statických souborů:</strong> PgArachne může servírovat statické assety (HTML, JS,
 							CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
 						</li>
+						<li style="margin-bottom: 10px;">
+							<strong>Real-time notifikace (SSE):</strong> Odebírejte PostgreSQL <code>NOTIFY</code> kanály
+							přes SSE pro živé aktualizace bez pollingu.
+						</li>
 					</ul>
 				</div>
 
@@ -205,6 +211,15 @@
 							<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Metoda se uvádí v JSON-RPC těle požadavku.</div>
 					</div>
 				</div>
+			</section>
+
+			<section id="whats-new" class="section-light">
+				<h2>Novinky ve verzi 1.1</h2>
+				<ul>
+					<li>Sjednocený endpoint: <code>POST /api/&lt;db&gt;</code> (method v JSON-RPC body).</li>
+					<li>Real-time notifikace přes <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
+					<li>Prometheus metriky pro HTTP, auth, JSON-RPC a SSE.</li>
+				</ul>
 			</section>
 
 			<section id="comparison">
@@ -250,6 +265,11 @@
 								<td>Ne. Musíte před něj nakonfigurovat a spravovat externí Nginx.</td>
 							</tr>
 							<tr>
+								<td><strong>Real-time (SSE)</strong></td>
+								<td>Ano. Vestavěný SSE endpoint pro PostgreSQL <code>NOTIFY</code>.</td>
+								<td>Ne. Vyžaduje vlastní řešení (LISTEN/NOTIFY + další služba).</td>
+							</tr>
+							<tr>
 								<td><strong>Podpora více databází</strong></td>
 								<td><strong>Server-wide (N:1).</strong> Jediná instance PgArachne se připojí k serveru (IP:Port)
 									a dokáže obsloužit všechny databáze, které na něm běží.</td>
@@ -260,6 +280,11 @@
 								<td><strong>Autentizace</strong></td>
 								<td>JWT a API klíče. Nativně podporuje oba světy.</td>
 								<td>Primárně JWT.</td>
+							</tr>
+							<tr>
+								<td><strong>Rate limiting</strong></td>
+								<td>Ano. Vestavěné omezení loginu (konfigurovatelné).</td>
+								<td>Ne. Vyžaduje externí proxy nebo middleware.</td>
 							</tr>
 						</tbody>
 					</table>
