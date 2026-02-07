@@ -46,6 +46,8 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 	slog.SetDefault(logger)
 
+	slog.Info("PgArachne starting", "version", Version)
+
 	// Load configuration
 	cfg, err := config.Load(*configPath)
 	if err != nil {

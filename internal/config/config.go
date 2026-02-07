@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
+	"log/slog"
 )
 
 type Config struct {
@@ -86,9 +87,9 @@ func Load(configPath string) (*Config, error) {
 	}
 
 	if loadedFile != "" {
-		fmt.Printf("Loaded configuration from: %s\n", loadedFile)
+		slog.Info("Loaded configuration", "config_file", loadedFile)
 	} else {
-		fmt.Println("No configuration file found in standard locations. Using environment variables only.")
+		slog.Info("No configuration file found in standard locations. Using environment variables only.")
 	}
 
 	cfg := &Config{}
