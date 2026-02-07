@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/yourusername/pgarachne/internal/config"
 	"github.com/yourusername/pgarachne/internal/database"
 )
@@ -23,6 +24,36 @@ const (
 	defaultSSEBufferSize  = 64
 	defaultSSESendTimeout = 2 * time.Second
 )
+
+var (
+	sseClientsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pgarachne_sse_clients",
+			Help: "Number of active SSE clients per database.",
+		},
+		[]string{"database"},
+	)
+	sseChannelsGauge = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Name: "pgarachne_sse_channels",
+			Help: "Number of active SSE channels per database.",
+		},
+		[]string{"database"},
+	)
+	sseDropsCounter = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "pgarachne_sse_client_drops_total",
+			Help: "Total SSE client drops by database and reason.",
+		},
+		[]string{"database", "reason"},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(sseClientsGauge, sseChannelsGauge, sseDropsCounter)
+	sseDropsCounter.WithLabelValues("init", "slow").Add(0)
+	sseDropsCounter.WithLabelValues("init", "reconnect").Add(0)
+}
 
 type sseMessage struct {
 	channel string
@@ -163,6 +194,7 @@ func (l *dbListener) addClient(channels []string, client *sseClient, maxClients 
 		}
 		clients[client] = struct{}{}
 	}
+	l.updateMetricsLocked()
 	return nil
 }
 
@@ -185,6 +217,7 @@ func (l *dbListener) removeClient(channels []string, client *sseClient) bool {
 	}
 
 	delete(l.clients, client)
+	l.updateMetricsLocked()
 	return len(l.channels) == 0
 }
 
@@ -204,15 +237,18 @@ func (l *dbListener) broadcast(channel string, data interface{}) {
 			continue
 		case client.ch <- msg:
 		case <-time.After(l.sendTimeout):
-			l.dropClient(client)
+			l.dropClient(client, "slow")
 		}
 	}
 }
 
-func (l *dbListener) dropClient(client *sseClient) {
+func (l *dbListener) dropClient(client *sseClient, reason string) {
 	client.closeOnce.Do(func() {
 		close(client.done)
 		l.removeClient(client.channels, client)
+		if reason != "" {
+			sseDropsCounter.WithLabelValues(l.dbName, reason).Inc()
+		}
 	})
 }
 
@@ -225,8 +261,13 @@ func (l *dbListener) dropAllClients() {
 	l.mu.Unlock()
 
 	for _, client := range clients {
-		l.dropClient(client)
+		l.dropClient(client, "reconnect")
 	}
+}
+
+func (l *dbListener) updateMetricsLocked() {
+	sseClientsGauge.WithLabelValues(l.dbName).Set(float64(len(l.clients)))
+	sseChannelsGauge.WithLabelValues(l.dbName).Set(float64(len(l.channels)))
 }
 
 func (s *Server) handleSSE(c *gin.Context) {

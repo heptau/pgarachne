@@ -209,6 +209,11 @@ Each notification is delivered as JSON:
 
 If the payload is plain text, it is wrapped as a string in `data`.
 
+SSE metrics are exported via Prometheus:
+* `pgarachne_sse_clients{database=...}`
+* `pgarachne_sse_channels{database=...}`
+* `pgarachne_sse_client_drops_total{database=...,reason=...}`
+
 ## Documentation
 
 Detailed documentation is available in the [`docs/`](docs/index.html) directory, including:

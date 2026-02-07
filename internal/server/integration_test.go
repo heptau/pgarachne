@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -481,6 +482,45 @@ func TestSSEMaxClientsLimit(t *testing.T) {
 
 	if resp2.StatusCode != http.StatusTooManyRequests {
 		t.Fatalf("status = %d, want %d", resp2.StatusCode, http.StatusTooManyRequests)
+	}
+}
+
+func TestSSEMetrics(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp, _ := openSSE(t, env, token, "metrics_channel")
+	defer resp.Body.Close()
+
+	metricsResp, err := http.Get(env.httpServer.URL + "/metrics")
+	if err != nil {
+		t.Fatalf("metrics request failed: %v", err)
+	}
+	defer metricsResp.Body.Close()
+
+	if metricsResp.StatusCode != http.StatusOK {
+		t.Fatalf("metrics status = %d, want %d", metricsResp.StatusCode, http.StatusOK)
+	}
+
+	body, err := io.ReadAll(metricsResp.Body)
+	if err != nil {
+		t.Fatalf("read metrics: %v", err)
+	}
+	metrics := string(body)
+
+	if !strings.Contains(metrics, "pgarachne_sse_clients") {
+		t.Fatalf("missing pgarachne_sse_clients metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_sse_channels") {
+		t.Fatalf("missing pgarachne_sse_channels metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_sse_client_drops_total") {
+		t.Fatalf("missing pgarachne_sse_client_drops_total metric")
 	}
 }
 
