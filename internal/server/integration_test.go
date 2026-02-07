@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -87,6 +88,16 @@ func requireTestEnv(t *testing.T) *testEnv {
 				}
 			}
 			return 90 * time.Second
+		}(),
+		SSEMaxClients:   getenvIntDefault("SSE_MAX_CLIENTS", 1000),
+		SSEClientBuffer: getenvIntDefault("SSE_CLIENT_BUFFER", 64),
+		SSESendTimeout: func() time.Duration {
+			if val := os.Getenv("SSE_SEND_TIMEOUT"); val != "" {
+				if d, err := time.ParseDuration(val); err == nil {
+					return d
+				}
+			}
+			return 2 * time.Second
 		}(),
 	}
 
@@ -412,6 +423,67 @@ func TestSSEReceivesNotify(t *testing.T) {
 	}
 }
 
+func TestSSEQuotedChannel(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	channelName := `Quoted Channel`
+	resp, reader := openSSE(t, env, token, `"`+channelName+`"`)
+	defer resp.Body.Close()
+
+	connStr := buildConnStr(env.cfg, env.dbName)
+	db, err := sql.Open("postgres", connStr)
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+
+	if _, err := db.Exec(fmt.Sprintf(`NOTIFY "%s", '{"ok":true}'`, channelName)); err != nil {
+		t.Fatalf("notify: %v", err)
+	}
+
+	payload := readSSEData(t, reader, 3*time.Second)
+	if payload["channel"] != channelName {
+		t.Fatalf("channel = %v, want %v", payload["channel"], channelName)
+	}
+}
+
+func TestSSEMaxClientsLimit(t *testing.T) {
+	t.Setenv("SSE_MAX_CLIENTS", "1")
+
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	resp1, _ := openSSE(t, env, token, "limit_channel")
+	defer resp1.Body.Close()
+
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels=limit_channel", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp2, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp2.Body.Close()
+
+	if resp2.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want %d", resp2.StatusCode, http.StatusTooManyRequests)
+	}
+}
+
 func TestCapabilitiesRespectsExecutePrivilege(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
@@ -642,7 +714,7 @@ func loginAndGetStatus(env *testEnv, login, password string) int {
 func openSSE(t *testing.T, env *testEnv, token, channels string) (*http.Response, *bufio.Reader) {
 	t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels="+channels, nil)
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels="+url.QueryEscape(channels), nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}

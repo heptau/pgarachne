@@ -19,6 +19,9 @@ const (
 	defaultSSEHeartbeat   = 20 * time.Second
 	defaultSSEIdleTimeout = 90 * time.Second
 	defaultSSEMaxChannels = 8
+	defaultSSEMaxClients  = 1000
+	defaultSSEBufferSize  = 64
+	defaultSSESendTimeout = 2 * time.Second
 )
 
 type sseMessage struct {
@@ -27,8 +30,10 @@ type sseMessage struct {
 }
 
 type sseClient struct {
-	ch   chan sseMessage
-	done chan struct{}
+	ch        chan sseMessage
+	done      chan struct{}
+	channels  []string
+	closeOnce sync.Once
 }
 
 type sseHub struct {
@@ -41,9 +46,11 @@ type dbListener struct {
 	dbName   string
 	listener *pq.Listener
 
-	mu       sync.Mutex
-	channels map[string]map[*sseClient]struct{}
-	closed   chan struct{}
+	mu          sync.Mutex
+	channels    map[string]map[*sseClient]struct{}
+	clients     map[*sseClient]struct{}
+	sendTimeout time.Duration
+	closed      chan struct{}
 }
 
 func newSSEHub(cfg *config.Config) *sseHub {
@@ -76,14 +83,34 @@ func (h *sseHub) getDBListener(dbName string) (*dbListener, error) {
 	})
 
 	l := &dbListener{
-		dbName:   dbName,
-		listener: listener,
-		channels: make(map[string]map[*sseClient]struct{}),
-		closed:   make(chan struct{}),
+		dbName:      dbName,
+		listener:    listener,
+		channels:    make(map[string]map[*sseClient]struct{}),
+		clients:     make(map[*sseClient]struct{}),
+		sendTimeout: sseSendTimeout(h.cfg),
+		closed:      make(chan struct{}),
 	}
 	go l.run()
 	h.dbs[dbName] = l
 	return l, nil
+}
+
+func (h *sseHub) maybeRemoveListener(dbName string, listener *dbListener) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	current, ok := h.dbs[dbName]
+	if !ok || current != listener {
+		return
+	}
+
+	if listener.hasChannels() {
+		return
+	}
+
+	delete(h.dbs, dbName)
+	close(listener.closed)
+	_ = listener.listener.Close()
 }
 
 func (l *dbListener) run() {
@@ -101,9 +128,20 @@ func (l *dbListener) run() {
 	}
 }
 
-func (l *dbListener) addClient(channels []string, client *sseClient) {
+func (l *dbListener) hasChannels() bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	return len(l.channels) > 0
+}
+
+func (l *dbListener) addClient(channels []string, client *sseClient, maxClients int) error {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if maxClients > 0 && len(l.clients) >= maxClients {
+		return fmt.Errorf("too many SSE clients (max %d)", maxClients)
+	}
+	l.clients[client] = struct{}{}
 
 	for _, channel := range channels {
 		clients := l.channels[channel]
@@ -116,9 +154,10 @@ func (l *dbListener) addClient(channels []string, client *sseClient) {
 		}
 		clients[client] = struct{}{}
 	}
+	return nil
 }
 
-func (l *dbListener) removeClient(channels []string, client *sseClient) {
+func (l *dbListener) removeClient(channels []string, client *sseClient) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -135,6 +174,9 @@ func (l *dbListener) removeClient(channels []string, client *sseClient) {
 			}
 		}
 	}
+
+	delete(l.clients, client)
+	return len(l.channels) == 0
 }
 
 func (l *dbListener) broadcast(channel string, data interface{}) {
@@ -152,10 +194,17 @@ func (l *dbListener) broadcast(channel string, data interface{}) {
 		case <-client.done:
 			continue
 		case client.ch <- msg:
-		default:
-			// Drop if client is slow; avoid blocking listener goroutine.
+		case <-time.After(l.sendTimeout):
+			l.dropClient(client)
 		}
 	}
+}
+
+func (l *dbListener) dropClient(client *sseClient) {
+	client.closeOnce.Do(func() {
+		close(client.done)
+		l.removeClient(client.channels, client)
+	})
 }
 
 func (s *Server) handleSSE(c *gin.Context) {
@@ -200,13 +249,20 @@ func (s *Server) handleSSE(c *gin.Context) {
 	}
 
 	client := &sseClient{
-		ch:   make(chan sseMessage, 16),
-		done: make(chan struct{}),
+		ch:       make(chan sseMessage, sseBufferSize(s.Cfg)),
+		done:     make(chan struct{}),
+		channels: channels,
 	}
-	listener.addClient(channels, client)
+	maxClients := sseMaxClients(s.Cfg)
+	if err := listener.addClient(channels, client, maxClients); err != nil {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		return
+	}
 	defer func() {
-		close(client.done)
-		listener.removeClient(channels, client)
+		client.closeOnce.Do(func() { close(client.done) })
+		if listener.removeClient(channels, client) {
+			s.sseHub.maybeRemoveListener(databaseName, listener)
+		}
 	}()
 
 	flusher, ok := c.Writer.(http.Flusher)
@@ -230,7 +286,6 @@ func (s *Server) handleSSE(c *gin.Context) {
 	if idleTimeout <= 0 {
 		idleTimeout = defaultSSEIdleTimeout
 	}
-
 	heartbeatTicker := time.NewTicker(heartbeat)
 	defer heartbeatTicker.Stop()
 
@@ -258,6 +313,13 @@ func (s *Server) handleSSE(c *gin.Context) {
 			if err := writeSSEComment(c.Writer, "ping"); err != nil {
 				return
 			}
+			if !idleTimer.Stop() {
+				select {
+				case <-idleTimer.C:
+				default:
+				}
+			}
+			idleTimer.Reset(idleTimeout)
 			flusher.Flush()
 		case <-idleTimer.C:
 			return
@@ -279,14 +341,15 @@ func parseChannels(raw string, max int) ([]string, error) {
 		if trimmed == "" {
 			continue
 		}
-		if !isSafeChannelName(trimmed) {
-			return nil, fmt.Errorf("invalid channel name: %s", trimmed)
+		normalized, err := normalizeChannelName(trimmed)
+		if err != nil {
+			return nil, err
 		}
-		if _, ok := seen[trimmed]; ok {
+		if _, ok := seen[normalized]; ok {
 			continue
 		}
-		seen[trimmed] = struct{}{}
-		channels = append(channels, trimmed)
+		seen[normalized] = struct{}{}
+		channels = append(channels, normalized)
 	}
 	if len(channels) == 0 {
 		return nil, fmt.Errorf("channels query parameter is required")
@@ -297,11 +360,22 @@ func parseChannels(raw string, max int) ([]string, error) {
 	return channels, nil
 }
 
-func isSafeChannelName(name string) bool {
+func normalizeChannelName(name string) (string, error) {
 	if name == "" {
-		return false
+		return "", fmt.Errorf("invalid channel name: empty")
 	}
-	return pgIdentRe.MatchString(name) || pgQuotedIdentRe.MatchString(name)
+	if pgIdentRe.MatchString(name) {
+		return name, nil
+	}
+	if pgQuotedIdentRe.MatchString(name) {
+		unquoted := strings.TrimPrefix(strings.TrimSuffix(name, `"`), `"`)
+		unquoted = strings.ReplaceAll(unquoted, `""`, `"`)
+		if unquoted == "" {
+			return "", fmt.Errorf("invalid channel name: empty")
+		}
+		return unquoted, nil
+	}
+	return "", fmt.Errorf("invalid channel name: %s", name)
 }
 
 func parseNotifyPayload(payload string) interface{} {
@@ -313,6 +387,27 @@ func parseNotifyPayload(payload string) interface{} {
 		}
 	}
 	return payload
+}
+
+func sseMaxClients(cfg *config.Config) int {
+	if cfg == nil || cfg.SSEMaxClients <= 0 {
+		return defaultSSEMaxClients
+	}
+	return cfg.SSEMaxClients
+}
+
+func sseBufferSize(cfg *config.Config) int {
+	if cfg == nil || cfg.SSEClientBuffer <= 0 {
+		return defaultSSEBufferSize
+	}
+	return cfg.SSEClientBuffer
+}
+
+func sseSendTimeout(cfg *config.Config) time.Duration {
+	if cfg == nil || cfg.SSESendTimeout <= 0 {
+		return defaultSSESendTimeout
+	}
+	return cfg.SSESendTimeout
 }
 
 func writeSSEData(w http.ResponseWriter, msg sseMessage) error {

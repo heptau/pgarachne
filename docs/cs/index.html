@@ -529,6 +529,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>Maximální počet kanálů na SSE připojení. Výchozí: <code>8</code>.</td>
 							</tr>
 							<tr>
+								<td><code>SSE_MAX_CLIENTS</code></td>
+								<td>No</td>
+								<td>Maximální počet současných SSE klientů na databázi. Výchozí: <code>1000</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_CLIENT_BUFFER</code></td>
+								<td>No</td>
+								<td>Velikost per‑klientského bufferu SSE (počet zpráv). Výchozí: <code>64</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_SEND_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Maximální čekání při odesílání pomalému klientovi. Výchozí: <code>2s</code>.</td>
+							</tr>
+							<tr>
 								<td><code>SSE_HEARTBEAT</code></td>
 								<td>No</td>
 								<td>Interval heartbeat zpráv pro SSE. Výchozí: <code>20s</code>.</td>

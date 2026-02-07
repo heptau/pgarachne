@@ -33,6 +33,9 @@ type Config struct {
 	SSEMaxChannels  int
 	SSEHeartbeat    time.Duration
 	SSEIdleTimeout  time.Duration
+	SSEMaxClients   int
+	SSEClientBuffer int
+	SSESendTimeout  time.Duration
 }
 
 // Search paths for configuration
@@ -195,6 +198,42 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid SSE_IDLE_TIMEOUT value: '%s', must be > 0", timeoutStr)
 		}
 		cfg.SSEIdleTimeout = value
+	}
+
+	cfg.SSEMaxClients = 1000
+	if maxClientsStr := os.Getenv("SSE_MAX_CLIENTS"); maxClientsStr != "" {
+		value, err := strconv.Atoi(maxClientsStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_MAX_CLIENTS value: '%s', must be an integer", maxClientsStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_MAX_CLIENTS value: '%s', must be > 0", maxClientsStr)
+		}
+		cfg.SSEMaxClients = value
+	}
+
+	cfg.SSEClientBuffer = 64
+	if bufferStr := os.Getenv("SSE_CLIENT_BUFFER"); bufferStr != "" {
+		value, err := strconv.Atoi(bufferStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_CLIENT_BUFFER value: '%s', must be an integer", bufferStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_CLIENT_BUFFER value: '%s', must be > 0", bufferStr)
+		}
+		cfg.SSEClientBuffer = value
+	}
+
+	cfg.SSESendTimeout = 2 * time.Second
+	if sendTimeoutStr := os.Getenv("SSE_SEND_TIMEOUT"); sendTimeoutStr != "" {
+		value, err := time.ParseDuration(sendTimeoutStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid SSE_SEND_TIMEOUT value: '%s', must be a duration like 2s", sendTimeoutStr)
+		}
+		if value <= 0 {
+			return nil, fmt.Errorf("invalid SSE_SEND_TIMEOUT value: '%s', must be > 0", sendTimeoutStr)
+		}
+		cfg.SSESendTimeout = value
 	}
 
 	dbPortStr := os.Getenv("DB_PORT")

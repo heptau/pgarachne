@@ -530,6 +530,21 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 								<td>Nombre maximal de canaux par connexion SSE. Par défaut : <code>8</code>.</td>
 							</tr>
 							<tr>
+								<td><code>SSE_MAX_CLIENTS</code></td>
+								<td>No</td>
+								<td>Nombre maximal de clients SSE simultanés par base. Par défaut : <code>1000</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_CLIENT_BUFFER</code></td>
+								<td>No</td>
+								<td>Buffer SSE par client (nombre de messages). Par défaut : <code>64</code>.</td>
+							</tr>
+							<tr>
+								<td><code>SSE_SEND_TIMEOUT</code></td>
+								<td>No</td>
+								<td>Délai max pour envoyer à un client lent. Par défaut : <code>2s</code>.</td>
+							</tr>
+							<tr>
 								<td><code>SSE_HEARTBEAT</code></td>
 								<td>No</td>
 								<td>Intervalle de heartbeat pour SSE. Par défaut : <code>20s</code>.</td>
