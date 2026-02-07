@@ -144,6 +144,7 @@
 				<li><a href="#hello-world">Exemple Hello World</a></li>
 				<li><a href="#explorer">Explorateur d’API</a></li>
 				<li><a href="#sse">Notifications temps réel (SSE)</a></li>
+				<li><a href="#metrics">Métriques</a></li>
 				<li><a href="#security">Sécurité & Rôles</a></li>
 				<li><a href="#deployment">Déploiement (HTTPS)</a></li>
 				<li><a href="#errors">Codes d’erreur</a></li>
@@ -653,6 +654,17 @@ curl -X POST http://localhost:8080/api/my_database \
 				<p>Chaque message est du JSON avec le canal et le payload :</p>
 				<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 				<p>Si le payload est du texte, il est encapsulé en string dans <code>data</code>.</p>
+			</section>
+
+			<section id="metrics">
+				<h2>Métriques (Prometheus)</h2>
+				<p>PgArachne exporte des métriques sur <code>/metrics</code>, incluant les métriques Go standard et :</p>
+				<ul>
+					<li><code>pgarachne_http_requests_total</code>, <code>pgarachne_http_request_duration_seconds</code></li>
+					<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>
+					<li><code>pgarachne_jsonrpc_requests_total</code></li>
+					<li><code>pgarachne_sse_clients</code>, <code>pgarachne_sse_channels</code>, <code>pgarachne_sse_client_drops_total</code></li>
+				</ul>
 			</section>
 
 			<!-- Section Sécurité -->

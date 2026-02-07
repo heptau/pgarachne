@@ -524,6 +524,64 @@ func TestSSEMetrics(t *testing.T) {
 	}
 }
 
+func TestCoreMetrics(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	callPayload := map[string]interface{}{
+		"jsonrpc": "2.0",
+		"method":  "api.hello_world",
+		"params":  map[string]interface{}{},
+		"id":      42,
+	}
+	callBody, _ := json.Marshal(callPayload)
+	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	callReq.Header.Set("Content-Type", "application/json")
+	callReq.Header.Set("Authorization", "Bearer "+token)
+
+	callResp, err := http.DefaultClient.Do(callReq)
+	if err != nil {
+		t.Fatalf("call failed: %v", err)
+	}
+	callResp.Body.Close()
+
+	metricsResp, err := http.Get(env.httpServer.URL + "/metrics")
+	if err != nil {
+		t.Fatalf("metrics request failed: %v", err)
+	}
+	defer metricsResp.Body.Close()
+
+	body, err := io.ReadAll(metricsResp.Body)
+	if err != nil {
+		t.Fatalf("read metrics: %v", err)
+	}
+	metrics := string(body)
+
+	if !strings.Contains(metrics, "pgarachne_http_requests_total") {
+		t.Fatalf("missing pgarachne_http_requests_total metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_http_request_duration_seconds") {
+		t.Fatalf("missing pgarachne_http_request_duration_seconds metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_auth_requests_total") {
+		t.Fatalf("missing pgarachne_auth_requests_total metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_login_attempts_total") {
+		t.Fatalf("missing pgarachne_login_attempts_total metric")
+	}
+	if !strings.Contains(metrics, "pgarachne_jsonrpc_requests_total") {
+		t.Fatalf("missing pgarachne_jsonrpc_requests_total metric")
+	}
+}
+
 func TestCapabilitiesRespectsExecutePrivilege(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()

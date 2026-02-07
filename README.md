@@ -214,6 +214,13 @@ SSE metrics are exported via Prometheus:
 * `pgarachne_sse_channels{database=...}`
 * `pgarachne_sse_client_drops_total{database=...,reason=...}`
 
+Additional Prometheus metrics:
+* `pgarachne_http_requests_total{method=...,path=...,status=...}`
+* `pgarachne_http_request_duration_seconds{method=...,path=...,status=...}`
+* `pgarachne_auth_requests_total{type=...,result=...}`
+* `pgarachne_login_attempts_total{result=...}`
+* `pgarachne_jsonrpc_requests_total{method=...,result=...}`
+
 ## Documentation
 
 Detailed documentation is available in the [`docs/`](docs/index.html) directory, including:

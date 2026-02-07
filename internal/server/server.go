@@ -133,6 +133,7 @@ func (s *Server) buildRouter() *gin.Engine {
 		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, s.Cfg.MaxRequestBytes)
 		c.Next()
 	})
+	router.Use(httpMetricsMiddleware())
 
 	// Public API
 	router.GET("/health", s.handleHealthCheck)
@@ -158,42 +159,47 @@ func (s *Server) buildRouter() *gin.Engine {
 }
 
 func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName string) (string, string, int) {
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		return "", "Authorization header is missing", http.StatusUnauthorized
-	}
+		authHeader := c.GetHeader("Authorization")
+		if authHeader == "" {
+			recordAuthResult("unknown", "missing_header")
+			return "", "Authorization header is missing", http.StatusUnauthorized
+		}
 
 	parts := strings.SplitN(authHeader, " ", 2)
-	if len(parts) != 2 {
-		return "", "Authorization header is malformed", http.StatusUnauthorized
-	}
+		if len(parts) != 2 {
+			recordAuthResult("unknown", "malformed_header")
+			return "", "Authorization header is malformed", http.StatusUnauthorized
+		}
 
 	authType := parts[0]
 	tokenString := parts[1]
 
 	// 1. Try JWT
-	if strings.ToLower(authType) == "bearer" {
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(s.Cfg.JWTSecret), nil
-		})
-
-		if err == nil && token.Valid {
-			claims, ok := token.Claims.(jwt.MapClaims)
-			dbRole, roleOk := claims["db_role"].(string)
-			dbName, dbNameOk := claims["db_name"].(string)
-
-			if ok && roleOk && dbRole != "" && dbNameOk {
-				if dbName != databaseName {
-					slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
-					return "", "Invalid token for this database", http.StatusUnauthorized
+		if strings.ToLower(authType) == "bearer" {
+			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 				}
-				return dbRole, "", 0
+				return []byte(s.Cfg.JWTSecret), nil
+			})
+
+			if err == nil && token.Valid {
+				claims, ok := token.Claims.(jwt.MapClaims)
+				dbRole, roleOk := claims["db_role"].(string)
+				dbName, dbNameOk := claims["db_name"].(string)
+
+				if ok && roleOk && dbRole != "" && dbNameOk {
+					if dbName != databaseName {
+						slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
+						recordAuthResult("jwt", "wrong_db")
+						return "", "Invalid token for this database", http.StatusUnauthorized
+					}
+					recordAuthResult("jwt", "success")
+					return dbRole, "", 0
+				}
 			}
+			recordAuthResult("jwt", "invalid")
 		}
-	}
 
 	// 2. Try Long-lived API Token
 	query := `SELECT current_catalog, pgarachne.verify_api_token($1)`
@@ -204,17 +210,20 @@ func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName stri
 	)
 	err := db.QueryRowContext(c.Request.Context(), query, tokenString).Scan(&currentCatalog, &nullRole)
 
-	if err == nil && nullRole.Valid {
-		if currentCatalog != databaseName {
-			slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
-			return "", "Invalid token for this database", http.StatusUnauthorized
+		if err == nil && nullRole.Valid {
+			if currentCatalog != databaseName {
+				slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
+				recordAuthResult("api_token", "wrong_db")
+				return "", "Invalid token for this database", http.StatusUnauthorized
+			}
+
+			recordAuthResult("api_token", "success")
+			return nullRole.String, "", 0
 		}
 
-		return nullRole.String, "", 0
+		recordAuthResult("api_token", "invalid")
+		return "", "Invalid or expired token", http.StatusUnauthorized
 	}
-
-	return "", "Invalid or expired token", http.StatusUnauthorized
-}
 
 func (s *Server) handleFunctionCall(c *gin.Context) {
 	databaseName := c.Param("database")
@@ -232,11 +241,13 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	functionName := strings.TrimSpace(req.Method)
 	if functionName == "" {
+		recordJSONRPC("", "error")
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method is required"}, ID: req.ID})
 		return
 	}
 
 	if !isSafeFunctionName(functionName) {
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid function name"}, ID: req.ID})
 		return
 	}
@@ -250,6 +261,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	db, err := database.GetConnection(s.Cfg, databaseName)
 	if err != nil {
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusServiceUnavailable, JSONRPCResponse{Error: &JSONRPCError{Message: "Database connection failed"}, ID: req.ID})
 		return
 	}
@@ -262,6 +274,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	paramsJSON, err := json.Marshal(req.Params)
 	if err != nil {
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to marshal params"}, ID: req.ID})
 		return
 	}
@@ -269,6 +282,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	tx, err := db.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		slog.Error("Failed to begin transaction", "error", err)
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusServiceUnavailable, JSONRPCResponse{Error: &JSONRPCError{Message: "Database unavailable"}, ID: req.ID})
 		return
 	}
@@ -278,6 +292,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
 	if _, err := tx.ExecContext(c.Request.Context(), fmt.Sprintf("SET LOCAL ROLE %s", quotedRole)); err != nil {
 		slog.Error("Failed to SET ROLE", "role", dbRole, "error", err)
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Code: -32001, Message: "Permission denied for the specified role"}, ID: req.ID})
 		return
 	}
@@ -295,6 +310,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON)
 	if err != nil {
 		slog.Error("Function call failed", "function", functionName, "error", err)
+		recordJSONRPC(functionName, "error")
 		if strings.Contains(err.Error(), "does not exist") {
 			c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{Message: "Function does not exist"}, ID: req.ID})
 		} else {
@@ -305,10 +321,12 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Transaction commit failed", "error", err)
+		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Transaction commit failed"}, ID: req.ID})
 		return
 	}
 
+	recordJSONRPC(functionName, "success")
 	c.JSON(http.StatusOK, JSONRPCResponse{
 		JSONRPC: "2.0", Result: resultJSON, ID: req.ID,
 	})
@@ -327,6 +345,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	}
 
 	if loginAttemptLimiter != nil && !loginAttemptLimiter.Allow(c.ClientIP()+"|"+loginReq.Login) {
+		recordLoginResult("rate_limited")
 		c.JSON(http.StatusTooManyRequests, JSONRPCResponse{Error: &JSONRPCError{Message: "Too many login attempts. Please try again later."}, ID: req.ID})
 		return
 	}
@@ -343,6 +362,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	tempDB, err := sql.Open("postgres", connStr)
 	if err != nil {
 		slog.Error("Failed to open verification connection", "error", err)
+		recordLoginResult("error")
 		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Internal authentication error"}, ID: req.ID})
 		return
 	}
@@ -353,6 +373,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 
 	if err := tempDB.PingContext(ctx); err != nil {
 		slog.Warn("Authentication failed", "user", loginReq.Login, "error", err)
+		recordLoginResult("invalid")
 		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
 		return
 	}
@@ -363,6 +384,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	tokenString, err := token.SignedString([]byte(s.Cfg.JWTSecret))
 	if err != nil {
 		slog.Error("Failed to sign JWT", "error", err)
+		recordLoginResult("error")
 		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to create session token"}, ID: req.ID})
 		return
 	}
@@ -370,10 +392,12 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	resultBytes, err := json.Marshal(map[string]string{"token": tokenString})
 	if err != nil {
 		slog.Error("Failed to marshal login response", "error", err)
+		recordLoginResult("error")
 		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to create session token"}, ID: req.ID})
 		return
 	}
 
+	recordLoginResult("success")
 	c.JSON(http.StatusOK, JSONRPCResponse{
 		JSONRPC: "2.0",
 		Result:  resultBytes,
