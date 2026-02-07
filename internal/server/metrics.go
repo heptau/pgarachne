@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -59,7 +60,7 @@ func httpMetricsMiddleware() gin.HandlerFunc {
 
 		path := c.FullPath()
 		if path == "" {
-			path = c.Request.URL.Path
+			path = "__unknown__"
 		}
 		status := strconv.Itoa(c.Writer.Status())
 		method := c.Request.Method
@@ -81,9 +82,14 @@ func recordJSONRPC(method, result string) {
 	if method == "" {
 		method = "unknown"
 	}
+	if !pgMethodMetricRe.MatchString(method) {
+		method = "other"
+	}
 	jsonrpcRequestsTotal.WithLabelValues(method, result).Inc()
 }
 
 func formatStatusResult(status int) string {
 	return fmt.Sprintf("%d", status)
 }
+
+var pgMethodMetricRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*$`)
