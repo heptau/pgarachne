@@ -68,6 +68,7 @@ func (h *sseHub) getDBListener(dbName string) (*dbListener, error) {
 		return l, nil
 	}
 
+	var holder *dbListener
 	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s %s",
 		h.cfg.DBHost,
 		h.cfg.DBPort,
@@ -80,6 +81,13 @@ func (h *sseHub) getDBListener(dbName string) (*dbListener, error) {
 		if err != nil {
 			slog.Warn("SSE listener event", "event", ev, "error", err, "database", dbName)
 		}
+		if holder == nil {
+			return
+		}
+		if ev == pq.ListenerEventReconnected || ev == pq.ListenerEventDisconnected {
+			slog.Info("SSE listener reconnect detected; closing clients", "database", dbName, "event", ev)
+			holder.dropAllClients()
+		}
 	})
 
 	l := &dbListener{
@@ -90,6 +98,7 @@ func (h *sseHub) getDBListener(dbName string) (*dbListener, error) {
 		sendTimeout: sseSendTimeout(h.cfg),
 		closed:      make(chan struct{}),
 	}
+	holder = l
 	go l.run()
 	h.dbs[dbName] = l
 	return l, nil
@@ -205,6 +214,19 @@ func (l *dbListener) dropClient(client *sseClient) {
 		close(client.done)
 		l.removeClient(client.channels, client)
 	})
+}
+
+func (l *dbListener) dropAllClients() {
+	l.mu.Lock()
+	clients := make([]*sseClient, 0, len(l.clients))
+	for c := range l.clients {
+		clients = append(clients, c)
+	}
+	l.mu.Unlock()
+
+	for _, client := range clients {
+		l.dropClient(client)
+	}
 }
 
 func (s *Server) handleSSE(c *gin.Context) {
