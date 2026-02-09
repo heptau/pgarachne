@@ -1,0 +1,41 @@
+---
+title: "Segurança e Autenticação"
+menu:
+  main:
+    name: "Segurança e Autenticação"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Segurança e Autenticação</h2>
+	<p>O PgArachne depende inteiramente do sistema de permissões do PostgreSQL. Ele não reinventa Listas
+		de Controle de Acesso (ACLs). Todas as consultas são executadas sob o papel de banco de dados específico
+		do usuário autenticado usando <code>SET LOCAL ROLE</code>.
+	</p>
+
+	<h3>1. Login Interativo (JWT)</h3>
+	<p>Os usuários se autenticam usando seu <strong>nome de usuário e senha reais do PostgreSQL</strong> via
+		a função de login. Se bem-sucedido, eles recebem um JWT genérico. Quando este token é usado, o PgArachne
+		muda o papel ativo para esse usuário pela duração da requisição.</p>
+
+	<h3>2. Contas de Serviço (Tokens de API)</h3>
+	<p>Para sistemas automatizados ou scripts, você pode usar chaves de API de longa duração.</p>
+	<ul>
+		<li>Os tokens são armazenados na tabela <code>pgarachne.api_tokens</code>.</li>
+		<li>Cada token é mapeado para um usuário/papel de banco de dados específico.</li>
+		<li>Envie o token através do cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>A criação de tokens de API requer <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> com um papel membro de <code>pgarachne_admin</code>.</em></p>
+
+	<div class="warning">
+		<h3>Configuração Crítica: Privilégios do Proxy</h3>
+		<p>Como o PgArachne se conecta como o usuário definido em <code>DB_USER</code> (ex:
+			<code>pgarachne</code>) e muda a identidade para outros usuários, o usuário proxy <strong>deve ser
+				membro</strong> desses papéis alvo.
+		</p>
+
+		<p>Execute este SQL para cada usuário/papel que precisa fazer login:</p>
+		<pre><code>-- Permitir que 'pgarachne' mude para 'demo_user'
+GRANT demo_user TO pgarachne;</code></pre>
+	</div>
+</section>

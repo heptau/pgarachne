@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/cs/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/index.xml" rel="self" type="application/rss+xml"/><item><title>Bezpečnost a autentizace</title><link>https://www.pgarachne.com/cs/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/security-roles/</guid><description>&lt;section id="security"&gt;
+	&lt;h2&gt;Bezpečnost a autentizace&lt;/h2&gt;
+	&lt;p&gt;PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
+		Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
+		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt;.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Interaktivní přihlášení (JWT)&lt;/h3&gt;
+	&lt;p&gt;Uživatelé se autentizují pomocí svého &lt;strong&gt;skutečného PostgreSQL uživatelského jména a hesla&lt;/strong&gt;
+		přes přihlašovací funkci. Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne
+		aktivní roli na tohoto uživatele po dobu trvání požadavku.&lt;/p&gt;</description></item><item><title>Chybové kódy</title><link>https://www.pgarachne.com/cs/error-codes/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/error-codes/</guid><description>&lt;section id="errors"&gt;
+	&lt;h2&gt;Chybové kódy&lt;/h2&gt;
+	&lt;p&gt;PgArachne vrací standardní chybové objekty JSON-RPC 2.0. Níže jsou uvedeny specifické kódy, se kterými se
+		můžete setkat:&lt;/p&gt;
+	&lt;table&gt;
+		&lt;tr&gt;
+			&lt;th&gt;Kód&lt;/th&gt;
+			&lt;th&gt;Zpráva&lt;/th&gt;
+			&lt;th&gt;Význam&lt;/th&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32700&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Parse error&lt;/td&gt;
+			&lt;td&gt;Server obdržel neplatný JSON.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32601&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Method not found&lt;/td&gt;
+			&lt;td&gt;Funkce ve schématu neexistuje.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32602&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Invalid params&lt;/td&gt;
+			&lt;td&gt;Argumenty neodpovídají signatuře funkce.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32001&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Permission denied&lt;/td&gt;
+			&lt;td&gt;Role aktuálního uživatele nemá oprávnění k provedení funkce (na úrovni DB).&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32000&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Internal Error&lt;/td&gt;
+			&lt;td&gt;Obecná chyba serveru (zkontrolujte logy).&lt;/td&gt;
+		&lt;/tr&gt;
+	&lt;/table&gt;
+&lt;/section&gt;</description></item><item><title>Instalace</title><link>https://www.pgarachne.com/cs/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/installation/</guid><description>&lt;section id="install"&gt;
+	&lt;h2&gt;Instalace&lt;/h2&gt;
+
+	&lt;h3&gt;1. Instalace&lt;/h3&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Možnost A: Stáhnout binární soubory&lt;/h4&gt;
+		&lt;p&gt;Stáhněte si nejnovější předkompilovanou verzi pro váš operační systém:&lt;/p&gt;
+
+		&lt;div class="donation-grid" style="margin-top: 20px; margin-bottom: 20px;"&gt;
+			&lt;!-- Linux --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24" style="color: #444"&gt;
+					&lt;path fill="currentColor"
+						d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Linux&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-amd64.tar.gz"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-arm64.tar.gz"
+						class="btn-download"&gt;ARM64/Aarch64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- macOS --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24" style="color: #444"&gt;
+					&lt;path fill="currentColor"
+						d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;macOS&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-arm64-app.zip"
+						class="btn-download"&gt;ARM64/Apple Silicon&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-amd64-app.zip"
+						class="btn-download"&gt;x64/Intel&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- Windows --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24" style="color: #444"&gt;
+					&lt;path fill="currentColor"
+						d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Windows&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-amd64.zip"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-arm64.zip"
+						class="btn-download"&gt;ARM64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;p&gt;Více verzí je k dispozici na &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Konfigurace</title><link>https://www.pgarachne.com/cs/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/configuration/</guid><description>&lt;section id="config"&gt;
+	&lt;h2&gt;Konfigurace&lt;/h2&gt;
+	&lt;p&gt;PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.&lt;/p&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; se pokusí vytvořit roli &lt;code&gt;pgarachne_admin&lt;/code&gt; a přiřadit ji roli &lt;code&gt;pgarachne&lt;/code&gt;. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
+	&lt;br&gt;
+		Proxy uživatel (&lt;code&gt;DB_USER&lt;/code&gt;) musí být členem &lt;code&gt;pgarachne&lt;/code&gt; a &lt;code&gt;pgarachne_admin&lt;/code&gt;, aby mohl ověřovat a vytvářet API tokeny.&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Bezpečnostní poznámka:&lt;/strong&gt; PgArachne nepracuje s hesly k databázi v konfiguračním souboru.
+		Pro autentizaci spoléhá na standardní mechanismus PostgreSQL souboru &lt;code&gt;.pgpass&lt;/code&gt; (nebo
+		systémovou proměnnou &lt;code&gt;PGPASSWORD&lt;/code&gt;).
+	&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Tip:&lt;/strong&gt; Pokud běží PgArachne za reverse proxy, nastavte &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;, aby se správně určovala IP klienta a nešlo obejít rate limiting.
+	&lt;/div&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Pořadí hledání:&lt;/strong&gt; Pokud není konfigurační soubor specifikován přes CLI, hledá se v tomto
+		pořadí:
+		&lt;ol&gt;
+			&lt;li&gt;Aktuální složka: &lt;code&gt;./pgarachne.env&lt;/code&gt; (všechny OS)&lt;/li&gt;
+			&lt;li&gt;Uživatelská konfigurace:
+				&lt;ul&gt;
+					&lt;li&gt;&lt;strong&gt;Linux / macOS:&lt;/strong&gt; &lt;code&gt;~/.config/pgarachne/pgarachne.env&lt;/code&gt;&lt;/li&gt;
+					&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; &lt;code&gt;%USERPROFILE%\.config\pgarachne\pgarachne.env&lt;/code&gt;
+					&lt;/li&gt;
+				&lt;/ul&gt;
+			&lt;/li&gt;
+			&lt;li&gt;Systémová konfigurace: &lt;code&gt;/etc/pgarachne/pgarachne.env&lt;/code&gt; (pouze Linux / macOS)&lt;/li&gt;
+		&lt;/ol&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Příklad minimální konfigurace&lt;/h3&gt;
+	&lt;p&gt;Pro základní spuštění aplikace postačuje následující nastavení:&lt;/p&gt;</description></item><item><title>Licence a ochranná známka</title><link>https://www.pgarachne.com/cs/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/license/</guid><description>&lt;section id="license"&gt;
+	&lt;h2&gt;Licence a ochranná známka&lt;/h2&gt;
+	&lt;div class="license-box"&gt;
+		&lt;p&gt;&lt;strong&gt;Kód (MIT Licence):&lt;/strong&gt;&lt;br&gt;
+			Zdrojový kód můžete zdarma použít pro jakýkoli osobní nebo komerční projekt. Můžete jej upravovat,
+			forkovat a šířit.&lt;/p&gt;
+
+		&lt;p style="margin-top: 15px;"&gt;&lt;strong&gt;Značka (Ochranná známka):&lt;/strong&gt;&lt;br&gt;
+			Název „PgArachne“ a Logo jsou ochranné známky &lt;em&gt;Zbyňka Vanžury&lt;/em&gt;. Pokud projekt forknete
+			nebo nabízíte komerční službu „Managed PgArachne“, musíte odstranit původní branding a logo,
+			pokud jste nezískali speciální licenci.&lt;/p&gt;
+	&lt;/div&gt;
+&lt;/section&gt;</description></item><item><title>Metriky (Prometheus)</title><link>https://www.pgarachne.com/cs/metrics/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/metrics/</guid><description>&lt;section id="metrics"&gt;
+	&lt;h2&gt;Metriky (Prometheus)&lt;/h2&gt;
+	&lt;p&gt;PgArachne exportuje metriky na &lt;code&gt;/metrics&lt;/code&gt;, včetně standardních Go metrik a:&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_http_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_http_request_duration_seconds&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+	&lt;h2&gt;Nasazení a HTTPS&lt;/h2&gt;
+	&lt;p&gt;PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
+		hlaviček a veřejné směrování byste před něj měli umístit &lt;strong&gt;Reverzní proxy&lt;/strong&gt;.&lt;/p&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Možnost A: Caddy Server&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Nejlepší pro:&lt;/strong&gt; Moderní produkční nasazení, snadné použití.&lt;/p&gt;
+		&lt;p&gt;&lt;a href="https://caddyserver.com/" target="_blank"&gt;Caddy&lt;/a&gt; je jediný webový server, který ve
+			výchozím nastavení automaticky získává a obnovuje SSL certifikáty (Let's Encrypt). Vyžaduje téměř
+			nulovou konfiguraci.&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;# Caddyfile
+example.com {
+ reverse_proxy localhost:8080
+}&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Možnost B: Nginx&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Nejlepší pro:&lt;/strong&gt; Enterprise prostředí, komplexní směrování.&lt;/p&gt;</description></item><item><title>Novinky</title><link>https://www.pgarachne.com/cs/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+	&lt;h2&gt;Novinky&lt;/h2&gt;
+	&lt;p class=\"whats-new-subtitle\"&gt;v1.1&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;Sjednocený endpoint: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (method v JSON-RPC body).&lt;/li&gt;
+		&lt;li&gt;Real-time notifikace přes &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;Prometheus metriky pro HTTP, auth, JSON-RPC a SSE.&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;h2&gt;O projektu a architektuře&lt;/h2&gt;
+	&lt;p&gt;
+		PgArachne™ slouží jako lehký, vysoce výkonný &lt;strong&gt;webový server&lt;/strong&gt;, který stojí mezi vašimi HTTP
+		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
+	&lt;/p&gt;
+
+	&lt;div class="card"
+		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;"&gt;
+		&lt;h3&gt;Klíčové technické schopnosti&lt;/h3&gt;
+		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Brána JSON-RPC 2.0:&lt;/strong&gt; Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+				2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
+				požadavků.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Nativní DB autentizace:&lt;/strong&gt; Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
+				svými skutečnými PostgreSQL přihlašovacími údaji a získají &lt;strong&gt;JWT&lt;/strong&gt;. Služby
+				mohou alternativně využívat trvalé &lt;strong&gt;API Tokeny&lt;/strong&gt;.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Maskování rolí (Role Masquerading):&lt;/strong&gt; PgArachne™ se připojuje jako proxy uživatel,
+				ale každý požadavek provádí pomocí &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;, čímž se přepne do identity
+				ověřeného uživatele. Zabezpečení na úrovni řádků (RLS) funguje automaticky.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Server statických souborů:&lt;/strong&gt; PgArachne™ může servírovat statické assety (HTML, JS,
+				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Real-time notifikace (SSE):&lt;/strong&gt; Odebírejte PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanály
+				přes SSE pro živé aktualizace bez pollingu.
+			&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;p&gt;
+		Tato architektura dramaticky zjednodušuje stack: &lt;strong&gt;Databáze ↔ PgArachne ↔ Frontend&lt;/strong&gt;.
+	&lt;/p&gt;</description></item><item><title>Podpořte vývoj</title><link>https://www.pgarachne.com/cs/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;h2&gt;Podpořte vývoj&lt;/h2&gt;
+	&lt;p&gt;Vývoj open-source softwaru, jako je PgArachne, zabere značné množství času. Pokud vám tento nástroj šetří
+		čas, zvažte, prosím, podporu jeho údržby.&lt;/p&gt;
+
+	&lt;div class="donation-grid"&gt;
+
+		&lt;!-- 1. Buy Me a Coffee (Featured) --&gt;
+		&lt;div class="donation-card featured"&gt;
+			&lt;h4&gt;☕ Staňte se členem&lt;/h4&gt;
+			&lt;p&gt;Připojte se ke komunitě na &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;. získejte exkluzivní aktualizace,
+				dřívější přístup k novým funkcím a další.&lt;/p&gt;
+			&lt;a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured"&gt;Podpořit
+				na Buy Me a Coffee&lt;/a&gt;
+		&lt;/div&gt;
+
+		&lt;!-- 2. Bank Transfer --&gt;
+		&lt;div class="donation-card"&gt;
+			&lt;h4&gt;Bankovní převod&lt;/h4&gt;
+			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Průzkumník API (Explorer)</title><link>https://www.pgarachne.com/cs/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+	&lt;h2&gt;Průzkumník API (Explorer)&lt;/h2&gt;
+	&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce `tools/`. Nejedná se
+		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
+		která komunikuje s databází výhradně prostřednictvím PgArachne.&lt;/p&gt;
+
+	&lt;p&gt;&lt;strong&gt;Co umí?&lt;/strong&gt;&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci `capabilities` a zobrazuje všechny dostupné
+			endpointy a jejich parametry.&lt;/li&gt;
+		&lt;li&gt;&lt;strong&gt;Živé testování:&lt;/strong&gt; Funkce můžete spouštět přímo z prohlížeče.&lt;/li&gt;
+		&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat `--- PARAMS ---`)
+			do čitelné dokumentace.&lt;/li&gt;
+	&lt;/ul&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Jak jej povolit:&lt;/strong&gt; Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
+		složku `tools/pgarachne-explorer` na vašem disku. Poté navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;.
+	&lt;/div&gt;
+&lt;/section&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+	&lt;h2&gt;Příklad Hello World&lt;/h2&gt;
+	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/
+	&lt;h3&gt;1. Vytvoření uživatele a funkci&lt;/h3&gt;
+	&lt;p&gt;V databázi (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Vytvoříme funkci Hello World
+-- Input: prázdný jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+ SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Udělíme uživateli oprávnění spustit funkci
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
+GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+
+	&lt;h3&gt;2. Přihlášení přes API&lt;/h3&gt;
+	&lt;p&gt;Použijte JSON-RPC metodu &lt;code&gt;login&lt;/code&gt; pro získání JWT tokenu:&lt;/p&gt;</description></item><item><title>Real-time notifikace (SSE)</title><link>https://www.pgarachne.com/cs/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+	&lt;h2&gt;Real-time notifikace (SSE)&lt;/h2&gt;
+	&lt;p&gt;Přihlaste se k PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálům přes Server-Sent Events:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+ -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Každá zpráva je JSON s názvem kanálu a payloadem:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Pokud je payload text, zabalí se jako string do &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
+&lt;/section&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;h2&gt;Srovnání: PgArachne vs. PostgREST&lt;/h2&gt;
+	&lt;div class="comparison-table-wrapper"&gt;
+		&lt;table&gt;
+			&lt;thead&gt;
+				&lt;tr&gt;
+					&lt;th&gt;Vlastnost&lt;/th&gt;
+					&lt;th&gt;PgArachne (+ univerzální funkce)&lt;/th&gt;
+					&lt;th&gt;PostgREST&lt;/th&gt;
+				&lt;/tr&gt;
+			&lt;/thead&gt;
+			&lt;tbody&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Rychlost nasazení&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Vysoká. Univerzální funkce umožňují okamžité CRUD podobně jako PostgREST.&lt;/td&gt;
+					&lt;td&gt;Vysoká. Automaticky generuje endpointy pro všechny tabulky.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Flexibilita logiky&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Neomezená. Schopnost kombinovat univerzální CRUD se specifickými RPC funkcemi.&lt;/td&gt;
+					&lt;td&gt;Omezená. Většina logiky musí být v URL filtrech nebo v databázových pohledech (Views).&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Práce se schématy&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Nativní. Přístup přes &lt;code&gt;schema.funkce&lt;/code&gt;.&lt;/td&gt;
+					&lt;td&gt;Plochá/Globální. Vyžaduje přepínání profilů v HTTP hlavičkách pro změnu schémat.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Abstrakce&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Volitelná. Můžete data vystavit přímo (proxy) nebo je bezpečně zapouzdřit.&lt;/td&gt;
+					&lt;td&gt;Nízká. API je v podstatě zrcadlem databázového schématu.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Připravenost pro AI a LLM&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Extrémní. JSON-RPC a možnost definovat funkce typu „Tool“ specificky pro AI agenty.&lt;/td&gt;
+					&lt;td&gt;Střední. AI se musí potýkat s přísnou syntaxí parametrů URL.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Statické soubory&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ano. Obsluhuje HTML/JS/CSS přímo z jediného binárního souboru.&lt;/td&gt;
+					&lt;td&gt;Ne. Musíte před něj nakonfigurovat a spravovat externí Nginx.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Real-time (SSE)&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ano. Vestavěný SSE endpoint pro PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;.&lt;/td&gt;
+					&lt;td&gt;Ne. Vyžaduje vlastní řešení (LISTEN/NOTIFY + další služba).&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Podpora více databází&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;Server-wide (N:1).&lt;/strong&gt; Jediná instance PgArachne se připojí k serveru (IP:Port)
+						a dokáže obsloužit všechny databáze, které na něm běží.&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;Per-Database (1:1).&lt;/strong&gt; Jedna instance je vázána na jednu konkrétní databázi.
+						Pro obsluhu více databází musíte spustit více instancí na různých portech.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Autentizace&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;JWT a API klíče. Nativně podporuje oba světy.&lt;/td&gt;
+					&lt;td&gt;Primárně JWT.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Rate limiting&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ano. Vestavěné omezení loginu (konfigurovatelné).&lt;/td&gt;
+					&lt;td&gt;Ne. Vyžaduje externí proxy nebo middleware.&lt;/td&gt;
+				&lt;/tr&gt;
+			&lt;/tbody&gt;
+		&lt;/table&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Proč je „Hybridní PgArachne“ vítězem?&lt;/h3&gt;
+	&lt;p&gt;Díky &lt;strong&gt;univerzálním funkcím&lt;/strong&gt; (fungujícím jako emulátor) získáte to nejlepší z obou
+		světů:&lt;/p&gt;</description></item></channel></rss>

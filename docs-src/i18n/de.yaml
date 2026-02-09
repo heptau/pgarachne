@@ -1,0 +1,25 @@
+- id: hero_lead
+  translation: "Verwandeln Sie PostgreSQL in eine sichere API. Sofort."
+- id: hero_desc
+  translation: "Kein Boilerplate-Code. Hohe Leistung. Die Middleware, die HTTP-Anfragen direkt auf Datenbankfunktionen abbildet, mit Echtzeit-SSE-Benachrichtigungen und Prometheus-Metriken."
+- id: hero_get_started
+  translation: "Loslegen"
+- id: hero_see_demo
+  translation: "Demo ansehen (Explorer)"
+- id: nav_language
+  translation: "Sprache"
+- id: nav_menu
+  translation: "Menü"
+- id: nav_features
+  translation: "Funktionen"
+- id: nav_installation
+  translation: "Installation"
+- id: nav_documentation
+  translation: "Dokumentation"
+- id: nav_support
+  translation: "Support"
+- id: nav_architecture
+  translation: "Architektur"
+- id: nav_home
+  translation: "Start"
+

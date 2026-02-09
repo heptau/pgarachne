@@ -39,7 +39,7 @@ LDFLAGS=-ldflags "-s -w -X 'main.Version=$(APP_VERSION)'"
 GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
-.PHONY: help deps build run clean prepare-dist \
+.PHONY: help deps build run clean prepare-dist docs \
         package-all \
         package-linux-amd64 package-linux-arm64 \
         package-windows-amd64 package-windows-arm64 \
@@ -58,6 +58,7 @@ help:
 	@echo "Dev targets:"
 	@echo "  build                 Build binary for current OS."
 	@echo "  clean                 Remove artifacts."
+	@echo "  docs                  Build documentation with Hugo."
 	@echo ""
 	@echo "Packaging targets (Distribution):"
 	@echo "  package-all             Builds ALL packages (Linux, Win, Mac Intel/Arm/Universal)."
@@ -76,6 +77,18 @@ help:
 deps:
 	@echo "==> Checking dependencies..."
 	@$(GO_TIDY)
+
+docs:
+	@echo "==> Building documentation (Hugo)"
+	@cd docs-src && hugo --cleanDestinationDir --minify
+	@cp docs-src/static/index.html docs/index.html
+	@command -v minify >/dev/null 2>&1 || { echo "==> Skipping static asset minification (install 'minify' via brew)"; exit 0; }
+	@echo "==> Minifying static assets"
+	@find docs/assets -type f -name '*.css' -print0 | xargs -0 -I{} minify -o {} {}
+	@find docs/assets -type f -name '*.js' -print0 | xargs -0 -I{} minify -o {} {}
+	@minify -o docs/index.html docs/index.html
+	@minify --type application/xml -o docs/sitemap.xml docs/sitemap.xml
+	@minify --type application/json -o docs/manifest.json docs/manifest.json
 
 prepare-dist:
 	@mkdir -p $(BIN_DIR)

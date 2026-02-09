@@ -1,0 +1,41 @@
+---
+title: "Bezpečnost a autentizace"
+menu:
+  main:
+    name: "Bezpečnost a autentizace"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Bezpečnost a autentizace</h2>
+	<p>PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
+		Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
+		<code>SET LOCAL ROLE</code>.
+	</p>
+
+	<h3>1. Interaktivní přihlášení (JWT)</h3>
+	<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
+		přes přihlašovací funkci. Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne
+		aktivní roli na tohoto uživatele po dobu trvání požadavku.</p>
+
+	<h3>2. Služby (API tokeny)</h3>
+	<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API klíče.</p>
+	<ul>
+		<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
+		<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
+		<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>Vytváření API tokenů vyžaduje <code>pgarachne_admin</code>. použijte <code>pgarachne.add_api_token(...)</code> s rolí, která je členem <code>pgarachne_admin</code>.</em></p>
+
+	<div class="warning">
+		<h3>Kritická konfigurace: Oprávnění proxy</h3>
+		<p>Jelikož se PgArachne připojuje jako uživatel definovaný v <code>DB_USER</code> (např.
+			<code>pgarachne</code>) a přepíná identitu na jiné uživatele, proxy uživatel <strong>musí být
+				členem</strong> těchto cílových rolí.
+		</p>
+
+		<p>Spusťte toto SQL pro každého uživatele/roli, která se potřebuje přihlásit:</p>
+		<pre><code>-- Povolit 'pgarachne' přepnout se na 'demo_user'
+GRANT demo_user TO pgarachne;</code></pre>
+	</div>
+</section>

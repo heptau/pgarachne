@@ -1,0 +1,45 @@
+---
+title: "Chybové kódy"
+menu:
+  main:
+    name: "Chybové kódy"
+    weight: 120
+---
+
+<section id="errors">
+	<h2>Chybové kódy</h2>
+	<p>PgArachne vrací standardní chybové objekty JSON-RPC 2.0. Níže jsou uvedeny specifické kódy, se kterými se
+		můžete setkat:</p>
+	<table>
+		<tr>
+			<th>Kód</th>
+			<th>Zpráva</th>
+			<th>Význam</th>
+		</tr>
+		<tr>
+			<td><code>-32700</code></td>
+			<td>Parse error</td>
+			<td>Server obdržel neplatný JSON.</td>
+		</tr>
+		<tr>
+			<td><code>-32601</code></td>
+			<td>Method not found</td>
+			<td>Funkce ve schématu neexistuje.</td>
+		</tr>
+		<tr>
+			<td><code>-32602</code></td>
+			<td>Invalid params</td>
+			<td>Argumenty neodpovídají signatuře funkce.</td>
+		</tr>
+		<tr>
+			<td><code>-32001</code></td>
+			<td>Permission denied</td>
+			<td>Role aktuálního uživatele nemá oprávnění k provedení funkce (na úrovni DB).</td>
+		</tr>
+		<tr>
+			<td><code>-32000</code></td>
+			<td>Internal Error</td>
+			<td>Obecná chyba serveru (zkontrolujte logy).</td>
+		</tr>
+	</table>
+</section>

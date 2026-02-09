@@ -1,0 +1,42 @@
+---
+title: "Sécurité & Authentification"
+menu:
+  main:
+    name: "Sécurité & Authentification"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Sécurité & Authentification</h2>
+	<p>PgArachne s’appuie entièrement sur le système de permission de PostgreSQL. Il ne réinvente pas les listes
+		de contrôle d’accès (ACL). Toutes les requêtes sont exécutées sous le rôle de base de données spécifique
+		de l’utilisateur authentifié en utilisant <code>SET LOCAL ROLE</code>.
+	</p>
+
+	<h3>1. Connexion interactive (JWT)</h3>
+	<p>Les utilisateurs s’authentifient en utilisant leur <strong>vrai nom d’utilisateur et mot de passe
+			PostgreSQL</strong> via la fonction de connexion. En cas de succès, ils reçoivent un JWT générique.
+		Lorsque ce jeton est utilisé, PgArachne bascule le rôle actif vers cet utilisateur
+		pour la durée de la requête.</p>
+
+	<h3>2. Comptes de service (Tokens API)</h3>
+	<p>Pour les systèmes automatisés ou les scripts, vous pouvez utiliser des clés API longue durée.</p>
+	<ul>
+		<li>Les jetons sont stockés dans la table <code>pgarachne.api_tokens</code>.</li>
+		<li>Chaque jeton est mappé à un utilisateur/rôle de base de données spécifique.</li>
+		<li>Envoyez le jeton via l’en-tête <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>La création de tokens API nécessite <code>pgarachne_admin</code>. Utilisez <code>pgarachne.add_api_token(...)</code> avec un rôle membre de <code>pgarachne_admin</code>.</em></p>
+
+	<div class="warning">
+		<h3>Configuration critique : Privilèges Proxy</h3>
+		<p>Puisque PgArachne se connecte en tant qu’utilisateur défini dans <code>DB_USER</code> (ex :
+			<code>pgarachne</code>) et bascule l’identité vers d’autres utilisateurs, l’utilisateur proxy
+			<strong>doit être membre</strong> de ces rôles cibles.
+		</p>
+
+		<p>Exécutez ce SQL pour chaque utilisateur/rôle qui doit se connecter :</p>
+		<pre><code>-- Autoriser 'pgarachne' à basculer vers 'demo_user'
+GRANT demo_user TO pgarachne;</code></pre>
+	</div>
+</section>

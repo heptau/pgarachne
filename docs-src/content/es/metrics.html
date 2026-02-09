@@ -1,0 +1,18 @@
+---
+title: "Métricas (Prometheus)"
+menu:
+  main:
+    name: "Métricas (Prometheus)"
+    weight: 90
+---
+
+<section id="metrics">
+	<h2>Métricas (Prometheus)</h2>
+	<p>PgArachne exporta métricas en <code>/metrics</code>, incluidas las métricas estándar de Go y:</p>
+	<ul>
+		<li><code>pgarachne_http_requests_total</code>, <code>pgarachne_http_request_duration_seconds</code></li>
+		<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>
+		<li><code>pgarachne_jsonrpc_requests_total</code></li>
+		<li><code>pgarachne_sse_clients</code>, <code>pgarachne_sse_channels</code>, <code>pgarachne_sse_client_drops_total</code></li>
+	</ul>
+</section>

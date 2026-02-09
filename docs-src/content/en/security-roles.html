@@ -1,0 +1,41 @@
+---
+title: "Security & Authentication"
+menu:
+  main:
+    name: "Security & Authentication"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Security & Authentication</h2>
+	<p>PgArachne relies entirely on the PostgreSQL permission system. It does not reinvent Access Control Lists
+		(ACLs). All queries are executed under the specific database role of the authenticated user using
+		<code>SET LOCAL ROLE</code>.
+	</p>
+
+	<h3>1. Interactive Login (JWT)</h3>
+	<p>Users authenticate using their <strong>real PostgreSQL username and password</strong> via the login
+		function. If successful, they receive a generic JWT. When this token is used, PgArachne switches the
+		active role to that user for the duration of the request.</p>
+
+	<h3>2. Service Accounts (API Tokens)</h3>
+	<p>For automated systems or scripts, you can use long-lived API keys.</p>
+	<ul>
+		<li>Tokens are stored in the <code>pgarachne.api_tokens</code> table.</li>
+		<li>Each token is mapped to a specific database user/role.</li>
+		<li>Send the token via the <code>Authorization: Bearer &lt;token&gt;</code> header.</li>
+	</ul>
+	<p><em>Minting API tokens requires <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> with a role that is a member of <code>pgarachne_admin</code>.</em></p>
+
+	<div class="warning">
+		<h3>Critical Configuration: Proxy Privileges</h3>
+		<p>Since PgArachne connects as the user defined in <code>DB_USER</code> (e.g.,
+			<code>pgarachne</code>) and switches identity to other users, the proxy user <strong>must be a
+				member</strong> of those target roles.
+		</p>
+
+		<p>Run this SQL for every user/role that needs to log in:</p>
+		<pre><code>-- Allow 'pgarachne' to switch to 'demo_user'
+GRANT demo_user TO pgarachne;</code></pre>
+	</div>
+</section>

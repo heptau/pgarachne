@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.Lang }}">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="description" content="{{ .Params.description | default .Site.Params.description }}">
+	<title>{{ if .IsHome }}PgArachne - Instant PostgreSQL API{{ else }}{{ .Title }} - PgArachne{{ end }}</title>
+	<link rel="icon" type="image/png" href="{{ "assets/pgarachne-icon.png" | relURL }}">
+	<link rel="manifest" href="{{ "manifest.json" | relURL }}">
+	<meta name="theme-color" content="#0066cc">
+	<link rel="apple-touch-icon" href="{{ "assets/pgarachne-icon.png" | relURL }}">
+	<link rel="stylesheet" href="{{ "assets/style.css" | relURL }}">
+
+	<link rel="canonical" href="{{ .Permalink }}">
+	<link rel="alternate" hreflang="x-default" href="{{ "/" | absURL }}">
+	{{ range .Site.Languages }}
+	<link rel="alternate" hreflang="{{ .Lang }}" href="{{ (printf "/%s/" .Lang) | absURL }}">
+	{{ end }}
+
+	<meta property="og:title" content="{{ if .IsHome }}PgArachne - Instant PostgreSQL API{{ else }}{{ .Title }} - PgArachne{{ end }}" />
+	<meta property="og:description" content="{{ .Params.ogDescription | default .Site.Params.ogDescription }}" />
+	<meta property="og:image" content="{{ "/assets/pgarachne-logo.jpeg" | absURL }}" />
+	<meta property="og:url" content="{{ .Permalink }}" />
+	<meta property="og:type" content="website" />
+</head>
+
+<body>
+	<nav class="navbar">
+		<div class="container nav-container">
+			<button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="toc">
+				<span class="nav-toggle-icon"><span></span></span>
+			</button>
+
+			<div class="nav-links" id="nav-links">
+				<a href="{{ "/" | relLangURL }}">{{ i18n "nav_features" }}</a>
+				<a href="{{ "/" | relLangURL }}installation/">{{ i18n "nav_installation" }}</a>
+				<a href="{{ "/" | relLangURL }}about-architecture/">{{ i18n "nav_architecture" }}</a>
+				<a href="{{ "/" | relLangURL }}support-donate/" class="nav-btn-donate">{{ i18n "nav_support" }}</a>
+			</div>
+
+			<div class="lang-dropdown">
+				<button class="lang-btn">{{ i18n "nav_language" }}</button>
+				<div class="lang-content">
+					{{ range .Site.Languages }}
+					{{ $lang := .Lang }}
+					{{ $link := (printf "/%s/" $lang) }}
+					{{ range $.Translations }}
+						{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
+					{{ end }}
+					{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
+					<a href="{{ $link }}" class="{{ if eq $lang $.Site.Language.Lang }}active{{ end }}">{{ .LanguageName }}</a>
+					{{ end }}
+				</div>
+			</div>
+		</div>
+	</nav>
+
+	{{ block "main" . }}{{ end }}
+
+	<footer class="site-footer">
+		<div class="container footer-inner">
+			<div class="footer-copy">Copyright © 2025-2026 Zbyněk Vanžura.</div>
+			<div class="footer-links">
+				<a href="https://t.me/pgarachne" aria-label="Telegram" target="_blank" rel="noopener">
+					<svg viewBox="0 0 24 24" class="footer-icon" aria-hidden="true">
+						<path fill="currentColor" d="M9.04 15.46 8.8 19.1c.35 0 .5-.15.7-.35l1.68-1.6 3.48 2.55c.64.35 1.1.17 1.26-.6l2.28-10.7h0c.2-.93-.34-1.3-.96-1.07L3.2 10.1c-.9.35-.88.85-.16 1.07l3.9 1.2 9.06-5.72c.43-.26.82-.12.5.14z"/>
+					</svg>
+				</a>
+				<a href="mailto:info@pgarachne.com" aria-label="Email">
+					<svg viewBox="0 0 24 24" class="footer-icon" aria-hidden="true">
+						<path fill="currentColor" d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2m0 4-8 5-8-5V6l8 5 8-5z"/>
+					</svg>
+				</a>
+			</div>
+		</div>
+	</footer>
+
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+	<script src="{{ "assets/script.js" | relURL }}"></script>
+</body>
+</html>

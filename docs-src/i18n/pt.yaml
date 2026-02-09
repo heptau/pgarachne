@@ -1,0 +1,25 @@
+- id: hero_lead
+  translation: "Transforme o PostgreSQL numa API segura. Instantaneamente."
+- id: hero_desc
+  translation: "Zero código repetitivo. Alta performance. O middleware que mapeia requisições HTTP diretamente para funções do banco de dados, com SSE em tempo real e métricas Prometheus."
+- id: hero_get_started
+  translation: "Começar"
+- id: hero_see_demo
+  translation: "Ver Demo (Explorer)"
+- id: nav_language
+  translation: "Idioma"
+- id: nav_menu
+  translation: "Menu"
+- id: nav_features
+  translation: "Funcionalidades"
+- id: nav_installation
+  translation: "Instalação"
+- id: nav_documentation
+  translation: "Documentação"
+- id: nav_support
+  translation: "Suporte"
+- id: nav_architecture
+  translation: "Arquitetura"
+- id: nav_home
+  translation: "Início"
+

@@ -20,3 +20,4 @@ config.mk
 # OS specifics
 Thumbs.db
 *.DS_Store
+*.lock

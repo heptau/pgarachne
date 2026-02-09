@@ -1,0 +1,48 @@
+{{ define "main" }}
+<div id="docs" class="main-wrapper">
+	<div class="toc-overlay" id="toc-overlay"></div>
+	<aside class="toc" id="toc">
+		<ul>
+			{{ range .Site.Menus.main }}
+			{{ $classes := slice }}
+			{{ if eq .URL $.RelPermalink }}{{ $classes = $classes | append "active" }}{{ end }}
+			<li><a href="{{ .URL }}" class="{{ delimit $classes " " }}">{{ .Name }}</a></li>
+			{{ end }}
+		</ul>
+	</aside>
+
+	<div class="doc-content">
+		{{ .Content | safeHTML }}
+
+		{{ $current := .RelPermalink }}
+		{{ $scratch := newScratch }}
+		{{ $scratch.Set "prev" false }}
+		{{ $scratch.Set "next" false }}
+		{{ $scratch.Set "found" false }}
+		{{ range .Site.Menus.main }}
+			{{ if eq .URL $current }}
+				{{ $scratch.Set "found" true }}
+			{{ else if not ($scratch.Get "found") }}
+				{{ $scratch.Set "prev" . }}
+			{{ else if not ($scratch.Get "next") }}
+				{{ $scratch.Set "next" . }}
+			{{ end }}
+		{{ end }}
+
+		{{ $homeURL := "/" | relLangURL }}
+		{{ $homeName := i18n "nav_home" }}
+		<div class="doc-next doc-nav">
+			{{ with $scratch.Get "prev" }}
+			<a class="doc-prev" href="{{ .URL }}" aria-label="Previous: {{ .Name }}">← <span>{{ .Name }}</span></a>
+			{{ else }}
+			<a class="doc-prev" href="{{ $homeURL }}" aria-label="Home">← <span>{{ $homeName }}</span></a>
+			{{ end }}
+			{{ with $scratch.Get "next" }}
+			<a class="doc-next-link" href="{{ .URL }}" aria-label="Next: {{ .Name }}"><span>{{ .Name }}</span> →</a>
+			{{ else }}
+			<a class="doc-next-link" href="{{ $homeURL }}" aria-label="Home"><span>{{ $homeName }}</span> →</a>
+			{{ end }}
+		</div>
+	</div>
+</div>
+{{ end }}

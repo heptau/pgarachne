@@ -1,0 +1,52 @@
+---
+title: "Příklad Hello World"
+menu:
+  main:
+    name: "Příklad Hello World"
+    weight: 60
+---
+
+<section id="hello-world">
+	<h2>Příklad Hello World</h2>
+	<p>Vytvoříme jednoduchý API endpoint přiřazený k uživateli.</
+	<h3>1. Vytvoření uživatele a funkci</h3>
+	<p>V databázi (<code>my_database</code>):</p>
+	<pre><code>-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Vytvoříme funkci Hello World
+-- Input: prázdný jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Udělíme uživateli oprávnění spustit funkci
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
+GRANT demo_user TO pgarachne;</code></pre>
+
+	<h3>2. Přihlášení přes API</h3>
+	<p>Použijte JSON-RPC metodu <code>login</code> pro získání JWT tokenu:</p>
+	<pre><code>curl -X POST http://localhost:8080/api/my_database \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+	<p>Odpověď:</p>
+	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
+
+	<h3>3. Volání funkce</h3>
+	<p>Pomocí získaného tokenu zavolejte funkci <code>hello_world</code>:</p>
+	<pre><code>export TOKEN="VÁŠ_JWT_TOKEN_ZDE"
+
+curl -X POST http://localhost:8080/api/my_database \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Odpověď:</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+
+</section>

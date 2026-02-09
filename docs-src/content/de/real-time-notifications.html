@@ -1,0 +1,17 @@
+---
+title: "Realtime-Benachrichtigungen (SSE)"
+menu:
+  main:
+    name: "Realtime-Benachrichtigungen (SSE)"
+    weight: 80
+---
+
+<section id="sse">
+	<h2>Realtime-Benachrichtigungen (SSE)</h2>
+	<p>Abonnieren Sie PostgreSQL-<code>NOTIFY</code>-Kanäle über Server-Sent Events:</p>
+	<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+  -H "horization: Bearer $TOKEN"</code></pre>
+	<p>Jede Nachricht ist JSON mit Kanal und Payload:</p>
+	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+	<p>Wenn der Payload Text ist, wird er als String in <code>data</code> verpackt.</p>
+</section>

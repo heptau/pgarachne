@@ -1,0 +1,207 @@
+---
+title: "Configurazione"
+menu:
+  main:
+    name: "Configurazione"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Configurazione</h2>
+	<p>PgArachne carica la configurazione dalle variabili d’ambiente o da un file.</p>
+	<div class="tip">
+		<strong>Note:</strong> <code>schema.sql</code> prova a creare il ruolo <code>pgarachne_admin</code> e a concederlo a <code>pgarachne</code>. Senza privilegi di superuser, la creazione viene saltata. Crea ruolo e grant manualmente se necessario.
+	<br>
+		L’utente proxy (<code>DB_USER</code>) deve essere membro di <code>pgarachne</code> e <code>pgarachne_admin</code> per verificare e creare token API.</div>
+	<div class="tip">
+		<strong>Nota di Sicurezza:</strong> PgArachne non gestisce le password del database nel file
+		di configurazione. Si affida al meccanismo standard del file <code>.pgpass</code> di PostgreSQL (o alla
+		variabile di sistema <code>PGPASSWORD</code>) per l’autenticazione.
+	</div>
+	<div class="tip">
+		<strong>Suggerimento:</strong> Se PgArachne è dietro un reverse proxy, imposta <code>TRUSTED_PROXIES</code> per risolvere correttamente l’IP client ed evitare spoofing del rate limit.
+	</div>
+
+	<div class="tip">
+		<strong>Ordine di Ricerca:</strong> Se nessun file di configurazione è specificato via CLI, cerca in:
+		<ol>
+			<li>Directory corrente: <code>./pgarachne.env</code> (Tutti i SO)</li>
+			<li>Configurazione utente:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>Configurazione di sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
+		</ol>
+	</div>
+
+	<h3>Esempio di Configurazione Minima</h3>
+	<p>Questo è tutto ciò di cui hai bisogno per iniziare:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=change_me_to_something_secure</code></pre>
+
+	<h3>Configuration Reference</h3>
+	<table>
+		<thead>
+			<tr>
+				<th style="width: 30%;">Variabile</th>
+				<th style="width: 15%;">Richiesto</th>
+				<th>Descrizione</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Database Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Connessione
+					Database</td>
+			</tr>
+			<tr>
+				<td><code>DB_HOST</code></td>
+				<td>Sì</td>
+				<td>Indirizzo del server PostgreSQL (es. <code>localhost</code>).</td>
+			</tr>
+			<tr>
+				<td><code>DB_PORT</code></td>
+				<td>Sì</td>
+					<td>Porta del database.</td>
+			</tr>
+			<tr>
+				<td><code>DB_USER</code></td>
+				<td>Sì</td>
+				<td>L’utente del database con cui PgArachne si connette.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td>No</td>
+				<td>Modalità SSL di PostgreSQL. Predefinito: <code>disable</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td>No</td>
+				<td>Percorso del certificato root CA (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td>No</td>
+				<td>Percorso del certificato client (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td>No</td>
+				<td>Percorso della chiave privata client (PEM).</td>
+			</tr>
+
+			<!-- Server Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Server HTTP</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td>No</td>
+				<td>Porta su cui ascoltare. Default: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td>No</td>
+				<td>Impostazioni CORS. Elenco separato da virgole dei domini consentiti (es. <code>https://miapp.com</code>).
+					Default: <code>*</code>.</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td>No</td>
+				<td>Percorso assoluto per servire file statici (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Security Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Sicurezza (JWT)
+				</td>
+			</tr>
+			<tr>
+				<td><code>JWT_SECRET</code></td>
+				<td>Sì</td>
+				<td>Una stringa lunga e casuale usata per firmare i token di sessione.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td>No</td>
+				<td>Validità della sessione in ore. Default: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td>No</td>
+				<td>Numero massimo di tentativi di login per finestra. Predefinito: <code>5</code>. <code>0</code> disabilita.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td>No</td>
+				<td>Durata della finestra di rate limit. Predefinito: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Il rate limit del login è per istanza (in memoria). In multi‑istanza serve un limiter condiviso.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td>No</td>
+				<td>Proxy fidati (IP/CIDR) per <code>X-Forwarded-For</code>. Separati da virgole.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td>No</td>
+				<td>Dimensione massima del body in byte. Predefinito: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td>No</td>
+				<td>Numero massimo di canali per connessione SSE. Predefinito: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td>No</td>
+				<td>Numero massimo di client SSE simultanei per database. Predefinito: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td>No</td>
+				<td>Buffer SSE per client (numero di messaggi). Predefinito: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Tempo massimo di attesa per inviare a un client lento. Predefinito: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td>No</td>
+				<td>Intervallo heartbeat per SSE. Predefinito: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Timeout di inattività senza notifiche. Predefinito: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Logging Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td>No</td>
+				<td>Verbosità: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Default: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td>No</td>
+				<td>Dove scrivere i log: <code>stdout</code> o percorso del file.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p>Start the server:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+</section>

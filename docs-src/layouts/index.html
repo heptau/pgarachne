@@ -1,0 +1,43 @@
+{{ define "main" }}
+<header class="hero-section">
+	<div class="container hero-flex">
+		<div class="hero-logo-wrapper">
+			<img src="{{ "assets/pgarachne-logo.jpeg" | relURL }}" alt="PgArachne Logo" class="hero-logo-img">
+		</div>
+
+		<div class="hero-content">
+			<h1 class="brand-title">PgArachne</h1>
+			<p class="hero-lead">{{ i18n "hero_lead" }}</p>
+			<p class="hero-desc">{{ i18n "hero_desc" }}</p>
+
+			<div class="hero-actions">
+				<a href="{{ "/" | relLangURL }}installation/" class="btn btn-primary">{{ i18n "hero_get_started" }}</a>
+				<a href="https://github.com/heptau/pgarachne" target="_blank" class="btn btn-secondary">GitHub</a>
+				<a href="{{ "/" | relLangURL }}api-explorer/" class="btn btn-secondary">{{ i18n "hero_see_demo" }}</a>
+			</div>
+		</div>
+	</div>
+</header>
+
+<div id="docs" class="main-wrapper">
+	<div class="toc-overlay" id="toc-overlay"></div>
+	<aside class="toc" id="toc">
+		<ul>
+			{{ range .Site.Menus.main }}
+			<li><a href="{{ .URL }}">{{ .Name }}</a></li>
+			{{ end }}
+		</ul>
+	</aside>
+
+	<div class="doc-content">
+		{{ .Content }}
+
+		{{ $next := index .Site.Menus.main 0 }}
+		{{ with $next }}
+		<div class="doc-next doc-nav doc-nav-home">
+			<a class="doc-next-link" href="{{ .URL }}" aria-label="Next: {{ .Name }}"><span>{{ .Name }}</span> →</a>
+		</div>
+		{{ end }}
+	</div>
+</div>
+{{ end }}

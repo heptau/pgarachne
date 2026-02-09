@@ -1,0 +1,45 @@
+---
+title: "Codes d’erreur"
+menu:
+  main:
+    name: "Codes d’erreur"
+    weight: 120
+---
+
+<section id="errors">
+	<h2>Codes d’erreur</h2>
+	<p>PgArachne renvoie des objets d’erreur standard JSON-RPC 2.0. Voici les codes spécifiques que vous pouvez
+		rencontrer :</p>
+	<table>
+		<tr>
+			<th>Code</th>
+			<th>Message</th>
+			<th>Signification</th>
+		</tr>
+		<tr>
+			<td><code>-32700</code></td>
+			<td>Parse error</td>
+			<td>Un JSON invalide a été reçu par le serveur.</td>
+		</tr>
+		<tr>
+			<td><code>-32601</code></td>
+			<td>Method not found</td>
+			<td>La fonction n’existe pas dans le schéma.</td>
+		</tr>
+		<tr>
+			<td><code>-32602</code></td>
+			<td>Invalid params</td>
+			<td>Les arguments ne correspondent pas à la signature de la fonction.</td>
+		</tr>
+		<tr>
+			<td><code>-32001</code></td>
+			<td>Permission denied</td>
+			<td>Le rôle utilisateur actuel manque de privilèges pour exécuter la fonction (niveau DB).</td>
+		</tr>
+		<tr>
+			<td><code>-32000</code></td>
+			<td>Internal Error</td>
+			<td>Erreur générique du serveur (vérifiez les logs).</td>
+		</tr>
+	</table>
+</section>

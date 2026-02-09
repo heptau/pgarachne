@@ -1,0 +1,210 @@
+---
+title: "Configuração"
+menu:
+  main:
+    name: "Configuração"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Configuração</h2>
+	<p>O PgArachne carrega a configuração a partir de variáveis de ambiente ou de um arquivo.</p>
+	<div class="tip">
+		<strong>Note:</strong> <code>schema.sql</code> tenta criar o papel <code>pgarachne_admin</code> e concedê-lo a <code>pgarachne</code>. Sem privilégios de superusuário, a criação é ignorada. Crie o papel e o grant manualmente se necessário.
+	<br>
+		O usuário proxy (<code>DB_USER</code>) deve ser membro de <code>pgarachne</code> e <code>pgarachne_admin</code> para validar e criar tokens de API.</div>
+	<div class="tip">
+		<strong>Nota de Segurança:</strong> O PgArachne não lida com senhas do banco de dados no arquivo
+		de configuração. Ele depende do mecanismo padrão de arquivo <code>.pgpass</code> do PostgreSQL (ou da
+		variável de sistema <code>PGPASSWORD</code>) para autenticação.
+	</div>
+	<div class="tip">
+		<strong>Dica:</strong> Se o PgArachne estiver atrás de um reverse proxy, defina <code>TRUSTED_PROXIES</code> para resolver corretamente o IP do cliente e evitar spoofing do rate limit.
+	</div>
+
+	<div class="tip">
+		<strong>Ordem de Busca:</strong> Se nenhum arquivo de configuração for especificado via CLI, ele busca
+		em:
+		<ol>
+			<li>Diretório atual: <code>./pgarachne.env</code> (Todos os SOs)</li>
+			<li>Configuração do usuário:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>Configuração do sistema: <code>/etc/pgarachne/pgarachne.env</code> (Somente Linux / macOS)</li>
+		</ol>
+	</div>
+
+	<h3>Exemplo de Configuração Mínima</h3>
+	<p>É tudo o que você precisa para começar:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=change_me_to_something_secure</code></pre>
+
+	<h3>Referência de Configuração</h3>
+	<table>
+		<thead>
+			<tr>
+				<th style="width: 30%;">Variável</th>
+				<th style="width: 15%;">Obrigatório</th>
+				<th>Descrição</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Configuração do BD -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Conexão
+					com Banco de Dados</td>
+			</tr>
+			<tr>
+				<td><code>DB_HOST</code></td>
+				<td>Sim</td>
+				<td>Endereço do servidor PostgreSQL (ex: <code>localhost</code>).</td>
+			</tr>
+			<tr>
+				<td><code>DB_PORT</code></td>
+				<td>Sim</td>
+					<td>Porta do banco de dados.</td>
+			</tr>
+			<tr>
+				<td><code>DB_USER</code></td>
+				<td>Sim</td>
+				<td>O usuário do banco de dados com o qual o PgArachne se conecta.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td>Não</td>
+				<td>Modo SSL do PostgreSQL. Padrão: <code>disable</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td>Não</td>
+				<td>Caminho do certificado raiz da CA (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td>Não</td>
+				<td>Caminho do certificado do cliente (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td>Não</td>
+				<td>Caminho da chave privada do cliente (PEM).</td>
+			</tr>
+
+			<!-- Configuração do Servidor -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Servidor HTTP</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td>Não</td>
+				<td>Porta para escutar. Padrão: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td>Não</td>
+				<td>Configurações de CORS. Lista separada por vírgulas de domínios permitidos (ex:
+					<code>https://meuapp.com</code>).
+					Padrão: <code>*</code>.
+				</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td>Não</td>
+				<td>Caminho absoluto para servir arquivos estáticos (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Configuração de Segurança -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Segurança (JWT)
+				</td>
+			</tr>
+			<tr>
+				<td><code>JWT_SECRET</code></td>
+				<td>Sim</td>
+				<td>Uma string longa e aleatória usada para assinar tokens de sessão.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td>Não</td>
+				<td>Validade da sessão em horas. Padrão: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td>Não</td>
+				<td>Máximo de tentativas de login por janela. Padrão: <code>5</code>. Use <code>0</code> para desativar.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td>Não</td>
+				<td>Duração da janela do rate limit. Padrão: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">O rate limit de login é por instância (em memória). Em várias instâncias, use um limitador compartilhado.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td>Não</td>
+				<td>Proxies confiáveis (IP/CIDR) para <code>X-Forwarded-For</code>. Separados por vírgula.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td>No</td>
+				<td>Tamanho máximo do body em bytes. Padrão: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td>No</td>
+				<td>Máximo de canais por conexão SSE. Padrão: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td>No</td>
+				<td>Máximo de clientes SSE simultâneos por banco de dados. Padrão: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td>No</td>
+				<td>Buffer SSE por cliente (número de mensagens). Padrão: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Tempo máximo de espera ao enviar para cliente lento. Padrão: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td>No</td>
+				<td>Intervalo de heartbeat para SSE. Padrão: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Timeout de inatividade sem notificações. Padrão: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Configuração de Logging -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td>Não</td>
+				<td>Verbosidade: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Padrão: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td>Não</td>
+				<td>Onde gravar logs: <code>stdout</code> ou caminho do arquivo.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p>Inicie o servidor:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+</section>

@@ -1,0 +1,37 @@
+<!doctype html><html lang=en><head><meta charset=UTF-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=description content="PgArachne: High-performance PostgreSQL JSON-RPC gateway with SSE real-time updates and Prometheus metrics."><title>Hello World Example - PgArachne</title><link rel=icon type=image/png href=../../assets/pgarachne-icon.png><link rel=manifest href=../../manifest.json><meta name=theme-color content="#0066cc"><link rel=apple-touch-icon href=../../assets/pgarachne-icon.png><link rel=stylesheet href=../../assets/style.css><link rel=canonical href=https://www.pgarachne.com/en/hello-world-example/><link rel=alternate hreflang=x-default href=https://www.pgarachne.com/><link rel=alternate hreflang=en href=https://www.pgarachne.com/en/><link rel=alternate hreflang=cs href=https://www.pgarachne.com/cs/><link rel=alternate hreflang=es href=https://www.pgarachne.com/es/><link rel=alternate hreflang=de href=https://www.pgarachne.com/de/><link rel=alternate hreflang=fr href=https://www.pgarachne.com/fr/><link rel=alternate hreflang=it href=https://www.pgarachne.com/it/><link rel=alternate hreflang=pt href=https://www.pgarachne.com/pt/><meta property="og:title" content="Hello World Example - PgArachne"><meta property="og:description" content="Turn PostgreSQL into a secure API instantly. JSON-RPC gateway with SSE real-time updates and Prometheus metrics."><meta property="og:image" content="https://www.pgarachne.com/assets/pgarachne-logo.jpeg"><meta property="og:url" content="https://www.pgarachne.com/en/hello-world-example/"><meta property="og:type" content="website"></head><body><nav class=navbar><div class="container nav-container"><button class=nav-toggle aria-label="Toggle navigation" aria-expanded=false aria-controls=toc>
+<span class=nav-toggle-icon><span></span></span></button><div class=nav-links id=nav-links><a href=../../en/>Features</a>
+<a href=../../en/installation/>Installation</a>
+<a href=../../en/about-architecture/>Architecture</a>
+<a href=../../en/support-donate/ class=nav-btn-donate>Support</a></div><div class=lang-dropdown><button class=lang-btn>Language</button><div class=lang-content><a href=../../en/ class=active>English</a>
+<a href=../../cs/hello-world-example/>Čeština</a>
+<a href=../../es/hello-world-example/>Español</a>
+<a href=../../de/hello-world-example/>Deutsch</a>
+<a href=../../fr/hello-world-example/>Français</a>
+<a href=../../it/hello-world-example/>Italiano</a>
+<a href=../../pt/hello-world-example/>Português</a></div></div></div></nav><div id=docs class=main-wrapper><div class=toc-overlay id=toc-overlay></div><aside class=toc id=toc><ul><li><a href=../../en/about-architecture/>About & Architecture</a></li><li><a href=../../en/whats-new/>What's New</a></li><li><a href=../../en/comparison/>Comparison with PostgREST</a></li><li><a href=../../en/installation/>Installation</a></li><li><a href=../../en/configuration/>Configuration</a></li><li><a href=../../en/hello-world-example/ class=active>Hello World Example</a></li><li><a href=../../en/api-explorer/>PgArachne Explorer</a></li><li><a href=../../en/real-time-notifications/>Real-time Notifications (SSE)</a></li><li><a href=../../en/metrics/>Metrics (Prometheus)</a></li><li><a href=../../en/security-roles/>Security & Authentication</a></li><li><a href=../../en/deployment-https/>Deployment & HTTPS</a></li><li><a href=../../en/error-codes/>Error Codes</a></li><li><a href=../../en/support-donate/>Support the Development</a></li><li><a href=../../en/license/>License & Trademark</a></li></ul></aside><div class=doc-content><section id=hello-world><h2>Hello World Example</h2><p>Let's create a simple API endpoint associated with a user.</p><h3>1. Create User and Function</h3><p>In your database (<code>my_database</code>):</p><pre><code>-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Allow PgArachne (system user) to switch to demo_user
+GRANT demo_user TO pgarachne;</code></pre><h3>2. Login via API</h3><p>Use the JSON-RPC method <code>login</code> to obtain a JWT token:</p><pre><code>curl -X POST http://localhost:8080/api/my_database \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre><p>Response:</p><pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre><h3>3. Call the Function</h3><p>Use the token to call the <code>hello_world</code> function:</p><pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/api/my_database \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre><p>Response:</p><pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre></section><div class="doc-next doc-nav"><a class=doc-prev href=../../en/configuration/ aria-label="Previous: Configuration">← <span>Configuration</span></a>
+<a class=doc-next-link href=../../en/api-explorer/ aria-label="Next: PgArachne Explorer"><span>PgArachne Explorer</span> →</a></div></div></div><footer class=site-footer><div class="container footer-inner"><div class=footer-copy>Copyright © 2025-2026 Zbyněk Vanžura.</div><div class=footer-links><a href=https://t.me/pgarachne aria-label=Telegram target=_blank rel=noopener><svg viewBox="0 0 24 24" class="footer-icon" aria-hidden="true"><path fill="currentColor" d="M9.04 15.46 8.8 19.1c.35.0.5-.15.7-.35l1.68-1.6 3.48 2.55c.64.35 1.1.17 1.26-.6L18.2 8.4h0c.2-.93-.34-1.3-.96-1.07L3.2 10.1c-.9.35-.88.85-.16 1.07l3.9 1.2L16 6.65c.43-.26.82-.12.5.14z"/></svg>
+</a><a href=mailto:info@pgarachne.com aria-label=Email><svg viewBox="0 0 24 24" class="footer-icon" aria-hidden="true"><path fill="currentColor" d="M20 4H4A2 2 0 002 6v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2m0 4-8 5-8-5V6l8 5 8-5z"/></svg></a></div></div></footer><script src=https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js></script><script src=../../assets/script.js></script></body></html>

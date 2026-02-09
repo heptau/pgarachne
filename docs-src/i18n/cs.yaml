@@ -1,0 +1,25 @@
+- id: hero_lead
+  translation: "Proměňte PostgreSQL v bezpečné API. Okamžitě."
+- id: hero_desc
+  translation: "Žádný zbytečný kód. Vysoký výkon. Middleware, který mapuje HTTP požadavky přímo na databázové funkce, s real-time SSE notifikacemi a Prometheus metrikami."
+- id: hero_get_started
+  translation: "Začínáme"
+- id: hero_see_demo
+  translation: "Zobrazit demo (Explorer)"
+- id: nav_language
+  translation: "Jazyk"
+- id: nav_menu
+  translation: "Menu"
+- id: nav_features
+  translation: "Funkce"
+- id: nav_installation
+  translation: "Instalace"
+- id: nav_documentation
+  translation: "Dokumentace"
+- id: nav_support
+  translation: "Podpora"
+- id: nav_architecture
+  translation: "Architektura"
+- id: nav_home
+  translation: "Úvod"
+

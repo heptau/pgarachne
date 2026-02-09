@@ -1,0 +1,49 @@
+baseURL = "https://www.pgarachne.com/"
+title = "PgArachne"
+publishDir = "../docs"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = true
+relativeURLs = true
+[minify]
+  minifyOutput = true
+
+[taxonomies]
+
+[params]
+  description = "PgArachne: High-performance PostgreSQL JSON-RPC gateway with SSE real-time updates and Prometheus metrics."
+  ogDescription = "Turn PostgreSQL into a secure API instantly. JSON-RPC gateway with SSE real-time updates and Prometheus metrics."
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+
+[languages]
+  [languages.en]
+    languageName = "English"
+    weight = 1
+    contentDir = "content/en"
+  [languages.cs]
+    languageName = "Čeština"
+    weight = 2
+    contentDir = "content/cs"
+  [languages.es]
+    languageName = "Español"
+    weight = 3
+    contentDir = "content/es"
+  [languages.de]
+    languageName = "Deutsch"
+    weight = 4
+    contentDir = "content/de"
+  [languages.fr]
+    languageName = "Français"
+    weight = 5
+    contentDir = "content/fr"
+  [languages.it]
+    languageName = "Italiano"
+    weight = 6
+    contentDir = "content/it"
+  [languages.pt]
+    languageName = "Português"
+    weight = 7
+    contentDir = "content/pt"

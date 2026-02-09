@@ -1,0 +1,48 @@
+---
+title: "Nasazení a HTTPS"
+menu:
+  main:
+    name: "Nasazení a HTTPS"
+    weight: 110
+---
+
+<section id="deployment">
+	<h2>Nasazení a HTTPS</h2>
+	<p>PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
+		hlaviček a veřejné směrování byste před něj měli umístit <strong>Reverzní proxy</strong>.</p>
+
+	<div class="deployment-option">
+		<h3>Možnost A: Caddy Server</h3>
+		<p><strong>Nejlepší pro:</strong> Moderní produkční nasazení, snadné použití.</p>
+		<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> je jediný webový server, který ve
+			výchozím nastavení automaticky získává a obnovuje SSL certifikáty (Let's Encrypt). Vyžaduje téměř
+			nulovou konfiguraci.</p>
+		<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Možnost B: Nginx</h3>
+		<p><strong>Nejlepší pro:</strong> Enterprise prostředí, komplexní směrování.</p>
+		<p><a href="https://nginx.org/" target="_blank">Nginx</a> je průmyslovým standardem pro
+			vysoce výkonné vyvažování zátěže (load balancing). Použijte jej, pokud již máte infrastrukturu Nginx.
+			Certbot budete muset spravovat ručně.</p>
+		<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Možnost C: Ngrok</h3>
+		<p><strong>Nejlepší pro:</strong> Lokální vývoj, dema, testování webhooků.</p>
+		<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> vytváří bezpečný tunel z veřejného
+			internetu přímo do vašeho notebooku bez konfigurace firewallu. Ideální pro okamžité ukázky kolegům.
+		</p>
+		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+</section>

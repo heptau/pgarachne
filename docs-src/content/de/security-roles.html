@@ -1,0 +1,42 @@
+---
+title: "Sicherheit & Authentifizierung"
+menu:
+  main:
+    name: "Sicherheit & Authentifizierung"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Sicherheit & Authentifizierung</h2>
+	<p>PgArachne verlässt sich vollständig auf das PostgreSQL-Berechtigungssystem. Es erfindet keine Access
+		Control Lists (ACLs) neu. Alle Abfragen werden unter der spezifischen Datenbankrolle
+		des authentifizierten Benutzers mit
+		<code>SET LOCAL ROLE</code> ausgeführt.
+	</p>
+
+	<h3>1. Interaktives Login (JWT)</h3>
+	<p>Benutzer authentifizieren sich über die Login-Funktion mit ihrem <strong>echten PostgreSQL-Benutzernamen und -Passwort</strong>.
+		Bei Erfolg erhalten sie ein generisches JWT. Wenn dieses Token verwendet wird, wechselt PgArachne die aktive Rolle für die
+		Dauer der Anfrage zu diesem Benutzer.</p>
+
+	<h3>2. Service-Konten (API-Token)</h3>
+	<p>Für automatisierte Systeme oder Skripte können Sie langlebige API-Schlüssel verwenden.</p>
+	<ul>
+		<li>Token werden in der Tabelle <code>pgarachne.api_tokens</code> gespeichert.</li>
+		<li>Jedes Token ist einem bestimmten Datenbankbenutzer/-rolle zugeordnet.</li>
+		<li>Senden Sie das Token über den Header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>Das Erstellen von API‑Tokens erfordert <code>pgarachne_admin</code>. Verwende <code>pgarachne.add_api_token(...)</code> mit einer Rolle, die Mitglied von <code>pgarachne_admin</code> ist.</em></p>
+
+	<div class="warning">
+		<h3>Kritische Konfiguration: Proxy-Privilegien</h3>
+		<p>Da sich PgArachne als der in <code>DB_USER</code> definierte Benutzer (z. B. <code>pgarachne</code>)
+			verbindet und die Identität zu anderen Benutzern wechselt, muss der Proxy-Benutzer
+			<strong>Mitglied</strong> dieser Zielrollen sein.
+		</p>
+
+		<p>Führen Sie dieses SQL für jeden Benutzer/jede Rolle aus, die sich anmelden muss:</p>
+		<pre><code>-- Erlaube 'pgarachne' zu 'demo_user' zu wechseln
+GRANT demo_user TO pgarachne;</code></pre>
+	</div>
+</section>

@@ -1,0 +1,28 @@
+---
+title: "PgArachne Explorer"
+menu:
+  main:
+    name: "PgArachne Explorer"
+    weight: 70
+---
+
+<section id="explorer">
+	<h2>PgArachne Explorer</h2>
+	<p>L’<strong>Explorer</strong> è una potente interfaccia web inclusa nella directory `tools/`. Non è solo
+		documentazione; è una **applicazione demo** completamente funzionale costruita usando HTML/JS
+		che comunica con il database esclusivamente tramite PgArachne.</p>
+
+	<p><strong>Cosa può fare?</strong></p>
+	<ul>
+		<li><strong>Ispezionare API:</strong> Legge la funzione `capabilities` per mostrare tutti gli endpoint
+			disponibili e i loro parametri.</li>
+		<li><strong>Test dal Vivo:</strong> Puoi eseguire le funzioni direttamente dal browser.</li>
+		<li><strong>Auto-Documentazione:</strong> Renderizza i commenti SQL (inclusi i metadati `--- PARAMS ---`)
+			in una documentazione leggibile.</li>
+	</ul>
+
+	<div class="tip">
+		<strong>Come abilitarlo:</strong> Imposta la variabile d’ambiente `STATIC_FILES_PATH` in modo che punti
+		alla cartella `tools/pgarachne-explorer` sul tuo disco. Poi visita <code>http://localhost:8080</code>.
+	</div>
+</section>

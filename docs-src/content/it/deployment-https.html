@@ -1,0 +1,48 @@
+---
+title: "Deployment e HTTPS"
+menu:
+  main:
+    name: "Deployment e HTTPS"
+    weight: 110
+---
+
+<section id="deployment">
+	<h2>Deployment e HTTPS</h2>
+	<p>PgArachne è progettato per svolgere bene un solo compito: API Gateway. Per SSL/TLS (HTTPS), sicurezza
+		degli header e routing pubblico, dovresti posizionare un <strong>Reverse Proxy</strong> davanti ad esso.</p>
+
+	<div class="deployment-option">
+		<h3>Opzione A: Server Caddy</h3>
+		<p><strong>Ideale per:</strong> Deployment di produzione moderni, facilità d’uso.</p>
+		<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> è l’unico server web che ottiene
+			e rinnova automaticamente i certificati SSL (Let’s Encrypt) per impostazione predefinita. Richiede
+			quasi zero configurazione.</p>
+		<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Opzione B: Nginx</h3>
+		<p><strong>Ideale per:</strong> Ambienti enterprise, routing complesso.</p>
+		<p><a href="https://nginx.org/" target="_blank">Nginx</a> è lo standard industriale per il bilanciamento
+			del carico ad alte prestazioni. Usalo se hai già un’infrastruttura Nginx. Dovrai
+			gestire Certbot manualmente.</p>
+		<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Opzione C: Ngrok</h3>
+		<p><strong>Ideale per:</strong> Sviluppo locale, Demo, test Webhook.</p>
+		<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un tunnel sicuro da internet pubblico
+			direttamente al tuo portatile senza configurare firewall. Ideale per mostrare il tuo lavoro ai
+			colleghi all’istante.</p>
+		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+</section>

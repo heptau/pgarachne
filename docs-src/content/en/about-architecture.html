@@ -1,0 +1,62 @@
+---
+title: "About & Architecture"
+menu:
+  main:
+    name: "About & Architecture"
+    weight: 10
+---
+
+<section id="about">
+	<h2>About & Architecture</h2>
+	<p>
+		PgArachne™ serves as a lightweight, high-performance <strong>web server</strong> that sits between
+		your HTTP clients and the PostgreSQL database. It eliminates the need for traditional backend
+		languages (like Python, Node.js, or PHP) by mapping HTTP requests directly to database functions.
+	</p>
+
+	<div class="card"
+		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+		<h3>Core Technical Capabilities</h3>
+		<ul style="margin-left: 20px; list-style-type: disc;">
+			<li style="margin-bottom: 10px;">
+				<strong>JSON-RPC 2.0 Gateway:</strong> All API interactions follow the strict JSON-RPC 2.0
+				specification. There are no REST endpoints to design; you simply call SQL functions by name
+				via POST requests.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Native DB Authentication:</strong> No separate user tables. Users log in with their
+				actual PostgreSQL credentials to receive a <strong>JWT</strong>. Alternatively, service accounts
+				can use persistent <strong>API Tokens</strong>.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Role Masquerading:</strong> PgArachne™ connects as a proxy user but executes every
+				request using <code>SET LOCAL ROLE</code> to switch to the authenticated user’s identity.
+				Row-Level Security (RLS) works automatically.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Static File Server:</strong> PgArachne™ can serve static assets (HTML, JS, CSS),
+				allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Real-time Notifications (SSE):</strong> Subscribe to PostgreSQL <code>NOTIFY</code>
+				channels over SSE for live updates without polling.
+			</li>
+		</ul>
+	</div>
+
+	<p>
+		This architecture dramatically simplifies the stack: <strong>Database ↔ PgArachne ↔
+			Frontend</strong>.
+	</p>
+
+	<div class="tip">
+		<strong>API Endpoint Format:</strong> All database functions are exposed at:
+		<div
+			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			<div>POST http://{server}:{port}</div>
+			<div style="padding-left: 50px;">/api</div>
+			<div style="padding-left: 50px;">/{database_name}</div>
+				<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Method is specified in the JSON-RPC body.</div>
+		</div>
+	</div>
+</section>

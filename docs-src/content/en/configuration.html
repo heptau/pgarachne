@@ -1,0 +1,210 @@
+---
+title: "Configuration"
+menu:
+  main:
+    name: "Configuration"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Configuration</h2>
+	<p>PgArachne loads configuration from environment variables or a file.</p>
+	<div class="tip">
+		<strong>Note:</strong> <code>schema.sql</code> attempts to create the <code>pgarachne_admin</code> role and grant it to <code>pgarachne</code>. If you run the script without superuser privileges, role creation is skipped. Create the role and grant it manually if needed.
+	<br>
+		The proxy user (<code>DB_USER</code>) must be a member of <code>pgarachne</code> and <code>pgarachne_admin</code> to verify and mint API tokens.</div>
+	<div class="tip">
+		<strong>Security Note:</strong> PgArachne does not handle database passwords in the configuration file.
+		Rely on the standard PostgreSQL <code>.pgpass</code> file mechanism (or <code>PGPASSWORD</code> system
+		variable) for authentication.
+	</div>
+	<div class="tip">
+		<strong>Tip:</strong> If you run PgArachne behind a reverse proxy, set <code>TRUSTED_PROXIES</code> so client IPs are resolved correctly and rate limiting cannot be spoofed.
+	</div>
+
+	<div class="tip">
+		<strong>Search Order:</strong> If no configuration file is specified via CLI, it searches in:
+		<ol>
+			<li>Current directory: <code>./pgarachne.env</code> (All OS)</li>
+			<li>User config:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>System config: <code>/etc/pgarachne/pgarachne.env</code> (Linux / macOS only)</li>
+		</ol>
+	</div>
+
+	<h3>Minimal Configuration Example</h3>
+	<p>This is all you need to get started:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=change_me_to_something_secure</code></pre>
+	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code>.</p>
+
+	<h3>Configuration Reference</h3>
+	<table>
+		<thead>
+			<tr>
+				<th style="width: 30%;">Variable</th>
+				<th style="width: 15%;">Required</th>
+				<th>Description</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Database Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Database
+					Connection</td>
+			</tr>
+			<tr>
+				<td><code>DB_HOST</code></td>
+				<td>Yes</td>
+				<td>PostgreSQL server address (e.g., <code>localhost</code>).</td>
+			</tr>
+			<tr>
+				<td><code>DB_PORT</code></td>
+				<td>Yes</td>
+					<td>Database port.</td>
+			</tr>
+			<tr>
+				<td><code>DB_USER</code></td>
+				<td>Yes</td>
+				<td>The database user PgArachne connects with.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td>No</td>
+				<td>PostgreSQL SSL mode. Default: <code>disable</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td>No</td>
+				<td>Path to CA root certificate (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td>No</td>
+				<td>Path to client certificate (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td>No</td>
+				<td>Path to client private key (PEM).</td>
+			</tr>
+
+
+			<!-- Server Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">HTTP Server</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td>No</td>
+				<td>Port to listen on. Default: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td>No</td>
+				<td>CORS settings. Comma separated list of allowed domains (e.g. <code>https://myapp.com</code>).
+					Default: <code>*</code>.</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td>No</td>
+				<td>Absolute path to serve static files (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Security Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Security (JWT)
+				</td>
+			</tr>
+			<tr>
+				<td><code>JWT_SECRET</code></td>
+				<td>Yes</td>
+				<td>A long, random string used to sign session tokens.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td>No</td>
+				<td>Session validity in hours. Default: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td>No</td>
+				<td>Max login attempts per window. Default: <code>5</code>. Set <code>0</code> to disable.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td>No</td>
+				<td>Rate limit window duration. Default: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Login rate limiting is per instance (in-memory). In multi-instance deployments, use a shared limiter if you need global enforcement.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td>No</td>
+				<td>Trusted proxy IPs/CIDRs for <code>X-Forwarded-For</code> handling. Comma-separated.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td>No</td>
+				<td>Max request body size in bytes. Default: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td>No</td>
+				<td>Max channels per SSE connection. Default: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td>No</td>
+				<td>Max concurrent SSE clients per database. Default: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td>No</td>
+				<td>SSE per-client buffer size (messages). Default: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Max time to wait when sending to a slow client. Default: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td>No</td>
+				<td>Heartbeat interval for SSE connections. Default: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td>No</td>
+				<td>Idle timeout without notifications. Default: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Logging Config -->
+			<tr>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td>No</td>
+				<td>Verbosity: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Default: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td>No</td>
+				<td>Where to write logs: <code>stdout</code> or file path.</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<p>Start the server:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+</section>

@@ -1,0 +1,60 @@
+---
+title: "O projektu a architektuře"
+menu:
+  main:
+    name: "O projektu a architektuře"
+    weight: 10
+---
+
+<section id="about">
+	<h2>O projektu a architektuře</h2>
+	<p>
+		PgArachne™ slouží jako lehký, vysoce výkonný <strong>webový server</strong>, který stojí mezi vašimi HTTP
+		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
+	</p>
+
+	<div class="card"
+		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+		<h3>Klíčové technické schopnosti</h3>
+		<ul style="margin-left: 20px; list-style-type: disc;">
+			<li style="margin-bottom: 10px;">
+				<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+				2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
+				požadavků.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Nativní DB autentizace:</strong> Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
+				svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
+				mohou alternativně využívat trvalé <strong>API Tokeny</strong>.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Maskování rolí (Role Masquerading):</strong> PgArachne™ se připojuje jako proxy uživatel,
+				ale každý požadavek provádí pomocí <code>SET LOCAL ROLE</code>, čímž se přepne do identity
+				ověřeného uživatele. Zabezpečení na úrovni řádků (RLS) funguje automaticky.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Server statických souborů:</strong> PgArachne™ může servírovat statické assety (HTML, JS,
+				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Real-time notifikace (SSE):</strong> Odebírejte PostgreSQL <code>NOTIFY</code> kanály
+				přes SSE pro živé aktualizace bez pollingu.
+			</li>
+		</ul>
+	</div>
+
+	<p>
+		Tato architektura dramaticky zjednodušuje stack: <strong>Databáze ↔ PgArachne ↔ Frontend</strong>.
+	</p>
+
+	<div class="tip">
+		<strong>Formát API endpointu:</strong> Všechny databázové funkce jsou vystaveny na:
+		<div style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			<div>POST http://{server}:{port}</div>
+			<div style="padding-left: 50px;">/api</div>
+			<div style="padding-left: 50px;">/{nazev_databaze}</div>
+			<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Metoda se uvádí v JSON-RPC těle požadavku.</div>
+		</div>
+	</div>
+</section>

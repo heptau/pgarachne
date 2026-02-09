@@ -1,7 +1,7 @@
 # PgArachne
 
 <div align="center">
-  <img src="docs/assets/pgarachne-logo.jpeg" alt="PgArachne Logo" width="200"/>
+  <img src="docs-src/static/assets/pgarachne-logo.jpeg" alt="PgArachne Logo" width="200"/>
   <h1>PgArachne</h1>
   <p><strong>Turn PostgreSQL into a secure API. Instantly.</strong></p>
   <p>Zero boilerplate. High performance. The middleware that maps HTTP requests directly to database functions.</p>
@@ -10,7 +10,7 @@
 
 ---
 
-**PgArachne** is a high-performance JSON-RPC 2.0 API gateway that maps JSON-RPC methods to PostgreSQL functions (access via `schema.function`). It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
+**PgArachne™** is a high-performance JSON-RPC 2.0 API gateway that maps JSON-RPC methods to PostgreSQL functions (access via `schema.function`). It is optimized for AI consumption with dynamic function discovery, secure authentication, and production-ready features.
 
 ## Key Features
 
@@ -223,7 +223,13 @@ Additional Prometheus metrics:
 
 ## Documentation
 
-Detailed documentation is available in the [`docs/`](docs/index.html) directory, including:
+Documentation sources live in [`docs-src/`](docs-src/) and are built into the static site under `docs/` (GitHub Pages).
+Build docs with:
+```bash
+make docs
+```
+
+Generated documentation is available in the [`docs/`](docs/index.html) directory, including:
 
 *   **Configuration**: Full list of environment variables (`DB_HOST`, `JWT_SECRET`, etc.).
 *   **Security**: How role masquerading and API Tokens work.

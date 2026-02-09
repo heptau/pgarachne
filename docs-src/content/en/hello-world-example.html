@@ -1,0 +1,52 @@
+---
+title: "Hello World Example"
+menu:
+  main:
+    name: "Hello World Example"
+    weight: 60
+---
+
+<section id="hello-world">
+	<h2>Hello World Example</h2>
+	<p>Let's create a simple API endpoint associated with a user.</p>
+
+	<h3>1. Create User and Function</h3>
+	<p>In your database (<code>my_database</code>):</p>
+	<pre><code>-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Allow PgArachne (system user) to switch to demo_user
+GRANT demo_user TO pgarachne;</code></pre>
+
+	<h3>2. Login via API</h3>
+	<p>Use the JSON-RPC method <code>login</code> to obtain a JWT token:</p>
+	<pre><code>curl -X POST http://localhost:8080/api/my_database \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+	<p>Response:</p>
+	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
+
+	<h3>3. Call the Function</h3>
+	<p>Use the token to call the <code>hello_world</code> function:</p>
+	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/api/my_database \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Response:</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+</section>

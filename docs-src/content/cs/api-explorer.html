@@ -1,0 +1,28 @@
+---
+title: "Průzkumník API (Explorer)"
+menu:
+  main:
+    name: "Průzkumník API (Explorer)"
+    weight: 70
+---
+
+<section id="explorer">
+	<h2>Průzkumník API (Explorer)</h2>
+	<p><strong>Explorer</strong> je webové rozhraní přiložené ve složce `tools/`. Nejedná se
+		jen o dokumentaci; je to plně funkční <strong>demo aplikace</strong> postavená na HTML/JS,
+		která komunikuje s databází výhradně prostřednictvím PgArachne.</p>
+
+	<p><strong>Co umí?</strong></p>
+	<ul>
+		<li><strong>Inspekce API:</strong> Čte funkci `capabilities` a zobrazuje všechny dostupné
+			endpointy a jejich parametry.</li>
+		<li><strong>Živé testování:</strong> Funkce můžete spouštět přímo z prohlížeče.</li>
+		<li><strong>Automatická dokumentace:</strong> Vykresluje SQL komentáře (včetně metadat `--- PARAMS ---`)
+			do čitelné dokumentace.</li>
+	</ul>
+
+	<div class="tip">
+		<strong>Jak jej povolit:</strong> Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
+		složku `tools/pgarachne-explorer` na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
+	</div>
+</section>

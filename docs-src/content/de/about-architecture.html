@@ -1,0 +1,62 @@
+---
+title: "Über & Architektur"
+menu:
+  main:
+    name: "Über & Architektur"
+    weight: 10
+---
+
+<section id="about">
+	<h2>Über & Architektur</h2>
+	<p>
+		PgArachne™ dient als leichter, hochleistungsfähiger <strong>Webserver</strong>, der zwischen Ihren
+		HTTP-Clients und der PostgreSQL-Datenbank sitzt. Es eliminiert die Notwendigkeit für traditionelle
+		Backend-Sprachen (wie Python, Node.js oder PHP), indem HTTP-Anfragen direkt auf Datenbankfunktionen
+		abgebildet werden.
+	</p>
+
+	<div class="card"
+		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+		<h3>Wichtige technische Fähigkeiten</h3>
+		<ul style="margin-left: 20px; list-style-type: disc;">
+			<li style="margin-bottom: 10px;">
+				<strong>JSON-RPC 2.0 Gateway:</strong> Alle API-Interaktionen folgen der strengen JSON-RPC
+				2.0-Spezifikation. Es müssen keine REST-Endpunkte entworfen werden; Sie rufen SQL-Funktionen
+				einfach per Namen über POST-Anfragen auf.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Native DB-Authentifizierung:</strong> Keine separaten Benutzertabellen. Benutzer melden
+				sich mit ihren echten PostgreSQL-Anmeldeinformationen an, um ein <strong>JWT</strong> zu erhalten.
+				Alternativ können Service-Konten persistente <strong>API-Token</strong> verwenden.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Rollen-Maskierung:</strong> PgArachne™ verbindet sich als Proxy-Benutzer, führt aber jede
+				Anfrage mit <code>SET LOCAL ROLE</code> aus, um zur Identität des authentifizierten Benutzers
+				zu wechseln. Row-Level Security (RLS) funktioniert automatisch.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Server für statische Dateien:</strong> PgArachne™ kann statische Assets (HTML, JS, CSS)
+				bereitstellen, sodass Sie Single Page Applications (SPAs) oder das Explorer-Tool direkt hosten können.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Echtzeit-Benachrichtigungen (SSE):</strong> Abonnieren Sie PostgreSQL <code>NOTIFY</code>
+				Kanäle über SSE für Live-Updates ohne Polling.
+			</li>
+		</ul>
+	</div>
+
+	<p>
+		Diese Architektur vereinfacht den Stack drastisch: <strong>Datenbank ↔ PgArachne ↔ Frontend</strong>.
+	</p>
+
+	<div class="tip">
+		<strong>API-Endpunkt-Format:</strong> Alle Datenbankfunktionen sind erreichbar unter:
+		<div
+			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			<div>POST http://{server}:{port}</div>
+			<div style="padding-left: 50px;">/api</div>
+			<div style="padding-left: 50px;">/{datenbank_name}</div>
+				<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Die Methode wird im JSON-RPC-Body angegeben.</div>
+		</div>
+	</div>
+</section>
