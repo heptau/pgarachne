@@ -147,7 +147,7 @@
 	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Metriky (Prometheus)</title><link>https://www.pgarachne.com/cs/metrics/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/metrics/</guid><description>&lt;section id="metrics"&gt;
 	&lt;h2&gt;Metriky (Prometheus)&lt;/h2&gt;
-	&lt;p&gt;PgArachne exportuje metriky na &lt;code&gt;/metrics&lt;/code&gt;, včetně standardních Go metrik a:&lt;/p&gt;
+	&lt;p&gt;PgArachne exportuje Prometheus metriky na dedikovaném listeneru metrik (výchozí &lt;code&gt;127.0.0.1:9090&lt;/code&gt;) na cestě &lt;code&gt;/metrics&lt;/code&gt;, včetně standardních Go metrik a:&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_http_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_http_request_duration_seconds&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;

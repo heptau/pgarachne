@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -13,30 +14,32 @@ import (
 )
 
 type Config struct {
-	DBHost          string
-	DBPort          int
-	DBUser          string
-	DBSSLMode       string
-	DBSSLRootCert   string
-	DBSSLCert       string
-	DBSSLKey        string
-	HTTPPort        string
-	JWTSecret       string
-	JWTExpiryHours  int
-	AllowedOrigins  []string
-	StaticFilesPath string
-	LogLevel        string
-	LogOutput       string
-	LoginRateLimit  int
-	LoginRateWindow time.Duration
-	TrustedProxies  []string
-	MaxRequestBytes int64
-	SSEMaxChannels  int
-	SSEHeartbeat    time.Duration
-	SSEIdleTimeout  time.Duration
-	SSEMaxClients   int
-	SSEClientBuffer int
-	SSESendTimeout  time.Duration
+	DBHost            string
+	DBPort            int
+	DBUser            string
+	DBSSLMode         string
+	DBSSLRootCert     string
+	DBSSLCert         string
+	DBSSLKey          string
+	HTTPPort          string
+	JWTSecret         string
+	JWTExpiryHours    int
+	AllowedOrigins    []string
+	StaticFilesPath   string
+	LogLevel          string
+	LogOutput         string
+	LoginRateLimit    int
+	LoginRateWindow   time.Duration
+	TrustedProxies    []string
+	MaxRequestBytes   int64
+	MetricsEnabled    bool
+	MetricsListenAddr string
+	SSEMaxChannels    int
+	SSEHeartbeat      time.Duration
+	SSEIdleTimeout    time.Duration
+	SSEMaxClients     int
+	SSEClientBuffer   int
+	SSESendTimeout    time.Duration
 }
 
 // Search paths for configuration
@@ -163,6 +166,20 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be > 0", maxBodyStr)
 		}
 		cfg.MaxRequestBytes = value
+	}
+
+	cfg.MetricsEnabled = true
+	if metricsEnabledStr := os.Getenv("METRICS_ENABLED"); metricsEnabledStr != "" {
+		enabled, err := strconv.ParseBool(metricsEnabledStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid METRICS_ENABLED value: '%s', must be true/false", metricsEnabledStr)
+		}
+		cfg.MetricsEnabled = enabled
+	}
+
+	cfg.MetricsListenAddr = "127.0.0.1:9090"
+	if metricsListenAddr := strings.TrimSpace(os.Getenv("METRICS_LISTEN_ADDR")); metricsListenAddr != "" {
+		cfg.MetricsListenAddr = metricsListenAddr
 	}
 
 	cfg.SSEMaxChannels = 8
@@ -306,6 +323,9 @@ func Load(configPath string) (*Config, error) {
 	if err := validateDBSSLConfig(cfg); err != nil {
 		return nil, err
 	}
+	if err := validateMetricsConfig(cfg); err != nil {
+		return nil, err
+	}
 
 	return cfg, nil
 }
@@ -336,6 +356,19 @@ func validateDBSSLConfig(cfg *Config) error {
 		}
 	}
 
+	return nil
+}
+
+func validateMetricsConfig(cfg *Config) error {
+	if !cfg.MetricsEnabled {
+		return nil
+	}
+	if cfg.MetricsListenAddr == "" {
+		return fmt.Errorf("metrics listen address is empty")
+	}
+	if _, err := net.ResolveTCPAddr("tcp", cfg.MetricsListenAddr); err != nil {
+		return fmt.Errorf("invalid METRICS_LISTEN_ADDR value: '%s': %w", cfg.MetricsListenAddr, err)
+	}
 	return nil
 }
 

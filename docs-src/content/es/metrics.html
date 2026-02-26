@@ -8,7 +8,7 @@ menu:
 
 <section id="metrics">
 	<h2>Métricas (Prometheus)</h2>
-	<p>PgArachne exporta métricas en <code>/metrics</code>, incluidas las métricas estándar de Go y:</p>
+	<p>PgArachne exporta métricas de Prometheus en un listener dedicado de métricas (predeterminado <code>127.0.0.1:9090</code>) en <code>/metrics</code>, incluidas las métricas estándar de Go y:</p>
 	<ul>
 		<li><code>pgarachne_http_requests_total</code>, <code>pgarachne_http_request_duration_seconds</code></li>
 		<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>

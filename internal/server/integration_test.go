@@ -23,12 +23,13 @@ import (
 )
 
 type testEnv struct {
-	cfg        *config.Config
-	dbName     string
-	testUser   string
-	testPass   string
-	tokenUser  string
-	httpServer *httptest.Server
+	cfg           *config.Config
+	dbName        string
+	testUser      string
+	testPass      string
+	tokenUser     string
+	httpServer    *httptest.Server
+	metricsServer *httptest.Server
 }
 
 func requireTestEnv(t *testing.T) *testEnv {
@@ -72,8 +73,10 @@ func requireTestEnv(t *testing.T) *testEnv {
 			}
 			return time.Minute
 		}(),
-		MaxRequestBytes: getenvInt64Default("MAX_REQUEST_BYTES", 2*1024*1024),
-		SSEMaxChannels:  getenvIntDefault("SSE_MAX_CHANNELS", 8),
+		MaxRequestBytes:   getenvInt64Default("MAX_REQUEST_BYTES", 2*1024*1024),
+		MetricsEnabled:    true,
+		MetricsListenAddr: "127.0.0.1:9090",
+		SSEMaxChannels:    getenvIntDefault("SSE_MAX_CHANNELS", 8),
 		SSEHeartbeat: func() time.Duration {
 			if val := os.Getenv("SSE_HEARTBEAT"); val != "" {
 				if d, err := time.ParseDuration(val); err == nil {
@@ -105,20 +108,25 @@ func requireTestEnv(t *testing.T) *testEnv {
 	gin.SetMode(gin.TestMode)
 	srv := New(cfg)
 	ts := httptest.NewServer(srv.buildRouter())
+	metricsServer := httptest.NewServer(srv.buildMetricsRouter())
 
 	return &testEnv{
-		cfg:        cfg,
-		dbName:     dbName,
-		testUser:   getenvDefault("TEST_USER", "pgarachne_test_user"),
-		testPass:   getenvDefault("TEST_PASSWORD", "pgarachne_test_password"),
-		tokenUser:  dbUser,
-		httpServer: ts,
+		cfg:           cfg,
+		dbName:        dbName,
+		testUser:      getenvDefault("TEST_USER", "pgarachne_test_user"),
+		testPass:      getenvDefault("TEST_PASSWORD", "pgarachne_test_password"),
+		tokenUser:     dbUser,
+		httpServer:    ts,
+		metricsServer: metricsServer,
 	}
 }
 
 func (e *testEnv) close() {
 	if e.httpServer != nil {
 		e.httpServer.Close()
+	}
+	if e.metricsServer != nil {
+		e.metricsServer.Close()
 	}
 }
 
@@ -497,7 +505,7 @@ func TestSSEMetrics(t *testing.T) {
 	resp, _ := openSSE(t, env, token, "metrics_channel")
 	defer resp.Body.Close()
 
-	metricsResp, err := http.Get(env.httpServer.URL + "/metrics")
+	metricsResp, err := http.Get(env.metricsServer.URL + "/metrics")
 	if err != nil {
 		t.Fatalf("metrics request failed: %v", err)
 	}
@@ -553,7 +561,7 @@ func TestCoreMetrics(t *testing.T) {
 	}
 	callResp.Body.Close()
 
-	metricsResp, err := http.Get(env.httpServer.URL + "/metrics")
+	metricsResp, err := http.Get(env.metricsServer.URL + "/metrics")
 	if err != nil {
 		t.Fatalf("metrics request failed: %v", err)
 	}
@@ -579,6 +587,21 @@ func TestCoreMetrics(t *testing.T) {
 	}
 	if !strings.Contains(metrics, "pgarachne_jsonrpc_requests_total") {
 		t.Fatalf("missing pgarachne_jsonrpc_requests_total metric")
+	}
+}
+
+func TestMetricsNotExposedOnMainAPI(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	resp, err := http.Get(env.httpServer.URL + "/metrics")
+	if err != nil {
+		t.Fatalf("metrics request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusNotFound)
 	}
 }
 

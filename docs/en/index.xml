@@ -290,7 +290,7 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 			project or offer a commercial “Managed PgArachne” service, you must remove the original branding
 			and logo unless you have obtained a special license.&lt;/p&gt;</description></item><item><title>Metrics (Prometheus)</title><link>https://www.pgarachne.com/en/metrics/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/metrics/</guid><description>&lt;section id="metrics"&gt;
 	&lt;h2&gt;Metrics (Prometheus)&lt;/h2&gt;
-	&lt;p&gt;PgArachne exports Prometheus metrics at &lt;code&gt;/metrics&lt;/code&gt;, including standard Go runtime metrics and:&lt;/p&gt;
+	&lt;p&gt;PgArachne exports Prometheus metrics on a dedicated metrics listener (default &lt;code&gt;127.0.0.1:9090&lt;/code&gt;) at &lt;code&gt;/metrics&lt;/code&gt;, including standard Go runtime metrics and:&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_http_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_http_request_duration_seconds&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;

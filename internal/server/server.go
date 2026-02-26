@@ -50,12 +50,17 @@ func New(cfg *config.Config) *Server {
 func (s *Server) Run() error {
 	gin.SetMode(gin.ReleaseMode)
 	router := s.buildRouter()
+	metricsRouter := s.buildMetricsRouter()
 
 	slog.Info("Starting PgArachne server", "port", s.Cfg.HTTPPort)
 
 	srv := &http.Server{
 		Addr:    ":" + s.Cfg.HTTPPort,
 		Handler: router,
+	}
+	metricsSrv := &http.Server{
+		Addr:    s.Cfg.MetricsListenAddr,
+		Handler: metricsRouter,
 	}
 
 	// Initializing the server in a goroutine so that
@@ -69,6 +74,16 @@ func (s *Server) Run() error {
 			// Let's rely on the main function handling, but here we can't easily bubble up error
 			// without a channel. For simplicity in this structure:
 			// We log and let the shutdown logic finish (or if start failed immediately).
+		}
+	}()
+	go func() {
+		if !s.Cfg.MetricsEnabled {
+			slog.Info("Metrics endpoint disabled")
+			return
+		}
+		slog.Info("Starting metrics server", "listen_addr", s.Cfg.MetricsListenAddr)
+		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			slog.Error("metrics listen", "error", err)
 		}
 	}()
 
@@ -89,6 +104,12 @@ func (s *Server) Run() error {
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
 		return err
+	}
+	if s.Cfg.MetricsEnabled {
+		if err := metricsSrv.Shutdown(ctx); err != nil {
+			slog.Error("Metrics server forced to shutdown", "error", err)
+			return err
+		}
 	}
 
 	slog.Info("Server exiting")
@@ -137,7 +158,6 @@ func (s *Server) buildRouter() *gin.Engine {
 
 	// Public API
 	router.GET("/health", s.handleHealthCheck)
-	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	router.GET("/sse/:database", s.handleSSE)
 
 	// JSON-RPC API (all methods are invoked via /api/:database)
@@ -158,48 +178,56 @@ func (s *Server) buildRouter() *gin.Engine {
 	return router
 }
 
+func (s *Server) buildMetricsRouter() http.Handler {
+	mux := http.NewServeMux()
+	if s.Cfg.MetricsEnabled {
+		mux.Handle("/metrics", promhttp.Handler())
+	}
+	return mux
+}
+
 func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName string) (string, string, int) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			recordAuthResult("unknown", "missing_header")
-			return "", "Authorization header is missing", http.StatusUnauthorized
-		}
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		recordAuthResult("unknown", "missing_header")
+		return "", "Authorization header is missing", http.StatusUnauthorized
+	}
 
 	parts := strings.SplitN(authHeader, " ", 2)
-		if len(parts) != 2 {
-			recordAuthResult("unknown", "malformed_header")
-			return "", "Authorization header is malformed", http.StatusUnauthorized
-		}
+	if len(parts) != 2 {
+		recordAuthResult("unknown", "malformed_header")
+		return "", "Authorization header is malformed", http.StatusUnauthorized
+	}
 
 	authType := parts[0]
 	tokenString := parts[1]
 
 	// 1. Try JWT
-		if strings.ToLower(authType) == "bearer" {
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-				}
-				return []byte(s.Cfg.JWTSecret), nil
-			})
-
-			if err == nil && token.Valid {
-				claims, ok := token.Claims.(jwt.MapClaims)
-				dbRole, roleOk := claims["db_role"].(string)
-				dbName, dbNameOk := claims["db_name"].(string)
-
-				if ok && roleOk && dbRole != "" && dbNameOk {
-					if dbName != databaseName {
-						slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
-						recordAuthResult("jwt", "wrong_db")
-						return "", "Invalid token for this database", http.StatusUnauthorized
-					}
-					recordAuthResult("jwt", "success")
-					return dbRole, "", 0
-				}
+	if strings.ToLower(authType) == "bearer" {
+		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			recordAuthResult("jwt", "invalid")
+			return []byte(s.Cfg.JWTSecret), nil
+		})
+
+		if err == nil && token.Valid {
+			claims, ok := token.Claims.(jwt.MapClaims)
+			dbRole, roleOk := claims["db_role"].(string)
+			dbName, dbNameOk := claims["db_name"].(string)
+
+			if ok && roleOk && dbRole != "" && dbNameOk {
+				if dbName != databaseName {
+					slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
+					recordAuthResult("jwt", "wrong_db")
+					return "", "Invalid token for this database", http.StatusUnauthorized
+				}
+				recordAuthResult("jwt", "success")
+				return dbRole, "", 0
+			}
 		}
+		recordAuthResult("jwt", "invalid")
+	}
 
 	// 2. Try Long-lived API Token
 	query := `SELECT current_catalog, pgarachne.verify_api_token($1)`
@@ -210,20 +238,20 @@ func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName stri
 	)
 	err := db.QueryRowContext(c.Request.Context(), query, tokenString).Scan(&currentCatalog, &nullRole)
 
-		if err == nil && nullRole.Valid {
-			if currentCatalog != databaseName {
-				slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
-				recordAuthResult("api_token", "wrong_db")
-				return "", "Invalid token for this database", http.StatusUnauthorized
-			}
-
-			recordAuthResult("api_token", "success")
-			return nullRole.String, "", 0
+	if err == nil && nullRole.Valid {
+		if currentCatalog != databaseName {
+			slog.Warn("API token used for wrong database", "token_db", currentCatalog, "requested_db", databaseName)
+			recordAuthResult("api_token", "wrong_db")
+			return "", "Invalid token for this database", http.StatusUnauthorized
 		}
 
-		recordAuthResult("api_token", "invalid")
-		return "", "Invalid or expired token", http.StatusUnauthorized
+		recordAuthResult("api_token", "success")
+		return nullRole.String, "", 0
 	}
+
+	recordAuthResult("api_token", "invalid")
+	return "", "Invalid or expired token", http.StatusUnauthorized
+}
 
 func (s *Server) handleFunctionCall(c *gin.Context) {
 	databaseName := c.Param("database")
