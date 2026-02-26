@@ -39,9 +39,9 @@ menu:
 				</svg>
 				<h4>macOS</h4>
 				<div class="os-btn-group">
-					<a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-arm64-app.zip"
+					<a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-arm64-app.zip"
 						class="btn-download">ARM64/Apple Silicon</a>
-					<a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-amd64-app.zip"
+					<a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-amd64-app.zip"
 						class="btn-download">x64/Intel</a>
 				</div>
 			</div>
@@ -66,7 +66,16 @@ menu:
 	</div>
 
 	<div class="deployment-option">
-		<h4>Opzione B: Compila dal Codice Sorgente</h4>
+		<h4>Opzione B: Installazione tramite Homebrew</h4>
+		<pre><code># CLI (macOS + Linux)
+brew install heptau/tap/pgarachne
+
+# GUI app (macOS)
+brew install --cask heptau/tap/pgarachne-app</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h4>Opzione C: Compila dal Codice Sorgente</h4>
 		<pre><code>git clone https://github.com/heptau/pgarachne.git
 cd pgarachne
 make build</code></pre>

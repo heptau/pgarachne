@@ -255,9 +255,9 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 				&lt;/svg&gt;
 				&lt;h4&gt;macOS&lt;/h4&gt;
 				&lt;div class="os-btn-group"&gt;
-					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-arm64-app.zip"
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-arm64-app.zip"
 						class="btn-download"&gt;ARM64/Apple Silicon&lt;/a&gt;
-					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/PgArachne-macos-amd64-app.zip"
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-amd64-app.zip"
 						class="btn-download"&gt;x64/Intel&lt;/a&gt;
 				&lt;/div&gt;
 			&lt;/div&gt;

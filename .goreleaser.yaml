@@ -1,0 +1,41 @@
+version: 2
+
+project_name: pgarachne
+
+snapshot:
+  version_template: "{{ .Env.APP_VERSION }}"
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: cli
+    main: ./cmd/pgarachne
+    binary: pgarachne
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.Version={{ .Version }}
+
+archives:
+  - id: cli-archive
+    ids:
+      - cli
+    name_template: "{{ .ProjectName }}-{{ .Os }}-{{ .Arch }}"
+    formats: [tar.gz]
+    format_overrides:
+      - goos: darwin
+        formats: [zip]
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt

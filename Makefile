@@ -26,6 +26,7 @@ APP_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo "0.0.0-dev")
 
 # --- Commands ---
 GO := $(shell command -v go 2> /dev/null || echo go)
+GORELEASER := $(shell command -v goreleaser 2> /dev/null || echo goreleaser)
 GO_BUILD=$(GO) build
 GO_TIDY=$(GO) mod tidy
 GO_RUN=$(GO) run
@@ -40,10 +41,7 @@ GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
 .PHONY: help deps build run clean prepare-dist docs \
-        package-all \
-        package-linux-amd64 package-linux-arm64 \
-        package-windows-amd64 package-windows-arm64 \
-        package-macos-amd64 package-macos-arm64 package-macos-universal \
+        release macos-apps \
         macos-app-amd64 macos-app-arm64 macos-app-universal
 
 # ------------------------------------------------------------------------------
@@ -59,24 +57,24 @@ help:
 	@echo "  build                 Build binary for current OS."
 	@echo "  clean                 Remove artifacts."
 	@echo "  docs                  Build documentation with Hugo."
-	@echo ""
-	@echo "Packaging targets (Distribution):"
-	@echo "  package-all             Builds ALL packages (Linux, Win, Mac Intel/Arm/Universal)."
-	@echo "  package-linux-*         Builds tar.gz for Linux."
-	@echo "  package-windows-*       Builds zip for Windows."
-	@echo "  package-macos-amd64     Zip for macOS Intel."
-	@echo "  package-macos-arm64     Zip for macOS Apple Silicon."
-	@echo "  package-macos-universal Zip with Universal Binary (runs on both)."
-	@echo ""
-	@echo "macOS App Bundles (.app with Icon & Terminal Launcher):"
-	@echo "  macos-app-amd64       .app for Intel Macs."
-	@echo "  macos-app-arm64       .app for Apple Silicon."
-	@echo "  macos-app-universal   .app for ALL Macs (Universal)."
+	@echo "  release               Build local release artifacts + Homebrew files from VERSION."
 	@echo ""
 
 deps:
 	@echo "==> Checking dependencies..."
 	@$(GO_TIDY)
+
+release:
+	@echo "==> Building local release artifacts"
+	@APP_VERSION=$(APP_VERSION) $(GORELEASER) release --snapshot --clean --skip=publish
+	@$(MAKE) macos-apps
+	@./scripts/generate_homebrew_formula.sh
+	@./scripts/generate_homebrew_cask.sh
+
+macos-apps:
+	@$(MAKE) macos-app-amd64
+	@$(MAKE) macos-app-arm64
+	@$(MAKE) macos-app-universal
 
 docs:
 	@echo "==> Building documentation (Hugo)"
@@ -157,60 +155,6 @@ define sign_app
 endef
 
 # ------------------------------------------------------------------------------
-# Linux Packaging (.tar.gz)
-# ------------------------------------------------------------------------------
-package-linux-amd64: prepare-dist
-	@echo "==> Packaging Linux amd64 (v$(APP_VERSION))..."
-	@GOOS=linux GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
-	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-linux-amd64.tar.gz -C $(BIN_DIR) $(BINARY_NAME)
-	@rm $(BIN_DIR)/$(BINARY_NAME)
-
-package-linux-arm64: prepare-dist
-	@echo "==> Packaging Linux arm64 (v$(APP_VERSION))..."
-	@GOOS=linux GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
-	@tar -czf $(DIST_DIR)/$(BINARY_NAME)-linux-arm64.tar.gz -C $(BIN_DIR) $(BINARY_NAME)
-	@rm $(BIN_DIR)/$(BINARY_NAME)
-
-# ------------------------------------------------------------------------------
-# Windows Packaging (.zip)
-# ------------------------------------------------------------------------------
-package-windows-amd64: prepare-dist
-	@echo "==> Packaging Windows amd64 (v$(APP_VERSION))..."
-	@GOOS=windows GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME).exe $(CMD_PATH)
-	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-windows-amd64.zip $(BIN_DIR)/$(BINARY_NAME).exe
-	@rm $(BIN_DIR)/$(BINARY_NAME).exe
-
-package-windows-arm64: prepare-dist
-	@echo "==> Packaging Windows arm64 (v$(APP_VERSION))..."
-	@GOOS=windows GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME).exe $(CMD_PATH)
-	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-windows-arm64.zip $(BIN_DIR)/$(BINARY_NAME).exe
-	@rm $(BIN_DIR)/$(BINARY_NAME).exe
-
-# ------------------------------------------------------------------------------
-# macOS Packaging (CLI Binary only - .zip)
-# ------------------------------------------------------------------------------
-package-macos-amd64: prepare-dist
-	@echo "==> Packaging macOS amd64 CLI (v$(APP_VERSION))..."
-	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
-	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-amd64.zip $(BIN_DIR)/$(BINARY_NAME)
-	@rm $(BIN_DIR)/$(BINARY_NAME)
-
-package-macos-arm64: prepare-dist
-	@echo "==> Packaging macOS arm64 CLI (v$(APP_VERSION))..."
-	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME) $(CMD_PATH)
-	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-arm64.zip $(BIN_DIR)/$(BINARY_NAME)
-	@rm $(BIN_DIR)/$(BINARY_NAME)
-
-package-macos-universal: prepare-dist
-	@echo "==> Packaging macOS Universal CLI (v$(APP_VERSION))..."
-	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-amd64 $(CMD_PATH)
-	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(BIN_DIR)/$(BINARY_NAME)-arm64 $(CMD_PATH)
-	@lipo -create -output $(BIN_DIR)/$(BINARY_NAME) $(BIN_DIR)/$(BINARY_NAME)-amd64 $(BIN_DIR)/$(BINARY_NAME)-arm64
-	@rm $(BIN_DIR)/$(BINARY_NAME)-amd64 $(BIN_DIR)/$(BINARY_NAME)-arm64
-	@zip -qj $(DIST_DIR)/$(BINARY_NAME)-macos-universal.zip $(BIN_DIR)/$(BINARY_NAME)
-	@rm $(BIN_DIR)/$(BINARY_NAME)
-
-# ------------------------------------------------------------------------------
 # macOS App Bundles (.app) with Icon & Launcher
 # ------------------------------------------------------------------------------
 
@@ -233,11 +177,11 @@ macos-app-amd64: prepare-dist
 	@$(call sign_app,$(APP_DIR))
 	
 	@# Zip from inside TMP to maintain "PgArachne.app" root folder
-	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-amd64-app.zip $(APP_NAME).app
+	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-amd64-app.zip $(APP_NAME).app
 	
 	@# Cleanup
 	@rm -rf $(TMP_DIR)
-	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-amd64-app.zip"
+	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-amd64-app.zip"
 
 # 2. macOS ARM64 (Apple Silicon) .app
 macos-app-arm64: prepare-dist
@@ -255,10 +199,10 @@ macos-app-arm64: prepare-dist
 	@$(call generate_plist,$(APP_DIR)/Contents)
 	@$(call sign_app,$(APP_DIR))
 	
-	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-arm64-app.zip $(APP_NAME).app
+	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-arm64-app.zip $(APP_NAME).app
 	
 	@rm -rf $(TMP_DIR)
-	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-arm64-app.zip"
+	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-arm64-app.zip"
 
 # 3. macOS Universal .app
 macos-app-universal: prepare-dist
@@ -282,19 +226,10 @@ macos-app-universal: prepare-dist
 	@$(call generate_plist,$(APP_DIR)/Contents)
 	@$(call sign_app,$(APP_DIR))
 	
-	@cd $(TMP_DIR) && zip -rq ../$(APP_NAME)-macos-universal-app.zip $(APP_NAME).app
+	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-universal-app.zip $(APP_NAME).app
 	
 	@rm -rf $(TMP_DIR)
-	@echo "Ready: $(DIST_DIR)/$(APP_NAME)-macos-universal-app.zip"
-
-# ------------------------------------------------------------------------------
-# Final Logic
-# ------------------------------------------------------------------------------
-package-all: package-linux-amd64 package-linux-arm64 \
-             package-windows-amd64 package-windows-arm64 \
-             package-macos-amd64 package-macos-arm64 package-macos-universal \
-             macos-app-amd64 macos-app-arm64 macos-app-universal
-	@echo "==> All distribution packages created in $(DIST_DIR) (Version: $(APP_VERSION))"
+	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-universal-app.zip"
 
 build: deps
 	@echo "==> Building locally (v$(APP_VERSION))..."

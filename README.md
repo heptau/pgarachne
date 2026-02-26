@@ -27,7 +27,16 @@
 Download the latest version directly from the project's releases page:
 👉 https://github.com/heptau/pgarachne/releases
 
-**Option B: Build from Source**
+**Option B: Install via Homebrew**
+```bash
+# CLI (macOS + Linux)
+brew install heptau/tap/pgarachne
+
+# GUI app (macOS)
+brew install --cask heptau/tap/pgarachne-app
+```
+
+**Option C: Build from Source**
 ```bash
 git clone https://github.com/heptau/pgarachne.git
 cd pgarachne
@@ -228,6 +237,19 @@ Build docs with:
 ```bash
 make docs
 ```
+
+Build release artifacts and Brew files with GoReleaser:
+```bash
+make release
+```
+
+This generates local release assets in `dist/`:
+* CLI archives: `darwin`, `linux`, `windows` (`amd64` + `arm64`)
+* macOS GUI app archives: `pgarachne-macos-amd64-app.zip`, `pgarachne-macos-arm64-app.zip`, `pgarachne-macos-universal-app.zip`
+
+It also generates local Homebrew files for manual copy to your tap repository:
+* `dist/homebrew-tap/Formula/pgarachne.rb`
+* `dist/homebrew-tap/Casks/pgarachne-app.rb`
 
 Generated documentation is available in the [`docs/`](docs/index.html) directory, including:
 
