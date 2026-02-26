@@ -98,6 +98,9 @@ LOGIN_RATE_WINDOW=1m
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 # Optional request body size limit in bytes (default: 2097152)
 MAX_REQUEST_BYTES=2097152
+# Optional PID file path for daemon mode (-start / -stop)
+# Default: OS user cache dir (fallback: temp dir)
+# PID_FILE=/absolute/path/to/pgarachne.pid
 # Optional metrics listener (default enabled, local-only)
 METRICS_ENABLED=true
 METRICS_LISTEN_ADDR=127.0.0.1:9090

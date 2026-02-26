@@ -105,6 +105,11 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Port d’écoute. Défaut : <code>8080</code>.</td>
 			</tr>
 			<tr>
+				<td><code>PID_FILE</code></td>
+				<td>Non</td>
+				<td>Chemin du fichier PID du daemon utilisé par <code>-start</code>/<code>-stop</code>. Par défaut : cache utilisateur (fallback : dossier temporaire).</td>
+			</tr>
+			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td>Non</td>
 				<td>Paramètres CORS. Liste séparée par des virgules des domaines autorisés (ex : <code>https://monapp.com</code>).

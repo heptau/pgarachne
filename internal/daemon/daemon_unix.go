@@ -6,16 +6,31 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
 
-const PidFile = "/tmp/pgarachne.pid"
+func pidFilePath() string {
+	if custom := strings.TrimSpace(os.Getenv("PID_FILE")); custom != "" {
+		return custom
+	}
+
+	cacheDir, err := os.UserCacheDir()
+	if err == nil && cacheDir != "" {
+		return filepath.Join(cacheDir, "pgarachne", "pgarachne.pid")
+	}
+
+	return filepath.Join(os.TempDir(), "pgarachne.pid")
+}
 
 // Start launches the current executable in the background.
 // It removes the "-start" flag from arguments to prevent recursive spawning.
 func Start() {
+	pidFile := pidFilePath()
+
 	if isRunning() {
 		fmt.Println("PgArachne is already running.")
 		os.Exit(1)
@@ -52,7 +67,11 @@ func Start() {
 	}
 
 	// Write PID file
-	if err := os.WriteFile(PidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
+	if err := os.MkdirAll(filepath.Dir(pidFile), 0755); err != nil {
+		fmt.Printf("Process started (PID %d), but failed to create PID directory: %v\n", cmd.Process.Pid, err)
+		os.Exit(0)
+	}
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
 		fmt.Printf("Process started (PID %d), but failed to write PID file: %v\n", cmd.Process.Pid, err)
 		// We don't exit here, the process is running.
 	} else {
@@ -64,7 +83,8 @@ func Start() {
 
 // Stop terminates the background process using the PID file.
 func Stop() {
-	pidData, err := os.ReadFile(PidFile)
+	pidFile := pidFilePath()
+	pidData, err := os.ReadFile(pidFile)
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("PgArachne is not running (PID file not found).")
@@ -84,7 +104,7 @@ func Stop() {
 	if err != nil {
 		fmt.Printf("Failed to find process: %v\n", err)
 		// Try to remove PID file anyway?
-		os.Remove(PidFile)
+		os.Remove(pidFile)
 		os.Exit(1)
 	}
 
@@ -98,7 +118,7 @@ func Stop() {
 	// For now, just assume it works and remove PID file.
 	time.Sleep(100 * time.Millisecond)
 
-	if err := os.Remove(PidFile); err != nil {
+	if err := os.Remove(pidFile); err != nil {
 		fmt.Printf("Stopped process (PID %d), but failed to remove PID file: %v\n", pid, err)
 	} else {
 		fmt.Println("PgArachne stopped.")
@@ -108,7 +128,7 @@ func Stop() {
 }
 
 func isRunning() bool {
-	pidData, err := os.ReadFile(PidFile)
+	pidData, err := os.ReadFile(pidFilePath())
 	if err != nil {
 		return false
 	}
