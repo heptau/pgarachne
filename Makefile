@@ -1,7 +1,7 @@
 # --- START OF FILE Makefile ---
 
 # --- Configuration ---
-# 1. Zajistime, ze make vidi Go (Homebrew / Standard paths)
+# 1. Ensure make can find Go (Homebrew / standard paths)
 export PATH := /opt/homebrew/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin:$(PATH)
 
 BINARY_NAME=pgarachne
@@ -10,14 +10,14 @@ CMD_PATH=./cmd/pgarachne
 BIN_DIR=./bin
 DIST_DIR=./dist
 
-# Cesta k ikonce (musi existovat: ./assets/pgarachne.icns)
+# Path to app icon (must exist: ./assets/pgarachne.icns)
 ICON_PATH=./assets/pgarachne.icns
 
-# Nazev skutecne binarky uvnitr .app (skryta, spousti ji skript)
+# Name of the actual binary inside .app (hidden, launched by the script)
 EXEC_BINARY=$(BINARY_NAME)-exec
 
 # --- Versioning ---
-# Precteme verzi ze souboru VERSION. Pokud neexistuje, pouzijeme "0.0.0-dev"
+# Read version from the VERSION file. If it does not exist, use "0.0.0-dev"
 VERSION_FILE=VERSION
 APP_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo "0.0.0-dev")
 
@@ -32,11 +32,11 @@ GO_TIDY=$(GO) mod tidy
 GO_RUN=$(GO) run
 
 # LDFLAGS:
-# -s -w : zmensi velikost binarky (odstrani debug symboly)
-# -X ... : Vstrikne verzi z Makefile do Go promenne "main.Version"
+# -s -w : reduce binary size (strip debug symbols)
+# -X ... : inject version from Makefile into Go variable "main.Version"
 LDFLAGS=-ldflags "-s -w -X 'main.Version=$(APP_VERSION)'"
 
-# Detekce OS pro lokalni build
+# OS detection for local builds
 GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
