@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -117,7 +118,36 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) buildRouter() *gin.Engine {
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.CustomRecoveryWithWriter(io.Discard, func(c *gin.Context, recovered any) {
+		slog.Error("Panic recovered", "error", recovered, "path", c.Request.URL.Path, "method", c.Request.Method)
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}))
+	router.Use(func(c *gin.Context) {
+		start := time.Now()
+		c.Next()
+
+		latency := time.Since(start)
+		status := c.Writer.Status()
+
+		attrs := []any{
+			"method", c.Request.Method,
+			"path", c.Request.URL.Path,
+			"status", status,
+			"latency_ms", latency.Milliseconds(),
+			"client_ip", c.ClientIP(),
+		}
+
+		switch {
+		case status >= http.StatusInternalServerError:
+			slog.Error("HTTP request", attrs...)
+		case status >= http.StatusBadRequest:
+			slog.Warn("HTTP request", attrs...)
+		default:
+			slog.Debug("HTTP request", attrs...)
+		}
+	})
+
 	if len(s.Cfg.TrustedProxies) > 0 {
 		if err := router.SetTrustedProxies(s.Cfg.TrustedProxies); err != nil {
 			slog.Warn("Invalid TRUSTED_PROXIES configuration", "error", err)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/yourusername/pgarachne/internal/config"
 	"github.com/yourusername/pgarachne/internal/daemon"
@@ -12,6 +13,19 @@ import (
 )
 
 var Version = "0.0.0"
+
+func parseLogLevel(level string) slog.Level {
+	switch strings.ToUpper(strings.TrimSpace(level)) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "WARN":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelInfo
+	}
+}
 
 func main() {
 	// Parse command line flags
@@ -42,33 +56,17 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Setup temporary logger for startup
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-	slog.SetDefault(logger)
-
-	slog.Info("PgArachne starting", "version", Version)
-
 	// Load configuration
 	cfg, err := config.Load(*configPath)
 	if err != nil {
-		slog.Error("Failed to load configuration", "error", err)
+		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Re-configure logging based on config
-	var logLevel slog.Level
-	switch cfg.LogLevel {
-	case "DEBUG":
-		logLevel = slog.LevelDebug
-	case "WARN":
-		logLevel = slog.LevelWarn
-	case "ERROR":
-		logLevel = slog.LevelError
-	default:
-		logLevel = slog.LevelInfo
-	}
+	logLevel := parseLogLevel(cfg.LogLevel)
 
 	var logHandler slog.Handler
+	var logFile *os.File
 	handlerOptions := &slog.HandlerOptions{
 		Level: logLevel,
 	}
@@ -76,20 +74,26 @@ func main() {
 	if cfg.LogOutput != "stdout" {
 		file, err := os.OpenFile(cfg.LogOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
-			slog.Error("Failed to open log file", "file", cfg.LogOutput, "error", err)
+			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", cfg.LogOutput, err)
 			os.Exit(1)
 		}
-		// Note: file is valid here, but we don't strictly close it as main exits immediately after,
-		// or server runs until interrupt. In a long running service, this is usually acceptable for the main logger.
+		logFile = file
 		logHandler = slog.NewJSONHandler(file, handlerOptions)
 	} else {
 		logHandler = slog.NewJSONHandler(os.Stdout, handlerOptions)
 	}
 
-	logger = slog.New(logHandler)
+	logger := slog.New(logHandler)
 	slog.SetDefault(logger)
+	if logFile != nil {
+		defer logFile.Close()
+	}
 
-	slog.Info("Configuration loaded successfully", "config_file", *configPath)
+	slog.Info("PgArachne starting", "version", Version)
+	slog.Info("Configuration loaded successfully", "config_file", *configPath, "log_output", cfg.LogOutput, "log_level", cfg.LogLevel)
+	if cfg.LogOutput != "stdout" {
+		fmt.Printf("PgArachne version %s started. Logging to %s\n", Version, cfg.LogOutput)
+	}
 
 	// Initialize and run server
 	srv := server.New(cfg)
@@ -100,5 +104,8 @@ func main() {
 		// A proper daemon manager might catch signals and remove PID, but our daemon.Stop() handles removal.
 		// If it crashes, PID file stays (stale). This is typical for simple types.
 		os.Exit(1)
+	}
+	if cfg.LogOutput != "stdout" {
+		fmt.Println("PgArachne stopped.")
 	}
 }
