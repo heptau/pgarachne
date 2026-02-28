@@ -56,12 +56,19 @@ func (s *Server) Run() error {
 	slog.Info("Starting PgArachne server", "port", s.Cfg.HTTPPort)
 
 	srv := &http.Server{
-		Addr:    ":" + s.Cfg.HTTPPort,
-		Handler: router,
+		Addr:              ":" + s.Cfg.HTTPPort,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		IdleTimeout:       2 * time.Minute,
 	}
 	metricsSrv := &http.Server{
-		Addr:    s.Cfg.MetricsListenAddr,
-		Handler: metricsRouter,
+		Addr:              s.Cfg.MetricsListenAddr,
+		Handler:           metricsRouter,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		WriteTimeout:      15 * time.Second,
 	}
 
 	// Initializing the server in a goroutine so that
@@ -148,10 +155,14 @@ func (s *Server) buildRouter() *gin.Engine {
 		}
 	})
 
-	if len(s.Cfg.TrustedProxies) > 0 {
-		if err := router.SetTrustedProxies(s.Cfg.TrustedProxies); err != nil {
-			slog.Warn("Invalid TRUSTED_PROXIES configuration", "error", err)
-		}
+	// Always configure trusted proxies explicitly.
+	// Empty list disables proxy headers for ClientIP() and avoids spoofing via X-Forwarded-For.
+	trustedProxies := s.Cfg.TrustedProxies
+	if len(trustedProxies) == 0 {
+		trustedProxies = nil
+	}
+	if err := router.SetTrustedProxies(trustedProxies); err != nil {
+		slog.Warn("Invalid TRUSTED_PROXIES configuration", "error", err)
 	}
 
 	// CORS setup
@@ -317,6 +328,18 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		recordAuthResult("unknown", "missing_header")
+		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is missing"}, ID: req.ID})
+		return
+	}
+	if parts := strings.SplitN(authHeader, " ", 2); len(parts) != 2 {
+		recordAuthResult("unknown", "malformed_header")
+		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is malformed"}, ID: req.ID})
+		return
+	}
+
 	db, err := database.GetConnection(s.Cfg, databaseName)
 	if err != nil {
 		recordJSONRPC(functionName, "error")
@@ -372,7 +395,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		if strings.Contains(err.Error(), "does not exist") {
 			c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{Message: "Function does not exist"}, ID: req.ID})
 		} else {
-			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: fmt.Sprintf("Function call failed: %v", err)}, ID: req.ID})
+			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Function call failed"}, ID: req.ID})
 		}
 		return
 	}

@@ -156,7 +156,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td>Ne</td>
-				<td>Důvěryhodné proxy IP/CIDR pro zpracování <code>X-Forwarded-For</code>. Čárkou oddělené.</td>
+				<td>Důvěryhodné proxy IP/CIDR pro zpracování <code>X-Forwarded-For</code>. Čárkou oddělené. Pokud je hodnota prázdná, forwardované hlavičky se ignorují a IP klienta se bere z přímého spojení.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
@@ -221,6 +221,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 		</tbody>
 	</table>
+	<p><strong>Bezpečnostní chování:</strong> požadavky bez validní hlavičky <code>Authorization</code> jsou odmítnuty ještě před navázáním databázového připojení.</p>
 	<p>Spuštění serveru:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
 </section>

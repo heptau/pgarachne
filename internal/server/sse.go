@@ -283,6 +283,18 @@ func (s *Server) handleSSE(c *gin.Context) {
 		return
 	}
 
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		recordAuthResult("unknown", "missing_header")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
+		return
+	}
+	if parts := strings.SplitN(authHeader, " ", 2); len(parts) != 2 {
+		recordAuthResult("unknown", "malformed_header")
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is malformed"})
+		return
+	}
+
 	maxChannels := s.Cfg.SSEMaxChannels
 	if maxChannels <= 0 {
 		maxChannels = defaultSSEMaxChannels

@@ -155,7 +155,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td>Nein</td>
-				<td>Vertrauenswürdige Proxy-IPs/CIDRs für <code>X-Forwarded-For</code>. Kommagetrennt.</td>
+				<td>Vertrauenswürdige Proxy-IPs/CIDRs für <code>X-Forwarded-For</code>. Kommagetrennt. Wenn leer, werden Forwarded-Header ignoriert und die Client-IP aus der direkten Verbindung übernommen.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
@@ -220,6 +220,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 		</tbody>
 	</table>
+	<p><strong>Sicherheitsverhalten:</strong> Requests ohne gültigen <code>Authorization</code>-Header werden abgelehnt, bevor eine Datenbankverbindung geöffnet wird.</p>
 	<p>Starten Sie den Server:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
 </section>

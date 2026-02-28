@@ -155,7 +155,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td>Não</td>
-				<td>Proxies confiáveis (IP/CIDR) para <code>X-Forwarded-For</code>. Separados por vírgula.</td>
+				<td>Proxies confiáveis (IP/CIDR) para <code>X-Forwarded-For</code>. Separados por vírgula. Se vazio, os headers encaminhados são ignorados e o IP do cliente é obtido da conexão direta.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
@@ -220,6 +220,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 		</tbody>
 	</table>
+	<p><strong>Comportamento de segurança:</strong> requisições sem um header <code>Authorization</code> válido são rejeitadas antes de abrir conexão com o banco.</p>
 	<p>Inicie o servidor:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
 </section>

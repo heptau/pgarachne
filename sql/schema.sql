@@ -230,6 +230,7 @@ CREATE OR REPLACE FUNCTION pgarachne.generate_openapi_spec(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = pg_catalog
 STABLE
 AS $$
 DECLARE
