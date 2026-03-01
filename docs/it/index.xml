@@ -321,13 +321,17 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Se il payload è testo, viene incapsulato come stringa in &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 &lt;/section&gt;</description></item><item><title>Novità</title><link>https://www.pgarachne.com/it/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novità&lt;/h2&gt;
-	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;Endpoint unificato: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (metodo nel body JSON-RPC).&lt;/li&gt;
-		&lt;li&gt;Notifiche in tempo reale via &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;Metriche Prometheus per HTTP, auth, JSON-RPC e SSE.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Sicurezza:&lt;/strong&gt; La validazione dei token di accesso avviene prima di stabilire una connessione al database. Migliorata la protezione contro l'IP spoofing (aggiunta l'impostazione &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;) e mascheramento degli errori interni del database per l'utente finale.&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Metriche isolate:&lt;/strong&gt; L'endpoint Prometheus &lt;code&gt;/metrics&lt;/code&gt; è stato spostato dall'API pubblica a una porta sicura dedicata (di default disponibile solo su &lt;code&gt;127.0.0.1:9090&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Nuova opzione di installazione:&lt;/strong&gt; Il progetto ora ha un tap Homebrew ufficiale per macOS e Linux. Le build sono firmate e generate tramite GoReleaser.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Documentazione riprogettata:&lt;/strong&gt; Look completamente nuovo basato sul framework Hugo. Aggiunta una ricerca full-text ultra rapida, la possibilità di copiare il codice e resi disponibili esempi di deployment in produzione (Nginx hardening, BYO JWT).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Gestione del demone migliorata:&lt;/strong&gt; Aggiunto il supporto per la configurazione personalizzata del percorso &lt;code&gt;PID_FILE&lt;/code&gt;.&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/it/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/it/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 	&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 	&lt;p&gt;L’&lt;strong&gt;Explorer&lt;/strong&gt; è una potente interfaccia web inclusa nella directory &lt;code&gt;tools/&lt;/code&gt;. Non è solo
 		documentazione; è una &lt;strong&gt;applicazione demo&lt;/strong&gt; completamente funzionale costruita usando HTML/JS

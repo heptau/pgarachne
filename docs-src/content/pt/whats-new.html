@@ -9,10 +9,21 @@ menu:
 
 <section id="whats-new" class="section-light">
 	<h2>Novidades</h2>
-	<p class="whats-new-subtitle">v1.1</p>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
-		<li>Endpoint unificado: <code>POST /api/&lt;db&gt;</code> (método no corpo JSON-RPC).</li>
-		<li>Notificações em tempo real via <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
-		<li>Métricas Prometheus para HTTP, auth, JSON-RPC e SSE.</li>
+		<li>🛡️ <strong>Segurança:</strong> A validação do token de acesso ocorre antes de estabelecer uma conexão com o banco de dados. Melhoria na proteção contra falsificação de IP (adicionada a configuração <code>TRUSTED_PROXIES</code>) e ocultação de erros internos do banco de dados para o usuário final.</li>
+		<li>📊 <strong>Métricas isoladas:</strong> O endpoint Prometheus <code>/metrics</code> foi movido da API pública para sua própria porta segura (por padrão, disponível apenas em <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Nova opção de instalação:</strong> O projeto agora tem um tap Homebrew oficial para macOS e Linux. As builds são assinadas e geradas via GoReleaser.</li>
+		<li>📚 <strong>Documentação reformulada:</strong> Visual totalmente novo construído sobre o framework Hugo. Adição de busca rápida de texto completo, opção de copiar código e exemplos de implantação em produção (Nginx hardening, BYO JWT).</li>
+		<li>⚙️ <strong>Gerenciamento aprimorado de daemon:</strong> Adicionado suporte para configuração de caminho personalizado do <code>PID_FILE</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>API unificada:</strong> Chamadas via <code>POST /api/&lt;db&gt;</code> (o método chamado é especificado no corpo JSON-RPC).</li>
+		<li>⚡ <strong>Notificações em tempo real:</strong> Novo endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> para escutar eventos do banco de dados com suporte a múltiplos canais.</li>
+		<li>📈 <strong>Observabilidade:</strong> Métricas detalhadas do Prometheus para HTTP, auth, JSON-RPC e SSE.</li>
+		<li>🏋️ <strong>Melhoria substancial na estabilidade:</strong> Proteção contra clientes lentos, tempos de limite rigorosos e limpeza automática de conexões.</li>
 	</ul>
 </section>

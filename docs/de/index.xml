@@ -212,13 +212,17 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>Neuigkeiten</title><link>https://www.pgarachne.com/de/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Neuigkeiten&lt;/h2&gt;
-	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;Einheitlicher Endpoint: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (Methode im JSON-RPC Body).&lt;/li&gt;
-		&lt;li&gt;Realtime-Benachrichtigungen über &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;Prometheus-Metriken für HTTP, Auth, JSON-RPC und SSE.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Sicherheit:&lt;/strong&gt; Die Validierung des Zugriffstokens erfolgt nun vor dem Herstellen einer Datenbankverbindung. Verbesserter Schutz gegen IP-Spoofing (Einstellung &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; hinzugefügt) und Verbergen interner Datenbankfehler vor dem Endbenutzer.&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Isolierte Metriken:&lt;/strong&gt; Der Prometheus-Endpoint &lt;code&gt;/metrics&lt;/code&gt; wurde von der öffentlichen API auf einen eigenen, sicheren Port verschoben (standardmäßig nur unter &lt;code&gt;127.0.0.1:9090&lt;/code&gt; verfügbar).&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Neue Installationsmöglichkeit:&lt;/strong&gt; Das Projekt verfügt nun über einen offiziellen Homebrew-Tap für macOS und Linux. Builds werden signiert und über GoReleaser generiert.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Überarbeitete Dokumentation:&lt;/strong&gt; Komplett neues Erscheinungsbild basierend auf dem Hugo-Framework. Blitzschnelle Volltextsuche, Möglichkeit zum Kopieren von Code und Beispiele für den Produktiveinsatz (Nginx-Hardening, BYO JWT) hinzugefügt.&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Verbesserte Daemon-Verwaltung:&lt;/strong&gt; Unterstützung für die benutzerdefinierte Pfadkonfiguration der &lt;code&gt;PID_FILE&lt;/code&gt; hinzugefügt.&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/de/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/de/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 	&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 	&lt;p&gt;Der &lt;strong&gt;Explorer&lt;/strong&gt; ist eine leistungsstarke Web-GUI, die im Verzeichnis &lt;code&gt;tools/&lt;/code&gt; enthalten ist. Es ist nicht
 		nur Dokumentation; es ist eine voll funktionsfähige &lt;strong&gt;Demo-Anwendung&lt;/strong&gt;, die mit HTML/JS erstellt wurde

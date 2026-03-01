@@ -9,10 +9,21 @@ menu:
 
 <section id="whats-new" class="section-light">
 	<h2>Nouveautés</h2>
-	<p class="whats-new-subtitle">v1.1</p>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
-		<li>Endpoint unifié : <code>POST /api/&lt;db&gt;</code> (méthode dans le body JSON-RPC).</li>
-		<li>Notifications temps réel via <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
-		<li>Métriques Prometheus pour HTTP, auth, JSON-RPC et SSE.</li>
+		<li>🛡️ <strong>Sécurité :</strong> La validation du token d'accès s'effectue avant d'établir une connexion à la base de données. Protection améliorée contre l'usurpation d'IP (ajout du paramètre <code>TRUSTED_PROXIES</code>) et dissimulation des erreurs internes de la base de données à l'utilisateur final.</li>
+		<li>📊 <strong>Métriques isolées :</strong> L'endpoint Prometheus <code>/metrics</code> a été déplacé de l'API publique vers son propre port sécurisé (par défaut, disponible uniquement sur <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Nouvelle option d'installation :</strong> Le projet dispose désormais d'un tap Homebrew officiel pour macOS et Linux. Les builds sont signés et générés via GoReleaser.</li>
+		<li>📚 <strong>Documentation repensée :</strong> Un tout nouveau design basé sur le framework Hugo. Ajout d'une recherche plein texte ultra-rapide, de la copie de code et d'exemples de déploiement en production (Nginx hardening, BYO JWT).</li>
+		<li>⚙️ <strong>Gestion du démon améliorée :</strong> Ajout de la prise en charge de la configuration personnalisée du chemin <code>PID_FILE</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>API unifiée :</strong> Appels via <code>POST /api/&lt;db&gt;</code> (la méthode appelée est spécifiée dans le corps JSON-RPC).</li>
+		<li>⚡ <strong>Notifications en temps réel :</strong> Nouvel endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> pour écouter les événements de la base de données avec prise en charge multicanal.</li>
+		<li>📈 <strong>Observabilité :</strong> Métriques Prometheus détaillées pour HTTP, auth, JSON-RPC et SSE.</li>
+		<li>🏋️ <strong>Amélioration majeure de la stabilité :</strong> Protection contre les clients lents, délais d'attente stricts et nettoyage automatique des connexions.</li>
 	</ul>
 </section>

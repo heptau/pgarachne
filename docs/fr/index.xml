@@ -342,13 +342,17 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Si le payload est du texte, il est encapsulé en string dans &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 &lt;/section&gt;</description></item><item><title>Nouveautés</title><link>https://www.pgarachne.com/fr/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/fr/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Nouveautés&lt;/h2&gt;
-	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;Endpoint unifié : &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (méthode dans le body JSON-RPC).&lt;/li&gt;
-		&lt;li&gt;Notifications temps réel via &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;Métriques Prometheus pour HTTP, auth, JSON-RPC et SSE.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Sécurité :&lt;/strong&gt; La validation du token d'accès s'effectue avant d'établir une connexion à la base de données. Protection améliorée contre l'usurpation d'IP (ajout du paramètre &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;) et dissimulation des erreurs internes de la base de données à l'utilisateur final.&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Métriques isolées :&lt;/strong&gt; L'endpoint Prometheus &lt;code&gt;/metrics&lt;/code&gt; a été déplacé de l'API publique vers son propre port sécurisé (par défaut, disponible uniquement sur &lt;code&gt;127.0.0.1:9090&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Nouvelle option d'installation :&lt;/strong&gt; Le projet dispose désormais d'un tap Homebrew officiel pour macOS et Linux. Les builds sont signés et générés via GoReleaser.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Documentation repensée :&lt;/strong&gt; Un tout nouveau design basé sur le framework Hugo. Ajout d'une recherche plein texte ultra-rapide, de la copie de code et d'exemples de déploiement en production (Nginx hardening, BYO JWT).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Gestion du démon améliorée :&lt;/strong&gt; Ajout de la prise en charge de la configuration personnalisée du chemin &lt;code&gt;PID_FILE&lt;/code&gt;.&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>Sécurité &amp; Authentification</title><link>https://www.pgarachne.com/fr/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/fr/security-roles/</guid><description>&lt;section id="security"&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>Sécurité &amp; Authentification</title><link>https://www.pgarachne.com/fr/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/fr/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Sécurité &amp; Authentification&lt;/h2&gt;
 	&lt;p&gt;PgArachne s’appuie entièrement sur le système de permission de PostgreSQL. Il ne réinvente pas les listes
 		de contrôle d’accès (ACL). Toutes les requêtes sont exécutées sous le rôle de base de données spécifique

@@ -9,10 +9,21 @@ menu:
 
 <section id="whats-new" class="section-light">
 	<h2>Neuigkeiten</h2>
-	<p class="whats-new-subtitle">v1.1</p>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
-		<li>Einheitlicher Endpoint: <code>POST /api/&lt;db&gt;</code> (Methode im JSON-RPC Body).</li>
-		<li>Realtime-Benachrichtigungen über <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
-		<li>Prometheus-Metriken für HTTP, Auth, JSON-RPC und SSE.</li>
+		<li>🛡️ <strong>Sicherheit:</strong> Die Validierung des Zugriffstokens erfolgt nun vor dem Herstellen einer Datenbankverbindung. Verbesserter Schutz gegen IP-Spoofing (Einstellung <code>TRUSTED_PROXIES</code> hinzugefügt) und Verbergen interner Datenbankfehler vor dem Endbenutzer.</li>
+		<li>📊 <strong>Isolierte Metriken:</strong> Der Prometheus-Endpoint <code>/metrics</code> wurde von der öffentlichen API auf einen eigenen, sicheren Port verschoben (standardmäßig nur unter <code>127.0.0.1:9090</code> verfügbar).</li>
+		<li>📦 <strong>Neue Installationsmöglichkeit:</strong> Das Projekt verfügt nun über einen offiziellen Homebrew-Tap für macOS und Linux. Builds werden signiert und über GoReleaser generiert.</li>
+		<li>📚 <strong>Überarbeitete Dokumentation:</strong> Komplett neues Erscheinungsbild basierend auf dem Hugo-Framework. Blitzschnelle Volltextsuche, Möglichkeit zum Kopieren von Code und Beispiele für den Produktiveinsatz (Nginx-Hardening, BYO JWT) hinzugefügt.</li>
+		<li>⚙️ <strong>Verbesserte Daemon-Verwaltung:</strong> Unterstützung für die benutzerdefinierte Pfadkonfiguration der <code>PID_FILE</code> hinzugefügt.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>Vereinheitlichte API:</strong> Aufrufe über <code>POST /api/&lt;db&gt;</code> (die aufgerufene Methode wird im JSON-RPC-Body angegeben).</li>
+		<li>⚡ <strong>Echtzeit-Benachrichtigungen:</strong> Neuer Endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> zum Abhören von Datenbankereignissen mit Mehrkanalunterstützung.</li>
+		<li>📈 <strong>Observability (Beobachtbarkeit):</strong> Detaillierte Prometheus-Metriken für HTTP, Auth, JSON-RPC und SSE.</li>
+		<li>🏋️ <strong>Wesentliche Stabilitätsverbesserungen:</strong> Schutz vor langsamen Clients, strikte Timeouts und automatische Verbindungsbereinigung.</li>
 	</ul>
 </section>

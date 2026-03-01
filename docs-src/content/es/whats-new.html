@@ -9,10 +9,21 @@ menu:
 
 <section id="whats-new" class="section-light">
 	<h2>Novedades</h2>
-	<p class="whats-new-subtitle">v1.1</p>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
-		<li>Endpoint unificado: <code>POST /api/&lt;db&gt;</code> (método en el body JSON-RPC).</li>
-		<li>Notificaciones en tiempo real vía <code>GET /sse/&lt;db&gt;?channels=...</code>.</li>
-		<li>Métricas Prometheus para HTTP, auth, JSON-RPC y SSE.</li>
+		<li>🛡️ <strong>Seguridad:</strong> La validación del token de acceso se realiza antes de establecer una conexión con la base de datos. Protección mejorada contra la suplantación de IP (añadida la configuración <code>TRUSTED_PROXIES</code>) y ocultación de errores internos de la base de datos al usuario final.</li>
+		<li>📊 <strong>Métricas aisladas:</strong> El endpoint de Prometheus <code>/metrics</code> se trasladó de la API pública a su propio puerto seguro (por defecto, disponible solo en <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Nueva opción de instalación:</strong> El proyecto ahora tiene un tap de Homebrew oficial para macOS y Linux. Las compilaciones están firmadas y generadas a través de GoReleaser.</li>
+		<li>📚 <strong>Documentación rediseñada:</strong> Aspecto completamente nuevo basado en el framework Hugo. Se ha añadido búsqueda rápida de texto completo, opción de copiar código y ejemplos de despliegue en producción (Nginx hardening, BYO JWT).</li>
+		<li>⚙️ <strong>Gestión de demonio mejorada:</strong> Se agregó soporte para la configuración de la ruta personalizada de <code>PID_FILE</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>API unificada:</strong> Llamadas a través de <code>POST /api/&lt;db&gt;</code> (el método invocado se especifica en el cuerpo JSON-RPC).</li>
+		<li>⚡ <strong>Notificaciones en tiempo real:</strong> Nuevo endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> para escuchar eventos de la base de datos con soporte multicanal.</li>
+		<li>📈 <strong>Observabilidad:</strong> Métricas detalladas de Prometheus para HTTP, auth, JSON-RPC y SSE.</li>
+		<li>🏋️ <strong>Gran mejora de estabilidad:</strong> Protección contra clientes lentos, tiempos de espera estrictos y limpieza automática de conexiones.</li>
 	</ul>
 </section>

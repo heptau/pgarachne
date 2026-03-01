@@ -376,10 +376,14 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 			&lt;h4&gt;Bank Transfer&lt;/h4&gt;
 			&lt;p&gt;Direct support with 0% fees.&lt;/p&gt;</description></item><item><title>What's New</title><link>https://www.pgarachne.com/en/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;What's New&lt;/h2&gt;
-	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;Unified API endpoint: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (method in JSON-RPC body).&lt;/li&gt;
-		&lt;li&gt;Real-time notifications via &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;Prometheus metrics for HTTP, auth, JSON-RPC, and SSE.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Security:&lt;/strong&gt; Access token validation now occurs before establishing a database connection. Improved protection against IP spoofing (added &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; setting) and hiding internal database errors from end users.&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Isolated Metrics:&lt;/strong&gt; The Prometheus &lt;code&gt;/metrics&lt;/code&gt; endpoint moved from the public API to its own secure port (by default available only on &lt;code&gt;127.0.0.1:9090&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;New Installation Option:&lt;/strong&gt; The project now has an official Homebrew tap for macOS and Linux. Builds are signed and generated via GoReleaser.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Redesigned Documentation:&lt;/strong&gt; Completely new look built on the Hugo framework. Added lightning-fast full-text search, code copying capabilities, and production deployment examples (Nginx hardening, BYO JWT).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Improved Daemon Management:&lt;/strong&gt; Added support for custom &lt;code&gt;PID_FILE&lt;/code&gt; path configuration.&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item></channel></rss>
+
+	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item></channel></rss>
