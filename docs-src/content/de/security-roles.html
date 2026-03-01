@@ -1,5 +1,6 @@
 ---
 title: "Sicherheit & Authentifizierung"
+description: "Sicherheit & Authentifizierung - PgArachne documentation."
 menu:
   main:
     name: "Sicherheit & Authentifizierung"
@@ -20,13 +21,35 @@ menu:
 		Dauer der Anfrage zu diesem Benutzer.</p>
 
 	<h3>2. Service-Konten (API-Token)</h3>
-	<p>Für automatisierte Systeme oder Skripte können Sie langlebige API-Schlüssel verwenden.</p>
+	<p>Für automatisierte Systeme oder Skripte können Sie langlebige API-Token verwenden.</p>
 	<ul>
 		<li>Token werden in der Tabelle <code>pgarachne.api_tokens</code> gespeichert.</li>
 		<li>Jedes Token ist einem bestimmten Datenbankbenutzer/-rolle zugeordnet.</li>
 		<li>Senden Sie das Token über den Header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
 	<p><em>Das Erstellen von API‑Tokens erfordert <code>pgarachne_admin</code>. Verwende <code>pgarachne.add_api_token(...)</code> mit einer Rolle, die Mitglied von <code>pgarachne_admin</code> ist.</em></p>
+
+	<h3>3. Externer Identity Provider (eigenes JWT)</h3>
+	<p>Wenn Benutzer außerhalb von PgArachne authentifiziert werden (z. B. über einen externen Auth-Dienst),
+		kann dieser Dienst JWTs ausstellen und direkt an PgArachne senden.</p>
+	<ul>
+		<li>Header-Format: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Signatur: nur HMAC (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) mit demselben
+			<code>JWT_SECRET</code>, der in PgArachne konfiguriert ist.
+		</li>
+		<li>Pflicht-Claims: <code>db_role</code> (String, nicht leer) und <code>db_name</code> (String, muss zu
+			<code>/api/:database</code> passen).
+		</li>
+		<li>Empfohlener Claim: <code>exp</code> (Unix-Timestamp) für das Ablaufdatum.</li>
+	</ul>
+	<p>Minimales Payload-Beispiel:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Wichtig:</strong> asymmetrische JWT-Algorithmen (z. B. <code>RS256</code>/<code>ES256</code>) werden
+		von der aktuellen Server-Implementierung nicht akzeptiert.</p>
 
 	<div class="warning">
 		<h3>Kritische Konfiguration: Proxy-Privilegien</h3>
@@ -39,4 +62,9 @@ menu:
 		<pre><code>-- Erlaube 'pgarachne' zu 'demo_user' zu wechseln
 GRANT demo_user TO pgarachne;</code></pre>
 	</div>
+	<h3>Siehe auch</h3>
+	<ul>
+		<li><a href="../configuration/">Konfiguration</a></li>
+		<li><a href="../error-codes/">Fehlercodes</a></li>
+	</ul>
 </section>

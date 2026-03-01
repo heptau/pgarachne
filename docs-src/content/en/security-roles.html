@@ -1,5 +1,6 @@
 ---
 title: "Security & Authentication"
+description: "Security & Authentication - PgArachne documentation."
 menu:
   main:
     name: "Security & Authentication"
@@ -19,13 +20,35 @@ menu:
 		active role to that user for the duration of the request.</p>
 
 	<h3>2. Service Accounts (API Tokens)</h3>
-	<p>For automated systems or scripts, you can use long-lived API keys.</p>
+	<p>For automated systems or scripts, you can use long-lived API tokens.</p>
 	<ul>
 		<li>Tokens are stored in the <code>pgarachne.api_tokens</code> table.</li>
 		<li>Each token is mapped to a specific database user/role.</li>
 		<li>Send the token via the <code>Authorization: Bearer &lt;token&gt;</code> header.</li>
 	</ul>
 	<p><em>Minting API tokens requires <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> with a role that is a member of <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. External Identity Provider (Bring Your Own JWT)</h3>
+	<p>If you authenticate users outside PgArachne (for example in an external auth service), you can mint JWTs
+		there and send them directly to PgArachne.</p>
+	<ul>
+		<li>Header format: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Signing: HMAC only (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) using the same
+			<code>JWT_SECRET</code> configured in PgArachne.
+		</li>
+		<li>Required claims: <code>db_role</code> (string, non-empty) and <code>db_name</code> (string, must match
+			<code>/api/:database</code>).
+		</li>
+		<li>Recommended claim: <code>exp</code> (Unix timestamp) for token expiration.</li>
+	</ul>
+	<p>Minimal payload example:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Important:</strong> asymmetric JWT algorithms (for example <code>RS256</code>/<code>ES256</code>)
+		are not accepted by the current server implementation.</p>
 
 	<div class="warning">
 		<h3>Critical Configuration: Proxy Privileges</h3>
@@ -38,4 +61,10 @@ menu:
 		<pre><code>-- Allow 'pgarachne' to switch to 'demo_user'
 GRANT demo_user TO pgarachne;</code></pre>
 	</div>
+
+	<h3>See also</h3>
+	<ul>
+		<li><a href="../configuration/">Configuration</a></li>
+		<li><a href="../error-codes/">Error Codes</a></li>
+	</ul>
 </section>

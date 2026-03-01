@@ -1,34 +1,153 @@
 (function () {
-	var toggle = document.querySelector('.nav-toggle');
+	var toggle = document.querySelector(".nav-toggle");
 	var body = document.body;
-	var overlay = document.getElementById('toc-overlay');
-	if (!toggle) return;
+	var overlay = document.getElementById("toc-overlay");
 
-	function closeToc() {
-		body.classList.remove('toc-open');
-		toggle.setAttribute('aria-expanded', 'false');
+	if (toggle) {
+		function closeToc() {
+			body.classList.remove("toc-open");
+			toggle.setAttribute("aria-expanded", "false");
+		}
+
+		toggle.addEventListener("click", function () {
+			var isOpen = body.classList.toggle("toc-open");
+			toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+		});
+
+		if (overlay) {
+			overlay.addEventListener("click", closeToc);
+		}
 	}
 
-	toggle.addEventListener('click', function () {
-		var isOpen = body.classList.toggle('toc-open');
-		toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-	});
-
-	if (overlay) {
-		overlay.addEventListener('click', closeToc);
+	function parseJSONScript(id, fallback) {
+		var el = document.getElementById(id);
+		if (!el || !el.textContent) return fallback;
+		try {
+			var parsed = JSON.parse(el.textContent);
+			if (typeof parsed === "string") {
+				var trimmed = parsed.trim();
+				if ((trimmed[0] === "{" && trimmed[trimmed.length - 1] === "}") || (trimmed[0] === "[" && trimmed[trimmed.length - 1] === "]")) {
+					return JSON.parse(parsed);
+				}
+			}
+			return parsed;
+		} catch (err) {
+			return fallback;
+		}
 	}
-})();
 
-document.addEventListener("DOMContentLoaded", function () {
-	// --- QR Code Generation ---
-	const qrContainers = document.querySelectorAll('.qr-code');
+	function addCopyButtons(texts) {
+		var blocks = document.querySelectorAll("pre code");
+		blocks.forEach(function (code) {
+			var pre = code.parentElement;
+			if (!pre || pre.querySelector(".btn-code-copy")) return;
 
-	qrContainers.forEach(container => {
-		const text = container.getAttribute('data-qr-text');
-		if (text) {
-			// Clear placeholder text
+			var btn = document.createElement("button");
+			btn.type = "button";
+			btn.className = "btn-code-copy";
+			btn.textContent = texts.copy || "Copy";
+			btn.setAttribute("aria-label", texts.copy || "Copy");
+			pre.classList.add("code-block-wrap");
+			pre.appendChild(btn);
+
+			btn.addEventListener("click", function () {
+				var text = code.innerText;
+				navigator.clipboard.writeText(text).then(function () {
+					var original = btn.textContent;
+					btn.textContent = texts.copied || "Copied";
+					btn.classList.add("copied");
+					setTimeout(function () {
+						btn.textContent = original;
+						btn.classList.remove("copied");
+					}, 1400);
+				});
+			});
+		});
+	}
+
+	function initSearch(data, texts) {
+		var input = document.getElementById("site-search-input");
+		var results = document.getElementById("site-search-results");
+		if (!input || !results || !Array.isArray(data) || !data.length) return;
+
+		function hide() {
+			results.hidden = true;
+			results.innerHTML = "";
+		}
+
+		function score(item, q) {
+			var t = (item.title || "").toLowerCase();
+			var d = (item.desc || "").toLowerCase();
+			if (t === q) return 100;
+			if (t.indexOf(q) === 0) return 80;
+			if (t.indexOf(q) > -1) return 60;
+			if (d.indexOf(q) > -1) return 30;
+			return 0;
+		}
+
+		input.addEventListener("input", function () {
+			var q = input.value.trim().toLowerCase();
+			if (q.length < 2) {
+				hide();
+				return;
+			}
+
+			var matches = data
+				.map(function (item) {
+					return { item: item, score: score(item, q) };
+				})
+				.filter(function (x) {
+					return x.score > 0;
+				})
+				.sort(function (a, b) {
+					return b.score - a.score;
+				})
+				.slice(0, 8);
+
+			if (!matches.length) {
+				results.hidden = false;
+				results.innerHTML = '<div class="search-empty">' + (texts.no_results || "No results found.") + "</div>";
+				return;
+			}
+
+			results.innerHTML = matches
+				.map(function (m) {
+					var item = m.item;
+					var desc = item.desc || "";
+					return (
+						'<a class="search-item" href="' +
+						item.url +
+						'"><div class="search-item-title">' +
+						item.title +
+						'</div><div class="search-item-desc">' +
+						desc +
+						"</div></a>"
+					);
+				})
+				.join("");
+			results.hidden = false;
+		});
+
+		document.addEventListener("click", function (e) {
+			if (!results.contains(e.target) && e.target !== input) {
+				hide();
+			}
+		});
+
+		input.addEventListener("keydown", function (e) {
+			if (e.key === "Escape") {
+				hide();
+				input.blur();
+			}
+		});
+	}
+
+	function initQRCodes() {
+		var qrContainers = document.querySelectorAll(".qr-code");
+		qrContainers.forEach(function (container) {
+			var text = container.getAttribute("data-qr-text");
+			if (!text || typeof QRCode === "undefined") return;
 			container.innerHTML = "";
-
 			try {
 				new QRCode(container, {
 					text: text,
@@ -36,37 +155,40 @@ document.addEventListener("DOMContentLoaded", function () {
 					height: 128,
 					colorDark: "#000000",
 					colorLight: "#ffffff",
-					correctLevel: QRCode.CorrectLevel.M
+					correctLevel: QRCode.CorrectLevel.M,
 				});
 			} catch (e) {
-				console.error("QR Code Error:", e);
-				container.innerHTML = "Error loading QR";
-			}
-		}
-	});
-
-	// --- Copy to Clipboard ---
-	const copyButtons = document.querySelectorAll('.btn-copy');
-
-	copyButtons.forEach(btn => {
-		btn.addEventListener('click', function () {
-			const textToCopy = this.getAttribute('data-clipboard-text');
-
-			if (textToCopy) {
-				navigator.clipboard.writeText(textToCopy).then(() => {
-					// Feedback
-					const originalText = this.innerText;
-					this.innerText = "Copied!";
-					this.classList.add('copied');
-
-					setTimeout(() => {
-						this.innerText = originalText;
-						this.classList.remove('copied');
-					}, 2000);
-				}).catch(err => {
-					console.error('Failed to copy: ', err);
-				});
+				container.innerHTML = "QR error";
 			}
 		});
+	}
+
+	function initCopyFromDataButtons(texts) {
+		var copyButtons = document.querySelectorAll(".btn-copy");
+		copyButtons.forEach(function (btn) {
+			btn.addEventListener("click", function () {
+				var text = btn.getAttribute("data-clipboard-text");
+				if (!text) return;
+				navigator.clipboard.writeText(text).then(function () {
+					var originalText = btn.innerText;
+					btn.innerText = texts.copied || "Copied";
+					btn.classList.add("copied");
+					setTimeout(function () {
+						btn.innerText = originalText;
+						btn.classList.remove("copied");
+					}, 1200);
+				});
+			});
+		});
+	}
+
+	document.addEventListener("DOMContentLoaded", function () {
+		var texts = parseJSONScript("site-search-texts", {});
+		var searchData = parseJSONScript("site-search-data", []);
+
+		initQRCodes();
+		initCopyFromDataButtons(texts);
+		addCopyButtons(texts);
+		initSearch(searchData, texts);
 	});
-});
+})();

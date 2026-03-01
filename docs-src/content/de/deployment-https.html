@@ -1,5 +1,6 @@
 ---
 title: "Bereitstellung & HTTPS"
+description: "Bereitstellung & HTTPS - PgArachne documentation."
 menu:
   main:
     name: "Bereitstellung & HTTPS"
@@ -45,5 +46,32 @@ example.com {
 			Internet direkt zu Ihrem Laptop, ohne Firewalls zu konfigurieren. Ideal, um Kollegen Ihre Arbeit
 			sofort zu zeigen.</p>
 		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Produktions-Checkliste</h3>
+		<ul>
+			<li>TLS am Reverse Proxy terminieren und <code>X-Forwarded-Proto</code> sowie <code>X-Forwarded-For</code> weiterreichen.</li>
+			<li>In PgArachne <code>TRUSTED_PROXIES</code> auf die Proxy-IP/CIDR-Bereiche setzen.</li>
+			<li>Für SSE-Routen Buffering deaktivieren und ausreichend lange Read-Timeouts setzen.</li>
+			<li>Metriken nur intern exponieren (Standard <code>127.0.0.1:9090</code>) und aus dem Monitoring-Netz scrapen.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Nginx-Hardening-Beispiel (SSE + Forwarded Header)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
 	</div>
 </section>

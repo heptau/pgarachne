@@ -1,0 +1,14 @@
+{{ define "main" }}
+<section class="section-light">
+	<div class="container">
+		<div class="step-box">
+			<h2>{{ i18n "not_found_title" }}</h2>
+			<p>{{ i18n "not_found_desc" }}</p>
+			<div class="download-buttons">
+				<a class="btn-download" href="{{ "/" | relLangURL }}">{{ i18n "not_found_home" }}</a>
+				<a class="btn-download" href="{{ "/" | relLangURL }}installation/">{{ i18n "not_found_install" }}</a>
+			</div>
+		</div>
+	</div>
+</section>
+{{ end }}

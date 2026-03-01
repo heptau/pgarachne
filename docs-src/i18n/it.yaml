@@ -23,3 +23,47 @@
 - id: nav_home
   translation: "Home"
 
+- id: search_label
+  translation: "Ricerca"
+- id: search_placeholder
+  translation: "Cerca nella documentazione..."
+- id: search_no_results
+  translation: "Nessun risultato."
+- id: copy_label
+  translation: "Copia"
+- id: copied_label
+  translation: "Copiato"
+- id: doc_min_read
+  translation: "min di lettura"
+- id: quickstart_title
+  translation: "Avvio rapido"
+- id: quickstart_step_install
+  translation: "Installa PgArachne"
+- id: quickstart_step_configure
+  translation: "Configura l’ambiente"
+- id: quickstart_step_auth
+  translation: "Configura sicurezza e auth"
+- id: quickstart_step_deploy
+  translation: "Distribuisci dietro proxy HTTPS"
+- id: related_docs_title
+  translation: "Documentazione correlata"
+- id: prev_label
+  translation: "Precedente"
+- id: next_label
+  translation: "Successivo"
+- id: not_found_title
+  translation: "Pagina non trovata"
+- id: not_found_desc
+  translation: "La pagina che stai cercando non esiste o è stata spostata."
+- id: not_found_home
+  translation: "Vai alla home"
+- id: not_found_install
+  translation: "Apri installazione"
+- id: link_configuration
+  translation: "Configurazione"
+- id: link_security
+  translation: "Sicurezza"
+- id: link_deployment
+  translation: "Deployment e HTTPS"
+- id: link_metrics
+  translation: "Metriche"

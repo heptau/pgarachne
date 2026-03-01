@@ -53,6 +53,21 @@
 			&lt;td&gt;Erro genérico do servidor (verifique os logs).&lt;/td&gt;
 		&lt;/tr&gt;
 	&lt;/table&gt;
+&lt;div class="tip"&gt;
+		&lt;strong&gt;Comportamento atual:&lt;/strong&gt; as respostas runtime são mapeadas principalmente para status HTTP com campo JSON-RPC &lt;code&gt;message&lt;/code&gt;. O código JSON-RPC customizado &lt;code&gt;-32001&lt;/code&gt; é usado para negação de role/permissão.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Mapeamento de status HTTP&lt;/h3&gt;
+	&lt;table&gt;
+		&lt;tr&gt;&lt;th&gt;HTTP&lt;/th&gt;&lt;th&gt;Mensagem típica&lt;/th&gt;&lt;th&gt;Quando acontece&lt;/th&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;400&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Invalid JSON request / Invalid function name&lt;/td&gt;&lt;td&gt;Payload inválido ou formato de método incorreto.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;401&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Authorization header is missing / Invalid or expired token&lt;/td&gt;&lt;td&gt;Autenticação ausente ou inválida.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;403&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Permission denied for the specified role&lt;/td&gt;&lt;td&gt;&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; falhou (&lt;code&gt;-32001&lt;/code&gt;).&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;404&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function does not exist&lt;/td&gt;&lt;td&gt;Método alvo não existe.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;429&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Too many login attempts&lt;/td&gt;&lt;td&gt;Rate limit de login excedido.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;500&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function call failed / Transaction commit failed&lt;/td&gt;&lt;td&gt;Falha na execução ou no commit.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;503&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Database connection failed / Database unavailable&lt;/td&gt;&lt;td&gt;Banco de dados ou listener indisponível temporariamente.&lt;/td&gt;&lt;/tr&gt;
+	&lt;/table&gt;
 &lt;/section&gt;</description></item><item><title>Comparação: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/pt/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/comparison/</guid><description>&lt;section id="comparison"&gt;
 	&lt;h2&gt;Comparação: PgArachne vs. PostgREST&lt;/h2&gt;
 	&lt;div class="comparison-table-wrapper"&gt;
@@ -110,7 +125,7 @@
 				&lt;/tr&gt;
 				&lt;tr&gt;
 					&lt;td&gt;&lt;strong&gt;Autenticação&lt;/strong&gt;&lt;/td&gt;
-					&lt;td&gt;JWT e Chaves de API. Suporta nativamente ambos os mundos.&lt;/td&gt;
+					&lt;td&gt;JWT e tokens de API. Suporta nativamente ambos os mundos.&lt;/td&gt;
 					&lt;td&gt;Principalmente JWT.&lt;/td&gt;
 				&lt;/tr&gt;
 				&lt;tr&gt;
@@ -205,22 +220,22 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;h3&gt;2. Login via API&lt;/h3&gt;
 	&lt;p&gt;Use o método JSON-RPC &lt;code&gt;login&lt;/code&gt; para obter um token JWT:&lt;/p&gt;</description></item><item><title>Explorador PgArachne</title><link>https://www.pgarachne.com/pt/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 	&lt;h2&gt;Explorador PgArachne&lt;/h2&gt;
-	&lt;p&gt;O &lt;strong&gt;Explorer&lt;/strong&gt; é uma interface web poderosa incluída no diretório `tools/`. Não é apenas
+	&lt;p&gt;O &lt;strong&gt;Explorer&lt;/strong&gt; é uma interface web poderosa incluída no diretório &lt;code&gt;tools/&lt;/code&gt;. Não é apenas
 		documentação; é uma &lt;strong&gt;aplicação de demonstração&lt;/strong&gt; totalmente funcional construída usando
 		HTML/JS que se comunica com o banco de dados exclusivamente via PgArachne.&lt;/p&gt;
 
 	&lt;p&gt;&lt;strong&gt;O que ele pode fazer?&lt;/strong&gt;&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Inspecionar API:&lt;/strong&gt; Ele lê a função `capabilities` para exibir todos os endpoints
+		&lt;li&gt;&lt;strong&gt;Inspecionar API:&lt;/strong&gt; Ele lê a função &lt;code&gt;capabilities&lt;/code&gt; para exibir todos os endpoints
 			disponíveis e seus parâmetros.&lt;/li&gt;
 		&lt;li&gt;&lt;strong&gt;Testes ao Vivo:&lt;/strong&gt; Você pode executar funções diretamente do navegador.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados `--- PARAMS
-			---`) em documentação legível.&lt;/li&gt;
+		&lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados &lt;code&gt;--- PARAMS
+			---&lt;/code&gt;) em documentação legível.&lt;/li&gt;
 	&lt;/ul&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Como habilitá-lo:&lt;/strong&gt; Defina a variável de ambiente `STATIC_FILES_PATH` para apontar para a
-		pasta `tools/pgarachne-explorer` no seu disco. Em seguida, visite &lt;code&gt;http://localhost:8080&lt;/code&gt;.
+		&lt;strong&gt;Como habilitá-lo:&lt;/strong&gt; Defina a variável de ambiente &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; para apontar para a
+		pasta &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; no seu disco. Em seguida, visite &lt;code&gt;http://localhost:8080&lt;/code&gt;.
 	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Instalação</title><link>https://www.pgarachne.com/pt/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Instalação&lt;/h2&gt;
@@ -306,9 +321,9 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Se o payload for texto, ele é encapsulado como string em &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 &lt;/section&gt;</description></item><item><title>Novidades</title><link>https://www.pgarachne.com/pt/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novidades&lt;/h2&gt;
-	&lt;p class=\"whats-new-subtitle\"&gt;v1.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;Endpoint unificado: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (método no body JSON-RPC).&lt;/li&gt;
+		&lt;li&gt;Endpoint unificado: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (método no corpo JSON-RPC).&lt;/li&gt;
 		&lt;li&gt;Notificações em tempo real via &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
 		&lt;li&gt;Métricas Prometheus para HTTP, auth, JSON-RPC e SSE.&lt;/li&gt;
 	&lt;/ul&gt;

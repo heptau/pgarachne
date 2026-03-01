@@ -1,5 +1,6 @@
 ---
 title: "Chybové kódy"
+description: "Chybové kódy - PgArachne documentation."
 menu:
   main:
     name: "Chybové kódy"
@@ -42,4 +43,24 @@ menu:
 			<td>Obecná chyba serveru (zkontrolujte logy).</td>
 		</tr>
 	</table>
+<div class="tip">
+		<strong>Aktuální chování:</strong> odpovědi runtime jsou primárně mapované na HTTP statusy s JSON-RPC polem <code>message</code>. Vlastní JSON-RPC kód <code>-32001</code> se používá při odmítnutí role/oprávnění.
+	</div>
+
+	<h3>Mapování HTTP stavů</h3>
+	<table>
+		<tr><th>HTTP</th><th>Typická zpráva</th><th>Kdy nastává</th></tr>
+		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Neplatný payload nebo formát metody.</td></tr>
+		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Chybějící nebo neplatná autentizace.</td></tr>
+		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Selhalo <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist</td><td>Volaná metoda neexistuje.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Překročen login rate limit.</td></tr>
+		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Selhalo provedení nebo commit.</td></tr>
+		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Databáze nebo listener dočasně nedostupné.</td></tr>
+	</table>
+	<h3>Viz také</h3>
+	<ul>
+		<li><a href="../security-roles/">Bezpečnost a autentizace</a></li>
+		<li><a href="../configuration/">Konfigurace</a></li>
+	</ul>
 </section>

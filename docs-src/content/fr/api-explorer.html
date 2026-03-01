@@ -1,5 +1,6 @@
 ---
 title: "Explorateur PgArachne"
+description: "Explorateur PgArachne - PgArachne documentation."
 menu:
   main:
     name: "Explorateur PgArachne"
@@ -8,22 +9,22 @@ menu:
 
 <section id="explorer">
 	<h2>Explorateur PgArachne</h2>
-	<p>L’<strong>Explorer</strong> est une interface web puissante incluse dans le répertoire `tools/`. Ce n’est
+	<p>L’<strong>Explorer</strong> est une interface web puissante incluse dans le répertoire <code>tools/</code>. Ce n’est
 		pas seulement de la documentation ; c’est une <strong>application de démonstration</strong> entièrement
 		fonctionnelle construite en HTML/JS qui communique avec la base de données exclusivement via PgArachne.</p>
 
 	<p><strong>Que peut-il faire ?</strong></p>
 	<ul>
-		<li><strong>Inspecter l’API :</strong> Il lit la fonction `capabilities` pour afficher tous les endpoints
+		<li><strong>Inspecter l’API :</strong> Il lit la fonction <code>capabilities</code> pour afficher tous les endpoints
 			disponibles et leurs paramètres.</li>
 		<li><strong>Tests en direct :</strong> Vous pouvez exécuter des fonctions directement depuis
 			le navigateur.</li>
-		<li><strong>Auto-Documentation :</strong> Il rend les commentaires SQL (y compris les métadonnées `---
-			PARAMS ---`) en documentation lisible.</li>
+		<li><strong>Auto-Documentation :</strong> Il rend les commentaires SQL (y compris les métadonnées <code>---
+			PARAMS ---</code>) en documentation lisible.</li>
 	</ul>
 
 	<div class="tip">
-		<strong>Comment l’activer :</strong> Définissez la variable d’environnement `STATIC_FILES_PATH`
-		pour pointer vers le dossier `tools/pgarachne-explorer` sur votre disque. Puis visitez <code>http://localhost:8080</code>.
+		<strong>Comment l’activer :</strong> Définissez la variable d’environnement <code>STATIC_FILES_PATH</code>
+		pour pointer vers le dossier <code>tools/pgarachne-explorer</code> sur votre disque. Puis visitez <code>http://localhost:8080</code>.
 	</div>
 </section>

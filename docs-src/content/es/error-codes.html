@@ -1,5 +1,6 @@
 ---
 title: "Códigos de Error"
+description: "Códigos de Error - PgArachne documentation."
 menu:
   main:
     name: "Códigos de Error"
@@ -42,4 +43,24 @@ menu:
 			<td>Error genérico del servidor (revisar logs).</td>
 		</tr>
 	</table>
+<div class="tip">
+		<strong>Comportamiento actual:</strong> las respuestas runtime se mapean principalmente a códigos HTTP con campo JSON-RPC <code>message</code>. El código JSON-RPC personalizado <code>-32001</code> se usa para denegación de rol/permisos.
+	</div>
+
+	<h3>Mapa de estados HTTP</h3>
+	<table>
+		<tr><th>HTTP</th><th>Mensaje típico</th><th>Cuándo ocurre</th></tr>
+		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Payload inválido o formato de método incorrecto.</td></tr>
+		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Autenticación ausente o inválida.</td></tr>
+		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Falló <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist</td><td>El método no existe.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Se excedió el rate limit de login.</td></tr>
+		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Falló la ejecución o el commit.</td></tr>
+		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Base de datos o listener no disponible temporalmente.</td></tr>
+	</table>
+	<h3>Ver también</h3>
+	<ul>
+		<li><a href="../security-roles/">Seguridad y Autenticación</a></li>
+		<li><a href="../configuration/">Configuración</a></li>
+	</ul>
 </section>

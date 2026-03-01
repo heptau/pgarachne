@@ -23,3 +23,47 @@
 - id: nav_home
   translation: "Úvod"
 
+- id: search_label
+  translation: "Hledání"
+- id: search_placeholder
+  translation: "Hledat v dokumentaci..."
+- id: search_no_results
+  translation: "Žádné výsledky."
+- id: copy_label
+  translation: "Kopírovat"
+- id: copied_label
+  translation: "Zkopírováno"
+- id: doc_min_read
+  translation: "min čtení"
+- id: quickstart_title
+  translation: "Rychlý start"
+- id: quickstart_step_install
+  translation: "Nainstalujte PgArachne"
+- id: quickstart_step_configure
+  translation: "Nastavte prostředí"
+- id: quickstart_step_auth
+  translation: "Nastavte bezpečnost a autentizaci"
+- id: quickstart_step_deploy
+  translation: "Nasaďte za HTTPS proxy"
+- id: related_docs_title
+  translation: "Související dokumentace"
+- id: prev_label
+  translation: "Předchozí"
+- id: next_label
+  translation: "Další"
+- id: not_found_title
+  translation: "Stránka nebyla nalezena"
+- id: not_found_desc
+  translation: "Stránka, kterou hledáte, neexistuje nebo byla přesunuta."
+- id: not_found_home
+  translation: "Přejít na úvod"
+- id: not_found_install
+  translation: "Otevřít instalaci"
+- id: link_configuration
+  translation: "Konfigurace"
+- id: link_security
+  translation: "Bezpečnost"
+- id: link_deployment
+  translation: "Nasazení a HTTPS"
+- id: link_metrics
+  translation: "Metriky"

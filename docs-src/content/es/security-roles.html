@@ -1,5 +1,6 @@
 ---
 title: "Seguridad y Autenticación"
+description: "Seguridad y Autenticación - PgArachne documentation."
 menu:
   main:
     name: "Seguridad y Autenticación"
@@ -21,13 +22,35 @@ menu:
 		durante la duración de la petición.</p>
 
 	<h3>2. Cuentas de Servicio (Tokens de API)</h3>
-	<p>Para sistemas automatizados o scripts, puedes usar claves API de larga duración.</p>
+	<p>Para sistemas automatizados o scripts, puedes usar tokens de API de larga duración.</p>
 	<ul>
 		<li>Los tokens se almacenan en la tabla <code>pgarachne.api_tokens</code>.</li>
 		<li>Cada token se asigna a un usuario/rol de base de datos específico.</li>
 		<li>Envía el token a través del encabezado <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
 	<p><em>Crear tokens API requiere <code>pgarachne_admin</code>. Usa <code>pgarachne.add_api_token(...)</code> con un rol que sea miembro de <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Proveedor de identidad externo (JWT propio)</h3>
+	<p>Si autenticas usuarios fuera de PgArachne (por ejemplo con un servicio de autenticación externo), puedes
+		emitir JWT allí y enviarlos directamente a PgArachne.</p>
+	<ul>
+		<li>Formato del header: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Firma: solo HMAC (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) con el mismo
+			<code>JWT_SECRET</code> configurado en PgArachne.
+		</li>
+		<li>Claims obligatorios: <code>db_role</code> (string, no vacío) y <code>db_name</code> (string, debe
+			coincidir con <code>/api/:database</code>).
+		</li>
+		<li>Claim recomendado: <code>exp</code> (timestamp Unix) para expiración del token.</li>
+	</ul>
+	<p>Ejemplo mínimo de payload:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Importante:</strong> los algoritmos JWT asimétricos (por ejemplo <code>RS256</code>/<code>ES256</code>)
+		no son aceptados por la implementación actual del servidor.</p>
 
 	<div class="warning">
 		<h3>Configuración Crítica: Privilegios del Proxy</h3>
@@ -40,4 +63,9 @@ menu:
 		<pre><code>-- Permitir a 'pgarachne' cambiar a 'demo_user'
 GRANT demo_user TO pgarachne;</code></pre>
 	</div>
+	<h3>Ver también</h3>
+	<ul>
+		<li><a href="../configuration/">Configuración</a></li>
+		<li><a href="../error-codes/">Códigos de Error</a></li>
+	</ul>
 </section>

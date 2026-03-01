@@ -1,5 +1,6 @@
 ---
 title: "Konfiguration"
+description: "Konfiguration - PgArachne documentation."
 menu:
   main:
     name: "Konfiguration"
@@ -46,8 +47,17 @@ DB_PORT=5432
 DB_USER=pgarachne
 JWT_SECRET=change_me_to_something_secure</code></pre>
 
+	<h3>Schnelle Validierungs-Checkliste</h3>
+	<ul>
+		<li><code>JWT_SECRET</code> ist lang, zufällig und wird nicht zwischen Umgebungen geteilt.</li>
+		<li><code>DB_USER</code> kann nur auf erwartete Rollen wechseln (Role-Membership-Grants prüfen).</li>
+		<li><code>TRUSTED_PROXIES</code> ist gesetzt, wenn PgArachne hinter einem Reverse Proxy läuft.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> ist für öffentlich erreichbare Deployments aktiviert.</li>
+		<li><code>METRICS_LISTEN_ADDR</code> ist nicht öffentlich (z. B. <code>127.0.0.1:9090</code>).</li>
+	</ul>
+
 	<h3>Konfigurationsreferenz</h3>
-	<table>
+	<table class="config-table">
 		<thead>
 			<tr>
 				<th style="width: 30%;">Variable</th>
@@ -61,39 +71,39 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">
 					Datenbank-Verbindung</td>
 			</tr>
-			<tr>
+			<tr class="required-row">
 				<td><code>DB_HOST</code></td>
-				<td>Ja</td>
+				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
 				<td>PostgreSQL-Serveradresse (z. B. <code>localhost</code>).</td>
 			</tr>
-			<tr>
+			<tr class="required-row">
 				<td><code>DB_PORT</code></td>
-				<td>Ja</td>
+				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
 					<td>Datenbankport.</td>
 			</tr>
-			<tr>
+			<tr class="required-row">
 				<td><code>DB_USER</code></td>
-				<td>Ja</td>
+				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
 				<td>Der Datenbankbenutzer, mit dem sich PgArachne verbindet.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>PostgreSQL-SSL-Modus. Standard: <code>disable</code>.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Pfad zum CA-Root-Zertifikat (PEM).</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLCERT</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Pfad zum Client-Zertifikat (PEM).</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLKEY</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Pfad zum privaten Client-Schlüssel (PEM).</td>
 			</tr>
 
@@ -104,23 +114,23 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Port, auf dem gelauscht wird. Standard: <code>8080</code>.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Pfad zur Daemon-PID-Datei für <code>-start</code>/<code>-stop</code>. Standard: User-Cache-Verzeichnis (Fallback: Temp-Verzeichnis).</td>
 			</tr>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>CORS-Einstellungen. Kommagetrennte Liste zulässiger Domains (z. B. <code>https://meineapp.de</code>).
 					Standard: <code>*</code>.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Absoluter Pfad zum Bereitstellen statischer Dateien (Explorer/Frontend).</td>
 			</tr>
 
@@ -129,24 +139,24 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Sicherheit (JWT)
 				</td>
 			</tr>
-			<tr>
+			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
-				<td>Ja</td>
+				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
 				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Gültigkeit der Sitzung in Stunden. Standard: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Login-Versuche pro Zeitfenster. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Dauer des Zeitfensters. Standard: <code>1m</code>.</td>
 			</tr>
 			<tr>
@@ -154,52 +164,52 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Vertrauenswürdige Proxy-IPs/CIDRs für <code>X-Forwarded-For</code>. Kommagetrennt. Wenn leer, werden Forwarded-Header ignoriert und die Client-IP aus der direkten Verbindung übernommen.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Request-Body-Größe in Bytes. Standard: <code>2097152</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Dedizierten Metrics-Endpunkt aktivieren. Standard: <code>true</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_LISTEN_ADDR</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Adresse des Metrics-Listeners (<code>host:port</code>). Standard: <code>127.0.0.1:9090</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_MAX_CHANNELS</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Anzahl von Kanälen pro SSE-Verbindung. Standard: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_MAX_CLIENTS</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Anzahl gleichzeitiger SSE-Clients pro Datenbank. Standard: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_CLIENT_BUFFER</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>SSE-Buffer pro Client (Anzahl Nachrichten). Standard: <code>64</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_SEND_TIMEOUT</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Wartezeit beim Senden an langsame Clients. Standard: <code>2s</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_HEARTBEAT</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Heartbeat-Intervall für SSE-Verbindungen. Standard: <code>20s</code>.</td>
 			</tr>
 			<tr>
 				<td><code>SSE_IDLE_TIMEOUT</code></td>
-				<td>No</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Timeout bei Inaktivität ohne Benachrichtigungen. Standard: <code>90s</code>.</td>
 			</tr>
 
@@ -209,18 +219,24 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			</tr>
 			<tr>
 				<td><code>LOG_LEVEL</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Ausführlichkeit: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
 					Standard: <code>INFO</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOG_OUTPUT</code></td>
-				<td>Nein</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Wohin Logs geschrieben werden: <code>stdout</code> oder Dateipfad.</td>
 			</tr>
 		</tbody>
 	</table>
+	<p class="config-legend"><span class="req-flag req-yes" aria-hidden="true">✓</span> Erforderlich &nbsp; <span class="req-flag req-no" aria-hidden="true">○</span> Optional</p>
 	<p><strong>Sicherheitsverhalten:</strong> Requests ohne gültigen <code>Authorization</code>-Header werden abgelehnt, bevor eine Datenbankverbindung geöffnet wird.</p>
 	<p>Starten Sie den Server:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
+	<h3>Siehe auch</h3>
+	<ul>
+		<li><a href="../security-roles/">Sicherheit & Authentifizierung</a></li>
+		<li><a href="../error-codes/">Fehlercodes</a></li>
+	</ul>
 </section>

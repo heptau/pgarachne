@@ -74,6 +74,21 @@
 			&lt;td&gt;Errore generico del server (controlla i log).&lt;/td&gt;
 		&lt;/tr&gt;
 	&lt;/table&gt;
+&lt;div class="tip"&gt;
+		&lt;strong&gt;Comportamento attuale:&lt;/strong&gt; le risposte runtime sono mappate principalmente su status HTTP con campo JSON-RPC &lt;code&gt;message&lt;/code&gt;. Il codice JSON-RPC personalizzato &lt;code&gt;-32001&lt;/code&gt; viene usato per rifiuto di ruolo/permessi.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Mappatura degli stati HTTP&lt;/h3&gt;
+	&lt;table&gt;
+		&lt;tr&gt;&lt;th&gt;HTTP&lt;/th&gt;&lt;th&gt;Messaggio tipico&lt;/th&gt;&lt;th&gt;Quando accade&lt;/th&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;400&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Invalid JSON request / Invalid function name&lt;/td&gt;&lt;td&gt;Payload non valido o formato metodo errato.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;401&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Authorization header is missing / Invalid or expired token&lt;/td&gt;&lt;td&gt;Autenticazione mancante o non valida.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;403&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Permission denied for the specified role&lt;/td&gt;&lt;td&gt;&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; fallito (&lt;code&gt;-32001&lt;/code&gt;).&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;404&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function does not exist&lt;/td&gt;&lt;td&gt;Il metodo richiesto non esiste.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;429&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Too many login attempts&lt;/td&gt;&lt;td&gt;Rate limit di login superato.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;500&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function call failed / Transaction commit failed&lt;/td&gt;&lt;td&gt;Esecuzione o commit falliti.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;503&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Database connection failed / Database unavailable&lt;/td&gt;&lt;td&gt;Database o listener temporaneamente non disponibili.&lt;/td&gt;&lt;/tr&gt;
+	&lt;/table&gt;
 &lt;/section&gt;</description></item><item><title>Configurazione</title><link>https://www.pgarachne.com/it/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Configurazione&lt;/h2&gt;
 	&lt;p&gt;PgArachne carica la configurazione dalle variabili d’ambiente o da un file.&lt;/p&gt;
@@ -163,7 +178,7 @@
 				&lt;/tr&gt;
 				&lt;tr&gt;
 					&lt;td&gt;&lt;strong&gt;Autenticazione&lt;/strong&gt;&lt;/td&gt;
-					&lt;td&gt;JWT e Chiavi API. Supporta nativamente entrambi i mondi.&lt;/td&gt;
+					&lt;td&gt;JWT e token API. Supporta nativamente entrambi i mondi.&lt;/td&gt;
 					&lt;td&gt;Principalmente JWT.&lt;/td&gt;
 				&lt;/tr&gt;
 				&lt;tr&gt;
@@ -306,7 +321,7 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Se il payload è testo, viene incapsulato come stringa in &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 &lt;/section&gt;</description></item><item><title>Novità</title><link>https://www.pgarachne.com/it/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novità&lt;/h2&gt;
-	&lt;p class=\"whats-new-subtitle\"&gt;v1.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;Endpoint unificato: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (metodo nel body JSON-RPC).&lt;/li&gt;
 		&lt;li&gt;Notifiche in tempo reale via &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
@@ -314,22 +329,22 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/it/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 	&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
-	&lt;p&gt;L’&lt;strong&gt;Explorer&lt;/strong&gt; è una potente interfaccia web inclusa nella directory `tools/`. Non è solo
-		documentazione; è una **applicazione demo** completamente funzionale costruita usando HTML/JS
+	&lt;p&gt;L’&lt;strong&gt;Explorer&lt;/strong&gt; è una potente interfaccia web inclusa nella directory &lt;code&gt;tools/&lt;/code&gt;. Non è solo
+		documentazione; è una &lt;strong&gt;applicazione demo&lt;/strong&gt; completamente funzionale costruita usando HTML/JS
 		che comunica con il database esclusivamente tramite PgArachne.&lt;/p&gt;
 
 	&lt;p&gt;&lt;strong&gt;Cosa può fare?&lt;/strong&gt;&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Ispezionare API:&lt;/strong&gt; Legge la funzione `capabilities` per mostrare tutti gli endpoint
+		&lt;li&gt;&lt;strong&gt;Ispezionare API:&lt;/strong&gt; Legge la funzione &lt;code&gt;capabilities&lt;/code&gt; per mostrare tutti gli endpoint
 			disponibili e i loro parametri.&lt;/li&gt;
 		&lt;li&gt;&lt;strong&gt;Test dal Vivo:&lt;/strong&gt; Puoi eseguire le funzioni direttamente dal browser.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Auto-Documentazione:&lt;/strong&gt; Renderizza i commenti SQL (inclusi i metadati `--- PARAMS ---`)
+		&lt;li&gt;&lt;strong&gt;Auto-Documentazione:&lt;/strong&gt; Renderizza i commenti SQL (inclusi i metadati &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
 			in una documentazione leggibile.&lt;/li&gt;
 	&lt;/ul&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Come abilitarlo:&lt;/strong&gt; Imposta la variabile d’ambiente `STATIC_FILES_PATH` in modo che punti
-		alla cartella `tools/pgarachne-explorer` sul tuo disco. Poi visita &lt;code&gt;http://localhost:8080&lt;/code&gt;.
+		&lt;strong&gt;Come abilitarlo:&lt;/strong&gt; Imposta la variabile d’ambiente &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; in modo che punti
+		alla cartella &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; sul tuo disco. Poi visita &lt;code&gt;http://localhost:8080&lt;/code&gt;.
 	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Sicurezza e Autenticazione</title><link>https://www.pgarachne.com/it/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Sicurezza e Autenticazione&lt;/h2&gt;

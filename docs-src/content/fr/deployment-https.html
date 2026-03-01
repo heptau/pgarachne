@@ -1,5 +1,6 @@
 ---
 title: "Déploiement & HTTPS"
+description: "Déploiement & HTTPS - PgArachne documentation."
 menu:
   main:
     name: "Déploiement & HTTPS"
@@ -44,5 +45,32 @@ example.com {
 			public directement vers votre ordinateur portable sans configurer de pare-feu. Idéal pour montrer
 			votre travail à des collègues instantanément.</p>
 		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Checklist de production</h3>
+		<ul>
+			<li>Terminez TLS sur le reverse proxy et transférez <code>X-Forwarded-Proto</code> et <code>X-Forwarded-For</code>.</li>
+			<li>Définissez <code>TRUSTED_PROXIES</code> dans PgArachne avec les plages IP/CIDR de vos proxies.</li>
+			<li>Désactivez le buffering sur les routes SSE et utilisez des read timeouts assez longs pour le streaming.</li>
+			<li>Exposez les métriques uniquement en interne (défaut <code>127.0.0.1:9090</code>) et scrapez depuis le réseau de monitoring.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Exemple de hardening Nginx (SSE + headers forwarded)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
 	</div>
 </section>

@@ -1,5 +1,6 @@
 ---
 title: "Sécurité & Authentification"
+description: "Sécurité & Authentification - PgArachne documentation."
 menu:
   main:
     name: "Sécurité & Authentification"
@@ -20,13 +21,35 @@ menu:
 		pour la durée de la requête.</p>
 
 	<h3>2. Comptes de service (Tokens API)</h3>
-	<p>Pour les systèmes automatisés ou les scripts, vous pouvez utiliser des clés API longue durée.</p>
+	<p>Pour les systèmes automatisés ou les scripts, vous pouvez utiliser des tokens API longue durée.</p>
 	<ul>
 		<li>Les jetons sont stockés dans la table <code>pgarachne.api_tokens</code>.</li>
 		<li>Chaque jeton est mappé à un utilisateur/rôle de base de données spécifique.</li>
 		<li>Envoyez le jeton via l’en-tête <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
 	<p><em>La création de tokens API nécessite <code>pgarachne_admin</code>. Utilisez <code>pgarachne.add_api_token(...)</code> avec un rôle membre de <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Fournisseur d’identité externe (JWT personnalisé)</h3>
+	<p>Si vous authentifiez les utilisateurs en dehors de PgArachne (par exemple via un service d’authentification
+		externe), vous pouvez émettre les JWT dans ce service et les envoyer directement à PgArachne.</p>
+	<ul>
+		<li>Format de l’en-tête : <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Signature : HMAC uniquement (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) avec le même
+			<code>JWT_SECRET</code> que celui configuré dans PgArachne.
+		</li>
+		<li>Claims requis : <code>db_role</code> (chaîne non vide) et <code>db_name</code> (chaîne qui doit
+			correspondre à <code>/api/:database</code>).
+		</li>
+		<li>Claim recommandé : <code>exp</code> (timestamp Unix) pour l’expiration du token.</li>
+	</ul>
+	<p>Exemple minimal de payload :</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Important :</strong> les algorithmes JWT asymétriques (par exemple <code>RS256</code>/<code>ES256</code>)
+		ne sont pas acceptés par l’implémentation actuelle du serveur.</p>
 
 	<div class="warning">
 		<h3>Configuration critique : Privilèges Proxy</h3>
@@ -39,4 +62,9 @@ menu:
 		<pre><code>-- Autoriser 'pgarachne' à basculer vers 'demo_user'
 GRANT demo_user TO pgarachne;</code></pre>
 	</div>
+	<h3>Voir aussi</h3>
+	<ul>
+		<li><a href="../configuration/">Configuration</a></li>
+		<li><a href="../error-codes/">Codes d’erreur</a></li>
+	</ul>
 </section>

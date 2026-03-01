@@ -1,5 +1,6 @@
 ---
 title: "Bezpečnost a autentizace"
+description: "Bezpečnost a autentizace - PgArachne documentation."
 menu:
   main:
     name: "Bezpečnost a autentizace"
@@ -19,13 +20,35 @@ menu:
 		aktivní roli na tohoto uživatele po dobu trvání požadavku.</p>
 
 	<h3>2. Služby (API tokeny)</h3>
-	<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API klíče.</p>
+	<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API tokeny.</p>
 	<ul>
 		<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
 		<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
 		<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
-	<p><em>Vytváření API tokenů vyžaduje <code>pgarachne_admin</code>. použijte <code>pgarachne.add_api_token(...)</code> s rolí, která je členem <code>pgarachne_admin</code>.</em></p>
+	<p><em>Vytváření API tokenů vyžaduje <code>pgarachne_admin</code>. Použijte <code>pgarachne.add_api_token(...)</code> s rolí, která je členem <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Externí identity provider (vlastní JWT)</h3>
+	<p>Pokud uživatele autentizujete mimo PgArachne (například v externí autentizační službě), můžete JWT
+		vydávat tam a posílat ho přímo do PgArachne.</p>
+	<ul>
+		<li>Formát hlavičky: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Podepisování: pouze HMAC (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) se stejným
+			<code>JWT_SECRET</code>, jaký má PgArachne.
+		</li>
+		<li>Povinné claimy: <code>db_role</code> (string, nesmí být prázdný) a <code>db_name</code> (string, musí
+			odpovídat <code>/api/:database</code>).
+		</li>
+		<li>Doporučený claim: <code>exp</code> (Unix timestamp) pro expiraci tokenu.</li>
+	</ul>
+	<p>Minimalní příklad payloadu:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Důležité:</strong> asymetrické JWT algoritmy (např. <code>RS256</code>/<code>ES256</code>) aktuální
+		implementace serveru nepřijímá.</p>
 
 	<div class="warning">
 		<h3>Kritická konfigurace: Oprávnění proxy</h3>
@@ -38,4 +61,9 @@ menu:
 		<pre><code>-- Povolit 'pgarachne' přepnout se na 'demo_user'
 GRANT demo_user TO pgarachne;</code></pre>
 	</div>
+	<h3>Viz také</h3>
+	<ul>
+		<li><a href="../configuration/">Konfigurace</a></li>
+		<li><a href="../error-codes/">Chybové kódy</a></li>
+	</ul>
 </section>

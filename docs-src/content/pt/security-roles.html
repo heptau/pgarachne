@@ -1,5 +1,6 @@
 ---
 title: "Segurança e Autenticação"
+description: "Segurança e Autenticação - PgArachne documentation."
 menu:
   main:
     name: "Segurança e Autenticação"
@@ -26,6 +27,28 @@ menu:
 		<li>Envie o token através do cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
 	<p><em>A criação de tokens de API requer <code>pgarachne_admin</code>. Use <code>pgarachne.add_api_token(...)</code> com um papel membro de <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Provedor de identidade externo (JWT próprio)</h3>
+	<p>Se você autentica usuários fora do PgArachne (por exemplo, em um serviço de autenticação externo), pode
+		emitir os JWTs nesse serviço e enviá-los diretamente ao PgArachne.</p>
+	<ul>
+		<li>Formato do cabeçalho: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Assinatura: apenas HMAC (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) com o mesmo
+			<code>JWT_SECRET</code> configurado no PgArachne.
+		</li>
+		<li>Claims obrigatórios: <code>db_role</code> (string não vazia) e <code>db_name</code> (string que deve
+			corresponder a <code>/api/:database</code>).
+		</li>
+		<li>Claim recomendado: <code>exp</code> (timestamp Unix) para expiração do token.</li>
+	</ul>
+	<p>Exemplo mínimo de payload:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Importante:</strong> algoritmos JWT assimétricos (por exemplo <code>RS256</code>/<code>ES256</code>)
+		não são aceitos pela implementação atual do servidor.</p>
 
 	<div class="warning">
 		<h3>Configuração Crítica: Privilégios do Proxy</h3>

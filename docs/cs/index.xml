@@ -44,6 +44,26 @@
 			&lt;td&gt;Obecná chyba serveru (zkontrolujte logy).&lt;/td&gt;
 		&lt;/tr&gt;
 	&lt;/table&gt;
+&lt;div class="tip"&gt;
+		&lt;strong&gt;Aktuální chování:&lt;/strong&gt; odpovědi runtime jsou primárně mapované na HTTP statusy s JSON-RPC polem &lt;code&gt;message&lt;/code&gt;. Vlastní JSON-RPC kód &lt;code&gt;-32001&lt;/code&gt; se používá při odmítnutí role/oprávnění.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Mapování HTTP stavů&lt;/h3&gt;
+	&lt;table&gt;
+		&lt;tr&gt;&lt;th&gt;HTTP&lt;/th&gt;&lt;th&gt;Typická zpráva&lt;/th&gt;&lt;th&gt;Kdy nastává&lt;/th&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;400&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Invalid JSON request / Invalid function name&lt;/td&gt;&lt;td&gt;Neplatný payload nebo formát metody.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;401&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Authorization header is missing / Invalid or expired token&lt;/td&gt;&lt;td&gt;Chybějící nebo neplatná autentizace.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;403&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Permission denied for the specified role&lt;/td&gt;&lt;td&gt;Selhalo &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; (&lt;code&gt;-32001&lt;/code&gt;).&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;404&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function does not exist&lt;/td&gt;&lt;td&gt;Volaná metoda neexistuje.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;429&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Too many login attempts&lt;/td&gt;&lt;td&gt;Překročen login rate limit.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;500&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function call failed / Transaction commit failed&lt;/td&gt;&lt;td&gt;Selhalo provedení nebo commit.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;503&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Database connection failed / Database unavailable&lt;/td&gt;&lt;td&gt;Databáze nebo listener dočasně nedostupné.&lt;/td&gt;&lt;/tr&gt;
+	&lt;/table&gt;
+	&lt;h3&gt;Viz také&lt;/h3&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;a href="../security-roles/"&gt;Bezpečnost a autentizace&lt;/a&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;a href="../configuration/"&gt;Konfigurace&lt;/a&gt;&lt;/li&gt;
+	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>Instalace</title><link>https://www.pgarachne.com/cs/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Instalace&lt;/h2&gt;
 
@@ -175,7 +195,7 @@ example.com {
 		&lt;h3&gt;Možnost B: Nginx&lt;/h3&gt;
 		&lt;p&gt;&lt;strong&gt;Nejlepší pro:&lt;/strong&gt; Enterprise prostředí, komplexní směrování.&lt;/p&gt;</description></item><item><title>Novinky</title><link>https://www.pgarachne.com/cs/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novinky&lt;/h2&gt;
-	&lt;p class=\"whats-new-subtitle\"&gt;v1.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.1&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;Sjednocený endpoint: &lt;code&gt;POST /api/&amp;lt;db&amp;gt;&lt;/code&gt; (method v JSON-RPC body).&lt;/li&gt;
 		&lt;li&gt;Real-time notifikace přes &lt;code&gt;GET /sse/&amp;lt;db&amp;gt;?channels=...&lt;/code&gt;.&lt;/li&gt;
@@ -242,22 +262,22 @@ example.com {
 			&lt;h4&gt;Bankovní převod&lt;/h4&gt;
 			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Průzkumník API (Explorer)</title><link>https://www.pgarachne.com/cs/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 	&lt;h2&gt;Průzkumník API (Explorer)&lt;/h2&gt;
-	&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce `tools/`. Nejedná se
+	&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce &lt;code&gt;tools/&lt;/code&gt;. Nejedná se
 		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
 		která komunikuje s databází výhradně prostřednictvím PgArachne.&lt;/p&gt;
 
 	&lt;p&gt;&lt;strong&gt;Co umí?&lt;/strong&gt;&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci `capabilities` a zobrazuje všechny dostupné
+		&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci &lt;code&gt;capabilities&lt;/code&gt; a zobrazuje všechny dostupné
 			endpointy a jejich parametry.&lt;/li&gt;
 		&lt;li&gt;&lt;strong&gt;Živé testování:&lt;/strong&gt; Funkce můžete spouštět přímo z prohlížeče.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat `--- PARAMS ---`)
+		&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
 			do čitelné dokumentace.&lt;/li&gt;
 	&lt;/ul&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Jak jej povolit:&lt;/strong&gt; Nastavte proměnnou prostředí `STATIC_FILES_PATH` tak, aby směřovala na
-		složku `tools/pgarachne-explorer` na vašem disku. Poté navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;.
+		&lt;strong&gt;Jak jej povolit:&lt;/strong&gt; Nastavte proměnnou prostředí &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; tak, aby směřovala na
+		složku &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; na vašem disku. Poté navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;.
 	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
 	&lt;h2&gt;Příklad Hello World&lt;/h2&gt;
@@ -348,7 +368,7 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 				&lt;/tr&gt;
 				&lt;tr&gt;
 					&lt;td&gt;&lt;strong&gt;Autentizace&lt;/strong&gt;&lt;/td&gt;
-					&lt;td&gt;JWT a API klíče. Nativně podporuje oba světy.&lt;/td&gt;
+					&lt;td&gt;JWT a API tokeny. Nativně podporuje oba světy.&lt;/td&gt;
 					&lt;td&gt;Primárně JWT.&lt;/td&gt;
 				&lt;/tr&gt;
 				&lt;tr&gt;

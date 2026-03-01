@@ -1,5 +1,6 @@
 ---
 title: "Despliegue y HTTPS"
+description: "Despliegue y HTTPS - PgArachne documentation."
 menu:
   main:
     name: "Despliegue y HTTPS"
@@ -45,5 +46,32 @@ example.com {
 			directamente a tu portátil sin configurar firewalls. Ideal para mostrar tu trabajo a colegas al
 			instante.</p>
 		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Checklist de producción</h3>
+		<ul>
+			<li>Termina TLS en el reverse proxy y reenvía <code>X-Forwarded-Proto</code> y <code>X-Forwarded-For</code>.</li>
+			<li>Configura <code>TRUSTED_PROXIES</code> en PgArachne con los rangos IP/CIDR de tus proxies.</li>
+			<li>Desactiva buffering en rutas SSE y usa read timeouts suficientemente largos para streaming.</li>
+			<li>Expón métricas solo internamente (por defecto <code>127.0.0.1:9090</code>) y haz scrape desde tu red de monitoreo.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Ejemplo de hardening Nginx (SSE + headers forwarded)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
 	</div>
 </section>

@@ -12,6 +12,31 @@
 	</aside>
 
 	<div class="doc-content">
+		{{ $homeURL := "/" | relLangURL }}
+		{{ $homeName := i18n "nav_home" }}
+		{{ $slug := strings.TrimSuffix ".html" (path.Base .File.Path) }}
+
+		<div class="doc-meta">
+			<nav class="breadcrumbs" aria-label="Breadcrumb">
+				<a href="{{ $homeURL }}">{{ $homeName }}</a>
+				<span>/</span>
+				<span>{{ .Title }}</span>
+			</nav>
+			<div class="read-time">{{ .ReadingTime }} {{ i18n "doc_min_read" }}</div>
+		</div>
+
+		{{ if or (eq $slug "installation") (eq $slug "configuration") (eq $slug "security-roles") }}
+		<div class="tip quickstart-box">
+			<h3>{{ i18n "quickstart_title" }}</h3>
+			<ol>
+				<li><a href="{{ "/" | relLangURL }}installation/">{{ i18n "quickstart_step_install" }}</a></li>
+				<li><a href="{{ "/" | relLangURL }}configuration/">{{ i18n "quickstart_step_configure" }}</a></li>
+				<li><a href="{{ "/" | relLangURL }}security-roles/">{{ i18n "quickstart_step_auth" }}</a></li>
+				<li><a href="{{ "/" | relLangURL }}deployment-https/">{{ i18n "quickstart_step_deploy" }}</a></li>
+			</ol>
+		</div>
+		{{ end }}
+
 		{{ .Content | safeHTML }}
 
 		{{ $current := .RelPermalink }}
@@ -29,18 +54,34 @@
 			{{ end }}
 		{{ end }}
 
-		{{ $homeURL := "/" | relLangURL }}
-		{{ $homeName := i18n "nav_home" }}
+		{{ $related := slice
+			(dict "url" (printf "%sinstallation/" $homeURL) "name" (i18n "nav_installation"))
+			(dict "url" (printf "%sconfiguration/" $homeURL) "name" (i18n "link_configuration"))
+			(dict "url" (printf "%ssecurity-roles/" $homeURL) "name" (i18n "link_security"))
+			(dict "url" (printf "%sdeployment-https/" $homeURL) "name" (i18n "link_deployment"))
+			(dict "url" (printf "%smetrics/" $homeURL) "name" (i18n "link_metrics"))
+		}}
+		<div class="doc-related">
+			<h3>{{ i18n "related_docs_title" }}</h3>
+			<ul>
+				{{ range $related }}
+					{{ if ne .url $.RelPermalink }}
+					<li><a href="{{ .url }}">{{ .name }}</a></li>
+					{{ end }}
+				{{ end }}
+			</ul>
+		</div>
+
 		<div class="doc-next doc-nav">
 			{{ with $scratch.Get "prev" }}
-			<a class="doc-prev" href="{{ .URL }}" aria-label="Previous: {{ .Name }}">← <span>{{ .Name }}</span></a>
+			<a class="doc-prev" href="{{ .URL }}" aria-label="{{ i18n "prev_label" }}: {{ .Name }}">← <span>{{ .Name }}</span></a>
 			{{ else }}
-			<a class="doc-prev" href="{{ $homeURL }}" aria-label="Home">← <span>{{ $homeName }}</span></a>
+			<a class="doc-prev" href="{{ $homeURL }}" aria-label="{{ $homeName }}">← <span>{{ $homeName }}</span></a>
 			{{ end }}
 			{{ with $scratch.Get "next" }}
-			<a class="doc-next-link" href="{{ .URL }}" aria-label="Next: {{ .Name }}"><span>{{ .Name }}</span> →</a>
+			<a class="doc-next-link" href="{{ .URL }}" aria-label="{{ i18n "next_label" }}: {{ .Name }}"><span>{{ .Name }}</span> →</a>
 			{{ else }}
-			<a class="doc-next-link" href="{{ $homeURL }}" aria-label="Home"><span>{{ $homeName }}</span> →</a>
+			<a class="doc-next-link" href="{{ $homeURL }}" aria-label="{{ $homeName }}"><span>{{ $homeName }}</span> →</a>
 			{{ end }}
 		</div>
 	</div>

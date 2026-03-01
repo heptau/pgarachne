@@ -4,7 +4,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="{{ .Params.description | default .Site.Params.description }}">
-	<title>{{ if .IsHome }}PgArachne - Instant PostgreSQL API{{ else }}{{ .Title }} - PgArachne{{ end }}</title>
+	{{ $pageTitle := cond .IsHome "PgArachne - Instant PostgreSQL API" (printf "%s - PgArachne" .Title) }}
+	<title>{{ $pageTitle }}</title>
 	<link rel="icon" type="image/png" href="{{ "assets/pgarachne-icon.png" | relURL }}">
 	<link rel="manifest" href="{{ "manifest.json" | relURL }}">
 	<meta name="theme-color" content="#0066cc">
@@ -12,16 +13,31 @@
 	<link rel="stylesheet" href="{{ "assets/style.css" | relURL }}">
 
 	<link rel="canonical" href="{{ .Permalink }}">
-	<link rel="alternate" hreflang="x-default" href="{{ "/" | absURL }}">
-	{{ range .Site.Languages }}
-	<link rel="alternate" hreflang="{{ .Lang }}" href="{{ (printf "/%s/" .Lang) | absURL }}">
+	<link rel="alternate" hreflang="x-default" href="{{ .Permalink }}">
+	<link rel="alternate" hreflang="{{ .Site.Language.Lang }}" href="{{ .Permalink }}">
+	{{ range .Translations }}
+	<link rel="alternate" hreflang="{{ .Lang }}" href="{{ .Permalink }}">
 	{{ end }}
 
-	<meta property="og:title" content="{{ if .IsHome }}PgArachne - Instant PostgreSQL API{{ else }}{{ .Title }} - PgArachne{{ end }}" />
+	<meta property="og:title" content="{{ $pageTitle }}" />
 	<meta property="og:description" content="{{ .Params.ogDescription | default .Site.Params.ogDescription }}" />
 	<meta property="og:image" content="{{ "/assets/pgarachne-logo.jpeg" | absURL }}" />
 	<meta property="og:url" content="{{ .Permalink }}" />
 	<meta property="og:type" content="website" />
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:title" content="{{ $pageTitle }}" />
+	<meta name="twitter:description" content="{{ .Params.ogDescription | default .Site.Params.ogDescription }}" />
+	<meta name="twitter:image" content="{{ "/assets/pgarachne-logo.jpeg" | absURL }}" />
+	{{ $jsonLD := dict
+		"@context" "https://schema.org"
+		"@type" "WebPage"
+		"name" $pageTitle
+		"url" .Permalink
+		"inLanguage" .Site.Language.Lang
+		"description" (.Params.description | default .Site.Params.description)
+		"isPartOf" (dict "@type" "WebSite" "name" "PgArachne" "url" (.Site.BaseURL | absURL))
+	}}
+	<script type="application/ld+json">{{ $jsonLD | jsonify | safeHTML }}</script>
 </head>
 
 <body>
@@ -36,6 +52,12 @@
 				<a href="{{ "/" | relLangURL }}installation/">{{ i18n "nav_installation" }}</a>
 				<a href="{{ "/" | relLangURL }}about-architecture/">{{ i18n "nav_architecture" }}</a>
 				<a href="{{ "/" | relLangURL }}support-donate/" class="nav-btn-donate">{{ i18n "nav_support" }}</a>
+			</div>
+
+			<div class="search-box">
+				<label for="site-search-input" class="search-label">{{ i18n "search_label" }}</label>
+				<input id="site-search-input" class="search-input" type="search" placeholder="{{ i18n "search_placeholder" }}" autocomplete="off">
+				<div id="site-search-results" class="search-results" hidden></div>
 			</div>
 
 			<div class="lang-dropdown">
@@ -81,6 +103,15 @@
 	</footer>
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+	{{ $searchScratch := newScratch }}
+	{{ $searchScratch.Set "items" (slice) }}
+	{{ range .Site.RegularPages }}
+		{{ $desc := .Params.description | default .Summary | plainify }}
+		{{ $item := dict "title" .Title "url" .RelPermalink "desc" $desc }}
+		{{ $searchScratch.Add "items" (slice $item) }}
+	{{ end }}
+	<script id="site-search-data" type="application/json">{{ $searchScratch.Get "items" | jsonify | safeHTML }}</script>
+	<script id="site-search-texts" type="application/json">{{ dict "no_results" (i18n "search_no_results") "copy" (i18n "copy_label") "copied" (i18n "copied_label") | jsonify | safeHTML }}</script>
 	<script src="{{ "assets/script.js" | relURL }}"></script>
 </body>
 </html>

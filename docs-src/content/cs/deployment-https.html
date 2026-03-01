@@ -1,5 +1,6 @@
 ---
 title: "Nasazení a HTTPS"
+description: "Nasazení a HTTPS - PgArachne documentation."
 menu:
   main:
     name: "Nasazení a HTTPS"
@@ -44,5 +45,32 @@ example.com {
 			internetu přímo do vašeho notebooku bez konfigurace firewallu. Ideální pro okamžité ukázky kolegům.
 		</p>
 		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Produkční checklist</h3>
+		<ul>
+			<li>Ukončete TLS na reverse proxy a přeposílejte <code>X-Forwarded-Proto</code> a <code>X-Forwarded-For</code>.</li>
+			<li>V PgArachne nastavte <code>TRUSTED_PROXIES</code> na IP/CIDR rozsahy vašich proxy.</li>
+			<li>Pro SSE cesty vypněte buffering a nastavte delší read timeouty pro stream.</li>
+			<li>Metriky publikujte jen interně (výchozí <code>127.0.0.1:9090</code>) a scrape provádějte z monitorovací sítě.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Ukázka hardeningu Nginx (SSE + forwarded hlavičky)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
 	</div>
 </section>
