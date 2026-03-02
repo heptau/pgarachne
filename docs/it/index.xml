@@ -192,7 +192,17 @@
 
 	&lt;h3&gt;Perché «PgArachne Ibrido» è il Vincitore?&lt;/h3&gt;
 	&lt;p&gt;Grazie alle &lt;strong&gt;Funzioni Universali&lt;/strong&gt; (che agiscono come un emulatore), ottieni il meglio
-		di entrambi i mondi:&lt;/p&gt;</description></item><item><title>Deployment e HTTPS</title><link>https://www.pgarachne.com/it/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+		di entrambi i mondi:&lt;/p&gt;</description></item><item><title>Decisioni Architetturali</title><link>https://www.pgarachne.com/it/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Decisioni di Progettazione Architetturale&lt;/h2&gt;
+	&lt;p&gt;
+		Questa pagina spiega il ragionamento alla base delle principali scelte tecnologiche e architetturali in PgArachne.
+		Queste decisioni sono state prese per dare priorità a prestazioni, sicurezza e produttività degli sviluppatori, garantendo
+		al contempo un'elevata compatibilità con i moderni agenti AI e modelli LLM.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 vs. REST&lt;/h3&gt;
+		&lt;p&gt;PgArachne utilizza JSON-RPC 2.0 come protocollo di comunicazione primario al posto del tradizionale REST.&lt;/p&gt;</description></item><item><title>Deployment e HTTPS</title><link>https://www.pgarachne.com/it/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Deployment e HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne è progettato per svolgere bene un solo compito: API Gateway. Per SSL/TLS (HTTPS), sicurezza
 		degli header e routing pubblico, dovresti posizionare un &lt;strong&gt;Reverse Proxy&lt;/strong&gt; davanti ad esso.&lt;/p&gt;

@@ -264,6 +264,7 @@ Generated documentation is available in the [`docs/`](docs/index.html) directory
 *   **Configuration**: Full list of environment variables (`DB_HOST`, `JWT_SECRET`, etc.).
 *   **Security**: How role masquerading and API Tokens work.
 *   **Deployment**: Guides for Caddy, Nginx, and Ngrok.
+*   **Architectural Decisions**: Why JSON-RPC, SSE, Go, and PostgreSQL functions.
 *   **Error Codes**: Reference for JSON-RPC 2.0 errors.
 
 👉 [**Read the Full Documentation**](https://www.pgarachne.com/)
@@ -273,7 +274,7 @@ Generated documentation is available in the [`docs/`](docs/index.html) directory
 If PgArachne saves you time, please consider replacing your "buy me a coffee" budget with a support membership.
 
 *   ☕ [**Support on Buy Me a Coffee**](https://buymeacoffee.com/pgarachne)
-*   For Bank Transfer (USD/EUR/CZK) and Crypto details, please see the [Support section in the documentation](https://www.pgarachne.com/en/#support).
+*   For Bank Transfer (USD/EUR/CZK) and Crypto details, please see the [Support section in the documentation](https://www.pgarachne.com/#support-donate).
 
 ## License
 

@@ -1,4 +1,34 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/cs/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/index.xml" rel="self" type="application/rss+xml"/><item><title>Bezpečnost a autentizace</title><link>https://www.pgarachne.com/cs/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/security-roles/</guid><description>&lt;section id="security"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/cs/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/index.xml" rel="self" type="application/rss+xml"/><item><title>Architektonická rozhodnutí</title><link>https://www.pgarachne.com/cs/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Architektonická designová rozhodnutí&lt;/h2&gt;
+	&lt;p&gt;
+		Tato stránka vysvětluje důvody klíčových architektonických a technologických voleb v projektu PgArachne.
+		Tato rozhodnutí byla učiněna s ohledem na výkon, bezpečnost a produktivitu vývojářů, přičemž byl kladen důraz na vysokou kompatibilitu s moderními AI agenty a LLM modely.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 vs. REST&lt;/h3&gt;
+		&lt;p&gt;PgArachne používá JSON-RPC 2.0 jako primární komunikační protokol místo tradičního RESTu.&lt;/p&gt;
+
+		&lt;h4&gt;Proč JSON-RPC 2.0:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Jeden koncový bod (endpoint):&lt;/strong&gt; Veškerá komunikace probíhá přes &lt;code&gt;POST /api/{databaze}&lt;/code&gt;. Není třeba navrhovat složité struktury URL ani debatovat o sémantice HTTP metod.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Samostatné požadavky:&lt;/strong&gt; Každý požadavek je kompletní JSON objekt (metoda + parametry + id). Tento formát je pro LLM a AI agenty snadno generovatelný a parsovatelný s vysokou spolehlivostí.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Standardizované zpracování chyb:&lt;/strong&gt; Chybové kódy a zprávy jsou součástí specifikace, což eliminuje potřebu „vymýšlet“ konvence HTTP stavových kódů pro byznysové chyby.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Dávkové požadavky (batching):&lt;/strong&gt; Protokol nativně podporuje dávkové požadavky, což umožňuje provést více operací během jediného HTTP dotazu bez dodatečné práce.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Objevování (discovery):&lt;/strong&gt; Endpoint &lt;code&gt;capabilities&lt;/code&gt; poskytuje úplný popis API ve formátu, který AI agenti dokáží konzumovat a porozumět dostupným nástrojům bez halucinací.&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h4&gt;Proč ne REST:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Složitost pro AI:&lt;/strong&gt; Sémantika RESTu (GET/POST/PATCH/DELETE + parametry v URL + tělo požadavku) je rozprostřena na více místech, což AI agentům ztěžuje spolehlivé sestavení volání.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Únik schématu:&lt;/strong&gt; CRUD nad tabulkami (styl PostgREST) často přímo odhaluje interní strukturu databáze. PgArachne záměrně vystavuje funkce, čímž udržuje byznysovou logiku zapouzdřenou v SQL.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Chybějící standardy:&lt;/strong&gt; REST nenabízí žádný univerzální standard pro dávkové operace, křížové chybové obálky ani automatizované objevování API.&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;2. SSE (Server-Sent Events) vs. WebSockets&lt;/h3&gt;
+		&lt;p&gt;Pro real-time notifikace implementuje PgArachne Server-Sent Events (SSE).&lt;/p&gt;</description></item><item><title>Bezpečnost a autentizace</title><link>https://www.pgarachne.com/cs/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Bezpečnost a autentizace&lt;/h2&gt;
 	&lt;p&gt;PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
 		Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí

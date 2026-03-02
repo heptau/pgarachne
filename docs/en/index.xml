@@ -39,7 +39,38 @@
 	&lt;p&gt;
 		This architecture dramatically simplifies the stack: &lt;strong&gt;Database ↔ PgArachne ↔
 			Frontend&lt;/strong&gt;.
-	&lt;/p&gt;</description></item><item><title>Comparison: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/en/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;/p&gt;</description></item><item><title>Architectural Decisions</title><link>https://www.pgarachne.com/en/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Architectural Design Decisions&lt;/h2&gt;
+	&lt;p&gt;
+		This page explains the reasoning behind the key architectural and technology choices in PgArachne.
+		These decisions were made to prioritize performance, security, and developer productivity while ensuring the system remains
+		highly compatible with modern AI and LLM agents.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 vs. REST&lt;/h3&gt;
+		&lt;p&gt;PgArachne uses JSON-RPC 2.0 as its primary communication protocol instead of traditional REST.&lt;/p&gt;
+
+		&lt;h4&gt;Why JSON-RPC 2.0:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Single Endpoint:&lt;/strong&gt; All communication happens via &lt;code&gt;POST /api/{database}&lt;/code&gt;. There is no need to design complex URL structures or debate HTTP verb semantics.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Self-Contained Calls:&lt;/strong&gt; Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Standardized Error Handling:&lt;/strong&gt; Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Batching:&lt;/strong&gt; The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Discovery:&lt;/strong&gt; The capabilities endpoint provides a full description of the API in a format that AI agents can consume to understand available tools without hallucinations.&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h4&gt;Why not REST:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Complexity for AI:&lt;/strong&gt; REST semantics (GET/POST/PATCH/DELETE + URL params + body) are spread across multiple places, making it harder for AI agents to construct calls reliably.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Schema Leakage:&lt;/strong&gt; CRUD-over-tables (like PostgREST) often leaks the internal database structure directly into the API. PgArachne deliberately exposes functions, keeping business logic encapsulated in SQL.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Lack of Standards:&lt;/strong&gt; REST offers no universal standard for batch operations, cross-platform error envelopes, or automated API discovery.&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;2. SSE (Server-Sent Events) vs. WebSockets&lt;/h3&gt;
+		&lt;p&gt;For real-time notifications, PgArachne implements Server-Sent Events (SSE).&lt;/p&gt;</description></item><item><title>Comparison: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/en/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/comparison/</guid><description>&lt;section id="comparison"&gt;
 	&lt;h2&gt;Comparison: PgArachne vs. PostgREST&lt;/h2&gt;
 	&lt;div class="comparison-table-wrapper"&gt;
 		&lt;table&gt;

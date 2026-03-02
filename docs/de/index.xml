@@ -1,4 +1,35 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/de/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>de</language><atom:link href="https://www.pgarachne.com/de/index.xml" rel="self" type="application/rss+xml"/><item><title>Bereitstellung &amp; HTTPS</title><link>https://www.pgarachne.com/de/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/de/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>de</language><atom:link href="https://www.pgarachne.com/de/index.xml" rel="self" type="application/rss+xml"/><item><title>Architektur-Entscheidungen</title><link>https://www.pgarachne.com/de/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Architektonische Design-Entscheidungen&lt;/h2&gt;
+	&lt;p&gt;
+		Diese Seite erläutert die Beweggründe hinter den wichtigsten Architektur- und Technologieentscheidungen in PgArachne.
+		Diese Entscheidungen wurden getroffen, um Leistung, Sicherheit und Entwicklerproduktivität zu priorisieren und gleichzeitig eine
+		hohe Kompatibilität mit modernen AI- und LLM-Agenten sicherzustellen.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 vs. REST&lt;/h3&gt;
+		&lt;p&gt;PgArachne verwendet JSON-RPC 2.0 als primäres Kommunikationsprotokoll anstelle von traditionellem REST.&lt;/p&gt;
+
+		&lt;h4&gt;Warum JSON-RPC 2.0:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Einzelner Endpunkt:&lt;/strong&gt; Die gesamte Kommunikation erfolgt über &lt;code&gt;POST /api/{datenbank}&lt;/code&gt;. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Eigenständige Aufrufe:&lt;/strong&gt; Jede Anfrage ist ein vollständiges JSON-Objekt (Methode + Parameter + ID). Dieses Format ist für LLMs und AI-Agenten trivial zu generieren und mit hoher Zuverlässigkeit zu parsen.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Standardisierte Fehlerbehandlung:&lt;/strong&gt; Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden“.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Stapelverarbeitung (Batching):&lt;/strong&gt; Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen (z. B. mehrere Funktionsaufrufe) in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Discovery:&lt;/strong&gt; Der Capabilities-Endpunkt bietet eine vollständige Beschreibung der API in einem Format, das AI-Agenten konsumieren können, um verfügbare Werkzeuge ohne Halluzinationen zu verstehen.&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h4&gt;Warum nicht REST:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Komplexität für AI:&lt;/strong&gt; REST-Semantiken (GET/POST/PATCH/DELETE + URL-Parameter + Body) sind über mehrere Stellen verteilt, was es AI-Agenten erschwert, Aufrufe zuverlässig zu konstruieren.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Schema-Leckage:&lt;/strong&gt; CRUD über Tabellen (wie bei PostgREST) gibt oft die interne Datenbankstruktur direkt über die API preis. PgArachne exponiert bewusst Funktionen und behält die Geschäftslogik in SQL gekapselt.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Fehlende Standards:&lt;/strong&gt; REST bietet keinen universellen Standard für Batch-Operationen, plattformübergreifende Fehlerformate oder automatisierte API-Erkennung.&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;2. SSE (Server-Sent Events) vs. WebSockets&lt;/h3&gt;
+		&lt;p&gt;Für Echtzeit-Benachrichtigungen implementiert PgArachne Server-Sent Events (SSE).&lt;/p&gt;</description></item><item><title>Bereitstellung &amp; HTTPS</title><link>https://www.pgarachne.com/de/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Bereitstellung &amp; HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne ist darauf ausgelegt, eine Aufgabe gut zu erfüllen: API Gateway. Für SSL/TLS (HTTPS),
 		Header-Sicherheit und öffentliches Routing sollten Sie einen &lt;strong&gt;Reverse Proxy&lt;/strong&gt; davor

@@ -34,12 +34,11 @@
 	<script>
 		(function () {
 			// Supported languages (ISO 2-letter codes)
-			// The path will be automatically constructed as: code + '/'
 			var supported = ['en', 'cs', 'es', 'fr', 'pt', 'de', 'it'];
 
 			// Get user's preferred languages
-			var userLangs = navigator.languages || [navigator.language || navigator.userLanguage];
-			var target = 'en/'; // Default fallback
+			var userLangs = navigator.languages || [navigator.language || navigator.userLanguage || "en"];
+			var lang = 'en'; // Default fallback
 
 			// Find the first matching language
 			for (var i = 0; i < userLangs.length; i++) {
@@ -48,13 +47,20 @@
 
 				// Check direct support
 				if (supported.indexOf(code) !== -1) {
-					target = code + '/';
+					lang = code;
 					break;
 				}
 			}
 
+			// Handle deep linking via hash (e.g., #about-architecture -> /{lang}/about-architecture/)
+			var hash = window.location.hash;
+			var path = "";
+			if (hash && hash.length > 1) {
+				path = hash.substring(1) + "/";
+			}
+
 			// Redirect
-			window.location.href = target;
+			window.location.replace(lang + "/" + path);
 		})();
 	</script>
 	<style>

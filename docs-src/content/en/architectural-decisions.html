@@ -1,0 +1,107 @@
+---
+title: "Architectural Decisions"
+description: "Architectural design decisions: Why JSON-RPC, SSE, Go, and PostgreSQL functions - PgArachne documentation."
+menu:
+  main:
+    name: "Architectural Decisions"
+    weight: 15
+---
+
+<section id="decisions">
+	<h2>Architectural Design Decisions</h2>
+	<p>
+		This page explains the reasoning behind the key architectural and technology choices in PgArachne.
+		These decisions were made to prioritize performance, security, and developer productivity while ensuring the system remains
+		highly compatible with modern AI and LLM agents.
+	</p>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>1. JSON-RPC 2.0 vs. REST</h3>
+		<p>PgArachne uses JSON-RPC 2.0 as its primary communication protocol instead of traditional REST.</p>
+
+		<h4>Why JSON-RPC 2.0:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Single Endpoint:</strong> All communication happens via <code>POST /api/{database}</code>. There is no need to design complex URL structures or debate HTTP verb semantics.</li>
+			<li><strong>Self-Contained Calls:</strong> Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.</li>
+			<li><strong>Standardized Error Handling:</strong> Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.</li>
+			<li><strong>Batching:</strong> The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.</li>
+			<li><strong>Discovery:</strong> The capabilities endpoint provides a full description of the API in a format that AI agents can consume to understand available tools without hallucinations.</li>
+		</ul>
+
+		<h4>Why not REST:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Complexity for AI:</strong> REST semantics (GET/POST/PATCH/DELETE + URL params + body) are spread across multiple places, making it harder for AI agents to construct calls reliably.</li>
+			<li><strong>Schema Leakage:</strong> CRUD-over-tables (like PostgREST) often leaks the internal database structure directly into the API. PgArachne deliberately exposes functions, keeping business logic encapsulated in SQL.</li>
+			<li><strong>Lack of Standards:</strong> REST offers no universal standard for batch operations, cross-platform error envelopes, or automated API discovery.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>2. SSE (Server-Sent Events) vs. WebSockets</h3>
+		<p>For real-time notifications, PgArachne implements Server-Sent Events (SSE).</p>
+
+		<h4>Why SSE:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Plain HTTP:</strong> SSE is standard HTTP. It works through proxies, load balancers, and CDNs without special "protocol upgrade" configuration.</li>
+			<li><strong>Native Browser Support:</strong> The <code>EventSource</code> API is built into all modern browsers and handles automatic reconnection without any client libraries.</li>
+			<li><strong>Matches NOTIFY Semantics:</strong> PostgreSQL's <code>NOTIFY</code> is unidirectional (server to client), which maps perfectly to SSE.</li>
+			<li><strong>Multiplexing:</strong> Over HTTP/2, hundreds of SSE streams can share a single TCP connection, making it extremely efficient.</li>
+			<li><strong>Operational Simplicity:</strong> SSE connections appear as normal HTTP requests in logs and monitoring tools, making them easier to debug and rate-limit.</li>
+		</ul>
+
+		<h4>Why not WebSockets:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Unnecessary Bidirectionality:</strong> Since the client never needs to send data back over the notification channel, the complexity of WebSockets provides no benefit.</li>
+			<li><strong>Connectivity Issues:</strong> WebSockets are often blocked or prematurely closed by corporate firewalls and some cloud load balancers.</li>
+			<li><strong>Higher Overhead:</strong> Adds protocol complexity (handshakes, ping/pong frames) that isn't required for simple event streaming.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>3. Go vs. Alternatives</h3>
+		<p>PgArachne is written in Go to provide the best balance of performance and deployment simplicity.</p>
+
+		<h4>Why Go:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Static Binaries:</strong> Compiles to a single binary with zero external dependencies. Deployment is as simple as copying the file to the server.</li>
+			<li><strong>Concurrency:</strong> Go's goroutines make handling thousands of concurrent SSE and database connections lightweight and straightforward.</li>
+			<li><strong>Robust Standard Library:</strong> The built-in libraries for HTTP, TLS, and JSON are production-grade and require no "node_modules" or external runtimes.</li>
+			<li><strong>Cross-Compilation:</strong> Easily targets Linux, macOS, and Windows (amd64 and arm64) from any development machine.</li>
+		</ul>
+
+		<h4>Why not Node.js, PHP, or Ruby:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Runtimes:</strong> These require installing a specific runtime enviroment on every target machine.</li>
+			<li><strong>Efficiency:</strong> Node's single-threaded loop or PHP's process-per-request model are less efficient for maintaining thousands of idle SSE connections.</li>
+			<li><strong>Memory Footprint:</strong> Go uses significantly less memory per connection than scripted languages.</li>
+		</ul>
+
+		<h4>Why not Rust:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Development Velocity:</strong> While Rust offers extreme performance, its complexity (borrow checker) slows down iteration for an I/O-bound tool where Go's performance is already more than sufficient.</li>
+		</ul>
+
+		<h4>Why not C / C++:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Safety:</strong> Manual memory management adds significant security risks (buffer overflows) for no meaningful performance gain in a gateway application.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>4. PostgreSQL Functions as API Surface</h3>
+		<p>PgArachne intentionally exposes database functions rather than raw tables.</p>
+
+		<h4>Why functions:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Encapsulation:</strong> Business logic lives co-located with the data in the database—one place to audit, version, and secure.</li>
+			<li><strong>Explicit Security:</strong> Only functions that are explicitly granted <code>EXECUTE</code> permissions to a specific role are accessible via the API.</li>
+			<li><strong>Abstraction:</strong> Input validation, computed fields, and complex multi-table operations are hidden from the client, providing a clean interface.</li>
+		</ul>
+
+		<h4>Why not table-level CRUD:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Tight Coupling:</strong> Exposing tables directly ties your API to your internal database schema, making it difficult to refactor the database without breaking clients.</li>
+			<li><strong>Business Rule Fragmentation:</strong> Business logic ends up split between database constraints and whatever middleware is used to filter HTTP requests.</li>
+		</ul>
+	</div>
+</section>

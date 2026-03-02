@@ -1,0 +1,107 @@
+---
+title: "Decisioni Architetturali"
+description: "Decisioni di progettazione architetturale: perché JSON-RPC, SSE, Go e funzioni PostgreSQL - documentazione di PgArachne."
+menu:
+  main:
+    name: "Decisioni Architetturali"
+    weight: 15
+---
+
+<section id="decisions">
+	<h2>Decisioni di Progettazione Architetturale</h2>
+	<p>
+		Questa pagina spiega il ragionamento alla base delle principali scelte tecnologiche e architetturali in PgArachne.
+		Queste decisioni sono state prese per dare priorità a prestazioni, sicurezza e produttività degli sviluppatori, garantendo
+		al contempo un'elevata compatibilità con i moderni agenti AI e modelli LLM.
+	</p>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>1. JSON-RPC 2.0 vs. REST</h3>
+		<p>PgArachne utilizza JSON-RPC 2.0 come protocollo di comunicazione primario al posto del tradizionale REST.</p>
+
+		<h4>Perché JSON-RPC 2.0:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Endpoint Singolo:</strong> Tutte le comunicazioni avvengono tramite <code>POST /api/{database}</code>. Non è necessario progettare strutture URL complesse o discutere sulla semantica dei verbi HTTP.</li>
+			<li><strong>Chiamate Autocontenute:</strong> Ogni richiesta è un oggetto JSON completo (metodo + parametri + id). Questo formato è banale da generare e analizzare per gli LLM e gli agenti AI con un'elevata affidabilità.</li>
+			<li><strong>Gestione degli Errori Standardizzata:</strong> I codici e i messaggi di errore fanno parte della specifica, eliminando la necessità di „inventare“ convenzioni per i codici di stato HTTP per gli errori di business.</li>
+			<li><strong>Batching:</strong> Il protocollo supporta nativamente le richieste batch, consentendo più operazioni (ad esempio, diverse chiamate a funzioni) in un unico round-trip HTTP senza lavoro aggiuntivo.</li>
+			<li><strong>Discovery:</strong> L'endpoint delle funzionalità fornisce una descrizione completa dell'API in un formato che gli agenti AI possono consumare per comprendere gli strumenti disponibili senza allucinazioni.</li>
+		</ul>
+
+		<h4>Perché non REST:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Complessità per l'AI:</strong> La semantica REST (GET/POST/PATCH/DELETE + parametri URL + corpo) è distribuita in più punti, rendendo più difficile per gli agenti AI costruire chiamate in modo affidabile.</li>
+			<li><strong>Fuga dello Schema:</strong> Il CRUD sulle tabelle (stile PostgREST) spesso espone la struttura interna del database direttamente tramite l'API. PgArachne espone deliberatamente funzioni, mantenendo la logica di business incapsulata in SQL.</li>
+			<li><strong>Mancanza di Standard:</strong> REST non offre uno standard universale per le operazioni batch, wrapper di errore multipiattaforma o la scoperta automatizzata delle API.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>2. SSE (Server-Sent Events) vs. WebSockets</h3>
+		<p>Per le notifiche in tempo reale, PgArachne implementa Server-Sent Events (SSE).</p>
+
+		<h4>Perché SSE:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>HTTP Puro:</strong> SSE è HTTP standard. Funziona attraverso proxy, bilanciatori di carico e CDN senza configurazioni speciali di „aggiornamento del protocollo“.</li>
+			<li><strong>Supporto Nativo del Browser:</strong> L'API <code>EventSource</code> è integrata in tutti i browser moderni e gestisce la riconnessione automatica senza librerie client aggiuntive.</li>
+			<li><strong>Corrisponde alla Semantica NOTIFY:</strong> Il comando <code>NOTIFY</code> di PostgreSQL è unidirezionale (da server a client), il che si adatta perfettamente a SSE.</li>
+			<li><strong>Multiplexing:</strong> Su HTTP/2, centinaia di stream SSE possono condividere una singola connessione TCP, rendendolo estremamente efficiente.</li>
+			<li><strong>Semplicità Operativa:</strong> Le connessioni SSE appaiono come normali richieste HTTP nei log e negli strumenti di monitoraggio, facilitando il debug e il rate limiting.</li>
+		</ul>
+
+		<h4>Perché non WebSockets:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Bidirezionalità non Necessaria:</strong> Poiché il client non deve mai inviare dati attraverso il canale di notifica, la complessità di WebSockets non offre alcun vantaggio.</li>
+			<li><strong>Problemi di Connettività:</strong> I WebSockets sono spesso bloccati o chiusi prematuramente dai firewall aziendali e da alcuni bilanciatori di carico cloud.</li>
+			<li><strong>Maggiore Overhead:</strong> Aggiunge complessità al protocollo (handshake, frame ping/pong) che non è necessaria per il semplice streaming di eventi.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>3. Go vs. Alternative</h3>
+		<p>PgArachne è scritto in Go per offrire il miglior equilibrio tra prestazioni e semplicità di distribuzione.</p>
+
+		<h4>Perché Go:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Binari Statici:</strong> Viene compilato in un unico file eseguibile senza dipendenze esterne. La distribuzione è semplice come copiare il file sul server.</li>
+			<li><strong>Concorrenza:</strong> Le goroutine di Go rendono la gestione di migliaia di connessioni SSE e database simultanee leggera e immediata.</li>
+			<li><strong>Libreria Standard Robusta:</strong> Le librerie integrate per HTTP, TLS e JSON sono di livello produttivo e non richiedono „node_modules“ o ambienti di esecuzione esterni.</li>
+			<li><strong>Cross-compilazione:</strong> Genera facilmente binari per Linux, macOS e Windows (amd64 e arm64) da qualsiasi macchina di sviluppo.</li>
+		</ul>
+
+		<h4>Perché non Node.js, PHP o Ruby:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Runtime:</strong> Questi linguaggi richiedono l'installazione di un ambiente di esecuzione specifico su ogni macchina di destinazione.</li>
+			<li><strong>Efficienza:</strong> Il loop a thread singolo di Node.js o il modello processo-per-richiesta di PHP sono meno efficienti per mantenere migliaia di connessioni SSE inattive.</li>
+			<li><strong>Impronta di Memoria:</strong> Go utilizza molta meno memoria per connessione rispetto ai linguaggi di scripting.</li>
+		</ul>
+
+		<h4>Perché non Rust:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Velocità di Sviluppo:</strong> Sebbene Rust offra prestazioni estreme, la sua complessità (borrow checker) rallenta l'iterazione per uno strumento orientato all'I/O dove le prestazioni di Go sono già più che sufficienti.</li>
+		</ul>
+
+		<h4>Perché non C / C++:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Sicurezza:</strong> La gestione manuale della memoria aggiunge rischi di sicurezza significativi (buffer overflow) senza un guadagno di prestazioni rilevante in un'applicazione gateway.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>4. Funzioni PostgreSQL come Superficie API</h3>
+		<p>PgArachne espone deliberatamente funzioni del database piuttosto che tabelle grezze.</p>
+
+		<h4>Perché le funzioni:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Incapsulamento:</strong> La logica di business risiede insieme ai dati nel database — un unico punto per il controllo, il versionamento e la sicurezza.</li>
+			<li><strong>Sicurezza Esplicita:</strong> Tramite l'API sono accessibili solo le funzioni a cui sono stati esplicitamente concessi i permessi <code>EXECUTE</code> per un ruolo specifico.</li>
+			<li><strong>Astrazione:</strong> La validazione degli input, i campi calcolati e le operazioni complesse su più tabelle sono nascosti al client, fornendo un'interfaccia pulita.</li>
+		</ul>
+
+		<h4>Perché no CRUD a livello di tabella:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Accoppiamento Stretto:</strong> Esporre le tabelle direttamente lega la tua API allo schema interno del database, rendendo difficile il refactoring senza interrompere le applicazioni client.</li>
+			<li><strong>Frammentazione delle Regole di Business:</strong> La logica finisce per essere divisa tra i vincoli del database e qualsiasi middleware utilizzato per filtrare le richieste HTTP.</li>
+		</ul>
+	</div>
+</section>

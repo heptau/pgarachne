@@ -172,7 +172,17 @@
 	&lt;/div&gt;
 
 	&lt;h3&gt;Exemplo de Configuração Mínima&lt;/h3&gt;
-	&lt;p&gt;É tudo o que você precisa para começar:&lt;/p&gt;</description></item><item><title>Deployment e HTTPS</title><link>https://www.pgarachne.com/pt/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+	&lt;p&gt;É tudo o que você precisa para começar:&lt;/p&gt;</description></item><item><title>Decisões de Arquitetura</title><link>https://www.pgarachne.com/pt/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Decisões de Design Arquitetônico&lt;/h2&gt;
+	&lt;p&gt;
+		Esta página explica o raciocínio por trás das principais escolhas tecnológicas e arquiteturais do PgArachne.
+		Estas decisões foram tomadas para priorizar performance, segurança e produtividade do desenvolvedor, garantindo
+		ao mesmo tempo uma alta compatibilidade com agentes de IA e modelos LLM modernos.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 vs. REST&lt;/h3&gt;
+		&lt;p&gt;O PgArachne utiliza JSON-RPC 2.0 como seu protocolo de comunicação primário em vez do tradicional REST.&lt;/p&gt;</description></item><item><title>Deployment e HTTPS</title><link>https://www.pgarachne.com/pt/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Deployment e HTTPS&lt;/h2&gt;
 	&lt;p&gt;O PgArachne foi projetado para fazer uma coisa bem: API Gateway. Para SSL/TLS (HTTPS), segurança
 		de cabeçalhos e roteamento público, você deve colocar um &lt;strong&gt;Proxy Reverso&lt;/strong&gt; na frente dele.
