@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -208,12 +209,35 @@ func (s *Server) buildRouter() *gin.Engine {
 	// Static files
 	if s.Cfg.StaticFilesPath != "" {
 		// Use NoRoute to serve static files when no other route matches.
-		// This avoids conflicts with specific routes like /health at the root level.
+		// Fallback to root 404.html if file not found (useful for SPA or clean documentation).
 		router.NoRoute(func(c *gin.Context) {
-			fileServer := http.FileServer(http.Dir(s.Cfg.StaticFilesPath))
-			fileServer.ServeHTTP(c.Writer, c.Request)
+			path := filepath.Join(s.Cfg.StaticFilesPath, filepath.Clean(c.Request.URL.Path))
+
+			// 1. Try exact file
+			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+				c.File(path)
+				return
+			}
+
+			// 2. Try index.html in directory
+			indexPath := filepath.Join(path, "index.html")
+			if fi, err := os.Stat(indexPath); err == nil && !fi.IsDir() {
+				c.File(indexPath)
+				return
+			}
+
+			// 3. Fallback to 404.html in the root
+			errorPage := filepath.Join(s.Cfg.StaticFilesPath, "404.html")
+			if fi, err := os.Stat(errorPage); err == nil && !fi.IsDir() {
+				c.Status(http.StatusNotFound)
+				c.File(errorPage)
+				return
+			}
+
+			// 4. Final default
+			c.String(http.StatusNotFound, "404 page not found")
 		})
-		slog.Info("Serving static files via fallback", "path", s.Cfg.StaticFilesPath)
+		slog.Info("Serving static files with 404 fallback", "path", s.Cfg.StaticFilesPath)
 	}
 
 	return router
