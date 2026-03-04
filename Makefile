@@ -80,11 +80,17 @@ docs:
 	@echo "==> Building documentation (Hugo)"
 	@cd docs-src && hugo --cleanDestinationDir --minify
 	@cp docs-src/static/index.html docs/index.html
+	@echo "==> Customizing root 404.html for GitHub Pages"
+	@if [ -f docs/en/404.html ]; then \
+		sed 's|href=../|href=|g; s|src=../|src=|g; s|/404\.html||g' docs/en/404.html > docs/404.html; \
+		rm -f docs/*/404.html; \
+	fi
 	@command -v minify >/dev/null 2>&1 || { echo "==> Skipping static asset minification (install 'minify' via brew)"; exit 0; }
 	@echo "==> Minifying static assets"
 	@find docs/assets -type f -name '*.css' -print0 | xargs -0 -I{} minify -o {} {}
 	@find docs/assets -type f -name '*.js' -print0 | xargs -0 -I{} minify -o {} {}
 	@minify -o docs/index.html docs/index.html
+	@minify -o docs/404.html docs/404.html
 	@minify --type application/xml -o docs/sitemap.xml docs/sitemap.xml
 	@minify --type application/json -o docs/manifest.json docs/manifest.json
 
@@ -164,21 +170,21 @@ macos-app-amd64: prepare-dist
 	$(eval TMP_DIR=$(DIST_DIR)/tmp-amd64)
 	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
 	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
-	
+
 	@# Clean temp & Prepare
 	@rm -rf $(TMP_DIR)
 	@mkdir -p $(MACOS)
-	
+
 	@# Build
 	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY) $(CMD_PATH)
 	@$(call create_launcher,$(MACOS))
 	@$(call copy_icon,$(APP_DIR))
 	@$(call generate_plist,$(APP_DIR)/Contents)
 	@$(call sign_app,$(APP_DIR))
-	
+
 	@# Zip from inside TMP to maintain "PgArachne.app" root folder
 	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-amd64-app.zip $(APP_NAME).app
-	
+
 	@# Cleanup
 	@rm -rf $(TMP_DIR)
 	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-amd64-app.zip"
@@ -189,18 +195,18 @@ macos-app-arm64: prepare-dist
 	$(eval TMP_DIR=$(DIST_DIR)/tmp-arm64)
 	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
 	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
-	
+
 	@rm -rf $(TMP_DIR)
 	@mkdir -p $(MACOS)
-	
+
 	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY) $(CMD_PATH)
 	@$(call create_launcher,$(MACOS))
 	@$(call copy_icon,$(APP_DIR))
 	@$(call generate_plist,$(APP_DIR)/Contents)
 	@$(call sign_app,$(APP_DIR))
-	
+
 	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-arm64-app.zip $(APP_NAME).app
-	
+
 	@rm -rf $(TMP_DIR)
 	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-arm64-app.zip"
 
@@ -210,24 +216,24 @@ macos-app-universal: prepare-dist
 	$(eval TMP_DIR=$(DIST_DIR)/tmp-universal)
 	$(eval APP_DIR=$(TMP_DIR)/$(APP_NAME).app)
 	$(eval MACOS=$(APP_DIR)/Contents/MacOS)
-	
+
 	@rm -rf $(TMP_DIR)
 	@mkdir -p $(MACOS)
-	
+
 	@echo "    ... building partial binaries"
 	@GOOS=darwin GOARCH=amd64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY)-amd64 $(CMD_PATH)
 	@GOOS=darwin GOARCH=arm64 $(GO_BUILD) $(LDFLAGS) -o $(MACOS)/$(EXEC_BINARY)-arm64 $(CMD_PATH)
 	@echo "    ... merging with lipo"
 	@lipo -create -output $(MACOS)/$(EXEC_BINARY) $(MACOS)/$(EXEC_BINARY)-amd64 $(MACOS)/$(EXEC_BINARY)-arm64
 	@rm $(MACOS)/$(EXEC_BINARY)-amd64 $(MACOS)/$(EXEC_BINARY)-arm64
-	
+
 	@$(call create_launcher,$(MACOS))
 	@$(call copy_icon,$(APP_DIR))
 	@$(call generate_plist,$(APP_DIR)/Contents)
 	@$(call sign_app,$(APP_DIR))
-	
+
 	@cd $(TMP_DIR) && zip -rq ../$(BINARY_NAME)-macos-universal-app.zip $(APP_NAME).app
-	
+
 	@rm -rf $(TMP_DIR)
 	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-universal-app.zip"
 
