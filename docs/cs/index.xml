@@ -242,7 +242,6 @@ example.com {
 		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
 		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
 	&lt;/p&gt;
-
 	&lt;div class="card"
 		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;"&gt;
 		&lt;h3&gt;Klíčové technické schopnosti&lt;/h3&gt;

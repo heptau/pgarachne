@@ -85,6 +85,17 @@ docs:
 		sed 's|href=../|href=|g; s|src=../|src=|g; s|/404\.html||g' docs/en/404.html > docs/404.html; \
 		rm -f docs/*/404.html; \
 	fi
+	@echo "==> Fixing typography (TypoLima)"
+	@command -v typolima >/dev/null 2>&1 || { echo "==> Skipping typography fixes (install 'typolima' via brew)"; }
+	@if command -v typolima >/dev/null 2>&1; then \
+		typolima docs/cs/ --lang cs --recursive --in-place; \
+		typolima docs/en/ --lang en --recursive --in-place; \
+		typolima docs/de/ --lang de --recursive --in-place; \
+		typolima docs/fr/ --lang fr --recursive --in-place; \
+		typolima docs/es/ --lang es --recursive --in-place; \
+		typolima docs/it/ --lang it --recursive --in-place; \
+		typolima docs/pt/ --lang pt --recursive --in-place; \
+	fi
 	@command -v minify >/dev/null 2>&1 || { echo "==> Skipping static asset minification (install 'minify' via brew)"; exit 0; }
 	@echo "==> Minifying static assets"
 	@find docs/assets -type f -name '*.css' -print0 | xargs -0 -I{} minify -o {} {}
