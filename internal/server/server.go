@@ -399,7 +399,16 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 	c.Set("jsonrpc_id", req.ID)
 
+	if functionName == "get_jwt" {
+		s.handleLoginRPC(c, req, databaseName)
+		return
+	}
 	if functionName == "login" {
+		slog.Warn("Deprecated JSON-RPC method; please migrate to 'get_jwt'",
+			"method", "login",
+			"replacement", "get_jwt",
+			"client_ip", c.ClientIP(),
+		)
 		s.handleLoginRPC(c, req, databaseName)
 		return
 	}
@@ -606,7 +615,7 @@ func isSafeFunctionName(name string) bool {
 	if name == "" {
 		return false
 	}
-	if name == "capabilities" || name == "login" {
+	if name == "capabilities" || name == "get_jwt" || name == "login" {
 		return true
 	}
 	return pgFunctionRe.MatchString(name)
