@@ -198,13 +198,28 @@ func (s *Server) buildRouter() *gin.Engine {
 	})
 	router.Use(httpMetricsMiddleware())
 
-	// Public API
+	// Public API - not database-scoped, always at fixed path
 	router.GET("/health", s.handleHealthCheck)
-	router.GET("/sse/:database", s.handleSSE)
 
-	// JSON-RPC API (all methods are invoked via /api/:database)
-	router.POST("/api/:database", s.handleFunctionCall)
-	router.POST("/api/:database/", s.handleFunctionCall)
+	prefix := s.Cfg.APIPrefix
+
+	// Primary database endpoints under /{prefix}/:database/
+	// JSON-RPC 2.0 gateway
+	router.POST("/"+prefix+"/:database/jsonrpc", s.handleFunctionCall)
+	router.POST("/"+prefix+"/:database/jsonrpc/", s.handleFunctionCall)
+	// SSE stream for PostgreSQL NOTIFY
+	router.GET("/"+prefix+"/:database/sse", s.handleSSE)
+
+	// Backward-compatibility redirects from the legacy URL layout.
+	// 307 Temporary Redirect is used intentionally: it preserves the HTTP method
+	// (POST stays POST), which is required for JSON-RPC clients that do not
+	// automatically update their endpoints.
+	// These redirects remain registered regardless of the configured prefix so
+	// that operators can safely migrate from the old "/api" and "/sse" paths to
+	// the new layout without breaking existing clients.
+	router.POST("/api/:database", legacyJSONRPCRedirect(prefix))
+	router.POST("/api/:database/", legacyJSONRPCRedirect(prefix))
+	router.GET("/sse/:database", legacySSERedirect(prefix))
 
 	// Static files
 	if s.Cfg.StaticFilesPath != "" {
@@ -249,6 +264,43 @@ func (s *Server) buildMetricsRouter() http.Handler {
 		mux.Handle("/metrics", promhttp.Handler())
 	}
 	return mux
+}
+
+// dbJSONRPCPath builds the canonical JSON-RPC path for a given database.
+func (s *Server) dbJSONRPCPath(database string) string {
+	return "/" + s.Cfg.APIPrefix + "/" + database + "/jsonrpc"
+}
+
+// dbSSEPath builds the canonical SSE path for a given database.
+func (s *Server) dbSSEPath(database string) string {
+	return "/" + s.Cfg.APIPrefix + "/" + database + "/sse"
+}
+
+// legacyJSONRPCRedirect returns a handler that issues a 307 redirect from the
+// legacy POST /api/:database path to the current POST /{prefix}/:database/jsonrpc.
+// 307 preserves the request method and body, which is critical for JSON-RPC POST
+// clients that would otherwise lose their payload on a 301/302 redirect.
+func legacyJSONRPCRedirect(prefix string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		target := "/" + prefix + "/" + c.Param("database") + "/jsonrpc"
+		if q := c.Request.URL.RawQuery; q != "" {
+			target += "?" + q
+		}
+		c.Redirect(http.StatusTemporaryRedirect, target)
+	}
+}
+
+// legacySSERedirect returns a handler that issues a 307 redirect from the
+// legacy GET /sse/:database path to the current GET /{prefix}/:database/sse.
+// Query parameters (e.g. "channels") are preserved transparently.
+func legacySSERedirect(prefix string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		target := "/" + prefix + "/" + c.Param("database") + "/sse"
+		if q := c.Request.URL.RawQuery; q != "" {
+			target += "?" + q
+		}
+		c.Redirect(http.StatusTemporaryRedirect, target)
+	}
 }
 
 func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName string) (string, string, int) {

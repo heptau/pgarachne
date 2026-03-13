@@ -76,6 +76,7 @@ func requireTestEnv(t *testing.T) *testEnv {
 		MaxRequestBytes:   getenvInt64Default("MAX_REQUEST_BYTES", 2*1024*1024),
 		MetricsEnabled:    true,
 		MetricsListenAddr: "127.0.0.1:9090",
+		APIPrefix:         getenvDefault("API_PREFIX", "db"),
 		SSEMaxChannels:    getenvIntDefault("SSE_MAX_CHANNELS", 8),
 		SSEHeartbeat: func() time.Duration {
 			if val := os.Getenv("SSE_HEARTBEAT"); val != "" {
@@ -130,6 +131,16 @@ func (e *testEnv) close() {
 	}
 }
 
+// apiURL returns the canonical JSON-RPC endpoint URL for the test database.
+func (e *testEnv) apiURL() string {
+	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/jsonrpc"
+}
+
+// sseURL returns the canonical SSE endpoint URL for the test database.
+func (e *testEnv) sseURL() string {
+	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/sse"
+}
+
 func TestLoginAndJWTFlow(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
@@ -146,7 +157,7 @@ func TestLoginAndJWTFlow(t *testing.T) {
 		"id":      1,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -196,7 +207,7 @@ func TestAPITokenFlow(t *testing.T) {
 		"id":      2,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -240,7 +251,7 @@ func TestInvalidFunctionName(t *testing.T) {
 		"id":      3,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -273,7 +284,7 @@ func TestMissingMethod(t *testing.T) {
 		"id":      5,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new call request: %v", err)
 	}
@@ -325,7 +336,7 @@ func TestMaxRequestBodySize(t *testing.T) {
 	body := append([]byte(`{"jsonrpc":"2.0","id":1,"method":"login","params":{"login":"x","password":"`), oversized...)
 	body = append(body, []byte(`"}}`)...)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -351,7 +362,7 @@ func TestSSERequiresChannels(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName, nil)
+	req, err := http.NewRequest(http.MethodGet, env.sseURL(), nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -379,7 +390,7 @@ func TestSSEMaxChannelsLimit(t *testing.T) {
 		t.Fatalf("login failed: %v", err)
 	}
 
-	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels=one,two", nil)
+	req, err := http.NewRequest(http.MethodGet, env.sseURL()+"?channels=one,two", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -476,7 +487,7 @@ func TestSSEMaxClientsLimit(t *testing.T) {
 	resp1, _ := openSSE(t, env, token, "limit_channel")
 	defer resp1.Body.Close()
 
-	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels=limit_channel", nil)
+	req, err := http.NewRequest(http.MethodGet, env.sseURL()+"?channels=limit_channel", nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -548,7 +559,7 @@ func TestCoreMetrics(t *testing.T) {
 		"id":      42,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
@@ -602,6 +613,77 @@ func TestMetricsNotExposedOnMainAPI(t *testing.T) {
 
 	if resp.StatusCode != http.StatusNotFound {
 		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusNotFound)
+	}
+}
+
+// TestLegacyAPIRedirect verifies that the old POST /api/:database path issues
+// a 307 Temporary Redirect to the new /{prefix}/:database/jsonrpc path,
+// preserving the HTTP method (required for JSON-RPC POST clients).
+func TestLegacyAPIRedirect(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	// Use a client that does NOT follow redirects so we can inspect the 307.
+	noFollow := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	body := []byte(`{"jsonrpc":"2.0","method":"login","params":{},"id":1}`)
+	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := noFollow.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusTemporaryRedirect {
+		t.Fatalf("status = %d, want %d (307 Temporary Redirect)", resp.StatusCode, http.StatusTemporaryRedirect)
+	}
+
+	wantLocation := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/jsonrpc"
+	if got := resp.Header.Get("Location"); got != wantLocation {
+		t.Fatalf("Location = %q, want %q", got, wantLocation)
+	}
+}
+
+// TestLegacySSERedirect verifies that the old GET /sse/:database path issues
+// a 307 Temporary Redirect to the new /{prefix}/:database/sse path,
+// with query parameters preserved (e.g. ?channels=...).
+func TestLegacySSERedirect(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	noFollow := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels=test_ch", nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+
+	resp, err := noFollow.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusTemporaryRedirect {
+		t.Fatalf("status = %d, want %d (307 Temporary Redirect)", resp.StatusCode, http.StatusTemporaryRedirect)
+	}
+
+	wantLocation := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/sse?channels=test_ch"
+	if got := resp.Header.Get("Location"); got != wantLocation {
+		t.Fatalf("Location = %q, want %q", got, wantLocation)
 	}
 }
 
@@ -705,7 +787,7 @@ func fetchCapabilities(env *testEnv, token string) ([]string, error) {
 		"id":      4,
 	}
 	callBody, _ := json.Marshal(callPayload)
-	callReq, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(callBody))
+	callReq, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(callBody))
 	if err != nil {
 		return nil, err
 	}
@@ -770,7 +852,7 @@ func loginAndGetToken(env *testEnv, login, password string) (string, error) {
 	}
 	body, _ := json.Marshal(loginPayload)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
 	if err != nil {
 		return "", err
 	}
@@ -818,7 +900,7 @@ func loginAndGetStatus(env *testEnv, login, password string) int {
 	}
 	body, _ := json.Marshal(loginPayload)
 
-	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
 	if err != nil {
 		return 0
 	}
@@ -835,7 +917,7 @@ func loginAndGetStatus(env *testEnv, login, password string) int {
 func openSSE(t *testing.T, env *testEnv, token, channels string) (*http.Response, *bufio.Reader) {
 	t.Helper()
 
-	req, err := http.NewRequest(http.MethodGet, env.httpServer.URL+"/sse/"+env.dbName+"?channels="+url.QueryEscape(channels), nil)
+	req, err := http.NewRequest(http.MethodGet, env.sseURL()+"?channels="+url.QueryEscape(channels), nil)
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}

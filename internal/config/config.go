@@ -40,6 +40,10 @@ type Config struct {
 	SSEMaxClients     int
 	SSEClientBuffer   int
 	SSESendTimeout    time.Duration
+	// APIPrefix is the first path segment for all database endpoints.
+	// Defaults to "db", giving routes like /db/:database/jsonrpc and /db/:database/sse.
+	// Set to "api" for backward-compatible paths, or any other value for custom deployments.
+	APIPrefix string
 }
 
 // Search paths for configuration
@@ -327,6 +331,14 @@ func Load(configPath string) (*Config, error) {
 		return nil, err
 	}
 
+	cfg.APIPrefix = strings.TrimSpace(os.Getenv("API_PREFIX"))
+	if cfg.APIPrefix == "" {
+		cfg.APIPrefix = "db"
+	}
+	if err := validateAPIPrefix(cfg.APIPrefix); err != nil {
+		return nil, err
+	}
+
 	return cfg, nil
 }
 
@@ -368,6 +380,25 @@ func validateMetricsConfig(cfg *Config) error {
 	}
 	if _, err := net.ResolveTCPAddr("tcp", cfg.MetricsListenAddr); err != nil {
 		return fmt.Errorf("invalid METRICS_LISTEN_ADDR value: '%s': %w", cfg.MetricsListenAddr, err)
+	}
+	return nil
+}
+
+// validateAPIPrefix checks that the prefix contains only URL-safe characters:
+// letters, digits, hyphens, and underscores. Slashes are intentionally forbidden
+// because the prefix occupies exactly one path segment.
+func validateAPIPrefix(prefix string) error {
+	if prefix == "" {
+		return fmt.Errorf("API_PREFIX cannot be empty")
+	}
+	for _, r := range prefix {
+		ok := (r >= 'a' && r <= 'z') ||
+			(r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') ||
+			r == '-' || r == '_'
+		if !ok {
+			return fmt.Errorf("invalid API_PREFIX value: '%s', only letters, digits, hyphens and underscores are allowed", prefix)
+		}
 	}
 	return nil
 }
