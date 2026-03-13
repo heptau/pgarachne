@@ -445,6 +445,35 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	}
 	defer tx.Rollback()
 
+	// Idempotency check — runs as the service user (DB_USER) before SET LOCAL ROLE,
+	// so no extra privileges are needed on the client role side.
+	// The check is intentionally inside the transaction: if the function call fails
+	// and the transaction rolls back, the key is not persisted and the client may retry.
+	if req.IdempotencyKey != "" {
+		var saved bool
+		err := tx.QueryRowContext(
+			c.Request.Context(),
+			`SELECT pgarachne.save_idempotency_key($1)`,
+			req.IdempotencyKey,
+		).Scan(&saved)
+		if err != nil {
+			slog.Error("Idempotency check failed", "key", req.IdempotencyKey, "function", functionName, "error", err)
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Idempotency check failed"}, ID: req.ID})
+			return
+		}
+		if !saved {
+			slog.Warn("Duplicate request rejected", "key", req.IdempotencyKey, "function", functionName)
+			recordJSONRPC(functionName, "duplicate")
+			c.JSON(http.StatusConflict, JSONRPCResponse{
+				JSONRPC: "2.0",
+				Error:   &JSONRPCError{Code: -32000, Message: "This request has already been processed"},
+				ID:      req.ID,
+			})
+			return
+		}
+	}
+
 	// Safe identifier quoting for role
 	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
 	if _, err := tx.ExecContext(c.Request.Context(), fmt.Sprintf("SET LOCAL ROLE %s", quotedRole)); err != nil {

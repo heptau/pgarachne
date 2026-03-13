@@ -7,6 +7,14 @@ type JSONRPCRequest struct {
 	Method  string                 `json:"method"`
 	Params  map[string]interface{} `json:"params"`
 	ID      interface{}            `json:"id"`
+	// IdempotencyKey is an optional top-level extension field (not part of JSON-RPC 2.0
+	// spec, but permitted — unknown fields are ignored by compliant implementations).
+	// When present, the server calls pgarachne.save_idempotency_key before executing
+	// the target function. If the key was already used in a previous successful call,
+	// the request is rejected with HTTP 409 Conflict.
+	// Placed at the top level intentionally so that params is passed to the SQL
+	// function without any modification or stripping.
+	IdempotencyKey string `json:"idempotencyKey,omitempty"`
 }
 
 type JSONRPCResponse struct {

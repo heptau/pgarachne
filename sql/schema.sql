@@ -296,3 +296,50 @@ BEGIN
     );
 END;
 $$;
+
+--
+
+CREATE TABLE pgarachne.requests (
+    idempotency_id uuid PRIMARY KEY,
+    created_at timestamptz DEFAULT CURRENT_TIMESTAMP
+);
+
+
+CREATE OR REPLACE FUNCTION pgarachne.to_uuid(_text text)
+RETURNS uuid
+LANGUAGE sql
+IMMUTABLE
+STRICT
+PARALLEL SAFE
+AS $fn$
+
+   SELECT
+      CASE
+         WHEN pg_input_is_valid(_text, 'uuid') THEN _text::uuid
+         WHEN pg_input_is_valid(_text, 'bigint') THEN lpad(to_hex(_text::bigint), 32, '0')::uuid
+         ELSE md5(_text)::uuid
+      END;
+
+$fn$;
+
+COMMENT ON FUNCTION pgarachne.to_uuid(text) IS 'Smart UUID cast: preserves valid UUIDs, converts BIGINTs to 32-char hex, and uses MD5 hash as fallback for other strings.';
+GRANT EXECUTE ON FUNCTION pgarachne.to_uuid(text) TO public;
+
+CREATE OR REPLACE FUNCTION pgarachne.save_idempotency_key(_key text)
+RETURNS boolean
+LANGUAGE SQL
+STRICT
+AS $fn$
+
+   WITH inserted AS (
+      INSERT INTO pgarachne.requests (idempotency_id)
+      VALUES (pgarachne.to_uuid(_key))
+      ON CONFLICT (idempotency_id) DO NOTHING
+      RETURNING TRUE
+   )
+   SELECT EXISTS (SELECT FROM inserted);
+
+COMMENT ON FUNCTION pgarachne.save_idempotency_key(text) IS 'TODO';
+GRANT EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text) TO public;
+
+$fn$;
