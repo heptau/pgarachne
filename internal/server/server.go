@@ -210,6 +210,11 @@ func (s *Server) buildRouter() *gin.Engine {
 	// SSE stream for PostgreSQL NOTIFY
 	router.GET("/"+prefix+"/:database/sse", s.handleSSE)
 
+	// MCP (Model Context Protocol) endpoint — Streamable HTTP transport.
+	// Translates MCP tools/list and tools/call to PostgreSQL function calls,
+	// using the same auth and role-switching logic as the JSON-RPC endpoint.
+	router.POST("/"+prefix+"/:database/mcp", s.handleMCP)
+
 	// Backward-compatibility redirects from the legacy URL layout.
 	// 307 Temporary Redirect is used intentionally: it preserves the HTTP method
 	// (POST stays POST), which is required for JSON-RPC clients that do not
