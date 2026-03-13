@@ -63,49 +63,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	logLevel := parseLogLevel(cfg.LogLevel)
-
-	var logHandler slog.Handler
-	var logFile *os.File
 	handlerOptions := &slog.HandlerOptions{
-		Level: logLevel,
+		Level: parseLogLevel(cfg.LogLevel),
 	}
 
-	if cfg.LogOutput != "stdout" {
+	fileLogging := cfg.LogOutput != "stdout"
+
+	if fileLogging {
+		// All structured logging goes to the log file.
+		// Only brief human-readable messages are printed to the console.
 		file, err := os.OpenFile(cfg.LogOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", cfg.LogOutput, err)
 			os.Exit(1)
 		}
-		logFile = file
-		logHandler = slog.NewJSONHandler(file, handlerOptions)
+		defer file.Close()
+
+		slog.SetDefault(slog.New(slog.NewJSONHandler(file, handlerOptions)))
+
+		fmt.Printf("PgArachne version %s starting. Logging to %s\n", Version, cfg.LogOutput)
 	} else {
-		logHandler = slog.NewJSONHandler(os.Stdout, handlerOptions)
+		// No log file configured — write everything to stdout.
+		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, handlerOptions)))
 	}
 
-	logger := slog.New(logHandler)
-	slog.SetDefault(logger)
-	if logFile != nil {
-		defer logFile.Close()
-	}
-
-	slog.Info("PgArachne starting", "version", Version)
-	slog.Info("Configuration loaded successfully", "config_file", *configPath, "log_output", cfg.LogOutput, "log_level", cfg.LogLevel)
-	if cfg.LogOutput != "stdout" {
-		fmt.Printf("PgArachne version %s started. Logging to %s\n", Version, cfg.LogOutput)
-	}
+	slog.Info("PgArachne starting",
+		"version", Version,
+		"config_file", *configPath,
+		"log_output", cfg.LogOutput,
+		"log_level", cfg.LogLevel,
+	)
 
 	// Initialize and run server
 	srv := server.New(cfg)
 	if err := srv.Run(); err != nil {
 		slog.Error("Server failed", "error", err)
-		// Clean up PID file if we are the daemon process is implicit,
-		// but since we daemonize by re-executing, the child is just a normal process now.
-		// A proper daemon manager might catch signals and remove PID, but our daemon.Stop() handles removal.
-		// If it crashes, PID file stays (stale). This is typical for simple types.
+		if fileLogging {
+			fmt.Fprintf(os.Stderr, "PgArachne stopped with error: %v\n", err)
+		}
 		os.Exit(1)
 	}
-	if cfg.LogOutput != "stdout" {
+
+	slog.Info("PgArachne stopped")
+	if fileLogging {
 		fmt.Println("PgArachne stopped.")
 	}
 }
