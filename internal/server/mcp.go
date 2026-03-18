@@ -27,16 +27,30 @@ const (
 	mcpErrAuth     = -32001 // Authentication / authorisation failure (server-defined)
 )
 
+// mcpDatabaseMethods maps MCP protocol method names to their pgarachne SQL
+// backing functions. Each function accepts a jsonb params argument and returns
+// json shaped according to the MCP specification for that method.
+//
+// Adding a new MCP method backed by a SQL function only requires:
+//  1. Implementing the function in sql/mcp_functions.sql.
+//  2. Adding an entry here — no other Go changes are needed.
+var mcpDatabaseMethods = map[string]string{
+	"resources/list": "pgarachne.mcp_list_resources",
+	"resources/read": "pgarachne.mcp_read_resource",
+	"prompts/list":   "pgarachne.mcp_list_prompts",
+	"prompts/get":    "pgarachne.mcp_get_prompt",
+}
+
 // ---------------------------------------------------------------------------
 // Wire types — JSON-RPC envelope
 // ---------------------------------------------------------------------------
 
 type mcpRequest struct {
-	JSONRPC string          `json:"jsonrpc"`
+	JSONRPC string `json:"jsonrpc"`
 	// ID is absent on notifications; present (possibly null) on requests.
-	ID      interface{}     `json:"id,omitempty"`
-	Method  string          `json:"method"`
-	Params  json.RawMessage `json:"params,omitempty"`
+	ID     interface{}     `json:"id,omitempty"`
+	Method string          `json:"method"`
+	Params json.RawMessage `json:"params,omitempty"`
 }
 
 // mcpResponse is the JSON-RPC response envelope sent back to the client.
@@ -64,13 +78,30 @@ type mcpInitializeResult struct {
 }
 
 type mcpServerCapabilities struct {
-	// Tools signals that this server exposes callable tools.
+	// Tools signals that this server exposes callable tools (PostgreSQL functions).
 	Tools *mcpToolsCapability `json:"tools,omitempty"`
+	// Resources signals that this server exposes readable resources (tables/views).
+	Resources *mcpResourcesCapability `json:"resources,omitempty"`
+	// Prompts signals that this server exposes prompt templates.
+	Prompts *mcpPromptsCapability `json:"prompts,omitempty"`
 }
 
 type mcpToolsCapability struct {
-	// ListChanged indicates whether the server emits tools/listChanged notifications.
-	// We do not (stateless implementation), so this is always false.
+	// ListChanged — we do not emit tools/listChanged notifications (stateless).
+	ListChanged bool `json:"listChanged"`
+}
+
+// mcpResourcesCapability describes the server's resources support.
+// Subscribe: we do not implement live resource subscriptions (no SSE per resource).
+// ListChanged: we do not emit resources/listChanged notifications.
+type mcpResourcesCapability struct {
+	Subscribe   bool `json:"subscribe"`
+	ListChanged bool `json:"listChanged"`
+}
+
+// mcpPromptsCapability describes the server's prompts support.
+// ListChanged: we do not emit prompts/listChanged notifications.
+type mcpPromptsCapability struct {
 	ListChanged bool `json:"listChanged"`
 }
 
@@ -135,12 +166,14 @@ type capabilityEntry struct {
 //	POST /{prefix}/{database}/mcp
 //
 // Protocol flow:
-//  1. Client calls initialize  → server returns capabilities (no auth required).
-//  2. Client sends notifications/initialized → server returns 202 (no body).
-//  3. Client calls tools/list  → server calls pgarachne.capabilities() as the
-//     authenticated role and maps the result to MCP tool descriptors.
-//  4. Client calls tools/call  → server executes schema.function(args::jsonb)
-//     as the authenticated role and wraps the result in MCP content blocks.
+//  1. Client calls initialize     → server returns capabilities (no auth required).
+//  2. Client sends notifications/ → server returns 202 Accepted (no body).
+//  3. Client calls tools/list     → pgarachne.capabilities() as authenticated role.
+//  4. Client calls tools/call     → schema.function(args::jsonb) as authenticated role.
+//  5. Client calls resources/list → pgarachne.mcp_list_resources() as authenticated role.
+//  6. Client calls resources/read → pgarachne.mcp_read_resource(params) as authenticated role.
+//  7. Client calls prompts/list   → pgarachne.mcp_list_prompts() as authenticated role.
+//  8. Client calls prompts/get    → pgarachne.mcp_get_prompt(params) as authenticated role.
 func (s *Server) handleMCP(c *gin.Context) {
 	databaseName := c.Param("database")
 	if !isSafeDatabaseName(databaseName) {
@@ -160,7 +193,7 @@ func (s *Server) handleMCP(c *gin.Context) {
 	}
 
 	// MCP notifications have no "id" field and do not expect a response body.
-	// The server MUST return 202 Accepted.
+	// The server MUST return 202 Accepted with no body.
 	if isNotification(req) {
 		c.Status(http.StatusAccepted)
 		return
@@ -190,14 +223,26 @@ func (s *Server) handleMCP(c *gin.Context) {
 		return
 	}
 
+	// tools/* methods are handled explicitly because tools/call has special
+	// logic (idempotency, tool-level error wrapping, argument extraction).
 	switch req.Method {
 	case "tools/list":
 		s.handleMCPToolsList(c, req, db, dbRole)
+		return
 	case "tools/call":
 		s.handleMCPToolsCall(c, req, db, dbRole)
-	default:
-		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrMethod, "Method not found: "+req.Method))
+		return
 	}
+
+	// All other authenticated methods are backed by a pgarachne SQL function
+	// registered in mcpDatabaseMethods. This covers resources/* and prompts/*,
+	// and can be extended without adding new Go code.
+	if sqlFunc, ok := mcpDatabaseMethods[req.Method]; ok {
+		s.handleMCPDatabaseMethod(c, req, db, dbRole, sqlFunc)
+		return
+	}
+
+	c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrMethod, "Method not found: "+req.Method))
 }
 
 // ---------------------------------------------------------------------------
@@ -214,7 +259,16 @@ func (s *Server) handleMCPInitialize(c *gin.Context, req mcpRequest) {
 		Result: mcpInitializeResult{
 			ProtocolVersion: mcpProtocolVersion,
 			Capabilities: mcpServerCapabilities{
-				Tools: &mcpToolsCapability{ListChanged: false},
+				Tools: &mcpToolsCapability{
+					ListChanged: false,
+				},
+				Resources: &mcpResourcesCapability{
+					Subscribe:   false,
+					ListChanged: false,
+				},
+				Prompts: &mcpPromptsCapability{
+					ListChanged: false,
+				},
 			},
 			ServerInfo: mcpImplementation{
 				Name:    "PgArachne",
@@ -227,22 +281,29 @@ func (s *Server) handleMCPInitialize(c *gin.Context, req mcpRequest) {
 // handleMCPToolsList handles tools/list by calling pgarachne.capabilities()
 // as the authenticated role and mapping the result to MCP tool descriptors.
 func (s *Server) handleMCPToolsList(c *gin.Context, req mcpRequest, db *sql.DB, dbRole string) {
-	caps, err := s.fetchCapabilitiesForRole(c.Request.Context(), db, dbRole)
+	raw, err := s.callPgarachneFunc(c.Request.Context(), db, dbRole,
+		"pgarachne.capabilities", json.RawMessage(`{}`))
 	if err != nil {
 		slog.Error("MCP tools/list: capabilities fetch failed", "error", err)
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to list tools"))
 		return
 	}
 
+	var caps []capabilityEntry
+	if err := json.Unmarshal(raw, &caps); err != nil {
+		slog.Error("MCP tools/list: failed to unmarshal capabilities", "error", err)
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to parse capabilities"))
+		return
+	}
+
 	tools := make([]mcpTool, 0, len(caps))
 	for _, cap := range caps {
 		// Fall back to a minimal valid JSON Schema when the function has no
-		// parameter declaration (e.g., functions that only accept an empty object).
+		// parameter declaration.
 		inputSchema := cap.Parameters
 		if len(inputSchema) == 0 {
 			inputSchema = json.RawMessage(`{"type":"object","properties":{}}`)
 		}
-
 		tools = append(tools, mcpTool{
 			Name:        cap.Method,
 			Description: cap.Description,
@@ -339,7 +400,6 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 	}
 
 	// Impersonate the authenticated role for the duration of the transaction.
-	// The double-quote escaping mirrors the pattern used in handleFunctionCall.
 	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
 	if _, err := tx.ExecContext(c.Request.Context(), "SET LOCAL ROLE "+quotedRole); err != nil {
 		slog.Error("MCP tools/call: SET LOCAL ROLE failed", "role", dbRole, "function", functionName, "error", err)
@@ -382,7 +442,6 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 	}
 
 	recordJSONRPC(functionName, "success")
-
 	c.JSON(http.StatusOK, mcpResponse{
 		JSONRPC: "2.0",
 		ID:      req.ID,
@@ -392,14 +451,59 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 	})
 }
 
+// handleMCPDatabaseMethod is the generic handler for MCP methods backed by a
+// pgarachne SQL function (resources/list, resources/read, prompts/list,
+// prompts/get, and any future extensions registered in mcpDatabaseMethods).
+//
+// Unlike tools/call, failures here are returned as JSON-RPC protocol errors
+// (with the error field set) rather than tool-level errors, because these
+// methods represent infrastructure queries — a missing resource or prompt is a
+// caller error, not a tool execution failure.
+func (s *Server) handleMCPDatabaseMethod(c *gin.Context, req mcpRequest, db *sql.DB, dbRole, sqlFunc string) {
+	params := req.Params
+	if len(params) == 0 {
+		params = json.RawMessage(`{}`)
+	}
+
+	raw, err := s.callPgarachneFunc(c.Request.Context(), db, dbRole, sqlFunc, params)
+	if err != nil {
+		slog.Error("MCP database method failed",
+			"method", req.Method, "func", sqlFunc, "error", err)
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, sanitiseSQLError(err)))
+		return
+	}
+
+	// The SQL function already returns a fully-shaped MCP result object.
+	// Unmarshal to interface{} so it is re-serialised without double encoding.
+	var result interface{}
+	if err := json.Unmarshal(raw, &result); err != nil {
+		slog.Error("MCP database method: failed to unmarshal result",
+			"method", req.Method, "func", sqlFunc, "error", err)
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to parse method result"))
+		return
+	}
+
+	c.JSON(http.StatusOK, mcpResponse{JSONRPC: "2.0", ID: req.ID, Result: result})
+}
+
 // ---------------------------------------------------------------------------
-// Helpers
+// Shared helpers
 // ---------------------------------------------------------------------------
 
-// fetchCapabilitiesForRole runs pgarachne.capabilities() inside a short
-// transaction with SET LOCAL ROLE so that has_function_privilege() in the
-// query returns results appropriate for the authenticated user.
-func (s *Server) fetchCapabilitiesForRole(ctx context.Context, db *sql.DB, dbRole string) ([]capabilityEntry, error) {
+// callPgarachneFunc executes a pgarachne SQL function inside a transaction
+// with SET LOCAL ROLE applied. The function must accept a single jsonb
+// argument and return json.
+//
+// This is the shared execution primitive used by:
+//   - handleMCPToolsList  (via capabilities)
+//   - handleMCPDatabaseMethod (resources/*, prompts/*)
+func (s *Server) callPgarachneFunc(
+	ctx context.Context,
+	db *sql.DB,
+	dbRole string,
+	sqlFunc string,
+	params json.RawMessage,
+) (json.RawMessage, error) {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
@@ -408,23 +512,23 @@ func (s *Server) fetchCapabilitiesForRole(ctx context.Context, db *sql.DB, dbRol
 
 	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
 	if _, err := tx.ExecContext(ctx, "SET LOCAL ROLE "+quotedRole); err != nil {
-		return nil, fmt.Errorf("set role: %w", err)
+		return nil, fmt.Errorf("set role %s: %w", dbRole, err)
 	}
 
 	var raw json.RawMessage
-	if err := tx.QueryRowContext(ctx, `SELECT pgarachne.capabilities($1::jsonb)::json`, `{}`).Scan(&raw); err != nil {
-		return nil, fmt.Errorf("capabilities query: %w", err)
+	if err := tx.QueryRowContext(
+		ctx,
+		fmt.Sprintf("SELECT %s($1::jsonb)::json", sqlFunc),
+		[]byte(params),
+	).Scan(&raw); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(); err != nil {
 		return nil, fmt.Errorf("commit: %w", err)
 	}
 
-	var entries []capabilityEntry
-	if err := json.Unmarshal(raw, &entries); err != nil {
-		return nil, fmt.Errorf("unmarshal capabilities: %w", err)
-	}
-	return entries, nil
+	return raw, nil
 }
 
 // isNotification reports whether req is an MCP notification.

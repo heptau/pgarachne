@@ -339,7 +339,7 @@ AS $fn$
    )
    SELECT EXISTS (SELECT FROM inserted);
 
+$fn$;
+
 COMMENT ON FUNCTION pgarachne.save_idempotency_key(text) IS 'TODO';
 GRANT EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text) TO public;
-
-$fn$;
