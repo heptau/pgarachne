@@ -40,7 +40,7 @@ LDFLAGS=-ldflags "-s -w -X 'main.Version=$(APP_VERSION)'"
 GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
-.PHONY: help deps build run clean prepare-dist docs \
+.PHONY: help deps build run clean prepare-dist docs tests \
         release macos-apps \
         macos-app-amd64 macos-app-arm64 macos-app-universal
 
@@ -55,6 +55,7 @@ help:
 	@echo ""
 	@echo "Dev targets:"
 	@echo "  build                 Build binary for current OS."
+	@echo "  tests                 Run all tests (unit + integration) via Docker."
 	@echo "  clean                 Remove artifacts."
 	@echo "  docs                  Build documentation with Hugo."
 	@echo "  release               Build local release artifacts + Homebrew files from VERSION."
@@ -247,6 +248,13 @@ macos-app-universal: prepare-dist
 
 	@rm -rf $(TMP_DIR)
 	@echo "Ready: $(DIST_DIR)/$(BINARY_NAME)-macos-universal-app.zip"
+
+# Spins up a Postgres container, applies schema + mcp_functions, runs
+# go test ./..., then tears the container down.
+# Requires: Docker Desktop (or Docker Engine) and Docker Compose v2.
+tests:
+	@echo "==> Running tests (Docker + Go)"
+	@bash scripts/run_tests.sh
 
 build: deps
 	@echo "==> Building locally (v$(APP_VERSION))..."

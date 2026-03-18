@@ -37,6 +37,7 @@ if ! docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U postgres >
 fi
 
 echo "==> Preparing test database"
+chmod +x "$PROJECT_ROOT/scripts/setup_test_db.sh"
 DB_HOST="$DB_HOST" \
 DB_PORT="$DB_PORT" \
 DB_ADMIN_USER="$DB_ADMIN_USER" \

@@ -61,6 +61,7 @@ fi
 export PGPASSWORD="$PGARACHNE_PASSWORD"
 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 -f "$PROJECT_ROOT/sql/schema.sql"
+psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 -f "$PROJECT_ROOT/sql/mcp_functions.sql"
 
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 <<SQL
 CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
