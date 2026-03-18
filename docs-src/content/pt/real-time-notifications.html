@@ -10,9 +10,25 @@ menu:
 <section id="sse">
 	<h2>Notificações em tempo real (SSE)</h2>
 	<p>Assine canais PostgreSQL <code>NOTIFY</code> via Server-Sent Events:</p>
-	<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	<pre><code>curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
   -H "Authorization: Bearer $TOKEN"</code></pre>
 	<p>Cada mensagem é JSON com o canal e o payload:</p>
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Se o payload for texto, ele é encapsulado como string em <code>data</code>.</p>
+
+	<h3>Enviar notificações a partir do PostgreSQL</h3>
+	<p>A partir do <code>psql</code> ou de qualquer sessão de banco de dados:</p>
+	<pre><code>-- Payload de texto simples
+NOTIFY orders, 'novo pedido';
+
+-- Payload JSON
+NOTIFY orders, '{"id":123,"status":"created"}';
+</code></pre>
+	<p>A partir de um trigger ou stored procedure:</p>
+	<pre><code>PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);</code></pre>
+	<div class="tip">
+		<strong>Nota:</strong> <code>NOTIFY</code> só é entregue às outras sessões após o commit da transação
+		remetente. Se você o executar dentro de uma transação aberta no <code>psql</code>, os assinantes só o
+		receberão após o <code>COMMIT</code>.
+	</div>
 </section>

@@ -11,9 +11,9 @@ menu:
 	<h2>Exemple Hello World</h2>
 	<p>Créons un endpoint API simple associé à un utilisateur.</p>
 
-	<h3>1. Créer l’utilisateur et la fonction</h3>
+	<h3>1. Créer l'utilisateur et la fonction</h3>
 	<p>Dans votre base de données (<code>my_database</code>) :</p>
-	<pre><code>-- 1. Créer un utilisateur qui se connectera à l’API
+	<pre><code>-- 1. Créer un utilisateur qui se connectera à l'API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
@@ -26,15 +26,15 @@ AS $$
     SELECT '"Hello World"'::json;
 $$;
 
--- 3. Accorder les permissions à l’utilisateur
+-- 3. Accorder les permissions à l'utilisateur
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 
 -- 4. Permettre à PgArachne (utilisateur système) de passer à demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Connexion via l’API</h3>
+	<h3>2. Connexion via l'API</h3>
 	<p>Utilisez la méthode JSON-RPC <code>login</code> pour obtenir un token JWT :</p>
-	<pre><code>curl -X POST http://localhost:8080/api/my_database \
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Réponse :</p>
@@ -44,7 +44,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 	<p>Utilisez le token pour appeler la fonction <code>hello_world</code> :</p>
 	<pre><code>export TOKEN="VOTRE_TOKEN_JWT_ICI"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>

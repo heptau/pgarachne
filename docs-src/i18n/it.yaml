@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Trasforma PostgreSQL in un’API sicura. Istantaneamente."
+  translation: "Il tuo database è il tuo backend.<br>Sicuro, istantaneo, pronto per l'IA."
 - id: hero_desc
-  translation: "Zero codice boilerplate. Alte prestazioni. Il middleware che mappa le richieste HTTP direttamente alle funzioni del database, con SSE in tempo reale e metriche Prometheus."
+  translation: "Definisci una funzione SQL — il tuo endpoint è pronto. Supporto MCP nativo per Claude Desktop &amp; Cursor. Notifiche SSE in tempo reale. Pronto per la produzione dal primo giorno."
 - id: hero_get_started
   translation: "Inizia ora"
 - id: hero_see_demo
@@ -40,7 +40,7 @@
 - id: quickstart_step_install
   translation: "Installa PgArachne"
 - id: quickstart_step_configure
-  translation: "Configura l’ambiente"
+  translation: "Configura l'ambiente"
 - id: quickstart_step_auth
   translation: "Configura sicurezza e auth"
 - id: quickstart_step_deploy

@@ -12,7 +12,7 @@
 <a href="../../it/hello-world-example/">Italiano</a>
 <a href="../../pt/hello-world-example/">Português</a></div></div></div></nav><div class="main-wrapper" id="docs"><div class="toc-overlay" id="toc-overlay"></div><aside class="toc" id="toc"><ul><li><a href="../../fr/about-architecture/">À propos &amp; Architecture</a></li><li><a href="../../fr/architectural-decisions/">Décisions d’Architecture</a></li><li><a href="../../fr/whats-new/">Nouveautés</a></li><li><a href="../../fr/comparison/">Comparaison avec PostgREST</a></li><li><a href="../../fr/installation/">Installation</a></li><li><a href="../../fr/configuration/">Configuration</a></li><li><a class="active" href="../../fr/hello-world-example/">Exemple Hello World</a></li><li><a href="../../fr/api-explorer/">Explorateur PgArachne</a></li><li><a href="../../fr/real-time-notifications/">Notifications temps réel (SSE)</a></li><li><a href="../../fr/metrics/">Métriques (Prometheus)</a></li><li><a href="../../fr/security-roles/">Sécurité &amp; Authentification</a></li><li><a href="../../fr/deployment-https/">Déploiement &amp; HTTPS</a></li><li><a href="../../fr/error-codes/">Codes d’erreur</a></li><li><a href="../../fr/support-donate/">Soutenir le développement</a></li><li><a href="../../fr/license/">Licence &amp; Marque déposée</a></li></ul></aside><div class="doc-content"><div class="doc-meta"><nav aria-label="Breadcrumb" class="breadcrumbs"><a href="../../fr/">Accueil</a>
 <span>/</span>
-<span>Exemple Hello World</span></nav><div class="read-time">1 min de lecture</div></div><section id="hello-world"><h2>Exemple Hello World</h2><p>Créons un endpoint API simple associé à un utilisateur.</p><h3>1. Créer l’utilisateur et la fonction</h3><p>Dans votre base de données (<code>my_database</code>) :</p><pre><code>-- 1. Créer un utilisateur qui se connectera à l’API
+<span>Exemple Hello World</span></nav><div class="read-time">1 min de lecture</div></div><section id="hello-world"><h2>Exemple Hello World</h2><p>Créons un endpoint API simple associé à un utilisateur.</p><h3>1. Créer l’utilisateur et la fonction</h3><p>Dans votre base de données (<code>my_database</code>) :</p><pre><code>-- 1. Créer un utilisateur qui se connectera à l'API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
@@ -25,15 +25,15 @@ AS $$
     SELECT '"Hello World"'::json;
 $$;
 
--- 3. Accorder les permissions à l’utilisateur
+-- 3. Accorder les permissions à l'utilisateur
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 
 -- 4. Permettre à PgArachne (utilisateur système) de passer à demo_user
-GRANT demo_user TO pgarachne;</code></pre><h3>2. Connexion via l’API</h3><p>Utilisez la méthode JSON-RPC <code>login</code> pour obtenir un token JWT :</p><pre><code>curl -X POST http://localhost:8080/api/my_database \
+GRANT demo_user TO pgarachne;</code></pre><h3>2. Connexion via l’API</h3><p>Utilisez la méthode JSON-RPC <code>login</code> pour obtenir un token JWT :</p><pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre><p>Réponse :</p><pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre><h3>3. Appeler la fonction</h3><p>Utilisez le token pour appeler la fonction <code>hello_world</code> :</p><pre><code>export TOKEN="VOTRE_TOKEN_JWT_ICI"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre><p>Réponse :</p><pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre></section><div class="doc-related"><h3>Documentation liée</h3><ul><li><a href="../../fr/installation/">Installation</a></li><li><a href="../../fr/configuration/">Configuration</a></li><li><a href="../../fr/security-roles/">Sécurité</a></li><li><a href="../../fr/deployment-https/">Déploiement &amp; HTTPS</a></li><li><a href="../../fr/metrics/">Métriques</a></li></ul></div><div class="doc-next doc-nav"><a aria-label="Précédent: Configuration" class="doc-prev" href="../../fr/configuration/">← <span>Configuration</span></a>

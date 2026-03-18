@@ -117,6 +117,11 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Port pro naslouchání. Výchozí: <code>8080</code>.</td>
 			</tr>
 			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>První segment URL cesty pro všechny databázové endpointy (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Výchozí: <code>db</code>, výsledné cesty jako <code>/db/:databaze/jsonrpc</code>. Nastavte na <code>api</code> pro zachování starých cest. Povoleny jsou pouze písmena, číslice, pomlčky a podtržítka.</td>
+			</tr>
+			<tr>
 				<td><code>PID_FILE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Cesta k PID souboru démona používanému při <code>-start</code>/<code>-stop</code>. Výchozí: cache adresář uživatele (fallback: temp adresář).</td>

@@ -117,6 +117,11 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Port to listen on. Default: <code>8080</code>.</td>
 			</tr>
 			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>First URL path segment for all database endpoints (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Default: <code>db</code>, giving routes like <code>/db/:database/jsonrpc</code>. Set to <code>api</code> to match legacy paths. Only letters, digits, hyphens and underscores are allowed.</td>
+			</tr>
+			<tr>
 				<td><code>PID_FILE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Path to daemon PID file used by <code>-start</code>/<code>-stop</code>. Default: OS user cache dir (fallback: temp dir).</td>

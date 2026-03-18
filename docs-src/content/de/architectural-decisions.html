@@ -21,10 +21,10 @@ menu:
 
 		<h4>Warum JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Einzelner Endpunkt:</strong> Die gesamte Kommunikation erfolgt über <code>POST /api/{datenbank}</code>. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.</li>
+			<li><strong>Einzelner Endpunkt:</strong> Die gesamte Kommunikation erfolgt über <code>POST /{prefix}/{datenbank}/jsonrpc</code>. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.</li>
 			<li><strong>Eigenständige Aufrufe:</strong> Jede Anfrage ist ein vollständiges JSON-Objekt (Methode + Parameter + ID). Dieses Format ist für LLMs und AI-Agenten trivial zu generieren und mit hoher Zuverlässigkeit zu parsen.</li>
-			<li><strong>Standardisierte Fehlerbehandlung:</strong> Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden“.</li>
-			<li><strong>Stapelverarbeitung (Batching):</strong> Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen (z. B. mehrere Funktionsaufrufe) in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.</li>
+			<li><strong>Standardisierte Fehlerbehandlung:</strong> Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden".</li>
+			<li><strong>Stapelverarbeitung (Batching):</strong> Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.</li>
 			<li><strong>Discovery:</strong> Der Capabilities-Endpunkt bietet eine vollständige Beschreibung der API in einem Format, das AI-Agenten konsumieren können, um verfügbare Werkzeuge ohne Halluzinationen zu verstehen.</li>
 		</ul>
 
@@ -42,7 +42,7 @@ menu:
 
 		<h4>Warum SSE:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Reines HTTP:</strong> SSE ist Standard-HTTP. Es funktioniert über Proxies, Load Balancer und CDNs ohne spezielle Konfiguration für „Protokoll-Upgrades“.</li>
+			<li><strong>Reines HTTP:</strong> SSE ist Standard-HTTP. Es funktioniert über Proxies, Load Balancer und CDNs ohne spezielle Konfiguration für „Protokoll-Upgrades".</li>
 			<li><strong>Native Browser-Unterstützung:</strong> Die <code>EventSource</code>-API ist in allen modernen Browsern integriert und übernimmt die automatische Wiederverbindung ohne zusätzliche Client-Bibliotheken.</li>
 			<li><strong>Entspricht NOTIFY-Semantik:</strong> Der PostgreSQL-Befehl <code>NOTIFY</code> ist unidirektional (Server zu Client), was perfekt auf SSE passt.</li>
 			<li><strong>Multiplexing:</strong> Über HTTP/2 können hunderte von SSE-Streams eine einzige TCP-Verbindung teilen, was extrem effizient ist.</li>
@@ -65,14 +65,14 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Statische Binärdateien:</strong> Kompiliert in eine einzige ausführbare Datei ohne externe Abhängigkeiten. Die Bereitstellung ist so einfach wie das Kopieren der Datei auf den Server.</li>
 			<li><strong>Nebenläufigkeit:</strong> Goroutinen in Go machen die Handhabung tausender gleichzeitiger SSE- und Datenbankverbindungen leichtgewichtig und unkompliziert.</li>
-			<li><strong>Robuste Standardbibliothek:</strong> Die integrierten Bibliotheken für HTTP, TLS und JSON sind für den Produktionseinsatz geeignet und benötigen keine „node_modules“ oder externen Laufzeitumgebungen.</li>
+			<li><strong>Robuste Standardbibliothek:</strong> Die integrierten Bibliotheken für HTTP, TLS und JSON sind für den Produktionseinsatz geeignet und benötigen keine „node_modules" oder externen Laufzeitumgebungen.</li>
 			<li><strong>Cross-Kompilierung:</strong> Erstellt problemlos Binärdateien für Linux, macOS und Windows (amd64 und arm64) von jedem Entwicklungsrechner aus.</li>
 		</ul>
 
 		<h4>Warum nicht Node.js, PHP oder Ruby:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Laufzeitumgebungen:</strong> Diese Sprachen erfordern die Installation einer spezifischen Laufzeitumgebung auf jedem Zielrechner.</li>
-			<li><strong>Effizienz:</strong> Die Single-Threaded-Loop von Node.js oder das Modell „Prozess-pro-Anfrage“ von PHP sind weniger effizient für die Aufrechterhaltung tausender inaktiver SSE-Verbindungen.</li>
+			<li><strong>Effizienz:</strong> Die Single-Threaded-Loop von Node.js oder das Modell „Prozess-pro-Anfrage" von PHP sind weniger effizient für die Aufrechterhaltung tausender inaktiver SSE-Verbindungen.</li>
 			<li><strong>Speicherbedarf:</strong> Go verbraucht deutlich weniger Speicher pro Verbindung als Skriptsprachen.</li>
 		</ul>
 
@@ -102,6 +102,54 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Enge Kopplung:</strong> Das direkte Exponieren von Tabellen bindet Ihre API an Ihr internes Datenbanklayout, was das Refactoring der Datenbank erschwert, ohne Client-Anwendungen zu beschädigen.</li>
 			<li><strong>Fragmentierung der Geschäftsregeln:</strong> Die Logik wird am Ende zwischen Datenbank-Constraints und jeglicher Middleware aufgeteilt, die zur Filterung von HTTP-Anfragen verwendet wird.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>5. URL-Struktur: <code>/{prefix}/{datenbank}/{endpunkt}</code></h3>
+		<p>
+			PgArachne leitet alle Endpunkte unter einem konfigurierbaren Präfix-Segment weiter:
+			<code>/db/{datenbank}/jsonrpc</code>, <code>/db/{datenbank}/sse</code>, <code>/db/{datenbank}/mcp</code>.
+			Der Präfix ist standardmäßig <code>db</code> und kann über <code>API_PREFIX</code> geändert werden.
+		</p>
+
+		<h4>Warum diese Struktur:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Reverse-Proxy-Routing:</strong> Eine einzelne PgArachne-Instanz kann mehrere Datenbanken bedienen. Ein Reverse-Proxy (Nginx, Caddy, Traefik) kann nach Präfix oder Datenbankname routen, ohne den Request-Body zu inspizieren — entscheidend für Load Balancing und pfadbasierte Regeln.</li>
+			<li><strong>Horizontale Skalierbarkeit:</strong> Mit dem Datenbanknamen im URL-Pfad können mehrere PgArachne-Instanzen betrieben werden, wobei der Datenverkehr über Standard-Proxy-Regeln zu datenbankspezifischen Instanzen geleitet wird — ohne Sticky Sessions oder Body-Inspektion.</li>
+			<li><strong>Protokoll-Multiplexing pro Datenbank:</strong> Die Gruppierung von <code>/jsonrpc</code>, <code>/sse</code> und <code>/mcp</code> unter demselben <code>/{prefix}/{datenbank}/</code>-Namensraum ermöglicht es, datenbankspezifische Authentifizierung, Rate Limiting und Zugriffskontrolle auf Proxy-Ebene anzuwenden.</li>
+			<li><strong>Konfigurierbarer Präfix:</strong> Deployments, die bereits <code>/api/</code> als Präfix in ihrer Infrastruktur verwenden, können <code>API_PREFIX=api</code> setzen. Legacy-Clients werden über <code>307 Temporary Redirect</code> von den alten Pfaden unterstützt.</li>
+			<li><strong>Beobachtbarkeit:</strong> Log-Aggregatoren und Metriksysteme können den Datenverkehr direkt anhand des Datenbanknamens aus der URL gruppieren und filtern, ohne JSON-Bodies zu parsen.</li>
+		</ul>
+
+		<h4>Warum keine flache Struktur wie <code>/api/{datenbank}</code>:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Protokoll-Mehrdeutigkeit:</strong> Ein einzelner flacher Endpunkt kann auf Routing-Ebene nicht zwischen JSON-RPC-, SSE- und MCP-Datenverkehr unterscheiden — diese Entscheidung fiele in die Anwendungslogik oder Header-Inspektion.</li>
+			<li><strong>Schwieriger zu erweitern:</strong> Das Hinzufügen neuer Protokolle (z.B. GraphQL, gRPC-Gateway) würde ohnehin neue Pfade erfordern, sodass der strukturierte Namensraum das Design zukunftssicher macht.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. MCP als Übersetzungsschicht, nicht als Datenbankprotokoll</h3>
+		<p>
+			PgArachne implementiert das <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
+			als dünne Übersetzungsschicht im Go-Server. PostgreSQL-Funktionen wissen nie von MCP — sie bleiben
+			einfache <code>jsonb → json</code>-Funktionen.
+		</p>
+
+		<h4>Warum MCP auf dem Server übersetzen:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Keine Änderungen an bestehenden Funktionen:</strong> Jede bereits über JSON-RPC exponierte Funktion ist sofort als MCP-Tool verfügbar. Keine SQL-Änderungen, keine Neubereitstellung von Datenbankobjekten.</li>
+			<li><strong>MCP ist mehr als nur Tools:</strong> Das Protokoll umfasst einen Initialisierungs-Handshake, Ping, Benachrichtigungen und potenzielle zukünftige Erweiterungen. Das sind Protokoll-Belange, die in Go gehören, nicht in SQL-Funktionen.</li>
+			<li><strong>Sicherheit bleibt an einem Ort:</strong> Authentifizierung, Rollenwechsel und Eingabevalidierung sind bereits in Go implementiert. Der MCP-Endpunkt nutzt diese Logik unverändert.</li>
+			<li><strong>Mehrere Protokolle, ein Backend:</strong> Dieselbe PostgreSQL-Funktion kann über JSON-RPC (von einem regulären Client), MCP (von Claude Desktop oder Cursor) oder SSE aufgerufen werden. Die Datenbank ist protokoll-agnostisch.</li>
+			<li><strong>Einfacheres SQL:</strong> Die Verarbeitung von MCP-Envelopes in PostgreSQL-Funktionen würde das Parsen komplexer JSON-Strukturen in PL/pgSQL erfordern, was Funktionen schwerer schreibbar, testbar und wartbar machen würde.</li>
+		</ul>
+
+		<h4>Warum MCP nicht in die Datenbank verlagern:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>MCP-Handshake benötigt keine Datenbank:</strong> <code>initialize</code> und <code>ping</code> sind reine Protokollnachrichten. Das Öffnen einer Datenbankverbindung dafür verschwendet Ressourcen und erhöht die Latenz.</li>
+			<li><strong>SQL ist das falsche Werkzeug für Protokolllogik:</strong> JSON-RPC-2.0-Fehlercodes, Benachrichtigungs-Routing und Idempotency-Key-Verwaltung sind Middleware-Belange, keine Daten-Belange.</li>
 		</ul>
 	</div>
 </section>

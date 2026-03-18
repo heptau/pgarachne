@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Turn PostgreSQL into a secure API. Instantly."
+  translation: "Your database is your backend.<br>Secure, instant, AI-ready."
 - id: hero_desc
-  translation: "Zero boilerplate. High performance. The middleware that maps HTTP requests directly to database functions, with real-time SSE notifications and Prometheus metrics."
+  translation: "Define a SQL function — your API endpoint is ready. Native MCP support for Claude Desktop &amp; Cursor. Real-time SSE notifications. Production-grade from day one."
 - id: hero_get_started
   translation: "Get Started"
 - id: hero_see_demo

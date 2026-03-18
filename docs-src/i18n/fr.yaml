@@ -1,11 +1,11 @@
 - id: hero_lead
-  translation: "Transformez PostgreSQL en une API sécurisée. Instantanément."
+  translation: "Votre base de données est votre backend.<br>Sécurisé, instantané, prêt pour l'IA."
 - id: hero_desc
-  translation: "Zéro code superflu. Haute performance.<br>Le middleware qui mappe les requêtes HTTP directement aux fonctions de la base de données, avec SSE temps réel et métriques Prometheus."
+  translation: "Définissez une fonction SQL — votre endpoint est prêt. Support MCP natif pour Claude Desktop &amp; Cursor. Notifications SSE temps réel. Prêt pour la production dès le premier jour."
 - id: hero_get_started
   translation: "Commencer"
 - id: hero_see_demo
-  translation: "Voir la démo (Explorer)"
+  translation: "Voir la démo (Explorer)"
 - id: nav_language
   translation: "Langue"
 - id: nav_menu
@@ -40,7 +40,7 @@
 - id: quickstart_step_install
   translation: "Installez PgArachne"
 - id: quickstart_step_configure
-  translation: "Configurez l’environnement"
+  translation: "Configurez l'environnement"
 - id: quickstart_step_auth
   translation: "Configurez sécurité et auth"
 - id: quickstart_step_deploy
@@ -54,11 +54,11 @@
 - id: not_found_title
   translation: "Page introuvable"
 - id: not_found_desc
-  translation: "La page recherchée n’existe pas ou a été déplacée."
+  translation: "La page recherchée n'existe pas ou a été déplacée."
 - id: not_found_home
-  translation: "Aller à l’accueil"
+  translation: "Aller à l'accueil"
 - id: not_found_install
-  translation: "Ouvrir l’installation"
+  translation: "Ouvrir l'installation"
 - id: link_configuration
   translation: "Configuration"
 - id: link_security

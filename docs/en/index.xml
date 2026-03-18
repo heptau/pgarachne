@@ -22,23 +22,28 @@
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Role Masquerading:&lt;/strong&gt; PgArachne™ connects as a proxy user but executes every
-				request using &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; to switch to the authenticated user’s identity.
+				request using &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; to switch to the authenticated user's identity.
 				Row-Level Security (RLS) works automatically.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Static File Server:&lt;/strong&gt; PgArachne™ can serve static assets (HTML, JS, CSS),
-				allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; A native MCP endpoint allows AI clients such
+				as Claude Desktop, Cursor, and other MCP-compatible tools to discover your PostgreSQL functions
+				as tools and call them directly — no custom glue code required. The same authentication and
+				role security applies. Resources (tables/views) and prompt templates are also exposed via MCP.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Real-time Notifications (SSE):&lt;/strong&gt; Subscribe to PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;
 				channels over SSE for live updates without polling.
 			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Static File Server:&lt;/strong&gt; PgArachne™ can serve static assets (HTML, JS, CSS),
+				allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+			&lt;/li&gt;
 		&lt;/ul&gt;
 	&lt;/div&gt;
 
 	&lt;p&gt;
-		This architecture dramatically simplifies the stack: &lt;strong&gt;Database ↔ PgArachne ↔
-			Frontend&lt;/strong&gt;.
+		This architecture dramatically simplifies the stack: &lt;strong&gt;Database ↔ PgArachne ↔ Frontend / AI Agent&lt;/strong&gt;.
 	&lt;/p&gt;</description></item><item><title>Architectural Decisions</title><link>https://www.pgarachne.com/en/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
 	&lt;h2&gt;Architectural Design Decisions&lt;/h2&gt;
 	&lt;p&gt;
@@ -53,7 +58,7 @@
 
 		&lt;h4&gt;Why JSON-RPC 2.0:&lt;/h4&gt;
 		&lt;ul style="margin-left: 20px;"&gt;
-			&lt;li&gt;&lt;strong&gt;Single Endpoint:&lt;/strong&gt; All communication happens via &lt;code&gt;POST /api/{database}&lt;/code&gt;. There is no need to design complex URL structures or debate HTTP verb semantics.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Single Endpoint:&lt;/strong&gt; All communication happens via &lt;code&gt;POST /{prefix}/{database}/jsonrpc&lt;/code&gt;. There is no need to design complex URL structures or debate HTTP verb semantics.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Self-Contained Calls:&lt;/strong&gt; Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Standardized Error Handling:&lt;/strong&gt; Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Batching:&lt;/strong&gt; The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.&lt;/li&gt;
@@ -371,12 +376,21 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;/section&gt;</description></item><item><title>Real-time Notifications (SSE)</title><link>https://www.pgarachne.com/en/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time Notifications (SSE)&lt;/h2&gt;
 	&lt;p&gt;Subscribe to PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; channels over Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
  -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Each message is JSON with the channel name and payload:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;If the payload is plain text, it is wrapped as a string in &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
-&lt;/section&gt;</description></item><item><title>Security &amp; Authentication</title><link>https://www.pgarachne.com/en/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/security-roles/</guid><description>&lt;section id="security"&gt;
+
+	&lt;h3&gt;Sending notifications from PostgreSQL&lt;/h3&gt;
+	&lt;p&gt;From &lt;code&gt;psql&lt;/code&gt; or any database session:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- Simple text payload
+NOTIFY orders, 'new order';
+
+-- JSON payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;From a trigger or stored procedure:&lt;/p&gt;</description></item><item><title>Security &amp; Authentication</title><link>https://www.pgarachne.com/en/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Security &amp; Authentication&lt;/h2&gt;
 	&lt;p&gt;PgArachne relies entirely on the PostgreSQL permission system. It does not reinvent Access Control Lists
 		(ACLs). All queries are executed under the specific database role of the authenticated user using

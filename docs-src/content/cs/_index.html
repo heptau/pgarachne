@@ -5,37 +5,36 @@ description: "PgArachne - PgArachne documentation."
 
 <section id="features" class="section-light bg-offset">
 	<div class="container">
-	<h2>Je PgArachne pro vás to pravé?</h2>
-	<p class="section-intro">
-		PgArachne™ není jen pro prototypování.<br>Překlenuje propast mezi hrubým výkonem databáze a požadavky moderních API.
-	</p>
+		<h2>Je PgArachne pro vás to pravé?</h2>
+		<p class="section-intro">
+			PgArachne™ je produkční backend gateway — od sólového MVP až po vysoce vytížený produkční systém. Definujte SQL funkci a váš API endpoint je okamžitě hotový. Žádný boilerplate, žádné extra služby.
+		</p>
 
-	<div class="grid-3">
-		<div class="card">
-			<h3>🚀 Rychlé prototypování</h3>
-			<p>Přestaňte psát opakující se CRUD controllery. Definujte SQL funkci a váš API endpoint je okamžitě
-				hotový. Ideální pro MVP a hackathony.</p>
-		</div>
-		<div class="card">
-			<h3>🏢 Připraven pro produkci</h3>
-			<p>Navržen tak, aby zvládal <strong>více než 90 % standardních backendových úloh</strong> (CRUD, validace,
-				auth). Díky poolování připojení, bezpečnému vypínání a metrikám Prometheus spolehlivě pohání produkční systémy.
-			</p>
-		</div>
-		<div class="card">
-			<h3>🧠 Vhodné pro AI a LLM</h3>
-			<p>Jelikož API se samo dokumentuje pomocí SQL komentářů, můžete schéma předhodit přímo LLM (ChatGPT, Claude, Gemini).
-				To umožňuje AI agentům pochopit vaši business logiku a vytvářet platná volání API bez halucinací.</p>
-		</div>
-		<div class="card">
-			<h3>⚡ Okamžité notifikace (SSE)</h3>
-			<p>Streamujte události v reálném čase přes běžné HTTP s nativní podporou v prohlížečích. Ideální pro dashboardy a živé aktualizace bez WebSocketů.</p>
+		<div class="grid-3">
+			<div class="card">
+				<h3>🚀 Žádný boilerplate</h3>
+				<p>Přestaňte psát opakující se CRUD controllery. Definujte SQL funkci a váš API endpoint je okamžitě hotový. Vaše databáze <em>je</em> váš backend — PgArachne ji jen bezpečně vystaví.</p>
 			</div>
-		<div class="card">
-			<h3>🏛️ Architektonická rozhodnutí</h3>
-			<p>Proč JSON-RPC? Proč Go? Proč SSE? Přečtěte si naše <a href="cs/architectural-decisions.html">detailní architektonická rozhodnutí</a> a pochopte, co pohání PgArachne pod kapotou.</p>
-		</div>
-
+			<div class="card">
+				<h3>🏢 Připraven pro produkci</h3>
+				<p>Navržen tak, aby zvládal <strong>více než 90 % standardních backendových úloh</strong> (CRUD, validace, auth). Díky poolování připojení, bezpečnému vypínání a metrikám Prometheus spolehlivě pohání produkční systémy.</p>
+			</div>
+			<div class="card">
+				<h3>🧠 Nativní MCP a podpora AI</h3>
+				<p>PgArachne nabízí nativní endpoint <strong>Model Context Protocol (MCP)</strong>, takže AI klienti jako Claude Desktop nebo Cursor mohou přímo objevovat a volat vaše PostgreSQL funkce jako nástroje — bez jediného řádku navíc. API se také samo dokumentuje pomocí SQL komentářů pro LLM.</p>
+			</div>
+			<div class="card">
+				<h3>⚡ Real-time notifikace (SSE)</h3>
+				<p>Streamujte události v reálném čase přes běžné HTTP s nativní podporou v prohlížečích. Odebírejte PostgreSQL <code>NOTIFY</code> kanály přímo z klienta. Ideální pro dashboardy a živé aktualizace bez WebSocketů.</p>
+			</div>
+			<div class="card">
+				<h3>🔒 Nativní databázové zabezpečení</h3>
+				<p>Žádné oddělené uživatelské tabulky. Autentizace využívá skutečné PostgreSQL role a JWT. Každý požadavek běží jako ověřený uživatel přes <code>SET LOCAL ROLE</code>, takže Row-Level Security (RLS) funguje automaticky.</p>
+			</div>
+			<div class="card">
+				<h3>🏛️ Architektonická rozhodnutí</h3>
+				<p>Proč JSON-RPC? Proč Go? Proč SSE? Proč MCP jako překladová vrstva? Přečtěte si naše <a href="architectural-decisions/">detailní architektonická rozhodnutí</a> a pochopte, co pohání PgArachne pod kapotou.</p>
+			</div>
 		</div>
 	</div>
 </section>

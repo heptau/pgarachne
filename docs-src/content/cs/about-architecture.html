@@ -8,10 +8,10 @@ menu:
 ---
 
 <section id="about">
-	<h2>O projektu a architektuře</h2>
+	<h2>O projektu a architektuře</h2>
 	<p>
 		PgArachne™ slouží jako lehký, vysoce výkonný <strong>webový server</strong>, který stojí mezi vašimi HTTP
-		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
 		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
 	</p>
 	<div class="card"
@@ -19,13 +19,13 @@ menu:
 		<h3>Klíčové technické schopnosti</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
-				<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+				<strong>Brána JSON-RPC 2.0:</strong> Veškeré interakce s API se řídí striktní specifikací JSON-RPC
 				2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
 				požadavků.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Nativní DB autentizace:</strong> Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
-				svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
+				svými skutečnými PostgreSQL přihlašovacími údaji a získají <strong>JWT</strong>. Služby
 				mohou alternativně využívat trvalé <strong>API Tokeny</strong>.
 			</li>
 			<li style="margin-bottom: 10px;">
@@ -34,26 +34,31 @@ menu:
 				ověřeného uživatele. Zabezpečení na úrovni řádků (RLS) funguje automaticky.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Server statických souborů:</strong> PgArachne™ může servírovat statické assety (HTML, JS,
-				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+				<strong>MCP (Model Context Protocol):</strong> Nativní MCP endpoint umožňuje AI klientům jako
+				Claude Desktop, Cursor a dalším MCP-kompatibilním nástrojům přímo objevovat vaše PostgreSQL funkce
+				jako nástroje a volat je — bez jediného řádku propojovacího kódu. Platí stejná autentizace
+				a zabezpečení rolí. Přes MCP jsou vystaveny také zdroje (tabulky/views) a šablony promptů.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Real-time notifikace (SSE):</strong> Odebírejte PostgreSQL <code>NOTIFY</code> kanály
 				přes SSE pro živé aktualizace bez pollingu.
 			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Server statických souborů:</strong> PgArachne™ může servírovat statické assety (HTML, JS,
+				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+			</li>
 		</ul>
 	</div>
 
 	<p>
-		Tato architektura dramaticky zjednodušuje stack: <strong>Databáze ↔ PgArachne ↔ Frontend</strong>.
+		Tato architektura dramaticky zjednodušuje stack: <strong>Databáze ↔ PgArachne ↔ Frontend / AI Agent</strong>.
 	</p>
 	<div class="tip">
-		<strong>Formát API endpointu:</strong> Všechny databázové funkce jsou vystaveny na:
+		<strong>Struktura endpointů:</strong> Všechny databázové endpointy sdílejí společný prefix (výchozí <code>db</code>, konfigurovatelný přes <code>API_PREFIX</code>):
 		<div style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
-			<div>POST http://{server}:{port}</div>
-			<div style="padding-left: 50px;">/api</div>
-			<div style="padding-left: 50px;">/{nazev_databaze}</div>
-			<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Metoda se uvádí v JSON-RPC těle požadavku.</div>
+			<div>POST /{prefix}/{databaze}/jsonrpc <span style="color:#666;font-size:0.9em;">— brána JSON-RPC 2.0</span></div>
+			<div>GET &nbsp;/{prefix}/{databaze}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
+			<div>POST /{prefix}/{databaze}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
 		</div>
 	</div>
 

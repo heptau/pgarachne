@@ -9,24 +9,24 @@ menu:
 
 <section id="config">
 	<h2>Konfiguration</h2>
-	<p>PgArachne lädt die Konfiguration aus Umgebungsvariablen oder einer Datei.</p>
+	<p>PgArachne lädt die Konfiguration aus Umgebungsvariablen oder einer Datei.</p>
 	<div class="tip">
 		<strong>Note:</strong> <code>schema.sql</code> versucht, die Rolle <code>pgarachne_admin</code> zu erstellen und an <code>pgarachne</code> zu vergeben. Ohne Superuser-Rechte wird die Erstellung übersprungen. Rolle und Grant ggf. manuell anlegen.
 	<br>
 		Der Proxy-User (<code>DB_USER</code>) muss Mitglied von <code>pgarachne</code> und <code>pgarachne_admin</code> sein, um API-Token zu prüfen und zu erstellen.</div>
 	<div class="tip">
-		<strong>Sicherheitshinweis:</strong> PgArachne verarbeitet keine Datenbankpasswörter in der
+		<strong>Sicherheitshinweis:</strong> PgArachne verarbeitet keine Datenbankpasswörter in der
 		Konfigurationsdatei.
-		Es verlässt sich auf den Standardmechanismus der <code>.pgpass</code>-Datei von PostgreSQL (oder die
+		Es verlässt sich auf den Standardmechanismus der <code>.pgpass</code>-Datei von PostgreSQL (oder die
 		systemweite Variable
-		<code>PGPASSWORD</code>) für die Authentifizierung.
+		<code>PGPASSWORD</code>) für die Authentifizierung.
 	</div>
 	<div class="tip">
 		<strong>Tipp:</strong> Wenn PgArachne hinter einem Reverse Proxy läuft, setze <code>TRUSTED_PROXIES</code>, damit die Client-IP korrekt ermittelt wird und das Rate Limiting nicht spoofbar ist.
 	</div>
 
 	<div class="tip">
-		<strong>Suchreihenfolge:</strong> Wenn keine Konfigurationsdatei über CLI angegeben ist, wird wie folgt gesucht:
+		<strong>Suchreihenfolge:</strong> Wenn keine Konfigurationsdatei über CLI angegeben ist, wird wie folgt gesucht:
 		<ol>
 			<li>Aktuelles Verzeichnis: <code>./pgarachne.env</code> (Alle Betriebssysteme)</li>
 			<li>Benutzerkonfiguration:
@@ -74,7 +74,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>DB_HOST</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
-				<td>PostgreSQL-Serveradresse (z. B. <code>localhost</code>).</td>
+				<td>PostgreSQL-Serveradresse (z. B. <code>localhost</code>).</td>
 			</tr>
 			<tr class="required-row">
 				<td><code>DB_PORT</code></td>
@@ -84,7 +84,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>DB_USER</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
-				<td>Der Datenbankbenutzer, mit dem sich PgArachne verbindet.</td>
+				<td>Der Datenbankbenutzer, mit dem sich PgArachne verbindet.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
@@ -115,7 +115,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Port, auf dem gelauscht wird. Standard: <code>8080</code>.</td>
+				<td>Port, auf dem gelauscht wird. Standard: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Erstes URL-Pfadsegment für alle Datenbank-Endpunkte (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Standard: <code>db</code>, ergibt Routen wie <code>/db/:datenbank/jsonrpc</code>. Auf <code>api</code> setzen für Legacy-Pfade. Nur Buchstaben, Ziffern, Bindestriche und Unterstriche erlaubt.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -125,7 +130,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>CORS-Einstellungen. Kommagetrennte Liste zulässiger Domains (z. B. <code>https://meineapp.de</code>).
+				<td>CORS-Einstellungen. Kommagetrennte Liste zulässiger Domains (z. B. <code>https://meineapp.de</code>).
 					Standard: <code>*</code>.</td>
 			</tr>
 			<tr>
@@ -142,12 +147,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
-				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken.</td>
+				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Gültigkeit der Sitzung in Stunden. Standard: <code>8</code>.</td>
+				<td>Gültigkeit der Sitzung in Stunden. Standard: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
@@ -226,7 +231,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>LOG_OUTPUT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Wohin Logs geschrieben werden: <code>stdout</code> oder Dateipfad.</td>
+				<td>Wohin Logs geschrieben werden: <code>stdout</code> oder Dateipfad.</td>
 			</tr>
 		</tbody>
 	</table>

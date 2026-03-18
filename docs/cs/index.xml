@@ -11,9 +11,9 @@
 
 		&lt;h4&gt;Proč JSON-RPC 2.0:&lt;/h4&gt;
 		&lt;ul style="margin-left: 20px;"&gt;
-			&lt;li&gt;&lt;strong&gt;Jeden koncový bod (endpoint):&lt;/strong&gt; Veškerá komunikace probíhá přes &lt;code&gt;POST /api/{databaze}&lt;/code&gt;. Není třeba navrhovat složité struktury URL ani debatovat o sémantice HTTP metod.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Jeden koncový bod (endpoint):&lt;/strong&gt; Veškerá komunikace probíhá přes &lt;code&gt;POST /{prefix}/{databaze}/jsonrpc&lt;/code&gt;. Není třeba navrhovat složité struktury URL ani debatovat o sémantice HTTP metod.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Samostatné požadavky:&lt;/strong&gt; Každý požadavek je kompletní JSON objekt (metoda + parametry + id). Tento formát je pro LLM a AI agenty snadno generovatelný a parsovatelný s vysokou spolehlivostí.&lt;/li&gt;
-			&lt;li&gt;&lt;strong&gt;Standardizované zpracování chyb:&lt;/strong&gt; Chybové kódy a zprávy jsou součástí specifikace, což eliminuje potřebu „vymýšlet“ konvence HTTP stavových kódů pro byznysové chyby.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Standardizované zpracování chyb:&lt;/strong&gt; Chybové kódy a zprávy jsou součástí specifikace, což eliminuje potřebu „vymýšlet" konvence HTTP stavových kódů pro byznysové chyby.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Dávkové požadavky (batching):&lt;/strong&gt; Protokol nativně podporuje dávkové požadavky, což umožňuje provést více operací během jediného HTTP dotazu bez dodatečné práce.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Objevování (discovery):&lt;/strong&gt; Endpoint &lt;code&gt;capabilities&lt;/code&gt; poskytuje úplný popis API ve formátu, který AI agenti dokáží konzumovat a porozumět dostupným nástrojům bez halucinací.&lt;/li&gt;
 		&lt;/ul&gt;
@@ -236,10 +236,10 @@ example.com {
 	&lt;/ul&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
-	&lt;h2&gt;O projektu a architektuře&lt;/h2&gt;
+	&lt;h2&gt;O projektu a architektuře&lt;/h2&gt;
 	&lt;p&gt;
 		PgArachne™ slouží jako lehký, vysoce výkonný &lt;strong&gt;webový server&lt;/strong&gt;, který stojí mezi vašimi HTTP
-		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
+		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
 		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
 	&lt;/p&gt;
 	&lt;div class="card"
@@ -247,13 +247,13 @@ example.com {
 		&lt;h3&gt;Klíčové technické schopnosti&lt;/h3&gt;
 		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Brána JSON-RPC 2.0:&lt;/strong&gt; Veškeré interakce s API se řídí striktní specifikací JSON-RPC
+				&lt;strong&gt;Brána JSON-RPC 2.0:&lt;/strong&gt; Veškeré interakce s API se řídí striktní specifikací JSON-RPC
 				2.0. Nemusíte navrhovat žádné REST endpointy; jednoduše voláte SQL funkce jménem pomocí POST
 				požadavků.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Nativní DB autentizace:&lt;/strong&gt; Žádné oddělené tabulky uživatelů. Uživatelé se přihlašují
-				svými skutečnými PostgreSQL přihlašovacími údaji a získají &lt;strong&gt;JWT&lt;/strong&gt;. Služby
+				svými skutečnými PostgreSQL přihlašovacími údaji a získají &lt;strong&gt;JWT&lt;/strong&gt;. Služby
 				mohou alternativně využívat trvalé &lt;strong&gt;API Tokeny&lt;/strong&gt;.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
@@ -262,18 +262,24 @@ example.com {
 				ověřeného uživatele. Zabezpečení na úrovni řádků (RLS) funguje automaticky.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Server statických souborů:&lt;/strong&gt; PgArachne™ může servírovat statické assety (HTML, JS,
-				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Nativní MCP endpoint umožňuje AI klientům jako
+				Claude Desktop, Cursor a dalším MCP-kompatibilním nástrojům přímo objevovat vaše PostgreSQL funkce
+				jako nástroje a volat je — bez jediného řádku propojovacího kódu. Platí stejná autentizace
+				a zabezpečení rolí. Přes MCP jsou vystaveny také zdroje (tabulky/views) a šablony promptů.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Real-time notifikace (SSE):&lt;/strong&gt; Odebírejte PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanály
 				přes SSE pro živé aktualizace bez pollingu.
 			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Server statických souborů:&lt;/strong&gt; PgArachne™ může servírovat statické assety (HTML, JS,
+				CSS), což vám umožní hostovat Single Page Aplikace (SPA) nebo přímo nástroj Explorer.
+			&lt;/li&gt;
 		&lt;/ul&gt;
 	&lt;/div&gt;
 
 	&lt;p&gt;
-		Tato architektura dramaticky zjednodušuje stack: &lt;strong&gt;Databáze ↔ PgArachne ↔ Frontend&lt;/strong&gt;.
+		Tato architektura dramaticky zjednodušuje stack: &lt;strong&gt;Databáze ↔ PgArachne ↔ Frontend / AI Agent&lt;/strong&gt;.
 	&lt;/p&gt;</description></item><item><title>Podpořte vývoj</title><link>https://www.pgarachne.com/cs/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Podpořte vývoj&lt;/h2&gt;
 	&lt;p&gt;Vývoj open-source softwaru, jako je PgArachne, zabere značné množství času. Pokud vám tento nástroj šetří
@@ -314,8 +320,9 @@ example.com {
 	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
 	&lt;h2&gt;Příklad Hello World&lt;/h2&gt;
-	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/
-	&lt;h3&gt;1. Vytvoření uživatele a funkci&lt;/h3&gt;
+	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/p&gt;
+
+	&lt;h3&gt;1. Vytvoření uživatele a funkce&lt;/h3&gt;
 	&lt;p&gt;V databázi (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
@@ -339,13 +346,22 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;h3&gt;2. Přihlášení přes API&lt;/h3&gt;
 	&lt;p&gt;Použijte JSON-RPC metodu &lt;code&gt;login&lt;/code&gt; pro získání JWT tokenu:&lt;/p&gt;</description></item><item><title>Real-time notifikace (SSE)</title><link>https://www.pgarachne.com/cs/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time notifikace (SSE)&lt;/h2&gt;
-	&lt;p&gt;Přihlaste se k PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálům přes Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	&lt;p&gt;Přihlaste se k PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálům přes Server-Sent Events:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
  -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
-	&lt;p&gt;Každá zpráva je JSON s názvem kanálu a payloadem:&lt;/p&gt;
+	&lt;p&gt;Každá zpráva je JSON s názvem kanálu a payloadem:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Pokud je payload text, zabalí se jako string do &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
-&lt;/section&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
+
+	&lt;h3&gt;Odesílání notifikací z PostgreSQL&lt;/h3&gt;
+	&lt;p&gt;Z &lt;code&gt;psql&lt;/code&gt; nebo jakékoli databázové session:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- Jednoduchý textový payload
+NOTIFY orders, 'nova objednavka';
+
+-- JSON payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Z triggeru nebo uložené procedury:&lt;/p&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
 	&lt;h2&gt;Srovnání: PgArachne vs. PostgREST&lt;/h2&gt;
 	&lt;div class="comparison-table-wrapper"&gt;
 		&lt;table&gt;

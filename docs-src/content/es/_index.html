@@ -7,38 +7,34 @@ description: "PgArachne - PgArachne documentation."
 	<div class="container">
 		<h2>¿Es PgArachne adecuado para ti?</h2>
 		<p class="section-intro">
-			PgArachne™ no es solo para prototipado.<br>Cierra la brecha entre el rendimiento puro de la base de datos
-			y los requisitos de las API modernas.
+			PgArachne™ es un gateway backend listo para producción — desde un MVP individual hasta un sistema de alta carga. Define una función SQL y tu endpoint de API estará listo al instante. Sin boilerplate, sin servicios adicionales.
 		</p>
 
 		<div class="grid-3">
 			<div class="card">
-				<h3>🚀 Prototipado Rápido</h3>
-				<p>Deja de escribir controladores CRUD repetitivos. Define una función SQL y tu endpoint de API estará
-					listo al instante. Perfecto para MVPs y Hackathons.</p>
+				<h3>🚀 Sin Boilerplate</h3>
+				<p>Deja de escribir controladores CRUD repetitivos. Define una función SQL y tu endpoint de API estará listo al instante. Tu base de datos <em>es</em> tu backend — PgArachne simplemente la expone de forma segura.</p>
 			</div>
 			<div class="card">
 				<h3>🏢 Listo para Producción</h3>
-				<p>Diseñado para manejar **más del 90% de las tareas backend estándar** (CRUD, validación,
-					autenticación). Con pool de conexiones, apagado ordenado y métricas de Prometheus, impulsa sistemas
-					de producción de manera confiable.
-				</p>
+				<p>Diseñado para manejar <strong>más del 90 % de las tareas backend estándar</strong> (CRUD, validación, autenticación). Con pool de conexiones, apagado ordenado y métricas Prometheus, impulsa sistemas de producción de manera confiable.</p>
 			</div>
 			<div class="card">
-				<h3>🧠 Amigable con IA y LLM</h3>
-				<p>Dado que la API se autodocumenta mediante comentarios SQL, puedes alimentar el esquema directamente
-					a los LLM (ChatGPT, Claude). Esto permite que los agentes de IA entiendan tu lógica de negocio
-					y construyan llamadas API válidas sin alucinaciones.</p>
+				<h3>🧠 Soporte Nativo de MCP e IA</h3>
+				<p>PgArachne expone un endpoint nativo de <strong>Model Context Protocol (MCP)</strong>, para que clientes de IA como Claude Desktop o Cursor puedan descubrir y llamar a tus funciones PostgreSQL como herramientas — sin ninguna línea de código adicional. La API también se autodocumenta mediante comentarios SQL para su consumo por LLMs.</p>
 			</div>
 			<div class="card">
-				<h3>⚡ Actualizaciones instantáneas (SSE)</h3>
-				<p>Eventos en tiempo real sobre HTTP estándar con soporte nativo del navegador. Ideal para paneles y actualizaciones en vivo sin WebSockets.</p>
+				<h3>⚡ Notificaciones en tiempo real (SSE)</h3>
+				<p>Eventos en tiempo real sobre HTTP estándar con soporte nativo del navegador. Suscríbete a canales PostgreSQL <code>NOTIFY</code> directamente desde el cliente. Ideal para paneles y actualizaciones en vivo sin WebSockets.</p>
+			</div>
+			<div class="card">
+				<h3>🔒 Seguridad Nativa de Base de Datos</h3>
+				<p>Sin tablas de usuarios separadas. La autenticación usa roles reales de PostgreSQL y JWT. Cada petición se ejecuta como el usuario autenticado mediante <code>SET LOCAL ROLE</code>, por lo que Row-Level Security (RLS) funciona automáticamente.</p>
 			</div>
 			<div class="card">
 				<h3>🏛️ Decisiones de Diseño</h3>
-				<p>¿Por qué JSON-RPC? ¿Por qué Go? ¿Por qué SSE? Lee nuestras <a href="es/architectural-decisions.html">Decisiones de Arquitectura Detalladas</a> para entender el motor bajo el capó.</p>
+				<p>¿Por qué JSON-RPC? ¿Por qué Go? ¿Por qué SSE? ¿Por qué MCP como capa de traducción? Lee nuestras <a href="architectural-decisions/">Decisiones de Arquitectura Detalladas</a> para entender el motor bajo el capó.</p>
 			</div>
-
 		</div>
 	</div>
 </section>

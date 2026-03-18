@@ -9,25 +9,25 @@ menu:
 
 <section id="config">
 	<h2>Configuración</h2>
-	<p>PgArachne carga la configuración desde variables de entorno o un archivo.</p>
+	<p>PgArachne carga la configuración desde variables de entorno o un archivo.</p>
 	<div class="tip">
 		<strong>Note:</strong> <code>schema.sql</code> intenta crear el rol <code>pgarachne_admin</code> y concederlo a <code>pgarachne</code>. Sin privilegios de superusuario, la creación se omite. Crea el rol y el grant manualmente si es necesario.
 	<br>
 		El usuario proxy (<code>DB_USER</code>) debe ser miembro de <code>pgarachne</code> y <code>pgarachne_admin</code> para verificar y crear tokens API.</div>
 	<div class="tip">
-		<strong>Nota de Seguridad:</strong> PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
-		Confía en el mecanismo estándar de archivo <code>.pgpass</code> de PostgreSQL (o la variable del sistema
-		<code>PGPASSWORD</code>) para la autenticación.
+		<strong>Nota de Seguridad:</strong> PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
+		Confía en el mecanismo estándar de archivo <code>.pgpass</code> de PostgreSQL (o la variable del sistema
+		<code>PGPASSWORD</code>) para la autenticación.
 	</div>
 	<div class="tip">
 		<strong>Consejo:</strong> Si PgArachne está detrás de un reverse proxy, configura <code>TRUSTED_PROXIES</code> para resolver bien la IP del cliente y evitar spoofing del rate limit.
 	</div>
 
 	<div class="tip">
-		<strong>Orden de Búsqueda:</strong> Si no se especifica ningún archivo de configuración a través de CLI, busca en:
+		<strong>Orden de Búsqueda:</strong> Si no se especifica ningún archivo de configuración a través de CLI, busca en:
 		<ol>
 			<li>Directorio actual: <code>./pgarachne.env</code> (Todos los SO)</li>
-			<li>Configuración de usuario:
+			<li>Configuración de usuario:
 				<ul>
 					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
 					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
@@ -66,8 +66,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 		<tbody>
 			<!-- Configuración de Base de Datos -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Conexión a Base
-					de Datos</td>
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Conexión a Base
+					de Datos</td>
 			</tr>
 			<tr class="required-row">
 				<td><code>DB_HOST</code></td>
@@ -82,7 +82,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>DB_USER</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatorio" aria-label="Obligatorio">✓</span></td>
-				<td>El usuario de base de datos con el que se conecta PgArachne.</td>
+				<td>El usuario de base de datos con el que se conecta PgArachne.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
@@ -112,7 +112,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Puerto para escuchar. Por defecto: <code>8080</code>.</td>
+				<td>Puerto para escuchar. Por defecto: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Primer segmento de ruta URL para todos los endpoints de base de datos (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Por defecto: <code>db</code>, generando rutas como <code>/db/:base_de_datos/jsonrpc</code>. Usa <code>api</code> para rutas legacy. Solo se permiten letras, dígitos, guiones y guiones bajos.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -122,8 +127,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Configuración de CORS. Lista separada por comas de dominios permitidos (ej. <code>https://miapp.com</code>).
-					Por defecto: <code>*</code>.</td>
+				<td>Configuración de CORS. Lista separada por comas de dominios permitidos (ej. <code>https://miapp.com</code>).
+					Por defecto: <code>*</code>.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
@@ -139,12 +144,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatorio" aria-label="Obligatorio">✓</span></td>
-				<td>Una cadena larga y aleatoria utilizada para firmar tokens de sesión.</td>
+				<td>Una cadena larga y aleatoria utilizada para firmar tokens de sesión.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Validez de la sesión en horas. Por defecto: <code>8</code>.</td>
+				<td>Validez de la sesión en horas. Por defecto: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
@@ -218,12 +223,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>LOG_LEVEL</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Verbosidad: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
-					Por defecto: <code>INFO</code>.</td>
+					Por defecto: <code>INFO</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOG_OUTPUT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Dónde escribir los logs: <code>stdout</code> o ruta del archivo.</td>
+				<td>Dónde escribir los logs: <code>stdout</code> o ruta del archivo.</td>
 			</tr>
 		</tbody>
 	</table>

@@ -8,11 +8,11 @@ menu:
 ---
 
 <section id="about">
-	<h2>Acerca de y Arquitectura</h2>
+	<h2>Acerca de y Arquitectura</h2>
 	<p>
-		PgArachne™ sirve como un <strong>servidor web</strong> ligero y de alto rendimiento que se sitúa entre tus
-		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
-		(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
+		PgArachne™ sirve como un <strong>servidor web</strong> ligero y de alto rendimiento que se sitúa entre tus
+		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
+		(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
 	</p>
 
 	<div class="card"
@@ -20,43 +20,49 @@ menu:
 		<h3>Capacidades Técnicas Principales</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
-				<strong>Pasarela JSON-RPC 2.0:</strong> Todas las interacciones de la API siguen la estricta
-				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
-				por su nombre mediante peticiones POST.
+				<strong>Pasarela JSON-RPC 2.0:</strong> Todas las interacciones de la API siguen la estricta
+				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
+				por su nombre mediante peticiones POST.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Autenticación Nativa de BD:</strong> Sin tablas de usuarios separadas. Los usuarios inician
-				sesión con sus credenciales reales de PostgreSQL para recibir un <strong>JWT</strong>.
-				Alternativamente, las cuentas de servicio pueden usar <strong>Tokens de API</strong> persistentes.
+				<strong>Autenticación Nativa de BD:</strong> Sin tablas de usuarios separadas. Los usuarios inician
+				sesión con sus credenciales reales de PostgreSQL para recibir un <strong>JWT</strong>.
+				Alternativamente, las cuentas de servicio pueden usar <strong>Tokens de API</strong> persistentes.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Enmascaramiento de Roles:</strong> PgArachne™ se conecta como un usuario proxy pero ejecuta
-				cada petición usando <code>SET LOCAL ROLE</code> para cambiar a la identidad del usuario
-				autenticado. La seguridad a nivel de fila (Row-Level Security – RLS) funciona automáticamente.
+				<strong>Enmascaramiento de Roles:</strong> PgArachne™ se conecta como un usuario proxy pero ejecuta
+				cada petición usando <code>SET LOCAL ROLE</code> para cambiar a la identidad del usuario
+				autenticado. La seguridad a nivel de fila (RLS) funciona automáticamente.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Servidor de Archivos Estáticos:</strong> PgArachne™ puede servir activos estáticos (HTML,
-				JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer directamente.
+				<strong>MCP (Model Context Protocol):</strong> Un endpoint nativo MCP permite a clientes de IA
+				como Claude Desktop, Cursor y otras herramientas MCP-compatibles descubrir y llamar a tus funciones
+				PostgreSQL como herramientas directamente — sin ningún código de integración adicional. Se aplica
+				la misma autenticación y seguridad de roles. A través de MCP también se exponen recursos
+				(tablas/vistas) y plantillas de prompts.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Notificaciones en tiempo real (SSE):</strong> Suscríbete a canales <code>NOTIFY</code>
 				de PostgreSQL mediante SSE para actualizaciones en vivo sin polling.
 			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Servidor de Archivos Estáticos:</strong> PgArachne™ puede servir activos estáticos (HTML,
+				JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer directamente.
+			</li>
 		</ul>
 	</div>
 
 	<p>
-		Esta arquitectura simplifica drásticamente el stack: <strong>Base de Datos ↔ PgArachne ↔ Frontend</strong>.
+		Esta arquitectura simplifica drásticamente el stack: <strong>Base de Datos ↔ PgArachne ↔ Frontend / Agente IA</strong>.
 	</p>
 
 	<div class="tip">
-		<strong>Formato del Endpoint de API:</strong> Todas las funciones de la base de datos están expuestas en:
+		<strong>Estructura de endpoints:</strong> Todos los endpoints de base de datos comparten un prefijo común (por defecto <code>db</code>, configurable mediante <code>API_PREFIX</code>):
 		<div
 			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
-			<div>POST http://{servidor}:{puerto}</div>
-			<div style="padding-left: 50px;">/api</div>
-			<div style="padding-left: 50px;">/{nombre_base_datos}</div>
-				<div style="padding-left: 50px; color: #666; font-size: 0.95em;">El método se especifica en el cuerpo JSON-RPC.</div>
+			<div>POST /{prefijo}/{base_datos}/jsonrpc <span style="color:#666;font-size:0.9em;">— pasarela JSON-RPC 2.0</span></div>
+			<div>GET &nbsp;/{prefijo}/{base_datos}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
+			<div>POST /{prefijo}/{base_datos}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
 		</div>
 	</div>
 

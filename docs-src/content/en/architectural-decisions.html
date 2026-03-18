@@ -21,7 +21,7 @@ menu:
 
 		<h4>Why JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Single Endpoint:</strong> All communication happens via <code>POST /api/{database}</code>. There is no need to design complex URL structures or debate HTTP verb semantics.</li>
+			<li><strong>Single Endpoint:</strong> All communication happens via <code>POST /{prefix}/{database}/jsonrpc</code>. There is no need to design complex URL structures or debate HTTP verb semantics.</li>
 			<li><strong>Self-Contained Calls:</strong> Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.</li>
 			<li><strong>Standardized Error Handling:</strong> Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.</li>
 			<li><strong>Batching:</strong> The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.</li>
@@ -71,7 +71,7 @@ menu:
 
 		<h4>Why not Node.js, PHP, or Ruby:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Runtimes:</strong> These require installing a specific runtime enviroment on every target machine.</li>
+			<li><strong>Runtimes:</strong> These require installing a specific runtime environment on every target machine.</li>
 			<li><strong>Efficiency:</strong> Node's single-threaded loop or PHP's process-per-request model are less efficient for maintaining thousands of idle SSE connections.</li>
 			<li><strong>Memory Footprint:</strong> Go uses significantly less memory per connection than scripted languages.</li>
 		</ul>
@@ -102,6 +102,54 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Tight Coupling:</strong> Exposing tables directly ties your API to your internal database schema, making it difficult to refactor the database without breaking clients.</li>
 			<li><strong>Business Rule Fragmentation:</strong> Business logic ends up split between database constraints and whatever middleware is used to filter HTTP requests.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>5. URL Structure: <code>/{prefix}/{database}/{endpoint}</code></h3>
+		<p>
+			PgArachne routes all endpoints under a configurable prefix segment:
+			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
+			The prefix defaults to <code>db</code> and can be changed via <code>API_PREFIX</code>.
+		</p>
+
+		<h4>Why this structure:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Reverse proxy routing:</strong> A single PgArachne instance can serve multiple databases. A reverse proxy (Nginx, Caddy, Traefik) can route by prefix or database name without inspecting the request body, which is critical for load balancing and path-based routing rules.</li>
+			<li><strong>Horizontal scalability:</strong> With the database name in the URL path, you can run multiple PgArachne instances and route traffic to specific instances per database using standard proxy rules — no sticky sessions or body inspection required.</li>
+			<li><strong>Protocol multiplexing per database:</strong> Grouping <code>/jsonrpc</code>, <code>/sse</code>, and <code>/mcp</code> under the same <code>/{prefix}/{database}/</code> namespace makes it natural to apply per-database authentication, rate limiting, and access control at the proxy layer.</li>
+			<li><strong>Configurable prefix:</strong> Deployments that already use <code>/api/</code> as a prefix in their infrastructure can set <code>API_PREFIX=api</code> to match their conventions. Legacy clients are supported via a <code>307 Temporary Redirect</code> from the old paths.</li>
+			<li><strong>Observability:</strong> Log aggregators and metrics systems can group and filter traffic by database name directly from the URL without parsing JSON bodies.</li>
+		</ul>
+
+		<h4>Why not a flat structure like <code>/api/{database}</code>:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Protocol ambiguity:</strong> A single flat endpoint cannot distinguish between JSON-RPC, SSE, and MCP traffic at the routing layer — that decision falls into application logic or header inspection.</li>
+			<li><strong>Harder to extend:</strong> Adding new protocols (e.g., GraphQL, gRPC-gateway) requires introducing new top-level paths anyway, so the structured namespace future-proofs the design.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. MCP as a Translation Layer, Not a Database Protocol</h3>
+		<p>
+			PgArachne implements the <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
+			as a thin translation layer in the Go server. PostgreSQL functions are never aware of MCP — they
+			remain simple <code>jsonb → json</code> functions.
+		</p>
+
+		<h4>Why translate MCP on the server:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Zero changes to existing functions:</strong> Any function already exposed via JSON-RPC is instantly available as an MCP tool. No SQL changes, no redeployment of database objects.</li>
+			<li><strong>MCP is more than just tools:</strong> The protocol includes an initialization handshake, ping, notifications, and potential future extensions (resources, prompts, sampling). These are protocol-level concerns that belong in Go, not in SQL functions.</li>
+			<li><strong>Security stays in one place:</strong> Authentication, role switching, and input validation are already implemented in Go. The MCP endpoint reuses this logic unchanged.</li>
+			<li><strong>Multiple protocols, one backend:</strong> The same PostgreSQL function can be called via JSON-RPC (from a regular client), MCP (from Claude Desktop or Cursor), or SSE (for event subscriptions). The database is protocol-agnostic.</li>
+			<li><strong>Simpler SQL:</strong> Processing MCP envelopes (<code>initialize</code>, <code>tools/list</code>, notification handling) inside PostgreSQL functions would require parsing complex JSON structures in PL/pgSQL, making functions harder to write, test, and maintain.</li>
+		</ul>
+
+		<h4>Why not push MCP into the database:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>MCP handshake doesn't need a database:</strong> <code>initialize</code> and <code>ping</code> are pure protocol messages. Opening a database connection for them wastes resources and adds latency.</li>
+			<li><strong>SQL is the wrong tool for protocol logic:</strong> JSON-RPC 2.0 error codes, notification routing, and idempotency key management are middleware concerns, not data concerns.</li>
 		</ul>
 	</div>
 </section>

@@ -9,8 +9,9 @@ menu:
 
 <section id="hello-world">
 	<h2>Příklad Hello World</h2>
-	<p>Vytvoříme jednoduchý API endpoint přiřazený k uživateli.</
-	<h3>1. Vytvoření uživatele a funkci</h3>
+	<p>Vytvoříme jednoduchý API endpoint přiřazený k uživateli.</p>
+
+	<h3>1. Vytvoření uživatele a funkce</h3>
 	<p>V databázi (<code>my_database</code>):</p>
 	<pre><code>-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
@@ -33,7 +34,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 
 	<h3>2. Přihlášení přes API</h3>
 	<p>Použijte JSON-RPC metodu <code>login</code> pro získání JWT tokenu:</p>
-	<pre><code>curl -X POST http://localhost:8080/api/my_database \
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Odpověď:</p>
@@ -43,11 +44,10 @@ GRANT demo_user TO pgarachne;</code></pre>
 	<p>Pomocí získaného tokenu zavolejte funkci <code>hello_world</code>:</p>
 	<pre><code>export TOKEN="VÁŠ_JWT_TOKEN_ZDE"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Odpověď:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
-
 </section>

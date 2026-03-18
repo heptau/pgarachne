@@ -21,18 +21,18 @@ menu:
 
 		<h4>Por que JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Endpoint Único:</strong> Toda a comunicação ocorre via <code>POST /api/{banco_de_dados}</code>. Não há necessidade de projetar estruturas de URL complexas ou debater a semântica dos verbos HTTP.</li>
-			<li><strong>Chamadas Autocontidas:</strong> Cada requisição é um objeto JSON completo (método + parâmetros + id). Este formato é trivial de gerar e processar para LLMs e agentes de IA com alta confiabilidade.</li>
-			<li><strong>Tratamento de Erros Padronizado:</strong> Códigos e mensagens de erro fazem parte da especificação, eliminando a necessidade de „inventar“ convenções de códigos de status HTTP para erros de negócio.</li>
-			<li><strong>Loteamento (Batching):</strong> O protocolo suporta nativamente requisições em lote, permitindo múltiplas operações (ex: várias chamadas de função) em uma única viagem de ida e volta HTTP sem trabalho extra.</li>
-			<li><strong>Descoberta (Discovery):</strong> O endpoint de capacidades fornece uma descrição completa da API em um formato que os agentes de IA podem consumir para entender as ferramentas disponíveis sem alucinações.</li>
+			<li><strong>Endpoint Único:</strong> Toda a comunicação ocorre via <code>POST /{prefixo}/{banco_de_dados}/jsonrpc</code>. Não há necessidade de projetar estruturas de URL complexas.</li>
+			<li><strong>Chamadas Autocontidas:</strong> Cada requisição é um objeto JSON completo (método + parâmetros + id), fácil de gerar e processar para LLMs.</li>
+			<li><strong>Tratamento de Erros Padronizado:</strong> Códigos e mensagens de erro fazem parte da especificação.</li>
+			<li><strong>Loteamento (Batching):</strong> O protocolo suporta nativamente requisições em lote em uma única viagem de ida e volta HTTP.</li>
+			<li><strong>Descoberta (Discovery):</strong> O endpoint de capacidades fornece uma descrição completa da API para agentes de IA sem alucinações.</li>
 		</ul>
 
 		<h4>Por que não REST:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Complexidade para IA:</strong> A semântica REST (GET/POST/PATCH/DELETE + parâmetros de URL + corpo) está dispersa em vários lugares, tornando mais difícil para os agentes de IA construir chamadas de forma confiável.</li>
-			<li><strong>Exposição do Esquema:</strong> O CRUD sobre tabelas (estilo PostgREST) muitas vezes expõe a estrutura interna do banco de dados diretamente via API. O PgArachne expõe funções deliberadamente, mantendo a lógica de negócio encapsulada em SQL.</li>
-			<li><strong>Ausência de Padrões:</strong> O REST não oferece um padrão universal para operações em lote, envelopes de erro multiplataforma ou descoberta automatizada de API.</li>
+			<li><strong>Complexidade para IA:</strong> A semântica REST está dispersa em vários lugares, dificultando a construção de chamadas confiáveis para agentes de IA.</li>
+			<li><strong>Exposição do Esquema:</strong> O CRUD sobre tabelas muitas vezes expõe a estrutura interna. O PgArachne expõe funções deliberadamente.</li>
+			<li><strong>Ausência de Padrões:</strong> O REST não oferece padrão universal para lotes, envelopes de erro ou descoberta automatizada.</li>
 		</ul>
 	</div>
 
@@ -42,18 +42,18 @@ menu:
 
 		<h4>Por que SSE:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>HTTP Puro:</strong> O SSE é HTTP padrão. Funciona através de proxies, balanceadores de carga e CDNs sem configurações especiais de „upgrade de protocolo“.</li>
-			<li><strong>Suporte Nativo do Navegador:</strong> A API <code>EventSource</code> é integrada em todos os navegadores modernos e gerencia a reconexão automática sem necessidade de bibliotecas cliente.</li>
-			<li><strong>Corresponde à Semântica do NOTIFY:</strong> O comando <code>NOTIFY</code> do PostgreSQL é unidirecional (servidor para cliente), o que se ajusta perfeitamente ao SSE.</li>
-			<li><strong>Multiplexação:</strong> Sobre o HTTP/2, centenas de fluxos SSE podem compartilhar uma única conexão TCP, tornando-o extremamente eficiente.</li>
-			<li><strong>Simplicidade Operacional:</strong> As conexões SSE aparecem como requisições HTTP normais em logs e ferramentas de monitoramento, facilitando o debug e o rate limiting.</li>
+			<li><strong>HTTP Puro:</strong> O SSE é HTTP padrão, funcionando através de proxies e CDNs sem configurações especiais.</li>
+			<li><strong>Suporte Nativo do Navegador:</strong> A API <code>EventSource</code> gerencia a reconexão automática sem bibliotecas externas.</li>
+			<li><strong>Corresponde à Semântica do NOTIFY:</strong> <code>NOTIFY</code> do PostgreSQL é unidirecional, ajustando-se perfeitamente ao SSE.</li>
+			<li><strong>Multiplexação:</strong> Sobre o HTTP/2, centenas de fluxos SSE compartilham uma única conexão TCP.</li>
+			<li><strong>Simplicidade Operacional:</strong> As conexões SSE aparecem como requisições HTTP normais nos logs.</li>
 		</ul>
 
 		<h4>Por que não WebSockets:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Bidirecionalidade Desnecessária:</strong> Como o cliente nunca precisa enviar dados de volta pelo canal de notificação, a complexidade do WebSockets não traz benefício.</li>
-			<li><strong>Problemas de Conectividade:</strong> WebSockets são frequentemente bloqueados ou encerrados prematuramente por firewalls corporativos e alguns balanceadores de carga em nuvem.</li>
-			<li><strong>Maior Sobrecarga:</strong> Adiciona complexidade ao protocolo (handshakes, frames de ping/pong) que não é necessária para o simples streaming de eventos.</li>
+			<li><strong>Bidirecionalidade Desnecessária:</strong> O cliente nunca precisa enviar dados pelo canal de notificação.</li>
+			<li><strong>Problemas de Conectividade:</strong> Frequentemente bloqueados por firewalls corporativos e alguns balanceadores de carga em nuvem.</li>
+			<li><strong>Maior Sobrecarga:</strong> Handshakes e frames de ping/pong desnecessários para o simples streaming de eventos.</li>
 		</ul>
 	</div>
 
@@ -63,27 +63,27 @@ menu:
 
 		<h4>Por que Go:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Binários Estáticos:</strong> Compila em um único arquivo executável sem dependências externas. A implantação é tão simples quanto copiar o arquivo para o servidor.</li>
-			<li><strong>Concorrência:</strong> As goroutines do Go tornam o gerenciamento de milhares de conexões SSE e de banco de dados simultâneas leve e direto.</li>
-			<li><strong>Biblioteca Padrão Robusta:</strong> As bibliotecas integradas para HTTP, TLS e JSON são de nível de produção e não requerem „node_modules“ ou ambientes de execução externos.</li>
-			<li><strong>Compilação Cruzada:</strong> Gera facilmente binários para Linux, macOS e Windows (amd64 e arm64) a partir de qualquer máquina de desenvolvimento.</li>
+			<li><strong>Binários Estáticos:</strong> Um único arquivo executável sem dependências externas.</li>
+			<li><strong>Concorrência:</strong> As goroutines gerenciam milhares de conexões simultâneas de forma leve.</li>
+			<li><strong>Biblioteca Padrão Robusta:</strong> HTTP, TLS e JSON integrados, de nível de produção.</li>
+			<li><strong>Compilação Cruzada:</strong> Linux, macOS e Windows (amd64 e arm64) a partir de qualquer máquina.</li>
 		</ul>
 
 		<h4>Por que não Node.js, PHP ou Ruby:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Runtimes:</strong> Estas linguagens requerem a instalação de um ambiente de execução específico em cada máquina de destino.</li>
-			<li><strong>Eficiência:</strong> O loop de thread única do Node.js ou o modelo processo-por-requisição do PHP são menos eficientes para manter milhares de conexões SSE inativas.</li>
-			<li><strong>Consumo de Memória:</strong> O Go utiliza significativamente menos memória por conexão do que as linguagens de script.</li>
+			<li><strong>Runtimes:</strong> Requerem a instalação de um ambiente específico em cada máquina de destino.</li>
+			<li><strong>Eficiência:</strong> Menos eficientes para manter milhares de conexões SSE inativas.</li>
+			<li><strong>Consumo de Memória:</strong> O Go utiliza significativamente menos memória por conexão.</li>
 		</ul>
 
 		<h4>Por que não Rust:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Velocidade de Desenvolvimento:</strong> Embora o Rust ofereça performance extrema, sua complexidade (borrow checker) retarda a iteração para uma ferramenta focada em I/O onde a performance do Go já é mais do que suficiente.</li>
+			<li><strong>Velocidade de Desenvolvimento:</strong> Sua complexidade retarda a iteração para uma ferramenta I/O onde o Go já é suficiente.</li>
 		</ul>
 
 		<h4>Por que não C / C++:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Segurança:</strong> O gerenciamento manual de memória adiciona riscos de segurança significativos (buffer overflows) sem ganho de performance relevante em uma aplicação de gateway.</li>
+			<li><strong>Segurança:</strong> O gerenciamento manual de memória adiciona riscos sem ganhos relevantes em uma aplicação de gateway.</li>
 		</ul>
 	</div>
 
@@ -93,15 +93,63 @@ menu:
 
 		<h4>Por que funções:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Encapsulamento:</strong> A lógica de negócio reside junto com os dados no banco de dados — um único lugar para auditoria, versionamento e segurança.</li>
-			<li><strong>Segurança Explícita:</strong> Através da API, apenas as funções às quais foram explicitamente concedidas permissões <code>EXECUTE</code> para um papel específico são acessíveis.</li>
-			<li><strong>Abstração:</strong> Validação de entradas, campos calculados e operações complexas em várias tabelas ficam ocultos para o cliente, fornecendo uma interface limpa.</li>
+			<li><strong>Encapsulamento:</strong> A lógica de negócio reside com os dados no banco de dados — um único lugar para auditoria, versionamento e segurança.</li>
+			<li><strong>Segurança Explícita:</strong> Apenas as funções com permissões <code>EXECUTE</code> para um papel específico são acessíveis.</li>
+			<li><strong>Abstração:</strong> Validação, campos calculados e operações complexas ficam ocultos para o cliente.</li>
 		</ul>
 
 		<h4>Por que não CRUD em nível de tabela:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Acoplamento Forte:</strong> Expor as tabelas diretamente vincula sua API ao esquema interno do banco de dados, dificultando refatorações sem quebrar as aplicações cliente.</li>
-			<li><strong>Fragmentação de Regras de Negócio:</strong> A lógica acaba sendo dividida entre restrições de banco de dados e qualquer middleware usado para filtrar as requisições HTTP.</li>
+			<li><strong>Acoplamento Forte:</strong> Expor tabelas vincula a API ao esquema interno, dificultando refatorações.</li>
+			<li><strong>Fragmentação de Regras de Negócio:</strong> A lógica se divide entre restrições do banco de dados e middleware.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>5. Estrutura de URL: <code>/{prefixo}/{banco_de_dados}/{endpoint}</code></h3>
+		<p>
+			O PgArachne roteia todos os endpoints sob um segmento de prefixo configurável:
+			<code>/db/{banco_de_dados}/jsonrpc</code>, <code>/db/{banco_de_dados}/sse</code>, <code>/db/{banco_de_dados}/mcp</code>.
+			O prefixo padrão é <code>db</code> e pode ser alterado via <code>API_PREFIX</code>.
+		</p>
+
+		<h4>Por que esta estrutura:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Roteamento por reverse proxy:</strong> Uma única instância PgArachne pode servir múltiplos bancos de dados. Um reverse proxy pode rotear por prefixo ou nome do banco de dados sem inspecionar o corpo da requisição, essencial para balanceamento de carga.</li>
+			<li><strong>Escalabilidade horizontal:</strong> Com o nome do banco de dados no caminho URL, é possível executar múltiplas instâncias PgArachne e direcionar o tráfego por banco de dados usando regras de proxy padrão, sem sessões persistentes.</li>
+			<li><strong>Multiplexação de protocolos por banco de dados:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sob o mesmo namespace permite aplicar autenticação, rate limiting e controle de acesso por banco de dados no nível do proxy.</li>
+			<li><strong>Prefixo configurável:</strong> Deployments que já usam <code>/api/</code> podem configurar <code>API_PREFIX=api</code>. Clientes legados são suportados via <code>307 Temporary Redirect</code>.</li>
+			<li><strong>Observabilidade:</strong> Sistemas de log e métricas podem agrupar o tráfego por nome de banco de dados diretamente da URL sem analisar corpos JSON.</li>
+		</ul>
+
+		<h4>Por que não uma estrutura plana como <code>/api/{banco_de_dados}</code>:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Ambiguidade de protocolo:</strong> Um único endpoint plano não consegue distinguir o tráfego JSON-RPC, SSE e MCP no nível de roteamento.</li>
+			<li><strong>Mais difícil de estender:</strong> Adicionar novos protocolos exigiria de qualquer forma novas rotas, portanto o namespace estruturado prepara o design para o futuro.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. MCP como Camada de Tradução, não como Protocolo de Banco de Dados</h3>
+		<p>
+			O PgArachne implementa o <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
+			como uma fina camada de tradução no servidor Go. As funções PostgreSQL nunca sabem do MCP —
+			permanecem simples funções <code>jsonb → json</code>.
+		</p>
+
+		<h4>Por que traduzir MCP no servidor:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Sem alterações nas funções existentes:</strong> Qualquer função já exposta via JSON-RPC está instantaneamente disponível como tool MCP. Sem alterações SQL.</li>
+			<li><strong>MCP é mais do que apenas tools:</strong> O protocolo inclui o handshake de inicialização, ping, notificações e extensões futuras — preocupações de nível de protocolo que pertencem ao Go.</li>
+			<li><strong>A segurança permanece em um único lugar:</strong> Autenticação, troca de papel e validação já estão implementados em Go. O endpoint MCP reutiliza essa lógica sem alterações.</li>
+			<li><strong>Múltiplos protocolos, um backend:</strong> A mesma função PostgreSQL pode ser chamada via JSON-RPC, MCP ou SSE. O banco de dados é agnóstico ao protocolo.</li>
+			<li><strong>SQL mais simples:</strong> Processar envelopes MCP em PostgreSQL exigiria analisar estruturas JSON complexas em PL/pgSQL, tornando as funções mais difíceis de escrever e manter.</li>
+		</ul>
+
+		<h4>Por que não levar MCP ao banco de dados:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>O handshake MCP não precisa do banco de dados:</strong> <code>initialize</code> e <code>ping</code> são mensagens de protocolo puras. Abrir uma conexão para elas desperdiça recursos.</li>
+			<li><strong>SQL é a ferramenta errada para lógica de protocolo:</strong> Códigos de erro JSON-RPC, roteamento de notificações e gerenciamento de chaves de idempotência são preocupações de middleware, não de dados.</li>
 		</ul>
 	</div>
 </section>

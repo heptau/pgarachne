@@ -17,6 +17,7 @@
 *   **🚀 Rapid Prototyping**: Stop writing boilerplate CRUD controllers. Define a SQL function, and your API endpoint is ready instantly.
 *   **🏢 Production Ready**: Handles connection pooling, graceful shutdowns, and Prometheus metrics.
 *   **🧠 AI & LLM Friendly**: Self-describing API via `capabilities` endpoint allows AI agents to construct valid calls with zero hallucinations.
+*   **🤖 MCP Support**: Native Model Context Protocol endpoint lets Claude Desktop, Cursor, and other MCP clients discover and call your PostgreSQL functions as tools — no custom glue code needed.
 *   **🔒 Secure**: Native PostgreSQL role masquerading and JWT authentication.
 
 ## Quick Start
@@ -86,6 +87,9 @@ Create a configuration file (e.g., `.env`) with your database details:
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
+# Optional: URL prefix (default: "db" → /db/:database/jsonrpc)
+# Set to "api" for backward-compatible paths.
+# API_PREFIX=db
 # Optional TLS settings (default sslmode=disable)
 DB_SSLMODE=disable
 # DB_SSLROOTCERT=/path/to/ca.pem
@@ -178,7 +182,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
 Use the JSON-RPC `login` method to obtain a JWT token:
 
 ```bash
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"login","params":{"login":"app_user","password":"user_password"},"id":1}'
 ```
@@ -191,12 +195,11 @@ Response:
 **3. Call the Function**
 
 Use the token to call the `hello_world` function:
-All JSON-RPC calls go to `/api/<database>` and specify the method in the JSON body.
 
 ```bash
 export TOKEN="YOUR_JWT_TOKEN_HERE"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'
@@ -212,7 +215,7 @@ Response:
 Clients can subscribe to PostgreSQL `NOTIFY` channels over Server-Sent Events:
 
 ```bash
-curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -223,6 +226,47 @@ Each notification is delivered as JSON:
 ```
 
 If the payload is plain text, it is wrapped as a string in `data`.
+
+To send a notification from PostgreSQL:
+
+```sql
+-- From psql or any database session:
+NOTIFY orders, '{"id":123,"status":"created"}';
+
+-- Or via a trigger / stored procedure:
+PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);
+```
+
+### 6. MCP (Model Context Protocol)
+
+MCP-compatible AI clients (Claude Desktop, Cursor, etc.) can connect directly to any database and discover its functions as tools:
+
+```
+POST http://localhost:8080/db/my_database/mcp
+```
+
+The MCP endpoint maps automatically:
+- `tools/list` → calls `pgarachne.capabilities()` as the authenticated role
+- `tools/call` → executes the named PostgreSQL function with the provided arguments
+
+Authentication uses the same Bearer token (JWT or API token) as the JSON-RPC endpoint.
+PostgreSQL functions require **no changes** — they remain JSON-RPC-shaped.
+
+## HTTP Endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/db/:database/jsonrpc` | POST | JSON-RPC 2.0 gateway (including `login`) |
+| `/db/:database/sse` | GET | SSE stream for PostgreSQL `NOTIFY` channels |
+| `/db/:database/mcp` | POST | MCP (Model Context Protocol) endpoint |
+| `/health` | GET | Health check |
+| `/metrics` | GET | Prometheus metrics (dedicated listener, default `127.0.0.1:9090`) |
+
+**Legacy redirects** (307 Temporary Redirect, method-preserving):
+- `POST /api/:database` → `POST /db/:database/jsonrpc`
+- `GET /sse/:database` → `GET /db/:database/sse`
+
+The `db` prefix is the default and is configurable via `API_PREFIX`.
 
 Prometheus metrics are exposed on a dedicated listener (default: `http://127.0.0.1:9090/metrics`).
 
@@ -264,7 +308,7 @@ Generated documentation is available in the [`docs/`](docs/index.html) directory
 *   **Configuration**: Full list of environment variables (`DB_HOST`, `JWT_SECRET`, etc.).
 *   **Security**: How role masquerading and API Tokens work.
 *   **Deployment**: Guides for Caddy, Nginx, and Ngrok.
-*   **Architectural Decisions**: Why JSON-RPC, SSE, Go, and PostgreSQL functions.
+*   **Architectural Decisions**: Why JSON-RPC, SSE, Go, PostgreSQL functions, the URL structure, and MCP.
 *   **Error Codes**: Reference for JSON-RPC 2.0 errors.
 
 👉 [**Read the Full Documentation**](https://www.pgarachne.com/)

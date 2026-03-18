@@ -9,24 +9,24 @@ menu:
 
 <section id="config">
 	<h2>Configurazione</h2>
-	<p>PgArachne carica la configurazione dalle variabili d’ambiente o da un file.</p>
+	<p>PgArachne carica la configurazione dalle variabili d'ambiente o da un file.</p>
 	<div class="tip">
 		<strong>Note:</strong> <code>schema.sql</code> prova a creare il ruolo <code>pgarachne_admin</code> e a concederlo a <code>pgarachne</code>. Senza privilegi di superuser, la creazione viene saltata. Crea ruolo e grant manualmente se necessario.
 	<br>
-		L’utente proxy (<code>DB_USER</code>) deve essere membro di <code>pgarachne</code> e <code>pgarachne_admin</code> per verificare e creare token API.</div>
+		L'utente proxy (<code>DB_USER</code>) deve essere membro di <code>pgarachne</code> e <code>pgarachne_admin</code> per verificare e creare token API.</div>
 	<div class="tip">
-		<strong>Nota di Sicurezza:</strong> PgArachne non gestisce le password del database nel file
-		di configurazione. Si affida al meccanismo standard del file <code>.pgpass</code> di PostgreSQL (o alla
-		variabile di sistema <code>PGPASSWORD</code>) per l’autenticazione.
+		<strong>Nota di Sicurezza:</strong> PgArachne non gestisce le password del database nel file
+		di configurazione. Si affida al meccanismo standard del file <code>.pgpass</code> di PostgreSQL (o alla
+		variabile di sistema <code>PGPASSWORD</code>) per l'autenticazione.
 	</div>
 	<div class="tip">
-		<strong>Suggerimento:</strong> Se PgArachne è dietro un reverse proxy, imposta <code>TRUSTED_PROXIES</code> per risolvere correttamente l’IP client ed evitare spoofing del rate limit.
+		<strong>Suggerimento:</strong> Se PgArachne è dietro un reverse proxy, imposta <code>TRUSTED_PROXIES</code> per risolvere correttamente l'IP client ed evitare spoofing del rate limit.
 	</div>
 
 	<div class="tip">
-		<strong>Ordine di Ricerca:</strong> Se nessun file di configurazione è specificato via CLI, cerca in:
+		<strong>Ordine di Ricerca:</strong> Se nessun file di configurazione è specificato via CLI, cerca in:
 		<ol>
-			<li>Directory corrente: <code>./pgarachne.env</code> (Tutti i SO)</li>
+			<li>Directory corrente: <code>./pgarachne.env</code> (Tutti i SO)</li>
 			<li>Configurazione utente:
 				<ul>
 					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
@@ -34,7 +34,7 @@ menu:
 					</li>
 				</ul>
 			</li>
-			<li>Configurazione di sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
+			<li>Configurazione di sistema: <code>/etc/pgarachne/pgarachne.env</code> (Solo Linux / macOS)</li>
 		</ol>
 	</div>
 
@@ -73,7 +73,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>DB_USER</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obbligatorio" aria-label="Obbligatorio">✓</span></td>
-				<td>L’utente del database con cui PgArachne si connette.</td>
+				<td>L'utente del database con cui PgArachne si connette.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
@@ -103,7 +103,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Porta su cui ascoltare. Default: <code>8080</code>.</td>
+				<td>Porta su cui ascoltare. Default: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
+				<td>Primo segmento del percorso URL per tutti gli endpoint del database (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Predefinito: <code>db</code>, con percorsi come <code>/db/:database/jsonrpc</code>. Impostare su <code>api</code> per i percorsi legacy. Sono consentiti solo lettere, cifre, trattini e underscore.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -113,13 +118,13 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Impostazioni CORS. Elenco separato da virgole dei domini consentiti (es. <code>https://miapp.com</code>).
+				<td>Impostazioni CORS. Elenco separato da virgole dei domini consentiti (es. <code>https://miapp.com</code>).
 					Default: <code>*</code>.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Percorso assoluto per servire file statici (Explorer/Frontend).</td>
+				<td>Percorso assoluto per servire file statici (Explorer/Frontend).</td>
 			</tr>
 
 			<!-- Security Config -->
@@ -130,12 +135,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obbligatorio" aria-label="Obbligatorio">✓</span></td>
-				<td>Una stringa lunga e casuale usata per firmare i token di sessione.</td>
+				<td>Una stringa lunga e casuale usata per firmare i token di sessione.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Validità della sessione in ore. Default: <code>8</code>.</td>
+				<td>Validità della sessione in ore. Default: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
@@ -148,12 +153,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Durata della finestra di rate limit. Predefinito: <code>1m</code>.</td>
 			</tr>
 			<tr>
-				<td colspan="3" style="color:#777;font-size:0.95em;">Il rate limit del login è per istanza (in memoria). In multi‑istanza serve un limiter condiviso.</td>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Il rate limit del login è per istanza (in memoria). In multi-istanza serve un limiter condiviso.</td>
 			</tr>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Proxy fidati (IP/CIDR) per <code>X-Forwarded-For</code>. Separati da virgole. Se vuoto, gli header forwarded vengono ignorati e l’IP client viene preso dalla connessione diretta.</td>
+				<td>Proxy fidati (IP/CIDR) per <code>X-Forwarded-For</code>. Separati da virgole. Se vuoto, gli header forwarded vengono ignorati e l'IP client viene preso dalla connessione diretta.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
@@ -214,7 +219,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>LOG_OUTPUT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Dove scrivere i log: <code>stdout</code> o percorso del file.</td>
+				<td>Dove scrivere i log: <code>stdout</code> o percorso del file.</td>
 			</tr>
 		</tbody>
 	</table>

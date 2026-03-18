@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/es/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>es</language><atom:link href="https://www.pgarachne.com/es/index.xml" rel="self" type="application/rss+xml"/><item><title>Acerca de y Arquitectura</title><link>https://www.pgarachne.com/es/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/about-architecture/</guid><description>&lt;section id="about"&gt;
-	&lt;h2&gt;Acerca de y Arquitectura&lt;/h2&gt;
+	&lt;h2&gt;Acerca de y Arquitectura&lt;/h2&gt;
 	&lt;p&gt;
-		PgArachne™ sirve como un &lt;strong&gt;servidor web&lt;/strong&gt; ligero y de alto rendimiento que se sitúa entre tus
-		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
-		(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
+		PgArachne™ sirve como un &lt;strong&gt;servidor web&lt;/strong&gt; ligero y de alto rendimiento que se sitúa entre tus
+		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
+		(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
 	&lt;/p&gt;
 
 	&lt;div class="card"
@@ -11,33 +11,40 @@
 		&lt;h3&gt;Capacidades Técnicas Principales&lt;/h3&gt;
 		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Pasarela JSON-RPC 2.0:&lt;/strong&gt; Todas las interacciones de la API siguen la estricta
-				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
-				por su nombre mediante peticiones POST.
+				&lt;strong&gt;Pasarela JSON-RPC 2.0:&lt;/strong&gt; Todas las interacciones de la API siguen la estricta
+				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
+				por su nombre mediante peticiones POST.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Autenticación Nativa de BD:&lt;/strong&gt; Sin tablas de usuarios separadas. Los usuarios inician
-				sesión con sus credenciales reales de PostgreSQL para recibir un &lt;strong&gt;JWT&lt;/strong&gt;.
-				Alternativamente, las cuentas de servicio pueden usar &lt;strong&gt;Tokens de API&lt;/strong&gt; persistentes.
+				&lt;strong&gt;Autenticación Nativa de BD:&lt;/strong&gt; Sin tablas de usuarios separadas. Los usuarios inician
+				sesión con sus credenciales reales de PostgreSQL para recibir un &lt;strong&gt;JWT&lt;/strong&gt;.
+				Alternativamente, las cuentas de servicio pueden usar &lt;strong&gt;Tokens de API&lt;/strong&gt; persistentes.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Enmascaramiento de Roles:&lt;/strong&gt; PgArachne™ se conecta como un usuario proxy pero ejecuta
-				cada petición usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; para cambiar a la identidad del usuario
-				autenticado. La seguridad a nivel de fila (Row-Level Security – RLS) funciona automáticamente.
+				&lt;strong&gt;Enmascaramiento de Roles:&lt;/strong&gt; PgArachne™ se conecta como un usuario proxy pero ejecuta
+				cada petición usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; para cambiar a la identidad del usuario
+				autenticado. La seguridad a nivel de fila (RLS) funciona automáticamente.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Servidor de Archivos Estáticos:&lt;/strong&gt; PgArachne™ puede servir activos estáticos (HTML,
-				JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer directamente.
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Un endpoint nativo MCP permite a clientes de IA
+				como Claude Desktop, Cursor y otras herramientas MCP-compatibles descubrir y llamar a tus funciones
+				PostgreSQL como herramientas directamente — sin ningún código de integración adicional. Se aplica
+				la misma autenticación y seguridad de roles. A través de MCP también se exponen recursos
+				(tablas/vistas) y plantillas de prompts.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Notificaciones en tiempo real (SSE):&lt;/strong&gt; Suscríbete a canales &lt;code&gt;NOTIFY&lt;/code&gt;
 				de PostgreSQL mediante SSE para actualizaciones en vivo sin polling.
 			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Servidor de Archivos Estáticos:&lt;/strong&gt; PgArachne™ puede servir activos estáticos (HTML,
+				JS, CSS), permitiéndote alojar Single Page Applications (SPAs) o la herramienta Explorer directamente.
+			&lt;/li&gt;
 		&lt;/ul&gt;
 	&lt;/div&gt;
 
 	&lt;p&gt;
-		Esta arquitectura simplifica drásticamente el stack: &lt;strong&gt;Base de Datos ↔ PgArachne ↔ Frontend&lt;/strong&gt;.
+		Esta arquitectura simplifica drásticamente el stack: &lt;strong&gt;Base de Datos ↔ PgArachne ↔ Frontend / Agente IA&lt;/strong&gt;.
 	&lt;/p&gt;</description></item><item><title>Apoya el Desarrollo</title><link>https://www.pgarachne.com/es/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Apoya el Desarrollo&lt;/h2&gt;
 	&lt;p&gt;Desarrollar software de código abierto como PgArachne requiere mucho tiempo. Si esta herramienta te
@@ -191,25 +198,25 @@
 		de ambos
 		mundos:&lt;/p&gt;</description></item><item><title>Configuración</title><link>https://www.pgarachne.com/es/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Configuración&lt;/h2&gt;
-	&lt;p&gt;PgArachne carga la configuración desde variables de entorno o un archivo.&lt;/p&gt;
+	&lt;p&gt;PgArachne carga la configuración desde variables de entorno o un archivo.&lt;/p&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; intenta crear el rol &lt;code&gt;pgarachne_admin&lt;/code&gt; y concederlo a &lt;code&gt;pgarachne&lt;/code&gt;. Sin privilegios de superusuario, la creación se omite. Crea el rol y el grant manualmente si es necesario.
 	&lt;br&gt;
 		El usuario proxy (&lt;code&gt;DB_USER&lt;/code&gt;) debe ser miembro de &lt;code&gt;pgarachne&lt;/code&gt; y &lt;code&gt;pgarachne_admin&lt;/code&gt; para verificar y crear tokens API.&lt;/div&gt;
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Nota de Seguridad:&lt;/strong&gt; PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
-		Confía en el mecanismo estándar de archivo &lt;code&gt;.pgpass&lt;/code&gt; de PostgreSQL (o la variable del sistema
-		&lt;code&gt;PGPASSWORD&lt;/code&gt;) para la autenticación.
+		&lt;strong&gt;Nota de Seguridad:&lt;/strong&gt; PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
+		Confía en el mecanismo estándar de archivo &lt;code&gt;.pgpass&lt;/code&gt; de PostgreSQL (o la variable del sistema
+		&lt;code&gt;PGPASSWORD&lt;/code&gt;) para la autenticación.
 	&lt;/div&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Consejo:&lt;/strong&gt; Si PgArachne está detrás de un reverse proxy, configura &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; para resolver bien la IP del cliente y evitar spoofing del rate limit.
 	&lt;/div&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Orden de Búsqueda:&lt;/strong&gt; Si no se especifica ningún archivo de configuración a través de CLI, busca en:
+		&lt;strong&gt;Orden de Búsqueda:&lt;/strong&gt; Si no se especifica ningún archivo de configuración a través de CLI, busca en:
 		&lt;ol&gt;
 			&lt;li&gt;Directorio actual: &lt;code&gt;./pgarachne.env&lt;/code&gt; (Todos los SO)&lt;/li&gt;
-			&lt;li&gt;Configuración de usuario:
+			&lt;li&gt;Configuración de usuario:
 				&lt;ul&gt;
 					&lt;li&gt;&lt;strong&gt;Linux / macOS:&lt;/strong&gt; &lt;code&gt;~/.config/pgarachne/pgarachne.env&lt;/code&gt;&lt;/li&gt;
 					&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; &lt;code&gt;%USERPROFILE%\.config\pgarachne\pgarachne.env&lt;/code&gt;
@@ -378,12 +385,21 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;/section&gt;</description></item><item><title>Notificaciones en tiempo real (SSE)</title><link>https://www.pgarachne.com/es/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Notificaciones en tiempo real (SSE)&lt;/h2&gt;
 	&lt;p&gt;Suscríbete a canales &lt;code&gt;NOTIFY&lt;/code&gt; de PostgreSQL mediante Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
  -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Cada mensaje es JSON con el canal y el payload:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Si el payload es texto, se envuelve como string en &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
-&lt;/section&gt;</description></item><item><title>Novedades</title><link>https://www.pgarachne.com/es/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+
+	&lt;h3&gt;Enviar notificaciones desde PostgreSQL&lt;/h3&gt;
+	&lt;p&gt;Desde &lt;code&gt;psql&lt;/code&gt; o cualquier sesión de base de datos:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- Payload de texto simple
+NOTIFY orders, 'nuevo pedido';
+
+-- Payload JSON
+NOTIFY orders, '{"id":123,"status":"created"}';
+&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Desde un trigger o procedimiento almacenado:&lt;/p&gt;</description></item><item><title>Novedades</title><link>https://www.pgarachne.com/es/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novedades&lt;/h2&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;

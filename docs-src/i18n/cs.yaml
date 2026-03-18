@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Proměňte PostgreSQL v bezpečné API. Okamžitě."
+  translation: "Vaše databáze je váš backend.<br>Bezpečně, okamžitě, připravena pro AI."
 - id: hero_desc
-  translation: "Žádný zbytečný kód. Vysoký výkon. Middleware, který mapuje HTTP požadavky přímo na databázové funkce, s real-time SSE notifikacemi a Prometheus metrikami."
+  translation: "Definujte SQL funkci — endpoint je hotový. Nativní MCP podpora pro Claude Desktop a Cursor. Real-time SSE notifikace. Produkčně připraveno od prvního dne."
 - id: hero_get_started
   translation: "Začínáme"
 - id: hero_see_demo

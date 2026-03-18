@@ -9,32 +9,32 @@ menu:
 
 <section id="config">
 	<h2>Configuration</h2>
-	<p>PgArachne charge la configuration depuis des variables d’environnement ou un fichier.</p>
+	<p>PgArachne charge la configuration depuis des variables d'environnement ou un fichier.</p>
 	<div class="tip">
-		<strong>Note:</strong> <code>schema.sql</code> tente de créer le rôle <code>pgarachne_admin</code> et de l’accorder à <code>pgarachne</code>. Sans droits superuser, la création est ignorée. Créez le rôle et le grant manuellement si besoin.
+		<strong>Note:</strong> <code>schema.sql</code> tente de créer le rôle <code>pgarachne_admin</code> et de l'accorder à <code>pgarachne</code>. Sans droits superuser, la création est ignorée. Créez le rôle et le grant manuellement si besoin.
 	<br>
-		L’utilisateur proxy (<code>DB_USER</code>) doit être membre de <code>pgarachne</code> et <code>pgarachne_admin</code> pour vérifier et créer des tokens API.</div>
+		L'utilisateur proxy (<code>DB_USER</code>) doit être membre de <code>pgarachne</code> et <code>pgarachne_admin</code> pour vérifier et créer des tokens API.</div>
 	<div class="tip">
-		<strong>Note de sécurité :</strong> PgArachne ne gère pas les mots de passe de la base de données dans le
-		fichier de configuration. Il s’appuie sur le mécanisme standard du fichier <code>.pgpass</code>
-		de PostgreSQL (ou la variable système <code>PGPASSWORD</code>) pour l’authentification.
+		<strong>Note de sécurité :</strong> PgArachne ne gère pas les mots de passe de la base de données dans le
+		fichier de configuration. Il s'appuie sur le mécanisme standard du fichier <code>.pgpass</code>
+		de PostgreSQL (ou la variable système <code>PGPASSWORD</code>) pour l'authentification.
 	</div>
 	<div class="tip">
-		<strong>Astuce :</strong> Si PgArachne est derrière un reverse proxy, définis <code>TRUSTED_PROXIES</code> pour résoudre correctement l’IP client et éviter le spoofing du rate limit.
+		<strong>Astuce :</strong> Si PgArachne est derrière un reverse proxy, définis <code>TRUSTED_PROXIES</code> pour résoudre correctement l'IP client et éviter le spoofing du rate limit.
 	</div>
 
 	<div class="tip">
-		<strong>Ordre de recherche :</strong> Si aucun fichier de configuration n’est spécifié via CLI, il cherche :
+		<strong>Ordre de recherche :</strong> Si aucun fichier de configuration n'est spécifié via CLI, il cherche :
 		<ol>
-			<li>Répertoire actuel : <code>./pgarachne.env</code> (Tous les OS)</li>
-			<li>Configuration utilisateur :
+			<li>Répertoire actuel : <code>./pgarachne.env</code> (Tous les OS)</li>
+			<li>Configuration utilisateur :
 				<ul>
-					<li><strong>Linux / macOS :</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
-					<li><strong>Windows :</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					<li><strong>Linux / macOS :</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows :</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
 					</li>
 				</ul>
 			</li>
-			<li>Configuration système : <code>/etc/pgarachne/pgarachne.env</code> (Linux / macOS uniquement)</li>
+			<li>Configuration système : <code>/etc/pgarachne/pgarachne.env</code> (Linux / macOS uniquement)</li>
 		</ol>
 	</div>
 
@@ -67,12 +67,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<!-- Config Base de données -->
 			<tr>
 				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Connexion Base
-					de Données</td>
+					de Données</td>
 			</tr>
 			<tr class="required-row">
 				<td><code>DB_HOST</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatoire" aria-label="Obligatoire">✓</span></td>
-				<td>Adresse du serveur PostgreSQL (ex : <code>localhost</code>).</td>
+				<td>Adresse du serveur PostgreSQL (ex : <code>localhost</code>).</td>
 			</tr>
 			<tr class="required-row">
 				<td><code>DB_PORT</code></td>
@@ -82,7 +82,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>DB_USER</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatoire" aria-label="Obligatoire">✓</span></td>
-				<td>L’utilisateur de base de données avec lequel PgArachne se connecte.</td>
+				<td>L'utilisateur de base de données avec lequel PgArachne se connecte.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
@@ -112,7 +112,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Port d’écoute. Défaut : <code>8080</code>.</td>
+				<td>Port d'écoute. Défaut : <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
+				<td>Premier segment du chemin URL pour tous les endpoints de base de données (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Par défaut : <code>db</code>, donnant des routes comme <code>/db/:base_de_donnees/jsonrpc</code>. Mettre à <code>api</code> pour les chemins legacy. Seuls les lettres, chiffres, tirets et underscores sont autorisés.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -122,13 +127,13 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Paramètres CORS. Liste séparée par des virgules des domaines autorisés (ex : <code>https://monapp.com</code>).
-					Défaut : <code>*</code>.</td>
+				<td>Paramètres CORS. Liste séparée par des virgules des domaines autorisés (ex : <code>https://monapp.com</code>).
+					Défaut : <code>*</code>.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Chemin absolu pour servir les fichiers statiques (Explorer/Frontend).</td>
+				<td>Chemin absolu pour servir les fichiers statiques (Explorer/Frontend).</td>
 			</tr>
 
 			<!-- Config Sécurité -->
@@ -139,12 +144,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatoire" aria-label="Obligatoire">✓</span></td>
-				<td>Une longue chaîne aléatoire utilisée pour signer les jetons de session.</td>
+				<td>Une longue chaîne aléatoire utilisée pour signer les jetons de session.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Validité de la session en heures. Défaut : <code>8</code>.</td>
+				<td>Validité de la session en heures. Défaut : <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
@@ -157,12 +162,12 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Durée de la fenêtre de limitation. Par défaut : <code>1m</code>.</td>
 			</tr>
 			<tr>
-				<td colspan="3" style="color:#777;font-size:0.95em;">Le rate limit de login est par instance (en mémoire). En multi‑instance, utilisez un limiteur partagé.</td>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Le rate limit de login est par instance (en mémoire). En multi-instance, utilisez un limiteur partagé.</td>
 			</tr>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Proxys de confiance (IP/CIDR) pour <code>X-Forwarded-For</code>. Séparés par des virgules. Si vide, les en-têtes forwardés sont ignorés et l’IP client est prise depuis la connexion directe.</td>
+				<td>Proxys de confiance (IP/CIDR) pour <code>X-Forwarded-For</code>. Séparés par des virgules. Si vide, les en-têtes forwardés sont ignorés et l'IP client est prise depuis la connexion directe.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>
@@ -207,7 +212,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>SSE_IDLE_TIMEOUT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Délai d’inactivité sans notifications. Par défaut : <code>90s</code>.</td>
+				<td>Délai d'inactivité sans notifications. Par défaut : <code>90s</code>.</td>
 			</tr>
 
 			<!-- Config Logging -->
@@ -217,24 +222,24 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>LOG_LEVEL</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Verbosité : <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
-					Défaut : <code>INFO</code>.</td>
+				<td>Verbosité : <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Défaut : <code>INFO</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOG_OUTPUT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Où écrire les logs : <code>stdout</code> ou chemin du fichier.</td>
+				<td>Où écrire les logs : <code>stdout</code> ou chemin du fichier.</td>
 			</tr>
 		</tbody>
 	</table>
 	<p class="config-legend"><span class="req-flag req-yes" aria-hidden="true">✓</span> Obligatoire &nbsp; <span class="req-flag req-no" aria-hidden="true">○</span> Optionnel</p>
-	<p><strong>Comportement de sécurité :</strong> les requêtes sans en-tête <code>Authorization</code> valide sont rejetées avant l’ouverture d’une connexion à la base.</p>
+	<p><strong>Comportement de sécurité :</strong> les requêtes sans en-tête <code>Authorization</code> valide sont rejetées avant l'ouverture d'une connexion à la base.</p>
 
 	<p>Démarrez le serveur :</p>
 	<pre><code>./pgarachne -config .env</code></pre>
 	<h3>Voir aussi</h3>
 	<ul>
 		<li><a href="../security-roles/">Sécurité & Authentification</a></li>
-		<li><a href="../error-codes/">Codes d’erreur</a></li>
+		<li><a href="../error-codes/">Codes d'erreur</a></li>
 	</ul>
 </section>

@@ -12,10 +12,10 @@
 
 		&lt;h4&gt;Warum JSON-RPC 2.0:&lt;/h4&gt;
 		&lt;ul style="margin-left: 20px;"&gt;
-			&lt;li&gt;&lt;strong&gt;Einzelner Endpunkt:&lt;/strong&gt; Die gesamte Kommunikation erfolgt über &lt;code&gt;POST /api/{datenbank}&lt;/code&gt;. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Einzelner Endpunkt:&lt;/strong&gt; Die gesamte Kommunikation erfolgt über &lt;code&gt;POST /{prefix}/{datenbank}/jsonrpc&lt;/code&gt;. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Eigenständige Aufrufe:&lt;/strong&gt; Jede Anfrage ist ein vollständiges JSON-Objekt (Methode + Parameter + ID). Dieses Format ist für LLMs und AI-Agenten trivial zu generieren und mit hoher Zuverlässigkeit zu parsen.&lt;/li&gt;
-			&lt;li&gt;&lt;strong&gt;Standardisierte Fehlerbehandlung:&lt;/strong&gt; Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden“.&lt;/li&gt;
-			&lt;li&gt;&lt;strong&gt;Stapelverarbeitung (Batching):&lt;/strong&gt; Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen (z. B. mehrere Funktionsaufrufe) in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Standardisierte Fehlerbehandlung:&lt;/strong&gt; Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden".&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Stapelverarbeitung (Batching):&lt;/strong&gt; Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.&lt;/li&gt;
 			&lt;li&gt;&lt;strong&gt;Discovery:&lt;/strong&gt; Der Capabilities-Endpunkt bietet eine vollständige Beschreibung der API in einem Format, das AI-Agenten konsumieren können, um verfügbare Werkzeuge ohne Halluzinationen zu verstehen.&lt;/li&gt;
 		&lt;/ul&gt;
 
@@ -188,24 +188,24 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;/div&gt;
 		&lt;p&gt;Weitere Versionen sind in den &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub-Releases&lt;/a&gt; verfügbar.&lt;/p&gt;</description></item><item><title>Konfiguration</title><link>https://www.pgarachne.com/de/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Konfiguration&lt;/h2&gt;
-	&lt;p&gt;PgArachne lädt die Konfiguration aus Umgebungsvariablen oder einer Datei.&lt;/p&gt;
+	&lt;p&gt;PgArachne lädt die Konfiguration aus Umgebungsvariablen oder einer Datei.&lt;/p&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; versucht, die Rolle &lt;code&gt;pgarachne_admin&lt;/code&gt; zu erstellen und an &lt;code&gt;pgarachne&lt;/code&gt; zu vergeben. Ohne Superuser-Rechte wird die Erstellung übersprungen. Rolle und Grant ggf. manuell anlegen.
 	&lt;br&gt;
 		Der Proxy-User (&lt;code&gt;DB_USER&lt;/code&gt;) muss Mitglied von &lt;code&gt;pgarachne&lt;/code&gt; und &lt;code&gt;pgarachne_admin&lt;/code&gt; sein, um API-Token zu prüfen und zu erstellen.&lt;/div&gt;
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Sicherheitshinweis:&lt;/strong&gt; PgArachne verarbeitet keine Datenbankpasswörter in der
+		&lt;strong&gt;Sicherheitshinweis:&lt;/strong&gt; PgArachne verarbeitet keine Datenbankpasswörter in der
 		Konfigurationsdatei.
-		Es verlässt sich auf den Standardmechanismus der &lt;code&gt;.pgpass&lt;/code&gt;-Datei von PostgreSQL (oder die
+		Es verlässt sich auf den Standardmechanismus der &lt;code&gt;.pgpass&lt;/code&gt;-Datei von PostgreSQL (oder die
 		systemweite Variable
-		&lt;code&gt;PGPASSWORD&lt;/code&gt;) für die Authentifizierung.
+		&lt;code&gt;PGPASSWORD&lt;/code&gt;) für die Authentifizierung.
 	&lt;/div&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Tipp:&lt;/strong&gt; Wenn PgArachne hinter einem Reverse Proxy läuft, setze &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;, damit die Client-IP korrekt ermittelt wird und das Rate Limiting nicht spoofbar ist.
 	&lt;/div&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Suchreihenfolge:&lt;/strong&gt; Wenn keine Konfigurationsdatei über CLI angegeben ist, wird wie folgt gesucht:
+		&lt;strong&gt;Suchreihenfolge:&lt;/strong&gt; Wenn keine Konfigurationsdatei über CLI angegeben ist, wird wie folgt gesucht:
 		&lt;ol&gt;
 			&lt;li&gt;Aktuelles Verzeichnis: &lt;code&gt;./pgarachne.env&lt;/code&gt; (Alle Betriebssysteme)&lt;/li&gt;
 			&lt;li&gt;Benutzerkonfiguration:
@@ -275,11 +275,27 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;/section&gt;</description></item><item><title>Realtime-Benachrichtigungen (SSE)</title><link>https://www.pgarachne.com/de/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Realtime-Benachrichtigungen (SSE)&lt;/h2&gt;
 	&lt;p&gt;Abonnieren Sie PostgreSQL-&lt;code&gt;NOTIFY&lt;/code&gt;-Kanäle über Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
  -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Jede Nachricht ist JSON mit Kanal und Payload:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Wenn der Payload Text ist, wird er als String in &lt;code&gt;data&lt;/code&gt; verpackt.&lt;/p&gt;
+
+	&lt;h3&gt;Benachrichtigungen aus PostgreSQL senden&lt;/h3&gt;
+	&lt;p&gt;Aus &lt;code&gt;psql&lt;/code&gt; oder einer beliebigen Datenbank-Session:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- Einfacher Text-Payload
+NOTIFY orders, 'neue Bestellung';
+
+-- JSON-Payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Aus einem Trigger oder einer gespeicherten Prozedur:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);&lt;/code&gt;&lt;/pre&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Hinweis:&lt;/strong&gt; &lt;code&gt;NOTIFY&lt;/code&gt; wird erst nach dem Commit der sendenden Transaktion an andere
+		Sessions zugestellt. Wenn Sie es innerhalb einer offenen Transaktion in &lt;code&gt;psql&lt;/code&gt; ausführen,
+		erhalten Abonnenten die Nachricht erst nach &lt;code&gt;COMMIT&lt;/code&gt;.
+	&lt;/div&gt;
 &lt;/section&gt;</description></item><item><title>Sicherheit &amp; Authentifizierung</title><link>https://www.pgarachne.com/de/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Sicherheit &amp; Authentifizierung&lt;/h2&gt;
 	&lt;p&gt;PgArachne verlässt sich vollständig auf das PostgreSQL-Berechtigungssystem. Es erfindet keine Access
@@ -294,9 +310,9 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		Dauer der Anfrage zu diesem Benutzer.&lt;/p&gt;</description></item><item><title>Über &amp; Architektur</title><link>https://www.pgarachne.com/de/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;Über &amp; Architektur&lt;/h2&gt;
 	&lt;p&gt;
-		PgArachne™ dient als leichter, hochleistungsfähiger &lt;strong&gt;Webserver&lt;/strong&gt;, der zwischen Ihren
-		HTTP-Clients und der PostgreSQL-Datenbank sitzt. Es eliminiert die Notwendigkeit für traditionelle
-		Backend-Sprachen (wie Python, Node.js oder PHP), indem HTTP-Anfragen direkt auf Datenbankfunktionen
+		PgArachne™ dient als leichter, hochleistungsfähiger &lt;strong&gt;Webserver&lt;/strong&gt;, der zwischen Ihren
+		HTTP-Clients und der PostgreSQL-Datenbank sitzt. Es eliminiert die Notwendigkeit für traditionelle
+		Backend-Sprachen (wie Python, Node.js oder PHP), indem HTTP-Anfragen direkt auf Datenbankfunktionen
 		abgebildet werden.
 	&lt;/p&gt;
 
@@ -305,33 +321,40 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;h3&gt;Wichtige technische Fähigkeiten&lt;/h3&gt;
 		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;JSON-RPC 2.0 Gateway:&lt;/strong&gt; Alle API-Interaktionen folgen der strengen JSON-RPC
+				&lt;strong&gt;JSON-RPC 2.0 Gateway:&lt;/strong&gt; Alle API-Interaktionen folgen der strengen JSON-RPC
 				2.0-Spezifikation. Es müssen keine REST-Endpunkte entworfen werden; Sie rufen SQL-Funktionen
 				einfach per Namen über POST-Anfragen auf.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Native DB-Authentifizierung:&lt;/strong&gt; Keine separaten Benutzertabellen. Benutzer melden
-				sich mit ihren echten PostgreSQL-Anmeldeinformationen an, um ein &lt;strong&gt;JWT&lt;/strong&gt; zu erhalten.
+				sich mit ihren echten PostgreSQL-Anmeldeinformationen an, um ein &lt;strong&gt;JWT&lt;/strong&gt; zu erhalten.
 				Alternativ können Service-Konten persistente &lt;strong&gt;API-Token&lt;/strong&gt; verwenden.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Rollen-Maskierung:&lt;/strong&gt; PgArachne™ verbindet sich als Proxy-Benutzer, führt aber jede
-				Anfrage mit &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; aus, um zur Identität des authentifizierten Benutzers
-				zu wechseln. Row-Level Security (RLS) funktioniert automatisch.
+				&lt;strong&gt;Rollen-Maskierung:&lt;/strong&gt; PgArachne™ verbindet sich als Proxy-Benutzer, führt aber jede
+				Anfrage mit &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; aus, um zur Identität des authentifizierten Benutzers
+				zu wechseln. Row-Level Security (RLS) funktioniert automatisch.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Server für statische Dateien:&lt;/strong&gt; PgArachne™ kann statische Assets (HTML, JS, CSS)
-				bereitstellen, sodass Sie Single Page Applications (SPAs) oder das Explorer-Tool direkt hosten können.
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Ein nativer MCP-Endpunkt ermöglicht KI-Clients
+				wie Claude Desktop, Cursor und anderen MCP-kompatiblen Tools, Ihre PostgreSQL-Funktionen direkt
+				als Tools zu entdecken und aufzurufen — ohne jeglichen Verbindungscode. Dieselbe Authentifizierung
+				und Rollensicherheit gilt. Über MCP werden auch Ressourcen (Tabellen/Views) und Prompt-Vorlagen
+				bereitgestellt.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Echtzeit-Benachrichtigungen (SSE):&lt;/strong&gt; Abonnieren Sie PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;
 				Kanäle über SSE für Live-Updates ohne Polling.
 			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Server für statische Dateien:&lt;/strong&gt; PgArachne™ kann statische Assets (HTML, JS, CSS)
+				bereitstellen, sodass Sie Single Page Applications (SPAs) oder das Explorer-Tool direkt hosten können.
+			&lt;/li&gt;
 		&lt;/ul&gt;
 	&lt;/div&gt;
 
 	&lt;p&gt;
-		Diese Architektur vereinfacht den Stack drastisch: &lt;strong&gt;Datenbank ↔ PgArachne ↔ Frontend&lt;/strong&gt;.
+		Diese Architektur vereinfacht den Stack drastisch: &lt;strong&gt;Datenbank ↔ PgArachne ↔ Frontend / KI-Agent&lt;/strong&gt;.
 	&lt;/p&gt;</description></item><item><title>Unterstützen Sie die Entwicklung</title><link>https://www.pgarachne.com/de/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Unterstützen Sie die Entwicklung&lt;/h2&gt;
 	&lt;p&gt;Die Entwicklung von Open-Source-Software wie PgArachne erfordert viel Zeit. Wenn Ihnen dieses Tool Zeit spart,

@@ -141,33 +141,33 @@
 	&lt;p&gt;Graças às &lt;strong&gt;Funções Universais&lt;/strong&gt; (agindo como um emulador), você obtém o melhor dos dois
 		mundos:&lt;/p&gt;</description></item><item><title>Configuração</title><link>https://www.pgarachne.com/pt/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Configuração&lt;/h2&gt;
-	&lt;p&gt;O PgArachne carrega a configuração a partir de variáveis de ambiente ou de um arquivo.&lt;/p&gt;
+	&lt;p&gt;O PgArachne carrega a configuração a partir de variáveis de ambiente ou de um arquivo.&lt;/p&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; tenta criar o papel &lt;code&gt;pgarachne_admin&lt;/code&gt; e concedê-lo a &lt;code&gt;pgarachne&lt;/code&gt;. Sem privilégios de superusuário, a criação é ignorada. Crie o papel e o grant manualmente se necessário.
 	&lt;br&gt;
 		O usuário proxy (&lt;code&gt;DB_USER&lt;/code&gt;) deve ser membro de &lt;code&gt;pgarachne&lt;/code&gt; e &lt;code&gt;pgarachne_admin&lt;/code&gt; para validar e criar tokens de API.&lt;/div&gt;
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Nota de Segurança:&lt;/strong&gt; O PgArachne não lida com senhas do banco de dados no arquivo
-		de configuração. Ele depende do mecanismo padrão de arquivo &lt;code&gt;.pgpass&lt;/code&gt; do PostgreSQL (ou da
-		variável de sistema &lt;code&gt;PGPASSWORD&lt;/code&gt;) para autenticação.
+		&lt;strong&gt;Nota de Segurança:&lt;/strong&gt; O PgArachne não lida com senhas do banco de dados no arquivo
+		de configuração. Ele depende do mecanismo padrão de arquivo &lt;code&gt;.pgpass&lt;/code&gt; do PostgreSQL (ou da
+		variável de sistema &lt;code&gt;PGPASSWORD&lt;/code&gt;) para autenticação.
 	&lt;/div&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Dica:&lt;/strong&gt; Se o PgArachne estiver atrás de um reverse proxy, defina &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; para resolver corretamente o IP do cliente e evitar spoofing do rate limit.
 	&lt;/div&gt;
 
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Ordem de Busca:&lt;/strong&gt; Se nenhum arquivo de configuração for especificado via CLI, ele busca
+		&lt;strong&gt;Ordem de Busca:&lt;/strong&gt; Se nenhum arquivo de configuração for especificado via CLI, ele busca
 		em:
 		&lt;ol&gt;
-			&lt;li&gt;Diretório atual: &lt;code&gt;./pgarachne.env&lt;/code&gt; (Todos os SOs)&lt;/li&gt;
-			&lt;li&gt;Configuração do usuário:
+			&lt;li&gt;Diretório atual: &lt;code&gt;./pgarachne.env&lt;/code&gt; (Todos os SOs)&lt;/li&gt;
+			&lt;li&gt;Configuração do usuário:
 				&lt;ul&gt;
 					&lt;li&gt;&lt;strong&gt;Linux / macOS:&lt;/strong&gt; &lt;code&gt;~/.config/pgarachne/pgarachne.env&lt;/code&gt;&lt;/li&gt;
 					&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; &lt;code&gt;%USERPROFILE%\.config\pgarachne\pgarachne.env&lt;/code&gt;
 					&lt;/li&gt;
 				&lt;/ul&gt;
 			&lt;/li&gt;
-			&lt;li&gt;Configuração do sistema: &lt;code&gt;/etc/pgarachne/pgarachne.env&lt;/code&gt; (Somente Linux / macOS)&lt;/li&gt;
+			&lt;li&gt;Configuração do sistema: &lt;code&gt;/etc/pgarachne/pgarachne.env&lt;/code&gt; (Somente Linux / macOS)&lt;/li&gt;
 		&lt;/ol&gt;
 	&lt;/div&gt;
 
@@ -324,12 +324,21 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;/section&gt;</description></item><item><title>Notificações em tempo real (SSE)</title><link>https://www.pgarachne.com/pt/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Notificações em tempo real (SSE)&lt;/h2&gt;
 	&lt;p&gt;Assine canais PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; via Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
  -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Cada mensagem é JSON com o canal e o payload:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Se o payload for texto, ele é encapsulado como string em &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
-&lt;/section&gt;</description></item><item><title>Novidades</title><link>https://www.pgarachne.com/pt/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+
+	&lt;h3&gt;Enviar notificações a partir do PostgreSQL&lt;/h3&gt;
+	&lt;p&gt;A partir do &lt;code&gt;psql&lt;/code&gt; ou de qualquer sessão de banco de dados:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- Payload de texto simples
+NOTIFY orders, 'novo pedido';
+
+-- Payload JSON
+NOTIFY orders, '{"id":123,"status":"created"}';
+&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;A partir de um trigger ou stored procedure:&lt;/p&gt;</description></item><item><title>Novidades</title><link>https://www.pgarachne.com/pt/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novidades&lt;/h2&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
@@ -352,11 +361,11 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Os usuários se autenticam usando seu &lt;strong&gt;nome de usuário e senha reais do PostgreSQL&lt;/strong&gt; via
 		a função de login. Se bem-sucedido, eles recebem um JWT genérico. Quando este token é usado, o PgArachne
 		muda o papel ativo para esse usuário pela duração da requisição.&lt;/p&gt;</description></item><item><title>Sobre e Arquitetura</title><link>https://www.pgarachne.com/pt/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/about-architecture/</guid><description>&lt;section id="about"&gt;
-	&lt;h2&gt;Sobre e Arquitetura&lt;/h2&gt;
+	&lt;h2&gt;Sobre e Arquitetura&lt;/h2&gt;
 	&lt;p&gt;
-		O PgArachne™ serve como um &lt;strong&gt;servidor web&lt;/strong&gt; leve e de alta performance que fica entre os seus
-		clientes HTTP e o banco de dados PostgreSQL. Ele elimina a necessidade de linguagens de backend
-		tradicionais (como Python, Node.js ou PHP) mapeando requisições HTTP diretamente para funções do banco de dados.
+		O PgArachne™ serve como um &lt;strong&gt;servidor web&lt;/strong&gt; leve e de alta performance que fica entre os seus
+		clientes HTTP e o banco de dados PostgreSQL. Ele elimina a necessidade de linguagens de backend
+		tradicionais (como Python, Node.js ou PHP) mapeando requisições HTTP diretamente para funções do banco de dados.
 	&lt;/p&gt;
 
 	&lt;div class="card"
@@ -364,34 +373,40 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;h3&gt;Capacidades Técnicas Principais&lt;/h3&gt;
 		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Gateway JSON-RPC 2.0:&lt;/strong&gt; Todas as interações da API seguem a especificação estrita
-				JSON-RPC 2.0. Não há endpoints REST para projetar; você simplesmente chama funções SQL pelo nome
+				&lt;strong&gt;Gateway JSON-RPC 2.0:&lt;/strong&gt; Todas as interações da API seguem a especificação estrita
+				JSON-RPC 2.0. Não há endpoints REST para projetar; você simplesmente chama funções SQL pelo nome
 				via requisições POST.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Autenticação Nativa de BD:&lt;/strong&gt; Sem tabelas de usuários separadas. Os usuários fazem
-				login com suas credenciais reais do PostgreSQL para receber um &lt;strong&gt;JWT&lt;/strong&gt;.
-				Alternativamente, contas de serviço podem usar &lt;strong&gt;Tokens de API&lt;/strong&gt; persistentes.
+				&lt;strong&gt;Autenticação Nativa de BD:&lt;/strong&gt; Sem tabelas de usuários separadas. Os usuários fazem
+				login com suas credenciais reais do PostgreSQL para receber um &lt;strong&gt;JWT&lt;/strong&gt;.
+				Alternativamente, contas de serviço podem usar &lt;strong&gt;Tokens de API&lt;/strong&gt; persistentes.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Mascaramento de Papéis (Role Masquerading):&lt;/strong&gt; O PgArachne™ conecta-se como um usuário
-				proxy, mas executa cada requisição usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; para mudar para a identidade
-				do usuário autenticado. A segurança em nível de linha (Row-Level Security – RLS) funciona
+				&lt;strong&gt;Mascaramento de Papéis (Role Masquerading):&lt;/strong&gt; O PgArachne™ conecta-se como um usuário
+				proxy, mas executa cada requisição usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; para mudar para a identidade
+				do usuário autenticado. A segurança em nível de linha (Row-Level Security – RLS) funciona
 				automaticamente.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
-				&lt;strong&gt;Servidor de Arquivos Estáticos:&lt;/strong&gt; O PgArachne™ pode servir ativos estáticos (HTML,
-				JS, CSS), permitindo que você hospede Single Page Applications (SPAs) ou a ferramenta Explorer
-				diretamente.
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Um endpoint MCP nativo permite que clientes de IA
+				como Claude Desktop, Cursor e outras ferramentas MCP-compatíveis descubram e chamem suas funções
+				PostgreSQL diretamente como ferramentas — sem nenhum código de integração adicional. A mesma
+				autenticação e segurança de papéis se aplica. Recursos (tabelas/views) e modelos de prompts
+				também são expostos via MCP.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Notificações em tempo real (SSE):&lt;/strong&gt; Assine canais PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;
 				via SSE para atualizações em tempo real sem polling.
 			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Servidor de Arquivos Estáticos:&lt;/strong&gt; O PgArachne™ pode servir ativos estáticos (HTML,
+				JS, CSS), permitindo que você hospede Single Page Applications (SPAs) ou a ferramenta Explorer
+				diretamente.
+			&lt;/li&gt;
 		&lt;/ul&gt;
 	&lt;/div&gt;
 
 	&lt;p&gt;
-		Esta arquitetura simplifica drasticamente a stack: &lt;strong&gt;Banco de Dados ↔ PgArachne ↔
-			Frontend&lt;/strong&gt;.
+		Esta arquitetura simplifica drasticamente a stack: &lt;strong&gt;Banco de Dados ↔ PgArachne ↔ Frontend / Agente IA&lt;/strong&gt;.
 	&lt;/p&gt;</description></item></channel></rss>

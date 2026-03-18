@@ -20,9 +20,9 @@ menu:
 
 		<h4>Proč JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Jeden koncový bod (endpoint):</strong> Veškerá komunikace probíhá přes <code>POST /api/{databaze}</code>. Není třeba navrhovat složité struktury URL ani debatovat o sémantice HTTP metod.</li>
+			<li><strong>Jeden koncový bod (endpoint):</strong> Veškerá komunikace probíhá přes <code>POST /{prefix}/{databaze}/jsonrpc</code>. Není třeba navrhovat složité struktury URL ani debatovat o sémantice HTTP metod.</li>
 			<li><strong>Samostatné požadavky:</strong> Každý požadavek je kompletní JSON objekt (metoda + parametry + id). Tento formát je pro LLM a AI agenty snadno generovatelný a parsovatelný s vysokou spolehlivostí.</li>
-			<li><strong>Standardizované zpracování chyb:</strong> Chybové kódy a zprávy jsou součástí specifikace, což eliminuje potřebu „vymýšlet“ konvence HTTP stavových kódů pro byznysové chyby.</li>
+			<li><strong>Standardizované zpracování chyb:</strong> Chybové kódy a zprávy jsou součástí specifikace, což eliminuje potřebu „vymýšlet" konvence HTTP stavových kódů pro byznysové chyby.</li>
 			<li><strong>Dávkové požadavky (batching):</strong> Protokol nativně podporuje dávkové požadavky, což umožňuje provést více operací během jediného HTTP dotazu bez dodatečné práce.</li>
 			<li><strong>Objevování (discovery):</strong> Endpoint <code>capabilities</code> poskytuje úplný popis API ve formátu, který AI agenti dokáží konzumovat a porozumět dostupným nástrojům bez halucinací.</li>
 		</ul>
@@ -41,9 +41,9 @@ menu:
 
 		<h4>Proč SSE:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Čisté HTTP:</strong> SSE je běžný HTTP protokol. Funguje přes proxy servery, load balancery a CDN bez speciální konfigurace „protocol upgrade“.</li>
+			<li><strong>Čisté HTTP:</strong> SSE je běžný HTTP protokol. Funguje přes proxy servery, load balancery a CDN bez speciální konfigurace „protocol upgrade".</li>
 			<li><strong>Nativní podpora v prohlížeči:</strong> Rozhraní <code>EventSource</code> je vestavěné ve všech moderních prohlížečích a automaticky řeší znovupřipojení bez nutnosti externích knihoven.</li>
-			<li><strong>Odpovídá sémantice NOTIFY:</strong> PostgreSQL příkaz <code>NOTIFY</code> je jednosměrný (server -> klient), což přesně odpovídá charakteru SSE.</li>
+			<li><strong>Odpovídá sémantice NOTIFY:</strong> PostgreSQL příkaz <code>NOTIFY</code> je jednosměrný (server → klient), což přesně odpovídá charakteru SSE.</li>
 			<li><strong>Multiplexování:</strong> Přes HTTP/2 mohou stovky SSE proudů sdílet jediné TCP spojení, což je extrémně efektivní.</li>
 			<li><strong>Provozní jednoduchost:</strong> SSE spojení se v logách a monitorovacích nástrojích jeví jako běžné HTTP požadavky, což usnadňuje ladění a omezování provozu (rate limiting).</li>
 		</ul>
@@ -64,7 +64,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Statické binární soubory:</strong> Kompiluje se do jediného souboru bez externích závislostí. Nasazení je tak prosté jako zkopírování souboru na server.</li>
 			<li><strong>Konkurence (concurrency):</strong> Gorutiny v Go dělají obsluhu tisíců souběžných SSE a databázových připojení lehkou a přímočarou.</li>
-			<li><strong>Robustní standardní knihovna:</strong> Vestavěné knihovny pro HTTP, TLS a JSON jsou na produkční úrovni a nevyžadují žádné „node_modules“ ani externí runtime prostředí.</li>
+			<li><strong>Robustní standardní knihovna:</strong> Vestavěné knihovny pro HTTP, TLS a JSON jsou na produkční úrovni a nevyžadují žádné „node_modules" ani externí runtime prostředí.</li>
 			<li><strong>Křížová kompilace:</strong> Snadno cílí na Linux, macOS i Windows (amd64 i arm64) z jakéhokoli vývojářského stroje.</li>
 		</ul>
 
@@ -101,6 +101,54 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Těsná vazba:</strong> Přímé vystavení tabulek váže vaše API na interní schéma databáze, což ztěžuje refaktorování databáze bez rozbití klientských aplikací.</li>
 			<li><strong>Roztříštěnost byznysových pravidel:</strong> Logika pak končí rozdělená mezi databázová omezení a jakýkoli middleware použitý k filtrování HTTP požadavků.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>5. Struktura URL: <code>/{prefix}/{databaze}/{endpoint}</code></h3>
+		<p>
+			PgArachne směruje všechny endpointy pod konfigurovatelný prefixový segment:
+			<code>/db/{databaze}/jsonrpc</code>, <code>/db/{databaze}/sse</code>, <code>/db/{databaze}/mcp</code>.
+			Výchozí prefix je <code>db</code> a lze ho změnit přes proměnnou <code>API_PREFIX</code>.
+		</p>
+
+		<h4>Proč tato struktura:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Směrování přes reverse proxy:</strong> Jedna instance PgArachne může obsluhovat více databází. Reverse proxy (Nginx, Caddy, Traefik) může směrovat podle prefixu nebo názvu databáze bez nutnosti inspekce těla požadavku, což je klíčové pro load balancing a path-based pravidla.</li>
+			<li><strong>Horizontální škálovatelnost:</strong> S názvem databáze v URL cestě lze provozovat více instancí PgArachne a směrovat provoz do konkrétních instancí podle databáze pomocí standardních proxy pravidel — bez sticky sessions nebo inspekce těla.</li>
+			<li><strong>Multiplexování protokolů na databázi:</strong> Seskupení <code>/jsonrpc</code>, <code>/sse</code> a <code>/mcp</code> pod stejný jmenný prostor <code>/{prefix}/{databaze}/</code> umožňuje přirozeně aplikovat per-databázové ověřování, rate limiting a řízení přístupu na úrovni proxy.</li>
+			<li><strong>Konfigurovatelný prefix:</strong> Nasazení, která již používají <code>/api/</code> jako prefix ve své infrastruktuře, mohou nastavit <code>API_PREFIX=api</code>. Starší klienti jsou podporováni přes <code>307 Temporary Redirect</code> ze starých cest.</li>
+			<li><strong>Pozorovatelnost:</strong> Agregátory logů a metrické systémy mohou seskupovat a filtrovat provoz podle názvu databáze přímo z URL bez parsování JSON těl.</li>
+		</ul>
+
+		<h4>Proč ne plochá struktura jako <code>/api/{databaze}</code>:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Nejednoznačnost protokolu:</strong> Jeden plochý endpoint nedokáže rozlišit provoz JSON-RPC, SSE a MCP na úrovni směrování — toto rozhodnutí by padlo do aplikační logiky nebo inspekce hlaviček.</li>
+			<li><strong>Obtížnější rozšíření:</strong> Přidání nových protokolů (např. GraphQL, gRPC-gateway) by stejně vyžadovalo zavedení nových cest nejvyšší úrovně, takže strukturovaný jmenný prostor design dopředu připravuje.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. MCP jako překladová vrstva, nikoli databázový protokol</h3>
+		<p>
+			PgArachne implementuje <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
+			jako tenkou překladovou vrstvu v Go serveru. PostgreSQL funkce o MCP nikdy nevědí — zůstávají
+			jednoduchými funkcemi <code>jsonb → json</code>.
+		</p>
+
+		<h4>Proč překládat MCP na serveru:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Žádné změny existujících funkcí:</strong> Jakákoli funkce již vystavená přes JSON-RPC je okamžitě dostupná jako MCP nástroj. Žádné SQL změny, žádné přenasazení databázových objektů.</li>
+			<li><strong>MCP je víc než jen nástroje:</strong> Protokol zahrnuje inicializační handshake, ping, notifikace a potenciální budoucí rozšíření (resources, prompts, sampling). To jsou obavy na úrovni protokolu, které patří do Go, ne do SQL funkcí.</li>
+			<li><strong>Bezpečnost zůstává na jednom místě:</strong> Autentizace, přepínání rolí a validace vstupů jsou již implementovány v Go. MCP endpoint tuto logiku používá beze změny.</li>
+			<li><strong>Více protokolů, jeden backend:</strong> Stejnou PostgreSQL funkci lze volat přes JSON-RPC (z běžného klienta), MCP (z Claude Desktop nebo Cursor) nebo sledovat přes SSE. Databáze je protokolově neutrální.</li>
+			<li><strong>Jednodušší SQL:</strong> Zpracování MCP obálek (<code>initialize</code>, <code>tools/list</code>, obsluha notifikací) uvnitř PostgreSQL funkcí by vyžadovalo parsování složitých JSON struktur v PL/pgSQL, čímž by funkce byly obtížněji psatelné, testovatelné a udržovatelné.</li>
+		</ul>
+
+		<h4>Proč netlačit MCP do databáze:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>MCP handshake nepotřebuje databázi:</strong> <code>initialize</code> a <code>ping</code> jsou čisté protokolové zprávy. Otevírání databázového připojení pro ně plýtvá zdroji a přidává latenci.</li>
+			<li><strong>SQL není správný nástroj pro protokolovou logiku:</strong> Chybové kódy JSON-RPC 2.0, směrování notifikací a správa idempotency klíčů jsou middleware záležitosti, nikoli datové záležitosti.</li>
 		</ul>
 	</div>
 </section>

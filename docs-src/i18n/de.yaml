@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Verwandeln Sie PostgreSQL in eine sichere API. Sofort."
+  translation: "Ihre Datenbank ist Ihr Backend.<br>Sicher, sofort, KI-bereit."
 - id: hero_desc
-  translation: "Kein Boilerplate-Code. Hohe Leistung. Die Middleware, die HTTP-Anfragen direkt auf Datenbankfunktionen abbildet, mit Echtzeit-SSE-Benachrichtigungen und Prometheus-Metriken."
+  translation: "Definieren Sie eine SQL-Funktion — der Endpunkt ist bereit. Nativer MCP-Support für Claude Desktop &amp; Cursor. Echtzeit-SSE-Benachrichtigungen. Produktionsreif vom ersten Tag an."
 - id: hero_get_started
   translation: "Loslegen"
 - id: hero_see_demo

@@ -34,7 +34,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 
 	<h3>2. Login via API</h3>
 	<p>Use o método JSON-RPC <code>login</code> para obter um token JWT:</p>
-	<pre><code>curl -X POST http://localhost:8080/api/my_database \
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Resposta:</p>
@@ -42,9 +42,9 @@ GRANT demo_user TO pgarachne;</code></pre>
 
 	<h3>3. Chamar a Função</h3>
 	<p>Use o token para chamar a função <code>hello_world</code>:</p>
-	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+	<pre><code>export TOKEN="SEU_TOKEN_JWT_AQUI"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>

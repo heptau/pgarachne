@@ -8,11 +8,11 @@ menu:
 ---
 
 <section id="about">
-	<h2>Chi siamo e Architettura</h2>
+	<h2>Chi siamo e Architettura</h2>
 	<p>
-		PgArachne™ funge da <strong>server web</strong> leggero e ad alte prestazioni che si interpone tra i tuoi
-		client HTTP e il database PostgreSQL. Elimina la necessità di linguaggi backend tradizionali (come
-		Python, Node.js o PHP) mappando le richieste HTTP direttamente alle funzioni del database.
+		PgArachne™ funge da <strong>server web</strong> leggero e ad alte prestazioni che si interpone tra i tuoi
+		client HTTP e il database PostgreSQL. Elimina la necessità di linguaggi backend tradizionali (come
+		Python, Node.js o PHP) mappando le richieste HTTP direttamente alle funzioni del database.
 	</p>
 
 	<div class="card"
@@ -20,43 +20,49 @@ menu:
 		<h3>Capacità Tecniche Principali</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
-				<strong>Gateway JSON-RPC 2.0:</strong> Tutte le interazioni API seguono la rigorosa specifica
-				JSON-RPC 2.0. Non ci sono endpoint REST da progettare; chiami semplicemente le funzioni SQL
-				per nome tramite richieste POST.
+				<strong>Gateway JSON-RPC 2.0:</strong> Tutte le interazioni API seguono la rigorosa specifica
+				JSON-RPC 2.0. Non ci sono endpoint REST da progettare; chiami semplicemente le funzioni SQL
+				per nome tramite richieste POST.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Autenticazione Nativa DB:</strong> Nessuna tabella utenti separata. Gli utenti accedono
-				con le loro reali credenziali PostgreSQL per ricevere un <strong>JWT</strong>. In alternativa,
-				gli account di servizio possono utilizzare <strong>Token API</strong> persistenti.
+				<strong>Autenticazione Nativa DB:</strong> Nessuna tabella utenti separata. Gli utenti accedono
+				con le loro reali credenziali PostgreSQL per ricevere un <strong>JWT</strong>. In alternativa,
+				gli account di servizio possono utilizzare <strong>Token API</strong> persistenti.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Mascheramento dei Ruoli:</strong> PgArachne™ si connette come utente proxy ma esegue ogni
-				richiesta utilizzando <code>SET LOCAL ROLE</code> per passare all’identità dell’utente autenticato.
-				La sicurezza a livello di riga (Row-Level Security – RLS) funziona automaticamente.
+				<strong>Mascheramento dei Ruoli:</strong> PgArachne™ si connette come utente proxy ma esegue ogni
+				richiesta utilizzando <code>SET LOCAL ROLE</code> per passare all'identità dell'utente autenticato.
+				La sicurezza a livello di riga (Row-Level Security – RLS) funziona automaticamente.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Server di File Statici:</strong> PgArachne™ può servire asset statici (HTML, JS, CSS),
-				consentendoti di ospitare Single Page Application (SPA) o lo strumento Explorer direttamente.
+				<strong>MCP (Model Context Protocol):</strong> Un endpoint MCP nativo consente ai client IA
+				come Claude Desktop, Cursor e altri strumenti MCP-compatibili di scoprire e chiamare le tue funzioni
+				PostgreSQL direttamente come strumenti — senza alcun codice di collegamento aggiuntivo. Si applica
+				la stessa autenticazione e sicurezza dei ruoli. Tramite MCP vengono esposti anche le risorse
+				(tabelle/viste) e i modelli di prompt.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Notifiche in tempo reale (SSE):</strong> Iscriviti ai canali PostgreSQL <code>NOTIFY</code>
 				via SSE per aggiornamenti live senza polling.
 			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Server di File Statici:</strong> PgArachne™ può servire asset statici (HTML, JS, CSS),
+				consentendoti di ospitare Single Page Application (SPA) o lo strumento Explorer direttamente.
+			</li>
 		</ul>
 	</div>
 
 	<p>
-		Questa architettura semplifica drasticamente lo stack: <strong>Database ↔ PgArachne ↔ Frontend</strong>.
+		Questa architettura semplifica drasticamente lo stack: <strong>Database ↔ PgArachne ↔ Frontend / Agente IA</strong>.
 	</p>
 
 	<div class="tip">
-		<strong>Formato Endpoint API:</strong> Tutte le funzioni del database sono esposte su:
+		<strong>Struttura degli endpoint:</strong> Tutti gli endpoint del database condividono un prefisso comune (predefinito <code>db</code>, configurabile tramite <code>API_PREFIX</code>):
 		<div
 			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
-			<div>POST http://{server}:{porta}</div>
-			<div style="padding-left: 50px;">/api</div>
-			<div style="padding-left: 50px;">/{nome_database}</div>
-				<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Il metodo è specificato nel corpo JSON-RPC.</div>
+			<div>POST /{prefisso}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— gateway JSON-RPC 2.0</span></div>
+			<div>GET &nbsp;/{prefisso}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
+			<div>POST /{prefisso}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
 		</div>
 	</div>
 

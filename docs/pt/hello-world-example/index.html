@@ -29,11 +29,11 @@ $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 
 -- 4. Permita que o PgArachne (usuário do sistema) possa alternar para demo_user
-GRANT demo_user TO pgarachne;</code></pre><h3>2. Login via API</h3><p>Use o método JSON-RPC <code>login</code> para obter um token JWT:</p><pre><code>curl -X POST http://localhost:8080/api/my_database \
+GRANT demo_user TO pgarachne;</code></pre><h3>2. Login via API</h3><p>Use o método JSON-RPC <code>login</code> para obter um token JWT:</p><pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre><p>Resposta:</p><pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre><h3>3. Chamar a Função</h3><p>Use o token para chamar a função <code>hello_world</code>:</p><pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre><p>Resposta:</p><pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre><h3>3. Chamar a Função</h3><p>Use o token para chamar a função <code>hello_world</code>:</p><pre><code>export TOKEN="SEU_TOKEN_JWT_AQUI"
 
-curl -X POST http://localhost:8080/api/my_database \
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre><p>Resposta:</p><pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre></section><div class="doc-related"><h3>Documentação relacionada</h3><ul><li><a href="../../pt/installation/">Instalação</a></li><li><a href="../../pt/configuration/">Configuração</a></li><li><a href="../../pt/security-roles/">Segurança</a></li><li><a href="../../pt/deployment-https/">Deployment e HTTPS</a></li><li><a href="../../pt/metrics/">Métricas</a></li></ul></div><div class="doc-next doc-nav"><a aria-label="Anterior: Configuração" class="doc-prev" href="../../pt/configuration/">← <span>Configuração</span></a>

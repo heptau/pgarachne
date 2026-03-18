@@ -31,33 +31,37 @@ menu:
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Role Masquerading:</strong> PgArachne™ connects as a proxy user but executes every
-				request using <code>SET LOCAL ROLE</code> to switch to the authenticated user’s identity.
+				request using <code>SET LOCAL ROLE</code> to switch to the authenticated user's identity.
 				Row-Level Security (RLS) works automatically.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Static File Server:</strong> PgArachne™ can serve static assets (HTML, JS, CSS),
-				allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+				<strong>MCP (Model Context Protocol):</strong> A native MCP endpoint allows AI clients such
+				as Claude Desktop, Cursor, and other MCP-compatible tools to discover your PostgreSQL functions
+				as tools and call them directly — no custom glue code required. The same authentication and
+				role security applies. Resources (tables/views) and prompt templates are also exposed via MCP.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>Real-time Notifications (SSE):</strong> Subscribe to PostgreSQL <code>NOTIFY</code>
 				channels over SSE for live updates without polling.
 			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Static File Server:</strong> PgArachne™ can serve static assets (HTML, JS, CSS),
+				allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+			</li>
 		</ul>
 	</div>
 
 	<p>
-		This architecture dramatically simplifies the stack: <strong>Database ↔ PgArachne ↔
-			Frontend</strong>.
+		This architecture dramatically simplifies the stack: <strong>Database ↔ PgArachne ↔ Frontend / AI Agent</strong>.
 	</p>
 
 	<div class="tip">
-		<strong>API Endpoint Format:</strong> All database functions are exposed at:
+		<strong>Endpoint structure:</strong> All database endpoints share a common prefix (default <code>db</code>, configurable via <code>API_PREFIX</code>):
 		<div
 			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
-			<div>POST http://{server}:{port}</div>
-			<div style="padding-left: 50px;">/api</div>
-			<div style="padding-left: 50px;">/{database_name}</div>
-				<div style="padding-left: 50px; color: #666; font-size: 0.95em;">Method is specified in the JSON-RPC body.</div>
+			<div>POST /{prefix}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— JSON-RPC 2.0 gateway</span></div>
+			<div>GET &nbsp;/{prefix}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— PostgreSQL NOTIFY stream</span></div>
+			<div>POST /{prefix}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
 		</div>
 	</div>
 

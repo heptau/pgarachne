@@ -9,10 +9,26 @@ menu:
 
 <section id="sse">
 	<h2>Real-time notifikace (SSE)</h2>
-	<p>Přihlaste se k PostgreSQL <code>NOTIFY</code> kanálům přes Server-Sent Events:</p>
-	<pre><code>curl -N "http://localhost:8080/sse/my_database?channels=orders,users" \
+	<p>Přihlaste se k PostgreSQL <code>NOTIFY</code> kanálům přes Server-Sent Events:</p>
+	<pre><code>curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
   -H "Authorization: Bearer $TOKEN"</code></pre>
-	<p>Každá zpráva je JSON s názvem kanálu a payloadem:</p>
+	<p>Každá zpráva je JSON s názvem kanálu a payloadem:</p>
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Pokud je payload text, zabalí se jako string do <code>data</code>.</p>
+
+	<h3>Odesílání notifikací z PostgreSQL</h3>
+	<p>Z <code>psql</code> nebo jakékoli databázové session:</p>
+	<pre><code>-- Jednoduchý textový payload
+NOTIFY orders, 'nova objednavka';
+
+-- JSON payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+</code></pre>
+	<p>Z triggeru nebo uložené procedury:</p>
+	<pre><code>PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);</code></pre>
+	<div class="tip">
+		<strong>Poznámka:</strong> <code>NOTIFY</code> se doručí ostatním sessions až po commitu transakce, která ho
+		odeslala. Pokud ho spustíte uvnitř otevřené transakce v <code>psql</code>, odběratelé ho obdrží až po
+		<code>COMMIT</code>.
+	</div>
 </section>
