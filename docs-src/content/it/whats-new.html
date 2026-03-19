@@ -10,6 +10,17 @@ menu:
 <section id="whats-new" class="section-light">
 	<h2>Novità</h2>
 
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>PgArachne Explorer – PWA moderno</strong>: Completo rinnovamento visivo e funzionale – tema scuro/chiaro (automatico), layout a schede responsive, evidenziazione della sintassi JSON, pulsante copia negli appunti, migliore UX di autenticazione (schede password/token), supporto all'installazione PWA (manifest, icone, service worker), link condivisibili tramite parametro <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Supporto Model Context Protocol (MCP)</strong>: Nuovo endpoint <code>/{prefix}/{db}/mcp</code> con i metodi standard <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – interamente supportato da funzioni PostgreSQL e che riutilizza l'autenticazione e il cambio di ruolo esistenti.</li>
+		<li>🔧 <strong>Prefisso API configurabile</strong>: Il valore predefinito è stato modificato in <code>/db/{database}/jsonrpc</code> e <code>/db/{database}/sse</code>. I vecchi percorsi <code>/api/…</code> ora restituiscono reindirizzamenti permanenti 307. Controllato tramite la nuova variabile d'ambiente <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Protezione idempotenza</strong>: Campo opzionale <code>idempotencyKey</code> nelle richieste JSON-RPC – rilevamento automatico dei duplicati (HTTP 409 + codice errore in caso di collisione) utilizzando <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Miglioramenti alla documentazione</strong>: Nuova sezione <strong>/tools/</strong> con schede (Explorer + prossima barra degli strumenti per macOS), nuova pagina “Architectural Decisions”, <strong>SECURITY.md</strong> con istruzioni per la segnalazione di vulnerabilità, migliore tipografia in tutte le lingue tramite TypoLima, supporto migliorato per la pagina 404 per GitHub Pages.</li>
+		<li>📝 <strong>Rinominato metodo di accesso</strong>: Il metodo JSON-RPC <code>login</code> è stato rinominato in <code>get_jwt</code> (il vecchio nome rimane come alias deprecato con avviso nei log).</li>
+		<li>📊 <strong>Pulizia della registrazione (logging)</strong>: Quando si registra su file, la console mostra solo informazioni minime di avvio → output più pulito in ambienti di produzione / docker.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
 		<li>🛡️ <strong>Sicurezza:</strong> La validazione dei token di accesso avviene prima di stabilire una connessione al database. Migliorata la protezione contro l'IP spoofing (aggiunta l'impostazione <code>TRUSTED_PROXIES</code>) e mascheramento degli errori interni del database per l'utente finale.</li>

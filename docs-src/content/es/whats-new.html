@@ -10,6 +10,17 @@ menu:
 <section id="whats-new" class="section-light">
 	<h2>Novedades</h2>
 
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>Explorador PgArachne – PWA moderno</strong>: Renovación visual y funcional completa – tema oscuro/claro (automático), diseño de tarjetas adaptable, resaltado de sintaxis JSON, botón de copiar al portapapeles, mejor UX de autenticación (pestañas de contraseña/token), soporte de instalación PWA (manifiesto, iconos, service worker), enlaces compartibles mediante el parámetro <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Soporte para Model Context Protocol (MCP)</strong>: Nuevo endpoint <code>/{prefix}/{db}/mcp</code> con métodos estándar <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – completamente respaldado por funciones de PostgreSQL y reutilizando la autenticación y el cambio de roles existentes.</li>
+		<li>🔧 <strong>Prefijo de API configurable</strong>: El valor predeterminado cambió a <code>/db/{database}/jsonrpc</code> y <code>/db/{database}/sse</code>. Las rutas antiguas <code>/api/…</code> ahora devuelven redirecciones permanentes 307. Controlado mediante la nueva variable de entorno <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Protección de idempotencia</strong>: Campo opcional <code>idempotencyKey</code> en solicitudes JSON-RPC – detección automática de duplicados (HTTP 409 + código de error en caso de colisión) usando <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Mejoras en la documentación</strong>: Nueva sección <strong>/tools/</strong> con tarjetas (Explorador + próxima barra de herramientas para macOS), nueva página “Architectural Decisions”, <strong>SECURITY.md</strong> con instrucciones para reportar vulnerabilidades, mejor tipografía en todos los idiomas gracias a TypoLima, soporte mejorado para la página 404 en GitHub Pages.</li>
+		<li>📝 <strong>Cambio de nombre del método de inicio de sesión</strong>: El método JSON-RPC <code>login</code> pasó a llamarse <code>get_jwt</code> (el nombre antiguo se mantiene como alias obsoleto con advertencia en los registros).</li>
+		<li>📊 <strong>Limpieza de registros (logging)</strong>: Al registrar en un archivo, la consola muestra solo información mínima de inicio → salida más limpia en entornos de producción / docker.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
 		<li>🛡️ <strong>Seguridad:</strong> La validación del token de acceso se realiza antes de establecer una conexión con la base de datos. Protección mejorada contra la suplantación de IP (añadida la configuración <code>TRUSTED_PROXIES</code>) y ocultación de errores internos de la base de datos al usuario final.</li>

@@ -432,13 +432,15 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 			&lt;p&gt;Direct support with 0% fees.&lt;/p&gt;</description></item><item><title>What's New</title><link>https://www.pgarachne.com/en/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;What's New&lt;/h2&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Security:&lt;/strong&gt; Access token validation now occurs before establishing a database connection. Improved protection against IP spoofing (added &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; setting) and hiding internal database errors from end users.&lt;/li&gt;
-		&lt;li&gt;📊 &lt;strong&gt;Isolated Metrics:&lt;/strong&gt; The Prometheus &lt;code&gt;/metrics&lt;/code&gt; endpoint moved from the public API to its own secure port (by default available only on &lt;code&gt;127.0.0.1:9090&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;New Installation Option:&lt;/strong&gt; The project now has an official Homebrew tap for macOS and Linux. Builds are signed and generated via GoReleaser.&lt;/li&gt;
-		&lt;li&gt;📚 &lt;strong&gt;Redesigned Documentation:&lt;/strong&gt; Completely new look built on the Hugo framework. Added lightning-fast full-text search, code copying capabilities, and production deployment examples (Nginx hardening, BYO JWT).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Improved Daemon Management:&lt;/strong&gt; Added support for custom &lt;code&gt;PID_FILE&lt;/code&gt; path configuration.&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;PgArachne Explorer – modern PWA&lt;/strong&gt;: Complete visual &amp; functional refresh – dark/light theme (auto), responsive cards layout, JSON syntax highlighting, copy-to-clipboard button, better auth UX (password/token tabs), PWA install support (manifest, icons, service worker), shareable links via &lt;code&gt;?url=…&lt;/code&gt; parameter.&lt;/li&gt;
+		&lt;li&gt;🛠️ &lt;strong&gt;Model Context Protocol (MCP) support&lt;/strong&gt;: New endpoint &lt;code&gt;/{prefix}/{db}/mcp&lt;/code&gt; with standard methods &lt;code&gt;resources/list&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;prompts/list&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt; – fully backed by PostgreSQL functions and reusing existing auth &amp; role switching.&lt;/li&gt;
+		&lt;li&gt;🔧 &lt;strong&gt;Configurable API prefix&lt;/strong&gt;: Default changed to &lt;code&gt;/db/{database}/jsonrpc&lt;/code&gt; and &lt;code&gt;/db/{database}/sse&lt;/code&gt;. Old &lt;code&gt;/api/…&lt;/code&gt; paths now return permanent 307 redirects. Controlled via new &lt;code&gt;API_PREFIX&lt;/code&gt; environment variable.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Idempotency protection&lt;/strong&gt;: Optional &lt;code&gt;idempotencyKey&lt;/code&gt; field in JSON-RPC requests – automatic duplicate detection (HTTP 409 + error code on collision) using &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Documentation improvements&lt;/strong&gt;: New &lt;strong&gt;/tools/&lt;/strong&gt; section with cards (Explorer + upcoming macOS Toolbar), new page “Architectural Decisions”, &lt;strong&gt;SECURITY.md&lt;/strong&gt; with vulnerability reporting instructions, better typography across all languages via TypoLima, improved 404 page support for GitHub Pages.&lt;/li&gt;
+		&lt;li&gt;📝 &lt;strong&gt;Login method rename&lt;/strong&gt;: JSON-RPC method &lt;code&gt;login&lt;/code&gt; renamed to &lt;code&gt;get_jwt&lt;/code&gt; (old name kept as deprecated alias with warning in logs).&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Logging cleanup&lt;/strong&gt;: When logging to file, console shows only minimal startup info → cleaner output in production / docker environments.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item></channel></rss>
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;</description></item></channel></rss>

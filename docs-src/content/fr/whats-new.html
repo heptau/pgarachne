@@ -10,6 +10,17 @@ menu:
 <section id="whats-new" class="section-light">
 	<h2>Nouveautés</h2>
 
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>PgArachne Explorer – PWA moderne</strong>: Refonte visuelle et fonctionnelle complète – thème sombre/clair (automatique), mise en page adaptative en cartes, coloration syntaxique JSON, bouton de copie dans le presse-papiers, meilleure UX d'authentification (onglets mot de passe/jeton), prise en charge de l'installation PWA (manifeste, icônes, service worker), liens partageables via le paramètre <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Support du Model Context Protocol (MCP)</strong>: Nouvel endpoint <code>/{prefix}/{db}/mcp</code> avec les méthodes standards <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – entièrement soutenu par les fonctions PostgreSQL et réutilisant l'authentification et la commutation de rôles existantes.</li>
+		<li>🔧 <strong>Préfixe d'API configurable</strong>: La valeur par défaut a été changée en <code>/db/{database}/jsonrpc</code> et <code>/db/{database}/sse</code>. Les anciens chemins <code>/api/…</code> retournent désormais des redirections permanentes 307. Contrôlé par la nouvelle variable d'environnement <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Protection d'idempotence</strong>: Champ optionnel <code>idempotencyKey</code> dans les requêtes JSON-RPC – détection automatique des doublons (HTTP 409 + code d'erreur en cas de collision) via <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Améliorations de la documentation</strong>: Nouvelle section <strong>/tools/</strong> avec des cartes (Explorateur + future barre d'outils macOS), nouvelle page “Architectural Decisions”, <strong>SECURITY.md</strong> avec instructions pour signaler les vulnérabilités, meilleure typographie dans toutes les langues grâce à TypoLima, prise en charge améliorée de la page 404 pour GitHub Pages.</li>
+		<li>📝 <strong>Renommage de la méthode de connexion</strong>: La méthode JSON-RPC <code>login</code> a été renommée en <code>get_jwt</code> (l'ancien nom reste comme alias obsolète avec avertissement dans les journaux).</li>
+		<li>📊 <strong>Nettoyage de la journalisation</strong>: Lors de la journalisation dans un fichier, la console n'affiche que des informations minimales de démarrage → sortie plus propre dans les environnements de production / docker.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
 		<li>🛡️ <strong>Sécurité :</strong> La validation du token d'accès s'effectue avant d'établir une connexion à la base de données. Protection améliorée contre l'usurpation d'IP (ajout du paramètre <code>TRUSTED_PROXIES</code>) et dissimulation des erreurs internes de la base de données à l'utilisateur final.</li>

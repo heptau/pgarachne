@@ -226,16 +226,18 @@ example.com {
 		&lt;p&gt;&lt;strong&gt;Nejlepší pro:&lt;/strong&gt; Enterprise prostředí, komplexní směrování.&lt;/p&gt;</description></item><item><title>Novinky</title><link>https://www.pgarachne.com/cs/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novinky&lt;/h2&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Bezpečnost:&lt;/strong&gt; Validace přístupových tokenů probíhá ještě před navázáním spojení s databází. Zlepšena ochrana proti podvržení IP adres (přidáno nastavení &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;) a skrytí interních databázových chyb před koncovým uživatelem.&lt;/li&gt;
-		&lt;li&gt;📊 &lt;strong&gt;Izolované metriky:&lt;/strong&gt; Prometheus endpoint &lt;code&gt;/metrics&lt;/code&gt; se přesunul z veřejného API na vlastní zabezpečený port (ve výchozím stavu dostupný pouze na &lt;code&gt;127.0.0.1:9090&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;Nová možnost instalace:&lt;/strong&gt; Projekt má nyní oficiální Homebrew tap pro macOS a Linux. Buildy jsou podepsané a generované přes GoReleaser.&lt;/li&gt;
-		&lt;li&gt;📚 &lt;strong&gt;Přepracovaná dokumentace:&lt;/strong&gt; Zcela nový vzhled postavený na frameworku Hugo. Přidáno bleskové full-textové vyhledávání, možnost kopírování kódu a příklady pro produkční nasazení (Nginx hardening, BYO JWT).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Vylepšená správa démona:&lt;/strong&gt; Přidána podpora pro vlastní konfiguraci cesty k &lt;code&gt;PID_FILE&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;PgArachne Explorer – moderní PWA&lt;/strong&gt;: Kompletní vizuální a funkční obnova – tmavý/světlý motiv (automaticky), responzivní rozložení karet, zvýrazňování syntaxe JSON, tlačítko pro kopírování, lepší UX přihlašování (záložky heslo/token), podpora instalace PWA (manifest, ikony, service worker), sdílitelné odkazy pomocí parametru &lt;code&gt;?url=…&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🛠️ &lt;strong&gt;Podpora Model Context Protocol (MCP)&lt;/strong&gt;: Nový endpoint &lt;code&gt;/{prefix}/{db}/mcp&lt;/code&gt; se standardními metodami &lt;code&gt;resources/list&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;prompts/list&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt; – plně podporovaný funkcemi PostgreSQL a znovu využívající stávající autentizaci a přepínání rolí.&lt;/li&gt;
+		&lt;li&gt;🔧 &lt;strong&gt;Konfigurovatelný prefix API&lt;/strong&gt;: Výchozí hodnota změněna na &lt;code&gt;/db/{database}/jsonrpc&lt;/code&gt; a &lt;code&gt;/db/{database}/sse&lt;/code&gt;. Staré cesty &lt;code&gt;/api/…&lt;/code&gt; nyní vrací trvalé přesměrování 307. Řízeno novou proměnnou prostředí &lt;code&gt;API_PREFIX&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Ochrana idempotence&lt;/strong&gt;: Volitelné pole &lt;code&gt;idempotencyKey&lt;/code&gt; v JSON-RPC požadavcích – automatická detekce duplicit (HTTP 409 + chybový kód při kolizi) pomocí &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;📚 &lt;strong&gt;Vylepšení dokumentace&lt;/strong&gt;: Nová sekce &lt;strong&gt;/tools/&lt;/strong&gt; s kartami (Explorer + chystaný macOS Toolbar), nová stránka “Architectural Decisions”, &lt;strong&gt;SECURITY.md&lt;/strong&gt; s instrukcemi pro hlášení zranitelností, lepší typografie ve všech jazycích díky TypoLima, vylepšená podpora stránky 404 pro GitHub Pages.&lt;/li&gt;
+		&lt;li&gt;📝 &lt;strong&gt;Přejmenování metody přihlášení&lt;/strong&gt;: JSON-RPC metoda &lt;code&gt;login&lt;/code&gt; byla přejmenována na &lt;code&gt;get_jwt&lt;/code&gt; (starý název zůstává jako zastaralý alias s varováním v logu).&lt;/li&gt;
+		&lt;li&gt;📊 &lt;strong&gt;Vyčištění logování&lt;/strong&gt;: Při logování do souboru se na konzoli zobrazují pouze minimální informace o spuštění → čistší výstup v produkčních / docker prostředích.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;O projektu a architektuře&lt;/h2&gt;
 	&lt;p&gt;
 		PgArachne™ slouží jako lehký, vysoce výkonný &lt;strong&gt;webový server&lt;/strong&gt;, který stojí mezi vašimi HTTP

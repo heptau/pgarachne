@@ -10,6 +10,17 @@ menu:
 <section id="whats-new" class="section-light">
 	<h2>Novinky</h2>
 
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>PgArachne Explorer – moderní PWA</strong>: Kompletní vizuální a funkční obnova – tmavý/světlý motiv (automaticky), responzivní rozložení karet, zvýrazňování syntaxe JSON, tlačítko pro kopírování, lepší UX přihlašování (záložky heslo/token), podpora instalace PWA (manifest, ikony, service worker), sdílitelné odkazy pomocí parametru <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Podpora Model Context Protocol (MCP)</strong>: Nový endpoint <code>/{prefix}/{db}/mcp</code> se standardními metodami <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – plně podporovaný funkcemi PostgreSQL a znovu využívající stávající autentizaci a přepínání rolí.</li>
+		<li>🔧 <strong>Konfigurovatelný prefix API</strong>: Výchozí hodnota změněna na <code>/db/{database}/jsonrpc</code> a <code>/db/{database}/sse</code>. Staré cesty <code>/api/…</code> nyní vrací trvalé přesměrování 307. Řízeno novou proměnnou prostředí <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Ochrana idempotence</strong>: Volitelné pole <code>idempotencyKey</code> v JSON-RPC požadavcích – automatická detekce duplicit (HTTP 409 + chybový kód při kolizi) pomocí <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Vylepšení dokumentace</strong>: Nová sekce <strong>/tools/</strong> s kartami (Explorer + chystaný macOS Toolbar), nová stránka “Architectural Decisions”, <strong>SECURITY.md</strong> s instrukcemi pro hlášení zranitelností, lepší typografie ve všech jazycích díky TypoLima, vylepšená podpora stránky 404 pro GitHub Pages.</li>
+		<li>📝 <strong>Přejmenování metody přihlášení</strong>: JSON-RPC metoda <code>login</code> byla přejmenována na <code>get_jwt</code> (starý název zůstává jako zastaralý alias s varováním v logu).</li>
+		<li>📊 <strong>Vyčištění logování</strong>: Při logování do souboru se na konzoli zobrazují pouze minimální informace o spuštění → čistší výstup v produkčních / docker prostředích.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
 		<li>🛡️ <strong>Bezpečnost:</strong> Validace přístupových tokenů probíhá ještě před navázáním spojení s databází. Zlepšena ochrana proti podvržení IP adres (přidáno nastavení <code>TRUSTED_PROXIES</code>) a skrytí interních databázových chyb před koncovým uživatelem.</li>
