@@ -3,52 +3,168 @@
 
 <head>
 	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>PgArachne Explorer</title>
+
+	<!-- PWA -->
+	<link rel="manifest" href="manifest.json">
+	<link rel="apple-touch-icon" href="apple-touch-icon.png">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta name="apple-mobile-web-app-title" content="PgArachne">
+	<meta name="theme-color" content="#0f111a" media="(prefers-color-scheme: dark)">
+	<meta name="theme-color" content="#f6f8fa" media="(prefers-color-scheme: light)">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 	<style>
-		body {
-			font-family: Arial, sans-serif;
-			max-width: 800px;
-			margin: 0 auto;
-			padding: 20px;
+		/* --- Theme variables (dark default) --- */
+		:root {
+			--bg-body: #0f111a;
+			--bg-card: #161b22;
+			--bg-input: #0d1117;
+			--bg-tab: #21262d;
+			--bg-tab-hover: #292e36;
+			--fg: #c9d1d9;
+			--fg-heading: #e6edf3;
+			--fg-muted: #8b949e;
+			--border: #30363d;
+			--border-h2: #21262d;
+			--accent: #58a6ff;
+			--accent-glow: rgba(88, 166, 255, 0.15);
+			--btn-primary: #238636;
+			--btn-primary-hover: #2ea043;
+			--btn-secondary: #30363d;
+			--btn-secondary-hover: #3d444d;
+			--btn-danger: #da3633;
+			--btn-danger-hover: #e5534b;
+			--status-ok: #3fb950;
+			--auth-ok: #238636;
+			--json-key: #79c0ff;
+			--json-string: #a5d6ff;
+			--json-number: #f0883e;
+			--json-boolean: #ff7b72;
+			--json-null: #8b949e;
 		}
 
-		#form,
-		#login-form {
-			margin-bottom: 20px;
-			border: 1px solid #ddd;
-			padding: 20px;
-			border-radius: 5px;
+		@media (prefers-color-scheme: light) {
+			:root {
+				--bg-body: #f6f8fa;
+				--bg-card: #ffffff;
+				--bg-input: #f6f8fa;
+				--bg-tab: #e9ecef;
+				--bg-tab-hover: #dfe2e5;
+				--fg: #1f2328;
+				--fg-heading: #1f2328;
+				--fg-muted: #656d76;
+				--border: #d0d7de;
+				--border-h2: #d8dee4;
+				--accent: #0969da;
+				--accent-glow: rgba(9, 105, 218, 0.12);
+				--btn-primary: #1a7f37;
+				--btn-primary-hover: #218c3a;
+				--btn-secondary: #e9ecef;
+				--btn-secondary-hover: #d0d7de;
+				--btn-danger: #cf222e;
+				--btn-danger-hover: #a40e26;
+				--status-ok: #1a7f37;
+				--auth-ok: #1a7f37;
+				--json-key: #0550ae;
+				--json-string: #0a3069;
+				--json-number: #953800;
+				--json-boolean: #cf222e;
+				--json-null: #656d76;
+			}
+		}
+
+		*,
+		*::before,
+		*::after {
+			box-sizing: border-box;
+		}
+
+		body {
+			font-family: 'Inter', system-ui, sans-serif;
+			max-width: 820px;
+			margin: 0 auto;
+			padding: 24px;
+			background: var(--bg-body);
+			color: var(--fg);
+			line-height: 1.5;
+		}
+
+		h1 {
+			font-size: 1.6rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 24px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		h1::before {
+			content: '🕸️';
+			font-size: 1.4rem;
 		}
 
 		h2 {
-			border-bottom: 1px solid #eee;
-			padding-bottom: 10px;
+			font-size: 1rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 16px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--border-h2);
 		}
 
-		#result {
-			border: 1px solid #ccc;
-			padding: 10px;
-			min-height: 150px;
-			background-color: #f9f9f9;
-			overflow-x: auto;
+		/* --- Cards --- */
+		.card {
+			margin-bottom: 20px;
+			border: 1px solid var(--border);
+			padding: 20px;
+			border-radius: 10px;
+			background: var(--bg-card);
+			transition: border-color 0.3s ease;
 		}
 
-		label,
-		input,
-		button,
-		textarea {
-			margin: 10px 0;
+		/* --- Inputs --- */
+		label {
 			display: block;
+			margin: 12px 0 4px;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--fg-muted);
+		}
+
+		label:first-of-type {
+			margin-top: 0;
 		}
 
 		input[type="text"],
 		input[type="password"],
 		textarea {
-			width: calc(100% - 18px);
-			padding: 8px;
-			border: 1px solid #ccc;
-			border-radius: 4px;
-			font-family: monospace;
+			width: 100%;
+			padding: 9px 12px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: var(--bg-input);
+			color: var(--fg-heading);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.85rem;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		input:focus,
+		textarea:focus {
+			outline: none;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px var(--accent-glow);
+		}
+
+		input:disabled,
+		textarea:disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
 		}
 
 		textarea {
@@ -56,77 +172,260 @@
 			resize: vertical;
 		}
 
+		/* --- URL config row --- */
+		.url-config-row {
+			display: grid;
+			grid-template-columns: 1fr auto 1fr;
+			gap: 12px;
+			align-items: end;
+		}
+
+		.url-config-row .field {
+			min-width: 0;
+		}
+
+		.url-config-row .field-small {
+			width: 90px;
+		}
+
+		/* --- Buttons --- */
 		button {
-			padding: 10px 20px;
-			background-color: #007bff;
-			color: white;
-			border: none;
+			padding: 9px 16px;
+			background: var(--btn-primary);
+			color: #fff;
+			border: 1px solid rgba(240, 246, 252, 0.1);
 			cursor: pointer;
-			border-radius: 4px;
+			border-radius: 6px;
+			font-family: 'Inter', system-ui, sans-serif;
+			font-size: 0.82rem;
+			font-weight: 500;
+			transition: background 0.15s ease, transform 0.1s ease;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
 		}
 
 		button:hover {
-			background-color: #0056b3;
+			background: var(--btn-primary-hover);
+			transform: translateY(-1px);
 		}
 
-		.button-secondary {
-			background-color: #6c757d;
+		button:active {
+			transform: translateY(0);
 		}
 
-		.button-secondary:hover {
-			background-color: #5a6268;
+		.btn-secondary {
+			background: var(--btn-secondary);
 		}
 
-		.button-danger {
-			background-color: #dc3545;
+		@media (prefers-color-scheme: light) {
+			.btn-secondary {
+				color: var(--fg);
+			}
 		}
 
-		.button-danger:hover {
-			background-color: #c82333;
+		.btn-secondary:hover {
+			background: var(--btn-secondary-hover);
+		}
+
+		.btn-danger {
+			background: var(--btn-danger);
+		}
+
+		.btn-danger:hover {
+			background: var(--btn-danger-hover);
+		}
+
+		.btn-small {
+			padding: 5px 10px;
+			font-size: 0.75rem;
 		}
 
 		.button-group {
 			display: flex;
 			gap: 10px;
 			align-items: center;
+			margin-top: 16px;
+			flex-wrap: wrap;
 		}
 
-		pre {
+		/* --- Auth tabs --- */
+		.auth-tabs {
+			display: flex;
+			gap: 2px;
+			margin: 16px 0 12px;
+		}
+
+		.auth-tab-button {
+			background: var(--bg-tab);
+			color: var(--fg-muted);
+			border: 1px solid var(--border);
+			border-bottom: none;
+			border-radius: 6px 6px 0 0;
+			padding: 8px 16px;
+			font-size: 0.82rem;
+			margin: 0;
+			transform: none;
+		}
+
+		.auth-tab-button:hover {
+			background: var(--bg-tab-hover);
+			color: var(--fg);
+			transform: none;
+		}
+
+		.auth-tab-button.active {
+			background: var(--bg-card);
+			color: var(--fg-heading);
+			border-color: var(--border);
+			border-bottom: 1px solid var(--bg-card);
+			margin-bottom: -1px;
+			position: relative;
+			z-index: 1;
+		}
+
+		.auth-content {
+			border: 1px solid var(--border);
+			border-radius: 0 6px 6px 6px;
+			padding: 16px;
+			background: var(--bg-card);
+		}
+
+		/* --- Status --- */
+		#user-status {
+			font-size: 0.82rem;
+			color: var(--fg-muted);
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		#user-status .dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: var(--fg-muted);
+			display: inline-block;
+			transition: background 0.3s ease;
+		}
+
+		.status-ok .dot {
+			background: var(--status-ok) !important;
+		}
+
+		.status-ok {
+			color: var(--status-ok) !important;
+		}
+
+		.hidden {
+			display: none !important;
+		}
+
+		/* --- Result area --- */
+		.result-wrapper {
+			position: relative;
+		}
+
+		.result-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
+		}
+
+		.result-header h2 {
+			margin: 0;
+			border: none;
+			padding: 0;
+		}
+
+		#result {
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 16px;
+			min-height: 120px;
+			background: var(--bg-input);
+			overflow-x: auto;
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.82rem;
+			line-height: 1.6;
+		}
+
+		#result pre {
+			margin: 0;
 			white-space: pre-wrap;
 			word-wrap: break-word;
 		}
 
-		#user-status {
-			font-style: italic;
-			color: #555;
+		/* --- JSON syntax colors --- */
+		.json-key {
+			color: var(--json-key);
 		}
 
-		.hidden {
-			display: none;
+		.json-string {
+			color: var(--json-string);
 		}
 
-		/* Tab styles */
-		.auth-tabs {
-			display: flex;
-			border-bottom: 1px solid #ccc;
-			margin-bottom: 15px;
+		.json-number {
+			color: var(--json-number);
 		}
 
-		.auth-tab-button {
-			background-color: #e9ecef;
-			color: #495057;
-			border: 1px solid #ccc;
-			border-bottom: none;
-			border-radius: 4px 4px 0 0;
-			padding: 10px 15px;
-			cursor: pointer;
-			margin: 0;
+		.json-boolean {
+			color: var(--json-boolean);
 		}
 
-		.auth-tab-button.active {
-			background-color: white;
-			border-bottom: 1px solid white;
-			margin-bottom: -1px;
+		.json-null {
+			color: var(--json-null);
+		}
+
+		/* --- Loading animation --- */
+		.loading::after {
+			content: '';
+			display: inline-block;
+			animation: dots 1.4s steps(4, end) infinite;
+		}
+
+		@keyframes dots {
+			0% {
+				content: '';
+			}
+
+			25% {
+				content: '.';
+			}
+
+			50% {
+				content: '..';
+			}
+
+			75% {
+				content: '...';
+			}
+		}
+
+		/* --- Transitions --- */
+		.card.authenticated {
+			border-color: var(--auth-ok);
+		}
+
+		/* --- Footer --- */
+		.footer {
+			margin-top: 32px;
+			padding-top: 12px;
+			border-top: 1px solid var(--border);
+			text-align: center;
+			font-size: 0.75rem;
+			color: var(--fg-muted);
+		}
+
+		.footer a {
+			color: var(--fg-muted);
+			text-decoration: none;
+			transition: color 0.2s ease;
+		}
+
+		.footer a:hover {
+			color: var(--accent);
 		}
 	</style>
 </head>
@@ -135,87 +434,126 @@
 	<h1>PgArachne Explorer</h1>
 
 	<!-- Login Form -->
-	<div id="login-form">
+	<div id="login-form" class="card">
 		<h2>1. Authentication</h2>
-		<label for="apiUrl">API URL (e.g., http://localhost:8080):</label>
-		<input type="text" id="apiUrl" placeholder="Enter API URL">
 
-		<label for="databaseName">Database Name:</label>
-		<input type="text" id="databaseName" placeholder="Enter database name">
+		<div class="url-config-row">
+			<div class="field">
+				<label for="apiUrl">API URL</label>
+				<input type="text" id="apiUrl" placeholder="http://localhost:8080" autocapitalize="off" autocorrect="off">
+			</div>
+			<div class="field field-small">
+				<label for="urlPrefix">Prefix</label>
+				<input type="text" id="urlPrefix" placeholder="db" autocapitalize="off" autocorrect="off">
+			</div>
+			<div class="field">
+				<label for="databaseName">Database</label>
+				<input type="text" id="databaseName" placeholder="my_database" autocapitalize="off" autocorrect="off">
+			</div>
+		</div>
 
 		<!-- Method Selection Tabs -->
 		<div class="auth-tabs">
 			<button id="tab-password" class="auth-tab-button active"
-				onclick="switchAuthMode('password')">Password</button>
-			<button id="tab-token" class="auth-tab-button" onclick="switchAuthMode('token')">API Token</button>
+				onclick="switchAuthMode('password')">🔑 Password</button>
+			<button id="tab-token" class="auth-tab-button" onclick="switchAuthMode('token')">🎫 API Token</button>
 		</div>
 
-		<!-- Password Auth Content -->
-		<div id="password-auth-content">
-			<label for="login">Login:</label>
-			<input type="text" id="login" placeholder="Enter username">
-			<label for="password">Password:</label>
-			<input type="password" id="password" placeholder="Enter password">
-		</div>
+		<div class="auth-content">
+			<!-- Password Auth Content -->
+			<div id="password-auth-content">
+				<label for="login">Login</label>
+				<input type="text" id="login" placeholder="username" autocapitalize="off" autocorrect="off">
+				<label for="password">Password</label>
+				<input type="password" id="password" placeholder="password">
+			</div>
 
-		<!-- API Token Auth Content -->
-		<div id="token-auth-content" class="hidden">
-			<label for="apiToken">API Token:</label>
-			<textarea id="apiToken" placeholder="Paste your long-lived API token"></textarea>
+			<!-- API Token Auth Content -->
+			<div id="token-auth-content" class="hidden">
+				<label for="apiToken">API Token</label>
+				<textarea id="apiToken" placeholder="Paste your long-lived API token"></textarea>
+			</div>
 		</div>
 
 		<div class="button-group">
-			<button onclick="authenticate()">Verify & Continue</button>
-			<span id="user-status">Status: Not logged in</span>
-			<button onclick="logout()" id="logout-button" class="button-danger hidden">Logout</button>
+			<button onclick="authenticate()">✓ Verify & Continue</button>
+			<span id="user-status"><span class="dot"></span> Not logged in</span>
+			<button onclick="logout()" id="logout-button" class="btn-danger hidden">✕ Logout</button>
 		</div>
 	</div>
 
 	<!-- Main Function Call Form (initially hidden) -->
-	<div id="form" class="hidden">
+	<div id="form" class="card hidden">
 		<h2>2. Function Call</h2>
-		<label for="endpoint">Endpoint (load functions to see suggestions):</label>
-		<input type="text" id="endpoint" list="endpoint-suggestions" placeholder="Enter function name"
-			oninput="updateParametersTemplate()">
+		<label for="endpoint">Endpoint</label>
+		<input type="text" id="endpoint" list="endpoint-suggestions" placeholder="function_name"
+			oninput="updateParametersTemplate()" autocapitalize="off" autocorrect="off">
 		<datalist id="endpoint-suggestions"></datalist>
 
-		<label for="parameters">Parameters (JSON):</label>
+		<label for="parameters">Parameters (JSON)</label>
 		<textarea id="parameters" placeholder='{}'></textarea>
 
 		<div class="button-group">
-			<button onclick="loadCapabilities()" class="button-secondary">Load/Refresh Functions</button>
-			<button onclick="callFunction()">Send JSON-RPC Request</button>
+			<button onclick="loadCapabilities()" class="btn-secondary">↻ Refresh Functions</button>
+			<button onclick="callFunction()">▶ Send Request</button>
 		</div>
 	</div>
 
-	<h2>Result:</h2>
-	<div id="result">Response will appear here...</div>
+	<div class="result-wrapper">
+		<div class="result-header">
+			<h2>Result</h2>
+			<button onclick="copyResult()" class="btn-secondary btn-small" id="copy-btn">⎘ Copy</button>
+		</div>
+		<div id="result"><pre>Response will appear here...</pre></div>
+	</div>
+
+	<footer class="footer">
+		Part of <a href="https://www.pgarachne.com" target="_blank" rel="noopener">PgArachne</a> — expose PostgreSQL functions as a JSON-RPC API
+	</footer>
 
 	<script>
 		let availableFunctions = new Map();
-		let authToken = null; // Universal token (can be JWT or API token)
+		let authToken = null;
 		let currentAuthMode = 'password';
+
+		// --- Build JSONRPC URL ---
+		function getJsonRpcUrl() {
+			const apiUrl = document.getElementById('apiUrl').value.trim();
+			const prefix = document.getElementById('urlPrefix').value.trim() || 'db';
+			const dbName = document.getElementById('databaseName').value.trim();
+			return `${apiUrl}/${prefix}/${dbName}/jsonrpc`;
+		}
 
 		// --- UI Management ---
 		function setLoggedInUI(authIdentifier) {
-			document.getElementById('login-form').style.borderColor = '#28a745';
-			document.getElementById('user-status').textContent = `Status: Verified (${authIdentifier})`;
+			document.getElementById('login-form').classList.add('authenticated');
+			const status = document.getElementById('user-status');
+			status.classList.add('status-ok');
+			status.innerHTML = '';
+			const dot = document.createElement('span');
+			dot.className = 'dot';
+			status.appendChild(dot);
+			status.appendChild(document.createTextNode(' Verified (' + authIdentifier + ')'));
 			document.getElementById('logout-button').classList.remove('hidden');
 			document.getElementById('form').classList.remove('hidden');
-			document.getElementById('apiUrl').disabled = true;
-			document.getElementById('databaseName').disabled = true;
+			document.querySelectorAll('#apiUrl, #urlPrefix, #databaseName').forEach(el => el.disabled = true);
 			document.querySelectorAll('.auth-tab-button, #login, #password, #apiToken').forEach(el => el.disabled = true);
 		}
 
 		function setLoggedOutUI() {
-			document.getElementById('login-form').style.borderColor = '#ddd';
-			document.getElementById('user-status').textContent = 'Status: Not logged in';
+			document.getElementById('login-form').classList.remove('authenticated');
+			const status = document.getElementById('user-status');
+			status.classList.remove('status-ok');
+			status.innerHTML = '';
+			const dot = document.createElement('span');
+			dot.className = 'dot';
+			status.appendChild(dot);
+			status.appendChild(document.createTextNode(' Not logged in'));
 			document.getElementById('logout-button').classList.add('hidden');
 			document.getElementById('form').classList.add('hidden');
-			document.getElementById('result').innerHTML = 'Please authenticate first.';
+			showResultText('Please authenticate first.');
 			document.getElementById('endpoint-suggestions').innerHTML = '';
-			document.getElementById('apiUrl').disabled = false;
-			document.getElementById('databaseName').disabled = false;
+			document.querySelectorAll('#apiUrl, #urlPrefix, #databaseName').forEach(el => el.disabled = false);
 			document.querySelectorAll('.auth-tab-button, #login, #password, #apiToken').forEach(el => el.disabled = false);
 			authToken = null;
 			availableFunctions.clear();
@@ -227,6 +565,60 @@
 			document.getElementById('token-auth-content').classList.toggle('hidden', mode !== 'token');
 			document.getElementById('tab-password').classList.toggle('active', mode === 'password');
 			document.getElementById('tab-token').classList.toggle('active', mode === 'token');
+		}
+
+		// --- Display Helpers ---
+		function showResultText(text) {
+			const resultDiv = document.getElementById('result');
+			resultDiv.innerHTML = '';
+			const pre = document.createElement('pre');
+			pre.textContent = text;
+			resultDiv.appendChild(pre);
+		}
+
+		function showResultLoading(text) {
+			const resultDiv = document.getElementById('result');
+			resultDiv.innerHTML = '';
+			const pre = document.createElement('pre');
+			pre.className = 'loading';
+			pre.textContent = text;
+			resultDiv.appendChild(pre);
+		}
+
+		function showResultJSON(obj) {
+			const resultDiv = document.getElementById('result');
+			resultDiv.innerHTML = '<pre>' + syntaxHighlight(JSON.stringify(obj, null, 2)) + '</pre>';
+		}
+
+		// --- JSON Syntax Highlighting ---
+		// JSON.stringify output is safe for innerHTML: it escapes <, >, &, and quotes.
+		function syntaxHighlight(json) {
+			return json.replace(
+				/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+				function (match) {
+					var cls = 'json-number';
+					if (/^"/.test(match)) {
+						cls = /:$/.test(match) ? 'json-key' : 'json-string';
+					} else if (/true|false/.test(match)) {
+						cls = 'json-boolean';
+					} else if (/null/.test(match)) {
+						cls = 'json-null';
+					}
+					return '<span class="' + cls + '">' + match + '</span>';
+				}
+			);
+		}
+
+		// --- Copy Result ---
+		function copyResult() {
+			const resultDiv = document.getElementById('result');
+			const text = resultDiv.textContent;
+			navigator.clipboard.writeText(text).then(() => {
+				const btn = document.getElementById('copy-btn');
+				const original = btn.textContent;
+				btn.textContent = '✓ Copied';
+				setTimeout(() => { btn.textContent = original; }, 1400);
+			});
 		}
 
 		// --- Local Storage Logic ---
@@ -248,26 +640,22 @@
 		}
 
 		async function loginWithPassword() {
-			const apiUrl = document.getElementById('apiUrl').value.trim();
-			const dbName = document.getElementById('databaseName').value.trim();
 			const login = document.getElementById('login').value.trim();
 			const password = document.getElementById('password').value;
-			const resultDiv = document.getElementById('result');
 
-			if (!apiUrl || !dbName || !login || !password) {
-				resultDiv.innerHTML = '<pre>Error: Please fill in URL, database name, login and password.</pre>';
+			if (!document.getElementById('apiUrl').value.trim() || !document.getElementById('databaseName').value.trim() || !login || !password) {
+				showResultText('Error: Please fill in URL, database name, login and password.');
 				return;
 			}
 
-			// Sending plain password, server handles hashing
 			try {
-				resultDiv.innerHTML = '<pre>Logging in...</pre>';
-				const response = await fetch(`${apiUrl}/api/${dbName}`, {
+				showResultLoading('Logging in');
+				const response = await fetch(getJsonRpcUrl(), {
 					method: 'POST',
 					headers: { 'Content-Type': 'application/json' },
 					body: JSON.stringify({
 						jsonrpc: '2.0',
-						method: 'login',
+						method: 'get_jwt',
 						params: { login: login, password: password },
 						id: 1
 					})
@@ -276,39 +664,35 @@
 				const data = await response.json();
 				if (response.ok && data.result && data.result.token) {
 					authToken = data.result.token;
-					resultDiv.innerHTML = '<pre>Login successful. You can now load and call functions.</pre>';
-					setLoggedInUI(`user ${login}`);
+					showResultText('Login successful. You can now load and call functions.');
+					setLoggedInUI('user ' + login);
 					loadCapabilities();
 				} else {
 					const message = data && data.error && data.error.message ? data.error.message : (data.error || 'Unknown error');
-					resultDiv.innerHTML = '<pre>Login error: ' + message + '</pre>';
+					showResultText('Login error: ' + message);
 				}
 			} catch (e) {
-				resultDiv.innerHTML = '<pre>Server communication error: ' + e.message + '</pre>';
+				showResultText('Server communication error: ' + e.message);
 			}
 		}
 
 		async function loginWithApiToken() {
-			const resultDiv = document.getElementById('result');
-			const tokenInput = document.getElementById('apiToken');
-			const token = tokenInput.value.trim();
+			const token = document.getElementById('apiToken').value.trim();
 			if (!token) {
-				resultDiv.innerHTML = '<pre>Error: Please enter an API token.</pre>';
+				showResultText('Error: Please enter an API token.');
 				return;
 			}
-			// Temporarily set token and try calling 'capabilities' to verify
 			authToken = token;
-			resultDiv.innerHTML = '<pre>Verifying API token...</pre>';
+			showResultLoading('Verifying API token');
 			try {
-				await loadCapabilities(true); // true = silent mode
-				resultDiv.innerHTML = '<pre>API token is valid. You can call functions.</pre>';
+				await loadCapabilities(true);
+				showResultText('API token is valid. You can call functions.');
 				setLoggedInUI('API Token');
 			} catch (error) {
-				resultDiv.innerHTML = '<pre>Error: API token is invalid or communication failed. ' + error.message + '</pre>';
-				authToken = null; // Clear invalid token
+				showResultText('Error: API token is invalid or communication failed. ' + error.message);
+				authToken = null;
 			}
 		}
-
 
 		function logout() {
 			setLoggedOutUI();
@@ -330,19 +714,16 @@
 		}
 
 		async function loadCapabilities(silent = false) {
-			const apiUrl = document.getElementById('apiUrl').value.trim();
-			const dbName = document.getElementById('databaseName').value.trim();
 			const endpointSuggestions = document.getElementById('endpoint-suggestions');
-			const resultDiv = document.getElementById('result');
 
 			if (!silent) {
-				resultDiv.innerHTML = '<pre>Loading available functions...</pre>';
+				showResultLoading('Loading available functions');
 			}
 			availableFunctions.clear();
 
 			try {
 				const payload = { jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 };
-				const response = await makeApiRequest(`${apiUrl}/api/${dbName}`, payload);
+				const response = await makeApiRequest(getJsonRpcUrl(), payload);
 				const data = await response.json();
 
 				if (response.ok && data.result) {
@@ -355,7 +736,7 @@
 						endpointSuggestions.appendChild(option);
 					});
 					if (!silent) {
-						resultDiv.innerHTML = '<pre>Functions loaded successfully. Select an endpoint and parameters will auto-fill.</pre>';
+						showResultText('Functions loaded (' + data.result.length + ' available). Select an endpoint.');
 					}
 					updateParametersTemplate();
 				} else {
@@ -364,48 +745,44 @@
 				}
 			} catch (e) {
 				if (!silent) {
-					resultDiv.innerHTML = '<pre>Error loading functions: ' + e.message + '</pre>';
+					showResultText('Error loading functions: ' + e.message);
 				}
-				throw e; // Rethrow to be caught by loginWithApiToken
+				throw e;
 			}
 		}
 
 		async function callFunction() {
-			const apiUrl = document.getElementById('apiUrl').value.trim();
-			const dbName = document.getElementById('databaseName').value.trim();
 			const endpoint = document.getElementById('endpoint').value.trim();
 			const parametersInput = document.getElementById('parameters').value;
-			const resultDiv = document.getElementById('result');
 
 			if (!endpoint) {
-				resultDiv.innerHTML = '<pre>Error: Enter an endpoint.</pre>';
+				showResultText('Error: Enter an endpoint.');
 				return;
 			}
 			let parameters;
 			try {
 				parameters = JSON.parse(parametersInput || '{}');
 			} catch (e) {
-				resultDiv.innerHTML = '<pre>Error: Invalid JSON in parameters: ' + e.message + '</pre>';
+				showResultText('Error: Invalid JSON in parameters: ' + e.message);
 				return;
 			}
 
 			const payload = { jsonrpc: '2.0', method: endpoint, params: parameters, id: 1 };
+			const fullUrl = getJsonRpcUrl();
 
 			try {
-				const fullUrl = `${apiUrl}/api/${dbName}`;
-				resultDiv.innerHTML = '<pre>Sending request to ' + fullUrl + '...</pre>';
-
+				showResultLoading('Sending request to ' + fullUrl);
 				const response = await makeApiRequest(fullUrl, payload);
 				const data = await response.json();
 
 				if (response.ok && data.result) {
-					resultDiv.innerHTML = '<pre>' + JSON.stringify(data.result, null, 2) + '</pre>';
+					showResultJSON(data.result);
 				} else {
 					const errorMsg = data.error ? data.error.message : `HTTP ${response.status}: ${response.statusText}`;
-					resultDiv.innerHTML = '<pre>Error: ' + errorMsg + '</pre>';
+					showResultText('Error: ' + errorMsg);
 				}
 			} catch (e) {
-				resultDiv.innerHTML = '<pre>Error: ' + e.message + '</pre>';
+				showResultText('Error: ' + e.message);
 			}
 		}
 
@@ -435,15 +812,52 @@
 			}
 		}
 
+		// --- URL Query Parameter ---
+		// Usage: ?url=http://localhost:8080/db/my_database
+		// Parses into: apiUrl=http://localhost:8080, urlPrefix=db, databaseName=my_database
+		function applyUrlParam() {
+			const params = new URLSearchParams(window.location.search);
+			const urlParam = params.get('url');
+			if (!urlParam) return;
+
+			try {
+				const url = new URL(urlParam);
+				// Origin = scheme + host (e.g. http://localhost:8080)
+				document.getElementById('apiUrl').value = url.origin;
+				saveToLocalStorage('apiUrl');
+
+				// Path segments: e.g. /db/my_database → ['db', 'my_database']
+				const segments = url.pathname.split('/').filter(s => s.length > 0);
+				if (segments.length >= 1) {
+					document.getElementById('urlPrefix').value = segments[0];
+					saveToLocalStorage('urlPrefix');
+				}
+				if (segments.length >= 2) {
+					document.getElementById('databaseName').value = segments[1];
+					saveToLocalStorage('databaseName');
+				}
+			} catch (e) {
+				// If URL parsing fails, try a simpler split approach
+				console.warn('Could not parse ?url= parameter:', e.message);
+			}
+		}
+
 		// --- Page Initialization ---
 		window.onload = () => {
 			loadFromLocalStorage('apiUrl', 'http://localhost:8080');
-			loadFromLocalStorage('databaseName', 'clients_and_terminals');
+			loadFromLocalStorage('urlPrefix', 'db');
+			loadFromLocalStorage('databaseName', 'my_database');
 			loadFromLocalStorage('login');
 			loadFromLocalStorage('endpoint', 'capabilities');
+			applyUrlParam(); // Override with ?url= if present
 			setLoggedOutUI();
-			switchAuthMode('password'); // Always start on password tab
+			switchAuthMode('password');
 		};
+
+		// --- Service Worker Registration ---
+		if ('serviceWorker' in navigator) {
+			navigator.serviceWorker.register('./sw.js');
+		}
 	</script>
 </body>
 
