@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Nástroje on PgArachne</title><link>https://www.pgarachne.com/cs/tools/</link><description>Recent content in Nástroje on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/cs/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Nejedná se
+		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
+		která komunikuje s databází výhradně prostřednictvím PgArachne. Online verzi můžete vyzkoušet na adrese 
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Co umí?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci &lt;code&gt;capabilities&lt;/code&gt; a zobrazuje všechny dostupné
+			endpointy a jejich parametry.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé testování:&lt;/strong&gt; Funkce můžete spouštět přímo z prohlížeče.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
+			do čitelné dokumentace.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Moderní vzhled:&lt;/strong&gt; Podporuje tmavý i světlý režim a lze jej nainstalovat jako &lt;strong&gt;PWA aplikaci&lt;/strong&gt; na mobilní zařízení.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Parametry v URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/cs/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar pro macOS&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; je profesionální nativní aplikace pro macOS navržená pro snadnou správu vašich JSON-RPC gateway instancí.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Stav:&lt;/strong&gt; V přípravě. Předpokládané vydání: &lt;strong&gt;2. kvartál 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Klíčové funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Správa více serverů:&lt;/strong&gt; Spouštějte, zastavujte a restartujte více instancí PgArachne z jednoho menu.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Změna konfigurace:&lt;/strong&gt; Rychle přepínejte mezi sdílenými prostředími nebo lokálními databázemi.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé monitorování:&lt;/strong&gt; Integrované okno pro sledování logů a výkonnostních metrik v reálném čase.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Nativní zážitek:&lt;/strong&gt; Vyvinuto přímo pro macOS s podporou tmavého režimu a Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Míří do Mac App Store&lt;/h3&gt;
+&lt;p&gt;Aplikace je optimalizována pro distribuci přes Mac App Store, aby byla zajištěna maximální bezpečnost a plynulé aktualizace.&lt;/p&gt;</description></item></channel></rss>

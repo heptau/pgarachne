@@ -228,26 +228,22 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 
 	&lt;h3&gt;2. Login via API&lt;/h3&gt;
-	&lt;p&gt;Use o método JSON-RPC &lt;code&gt;login&lt;/code&gt; para obter um token JWT:&lt;/p&gt;</description></item><item><title>Explorador PgArachne</title><link>https://www.pgarachne.com/pt/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/api-explorer/</guid><description>&lt;section id="explorer"&gt;
-	&lt;h2&gt;Explorador PgArachne&lt;/h2&gt;
-	&lt;p&gt;O &lt;strong&gt;Explorer&lt;/strong&gt; é uma interface web poderosa incluída no diretório &lt;code&gt;tools/&lt;/code&gt;. Não é apenas
+	&lt;p&gt;Use o método JSON-RPC &lt;code&gt;login&lt;/code&gt; para obter um token JWT:&lt;/p&gt;</description></item><item><title>Explorador PgArachne</title><link>https://www.pgarachne.com/pt/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;Explorador PgArachne&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;Explorer&lt;/strong&gt; é uma interface web poderosa incluída no diretório &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Não é apenas
 		documentação; é uma &lt;strong&gt;aplicação de demonstração&lt;/strong&gt; totalmente funcional construída usando
-		HTML/JS que se comunica com o banco de dados exclusivamente via PgArachne.&lt;/p&gt;
-
-	&lt;p&gt;&lt;strong&gt;O que ele pode fazer?&lt;/strong&gt;&lt;/p&gt;
-	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Inspecionar API:&lt;/strong&gt; Ele lê a função &lt;code&gt;capabilities&lt;/code&gt; para exibir todos os endpoints
+		HTML/JS que se comunica com o banco de dados exclusivamente via PgArachne. Você também pode usar a versão hospedada em 
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;O que ele pode fazer?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inspecionar API:&lt;/strong&gt; Ele lê a função &lt;code&gt;capabilities&lt;/code&gt; para exibir todos os endpoints
 			disponíveis e seus parâmetros.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Testes ao Vivo:&lt;/strong&gt; Você pode executar funções diretamente do navegador.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados &lt;code&gt;--- PARAMS
+&lt;li&gt;&lt;strong&gt;Testes ao Vivo:&lt;/strong&gt; Você pode executar funções diretamente do navegador.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados &lt;code&gt;--- PARAMS
 			---&lt;/code&gt;) em documentação legível.&lt;/li&gt;
-	&lt;/ul&gt;
-
-	&lt;div class="tip"&gt;
-		&lt;strong&gt;Como habilitá-lo:&lt;/strong&gt; Defina a variável de ambiente &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; para apontar para a
-		pasta &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; no seu disco. Em seguida, visite &lt;code&gt;http://localhost:8080&lt;/code&gt;.
-	&lt;/div&gt;
-&lt;/section&gt;</description></item><item><title>Instalação</title><link>https://www.pgarachne.com/pt/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/installation/</guid><description>&lt;section id="install"&gt;
+&lt;li&gt;&lt;strong&gt;Interface moderna:&lt;/strong&gt; Oferece suporte para os modos Escuro/Claro e pode ser instalada como um &lt;strong&gt;PWA&lt;/strong&gt; em dispositivos móveis.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>Instalação</title><link>https://www.pgarachne.com/pt/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Instalação&lt;/h2&gt;
 
 	&lt;h3&gt;1. Instalação&lt;/h3&gt;
@@ -350,7 +346,21 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 		&lt;li&gt;⚙️ &lt;strong&gt;Gerenciamento aprimorado de daemon:&lt;/strong&gt; Adicionado suporte para configuração de caminho personalizado do &lt;code&gt;PID_FILE&lt;/code&gt;.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>Segurança e Autenticação</title><link>https://www.pgarachne.com/pt/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/security-roles/</guid><description>&lt;section id="security"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.1.0&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; é um aplicativo nativo profissional para macOS projetado para oferecer uma experiência de gerenciamento sem esforço para suas instâncias de gateway JSON-RPC.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Status:&lt;/strong&gt; Em preparação. Lançamento previsto: &lt;strong&gt;2º trimestre de 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Principais Recursos&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Gerenciamento Multi-Servidor:&lt;/strong&gt; Inicie, pare e reinicie várias instâncias do PgArachne a partir de um único menu.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Alternância de Configuração:&lt;/strong&gt; Alterne rapidamente entre ambientes compartilhados ou configurações de banco de dados locais.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Monitoramento em Tempo Real:&lt;/strong&gt; Janela integrada para logs em tempo real e métricas de desempenho.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Experiência Nativa:&lt;/strong&gt; Construído especificamente para macOS com suporte ao modo escuro e Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Em breve na Mac App Store&lt;/h3&gt;
+&lt;p&gt;O aplicativo está sendo otimizado para a Mac App Store para garantir a máxima segurança e atualizações perfeitas.&lt;/p&gt;</description></item><item><title>Segurança e Autenticação</title><link>https://www.pgarachne.com/pt/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Segurança e Autenticação&lt;/h2&gt;
 	&lt;p&gt;O PgArachne depende inteiramente do sistema de permissões do PostgreSQL. Ele não reinventa Listas
 		de Controle de Acesso (ACLs). Todas as consultas são executadas sob o papel de banco de dados específico

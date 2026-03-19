@@ -354,26 +354,36 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/api-explorer/</guid><description>&lt;section id="explorer"&gt;
-	&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
-	&lt;p&gt;The &lt;strong&gt;Explorer&lt;/strong&gt; is a powerful web GUI included in the &lt;code&gt;tools/&lt;/code&gt; directory. It is not
+&lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;Explorer&lt;/strong&gt; is a powerful web GUI included in the &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; directory. It is not
 		just documentation; it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built using HTML/JS
-		that communicates with the database exclusively via PgArachne.&lt;/p&gt;
-
-	&lt;p&gt;&lt;strong&gt;What can it do?&lt;/strong&gt;&lt;/p&gt;
-	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Inspect API:&lt;/strong&gt; It reads the &lt;code&gt;capabilities&lt;/code&gt; function to display all available
+		that communicates with the database exclusively via PgArachne. You can also use the hosted version at 
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;What can it do?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inspect API:&lt;/strong&gt; It reads the &lt;code&gt;capabilities&lt;/code&gt; function to display all available
 			endpoints and their parameters.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Live Testing:&lt;/strong&gt; You can execute functions directly from the browser.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Auto-Documentation:&lt;/strong&gt; It renders the SQL comments (including &lt;code&gt;--- PARAMS ---&lt;/code&gt;
+&lt;li&gt;&lt;strong&gt;Live Testing:&lt;/strong&gt; You can execute functions directly from the browser.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Auto-Documentation:&lt;/strong&gt; It renders the SQL comments (including &lt;code&gt;--- PARAMS ---&lt;/code&gt;
 			metadata) into readable documentation.&lt;/li&gt;
-	&lt;/ul&gt;
-
-	&lt;div class="tip"&gt;
-		&lt;strong&gt;How to enable it:&lt;/strong&gt; Set the &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; environment variable to point to the
-		&lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; folder on your disk. Then visit &lt;code&gt;http://localhost:8080&lt;/code&gt;.
-	&lt;/div&gt;
-&lt;/section&gt;</description></item><item><title>Real-time Notifications (SSE)</title><link>https://www.pgarachne.com/en/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+&lt;li&gt;&lt;strong&gt;Modern UI:&lt;/strong&gt; Features Dark/Light mode support and can be installed as a &lt;strong&gt;PWA&lt;/strong&gt; on mobile devices.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;URL Parameters:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/en/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar for macOS&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; is a professional native application for macOS designed to provide an effortless management experience for your JSON-RPC gateway instances.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Status:&lt;/strong&gt; Under development. Expected release: &lt;strong&gt;Q2 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Key Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Multi-Server Management:&lt;/strong&gt; Start, stop, and restart multiple PgArachne instances from a single menu.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Configuration Switching:&lt;/strong&gt; Quickly toggle between shared environments or local database configurations.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Live Monitoring:&lt;/strong&gt; Integrated window for real-time logs and performance metrics.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Native Experience:&lt;/strong&gt; Built specifically for macOS with support for dark mode and Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Coming to the Mac App Store&lt;/h3&gt;
+&lt;p&gt;The application is being optimized for the Mac App Store to ensure the highest security and seamless updates.&lt;/p&gt;</description></item><item><title>Real-time Notifications (SSE)</title><link>https://www.pgarachne.com/en/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time Notifications (SSE)&lt;/h2&gt;
 	&lt;p&gt;Subscribe to PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; channels over Server-Sent Events:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \

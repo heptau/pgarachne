@@ -106,25 +106,35 @@
 
 			if (!matches.length) {
 				results.hidden = false;
-				results.innerHTML = '<div class="search-empty">' + (texts.no_results || "No results found.") + "</div>";
+				results.innerHTML = "";
+				var emptyDiv = document.createElement("div");
+				emptyDiv.className = "search-empty";
+				emptyDiv.textContent = texts.no_results || "No results found.";
+				results.appendChild(emptyDiv);
 				return;
 			}
 
-			results.innerHTML = matches
-				.map(function (m) {
-					var item = m.item;
-					var desc = item.desc || "";
-					return (
-						'<a class="search-item" href="' +
-						item.url +
-						'"><div class="search-item-title">' +
-						item.title +
-						'</div><div class="search-item-desc">' +
-						desc +
-						"</div></a>"
-					);
-				})
-				.join("");
+			results.innerHTML = "";
+			matches.forEach(function (m) {
+				var item = m.item;
+				var desc = item.desc || "";
+
+				var a = document.createElement("a");
+				a.className = "search-item";
+				a.href = item.url;
+
+				var titleDiv = document.createElement("div");
+				titleDiv.className = "search-item-title";
+				titleDiv.textContent = item.title;
+
+				var descDiv = document.createElement("div");
+				descDiv.className = "search-item-desc";
+				descDiv.textContent = desc;
+
+				a.appendChild(titleDiv);
+				a.appendChild(descDiv);
+				results.appendChild(a);
+			});
 			results.hidden = false;
 		});
 

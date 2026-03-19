@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Ferramentas on PgArachne</title><link>https://www.pgarachne.com/pt/tools/</link><description>Recent content in Ferramentas on PgArachne</description><generator>Hugo</generator><language>pt</language><atom:link href="https://www.pgarachne.com/pt/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>Explorador PgArachne</title><link>https://www.pgarachne.com/pt/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;Explorador PgArachne&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;Explorer&lt;/strong&gt; é uma interface web poderosa incluída no diretório &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Não é apenas
+		documentação; é uma &lt;strong&gt;aplicação de demonstração&lt;/strong&gt; totalmente funcional construída usando
+		HTML/JS que se comunica com o banco de dados exclusivamente via PgArachne. Você também pode usar a versão hospedada em 
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;O que ele pode fazer?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inspecionar API:&lt;/strong&gt; Ele lê a função &lt;code&gt;capabilities&lt;/code&gt; para exibir todos os endpoints
+			disponíveis e seus parâmetros.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Testes ao Vivo:&lt;/strong&gt; Você pode executar funções diretamente do navegador.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados &lt;code&gt;--- PARAMS
+			---&lt;/code&gt;) em documentação legível.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Interface moderna:&lt;/strong&gt; Oferece suporte para os modos Escuro/Claro e pode ser instalada como um &lt;strong&gt;PWA&lt;/strong&gt; em dispositivos móveis.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; é um aplicativo nativo profissional para macOS projetado para oferecer uma experiência de gerenciamento sem esforço para suas instâncias de gateway JSON-RPC.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Status:&lt;/strong&gt; Em preparação. Lançamento previsto: &lt;strong&gt;2º trimestre de 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Principais Recursos&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Gerenciamento Multi-Servidor:&lt;/strong&gt; Inicie, pare e reinicie várias instâncias do PgArachne a partir de um único menu.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Alternância de Configuração:&lt;/strong&gt; Alterne rapidamente entre ambientes compartilhados ou configurações de banco de dados locais.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Monitoramento em Tempo Real:&lt;/strong&gt; Janela integrada para logs em tempo real e métricas de desempenho.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Experiência Nativa:&lt;/strong&gt; Construído especificamente para macOS com suporte ao modo escuro e Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Em breve na Mac App Store&lt;/h3&gt;
+&lt;p&gt;O aplicativo está sendo otimizado para a Mac App Store para garantir a máxima segurança e atualizações perfeitas.&lt;/p&gt;</description></item></channel></rss>

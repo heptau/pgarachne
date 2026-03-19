@@ -280,7 +280,36 @@ example.com {
 
 	&lt;p&gt;
 		Tato architektura dramaticky zjednodušuje stack: &lt;strong&gt;Databáze ↔ PgArachne ↔ Frontend / AI Agent&lt;/strong&gt;.
-	&lt;/p&gt;</description></item><item><title>Podpořte vývoj</title><link>https://www.pgarachne.com/cs/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/cs/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Nejedná se
+		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
+		která komunikuje s databází výhradně prostřednictvím PgArachne. Online verzi můžete vyzkoušet na adrese 
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Co umí?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci &lt;code&gt;capabilities&lt;/code&gt; a zobrazuje všechny dostupné
+			endpointy a jejich parametry.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé testování:&lt;/strong&gt; Funkce můžete spouštět přímo z prohlížeče.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
+			do čitelné dokumentace.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Moderní vzhled:&lt;/strong&gt; Podporuje tmavý i světlý režim a lze jej nainstalovat jako &lt;strong&gt;PWA aplikaci&lt;/strong&gt; na mobilní zařízení.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Parametry v URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/cs/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar pro macOS&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; je profesionální nativní aplikace pro macOS navržená pro snadnou správu vašich JSON-RPC gateway instancí.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Stav:&lt;/strong&gt; V přípravě. Předpokládané vydání: &lt;strong&gt;2. kvartál 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Klíčové funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Správa více serverů:&lt;/strong&gt; Spouštějte, zastavujte a restartujte více instancí PgArachne z jednoho menu.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Změna konfigurace:&lt;/strong&gt; Rychle přepínejte mezi sdílenými prostředími nebo lokálními databázemi.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé monitorování:&lt;/strong&gt; Integrované okno pro sledování logů a výkonnostních metrik v reálném čase.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Nativní zážitek:&lt;/strong&gt; Vyvinuto přímo pro macOS s podporou tmavého režimu a Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Míří do Mac App Store&lt;/h3&gt;
+&lt;p&gt;Aplikace je optimalizována pro distribuci přes Mac App Store, aby byla zajištěna maximální bezpečnost a plynulé aktualizace.&lt;/p&gt;</description></item><item><title>Podpořte vývoj</title><link>https://www.pgarachne.com/cs/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Podpořte vývoj&lt;/h2&gt;
 	&lt;p&gt;Vývoj open-source softwaru, jako je PgArachne, zabere značné množství času. Pokud vám tento nástroj šetří
 		čas, zvažte, prosím, podporu jeho údržby.&lt;/p&gt;
@@ -299,26 +328,7 @@ example.com {
 		&lt;!-- 2. Bank Transfer --&gt;
 		&lt;div class="donation-card"&gt;
 			&lt;h4&gt;Bankovní převod&lt;/h4&gt;
-			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Průzkumník API (Explorer)</title><link>https://www.pgarachne.com/cs/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/api-explorer/</guid><description>&lt;section id="explorer"&gt;
-	&lt;h2&gt;Průzkumník API (Explorer)&lt;/h2&gt;
-	&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce &lt;code&gt;tools/&lt;/code&gt;. Nejedná se
-		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
-		která komunikuje s databází výhradně prostřednictvím PgArachne.&lt;/p&gt;
-
-	&lt;p&gt;&lt;strong&gt;Co umí?&lt;/strong&gt;&lt;/p&gt;
-	&lt;ul&gt;
-		&lt;li&gt;&lt;strong&gt;Inspekce API:&lt;/strong&gt; Čte funkci &lt;code&gt;capabilities&lt;/code&gt; a zobrazuje všechny dostupné
-			endpointy a jejich parametry.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Živé testování:&lt;/strong&gt; Funkce můžete spouštět přímo z prohlížeče.&lt;/li&gt;
-		&lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
-			do čitelné dokumentace.&lt;/li&gt;
-	&lt;/ul&gt;
-
-	&lt;div class="tip"&gt;
-		&lt;strong&gt;Jak jej povolit:&lt;/strong&gt; Nastavte proměnnou prostředí &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; tak, aby směřovala na
-		složku &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; na vašem disku. Poté navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;.
-	&lt;/div&gt;
-&lt;/section&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
 	&lt;h2&gt;Příklad Hello World&lt;/h2&gt;
 	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/p&gt;
 
