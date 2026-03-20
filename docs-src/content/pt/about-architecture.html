@@ -15,8 +15,7 @@ menu:
 		tradicionais (como Python, Node.js ou PHP) mapeando requisições HTTP diretamente para funções do banco de dados.
 	</p>
 
-	<div class="card"
-		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+	<div class="card feature-card">
 		<h3>Capacidades Técnicas Principais</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
@@ -61,7 +60,7 @@ menu:
 	<div class="tip">
 		<strong>Estrutura dos endpoints:</strong> Todos os endpoints do banco de dados compartilham um prefixo comum (padrão <code>db</code>, configurável via <code>API_PREFIX</code>):
 		<div
-			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			class="code-box">
 			<div>POST /{prefixo}/{banco_de_dados}/jsonrpc <span style="color:#666;font-size:0.9em;">— gateway JSON-RPC 2.0</span></div>
 			<div>GET &nbsp;/{prefixo}/{banco_de_dados}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
 			<div>POST /{prefixo}/{banco_de_dados}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>

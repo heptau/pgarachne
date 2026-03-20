@@ -21,13 +21,13 @@
 
 	<meta property="og:title" content="{{ $pageTitle }}" />
 	<meta property="og:description" content="{{ .Params.ogDescription | default .Site.Params.ogDescription }}" />
-	<meta property="og:image" content="{{ "/assets/pgarachne-logo.jpeg" | absURL }}" />
+	<meta property="og:image" content="{{ "/assets/pgarachne-logo.webp" | absURL }}" />
 	<meta property="og:url" content="{{ .Permalink }}" />
 	<meta property="og:type" content="website" />
 	<meta name="twitter:card" content="summary_large_image" />
 	<meta name="twitter:title" content="{{ $pageTitle }}" />
 	<meta name="twitter:description" content="{{ .Params.ogDescription | default .Site.Params.ogDescription }}" />
-	<meta name="twitter:image" content="{{ "/assets/pgarachne-logo.jpeg" | absURL }}" />
+	<meta name="twitter:image" content="{{ "/assets/pgarachne-logo.webp" | absURL }}" />
 	{{ $jsonLD := dict
 		"@context" "https://schema.org"
 		"@type" "WebPage"

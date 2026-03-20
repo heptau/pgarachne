@@ -14,8 +14,7 @@ menu:
 		klienty a databází PostgreSQL. Eliminuje potřebu tradičních backendových jazyků (jako Python, Node.js
 		nebo PHP) tím, že mapuje HTTP požadavky přímo na databázové funkce.
 	</p>
-	<div class="card"
-		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+	<div class="card feature-card">
 		<h3>Klíčové technické schopnosti</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
@@ -55,7 +54,7 @@ menu:
 	</p>
 	<div class="tip">
 		<strong>Struktura endpointů:</strong> Všechny databázové endpointy sdílejí společný prefix (výchozí <code>db</code>, konfigurovatelný přes <code>API_PREFIX</code>):
-		<div style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+		<div class="code-box">
 			<div>POST /{prefix}/{databaze}/jsonrpc <span style="color:#666;font-size:0.9em;">— brána JSON-RPC 2.0</span></div>
 			<div>GET &nbsp;/{prefix}/{databaze}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
 			<div>POST /{prefix}/{databaze}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>

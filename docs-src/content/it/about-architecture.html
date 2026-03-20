@@ -15,8 +15,7 @@ menu:
 		Python, Node.js o PHP) mappando le richieste HTTP direttamente alle funzioni del database.
 	</p>
 
-	<div class="card"
-		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+	<div class="card feature-card">
 		<h3>Capacità Tecniche Principali</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
@@ -59,7 +58,7 @@ menu:
 	<div class="tip">
 		<strong>Struttura degli endpoint:</strong> Tutti gli endpoint del database condividono un prefisso comune (predefinito <code>db</code>, configurabile tramite <code>API_PREFIX</code>):
 		<div
-			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			class="code-box">
 			<div>POST /{prefisso}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— gateway JSON-RPC 2.0</span></div>
 			<div>GET &nbsp;/{prefisso}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
 			<div>POST /{prefisso}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>

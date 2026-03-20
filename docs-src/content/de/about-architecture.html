@@ -16,8 +16,7 @@ menu:
 		abgebildet werden.
 	</p>
 
-	<div class="card"
-		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+	<div class="card feature-card">
 		<h3>Wichtige technische Fähigkeiten</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
@@ -60,7 +59,7 @@ menu:
 	<div class="tip">
 		<strong>Endpunkt-Struktur:</strong> Alle Datenbank-Endpunkte teilen ein gemeinsames Präfix (Standard <code>db</code>, konfigurierbar über <code>API_PREFIX</code>):
 		<div
-			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			class="code-box">
 			<div>POST /{prefix}/{datenbank}/jsonrpc <span style="color:#666;font-size:0.9em;">— JSON-RPC 2.0 Gateway</span></div>
 			<div>GET &nbsp;/{prefix}/{datenbank}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— PostgreSQL NOTIFY Stream</span></div>
 			<div>POST /{prefix}/{datenbank}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>

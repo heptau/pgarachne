@@ -15,8 +15,7 @@ menu:
 		languages (like Python, Node.js, or PHP) by mapping HTTP requests directly to database functions.
 	</p>
 
-	<div class="card"
-		style="margin: 20px 0; padding: 20px; border-left: 4px solid var(--primary-color); background: #f8f9fa;">
+	<div class="card feature-card">
 		<h3>Core Technical Capabilities</h3>
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
@@ -58,7 +57,7 @@ menu:
 	<div class="tip">
 		<strong>Endpoint structure:</strong> All database endpoints share a common prefix (default <code>db</code>, configurable via <code>API_PREFIX</code>):
 		<div
-			style="background: rgba(0,0,0,0.05); padding: 10px; border-radius: 4px; font-family: monospace; margin-top: 10px;">
+			class="code-box">
 			<div>POST /{prefix}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— JSON-RPC 2.0 gateway</span></div>
 			<div>GET &nbsp;/{prefix}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— PostgreSQL NOTIFY stream</span></div>
 			<div>POST /{prefix}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
