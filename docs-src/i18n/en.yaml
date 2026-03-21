@@ -22,6 +22,14 @@
   translation: "Architecture"
 - id: nav_home
   translation: "Home"
+- id: nav_mcp
+  translation: "MCP"
+- id: link_mcp
+  translation: "Model Context Protocol (MCP)"
+- id: site_subtitle
+  translation: "Instant PostgreSQL API"
+- id: whats_new_releases_link
+  translation: 'More detailed information about changes in individual versions can be found directly in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'
 
 - id: search_label
   translation: "Search"

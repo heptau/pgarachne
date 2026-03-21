@@ -242,7 +242,8 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
 	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>Neuigkeiten</title><link>https://www.pgarachne.com/de/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
-	&lt;h2&gt;Neuigkeiten&lt;/h2&gt;
+	 &lt;h2&gt;Neuigkeiten&lt;/h2&gt;
+ &lt;p&gt;Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;

@@ -4,7 +4,7 @@ description: "Nástroje pro PgArachne - Dokumentace."
 menu:
   main:
     name: "Nástroje"
-    weight: 70
+    weight: 80
 ---
 
 <section id="tools">

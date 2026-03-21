@@ -150,7 +150,33 @@
 			&lt;/div&gt;
 		&lt;/div&gt;
 
-		&lt;p&gt;Více verzí je k dispozici na &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Konfigurace</title><link>https://www.pgarachne.com/cs/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/configuration/</guid><description>&lt;section id="config"&gt;
+		&lt;p&gt;Více verzí je k dispozici na &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>JSON-RPC a Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+	&lt;h2&gt;JSON-RPC a Hello World&lt;/h2&gt;
+	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/p&gt;
+
+	&lt;h3&gt;1. Vytvoření uživatele a funkce&lt;/h3&gt;
+	&lt;p&gt;V databázi (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Vytvoříme funkci Hello World
+-- Input: prázdný jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+ SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Udělíme uživateli oprávnění spustit funkci
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
+GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+
+	&lt;h3&gt;2. Přihlášení přes API&lt;/h3&gt;
+	&lt;p&gt;Použijte JSON-RPC metodu &lt;code&gt;login&lt;/code&gt; pro získání JWT tokenu:&lt;/p&gt;</description></item><item><title>Konfigurace</title><link>https://www.pgarachne.com/cs/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Konfigurace&lt;/h2&gt;
 	&lt;p&gt;PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.&lt;/p&gt;
 	&lt;div class="tip"&gt;
@@ -204,7 +230,21 @@
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+&lt;/section&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/cs/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/mcp/</guid><description>&lt;section id="mcp"&gt;
+	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
+
+	&lt;p class="section-intro"&gt;
+		PgArachne nativně podporuje &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům“ (tools).
+	&lt;/p&gt;
+
+	&lt;h3&gt;Jak to funguje?&lt;/h3&gt;
+	&lt;p&gt;
+		PgArachne funguje přímo jako &lt;strong&gt;MCP Server&lt;/strong&gt;. Namísto psaní vlastního HTTP serveru pro každý projekt stačí PgArachne spustit nad vaší databází. PgArachne automaticky analyzuje vaše povolené SQL funkce a vystaví je AI klientům pomocí HTTP(S).
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin-bottom: 2rem;"&gt;
+		&lt;h3&gt;🛠️ SQL Funkce jako Nástroje&lt;/h3&gt;
+		&lt;p&gt;Jakákoliv SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem“ v AI. Výchozí nastavení (volání &lt;code&gt;pgarachne.allowed_schemas()&lt;/code&gt;) vystavuje funkce uložené ve schématu &lt;code&gt;api&lt;/code&gt;, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.&lt;/p&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Nasazení a HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
 		hlaviček a veřejné směrování byste před něj měli umístit &lt;strong&gt;Reverzní proxy&lt;/strong&gt;.&lt;/p&gt;
@@ -225,6 +265,7 @@ example.com {
 		&lt;h3&gt;Možnost B: Nginx&lt;/h3&gt;
 		&lt;p&gt;&lt;strong&gt;Nejlepší pro:&lt;/strong&gt; Enterprise prostředí, komplexní směrování.&lt;/p&gt;</description></item><item><title>Novinky</title><link>https://www.pgarachne.com/cs/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Novinky&lt;/h2&gt;
+	&lt;p&gt;Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;
@@ -329,33 +370,7 @@ example.com {
 		&lt;!-- 2. Bank Transfer --&gt;
 		&lt;div class="donation-card"&gt;
 			&lt;h4&gt;Bankovní převod&lt;/h4&gt;
-			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Příklad Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
-	&lt;h2&gt;Příklad Hello World&lt;/h2&gt;
-	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/p&gt;
-
-	&lt;h3&gt;1. Vytvoření uživatele a funkce&lt;/h3&gt;
-	&lt;p&gt;V databázi (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;-- 1. Vytvoříme uživatele, který se bude přihlašovat k API
-CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
-GRANT USAGE ON SCHEMA api TO demo_user;
-
--- 2. Vytvoříme funkci Hello World
--- Input: prázdný jsonb, Output: json
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
-RETURNS json
-LANGUAGE sql
-AS $$
- SELECT '"Hello World"'::json;
-$$;
-
--- 3. Udělíme uživateli oprávnění spustit funkci
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
-
--- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
-GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
-
-	&lt;h3&gt;2. Přihlášení přes API&lt;/h3&gt;
-	&lt;p&gt;Použijte JSON-RPC metodu &lt;code&gt;login&lt;/code&gt; pro získání JWT tokenu:&lt;/p&gt;</description></item><item><title>Real-time notifikace (SSE)</title><link>https://www.pgarachne.com/cs/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Real-time notifikace (SSE)</title><link>https://www.pgarachne.com/cs/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time notifikace (SSE)&lt;/h2&gt;
 	&lt;p&gt;Přihlaste se k PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálům přes Server-Sent Events:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \

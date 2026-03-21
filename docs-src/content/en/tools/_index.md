@@ -4,7 +4,7 @@ description: "Tools for PgArachne - Documentation."
 menu:
   main:
     name: "Tools"
-    weight: 70
+    weight: 80
 ---
 
 <section id="tools">

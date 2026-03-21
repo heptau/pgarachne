@@ -1,6 +1,6 @@
 ---
 title: "Explorador de PgArachne"
-description: "Explorador de PgArachne - PgArachne documentation."
+description: "Explorador de PgArachne - PgArachne"
 ---
 
 <section id="explorer">

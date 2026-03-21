@@ -252,33 +252,7 @@ example.com {
 		&lt;li&gt;&lt;a href="../security-roles/"&gt;Security &amp; Authentication&lt;/a&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;a href="../configuration/"&gt;Configuration&lt;/a&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>Hello World Example</title><link>https://www.pgarachne.com/en/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
-	&lt;h2&gt;Hello World Example&lt;/h2&gt;
-	&lt;p&gt;Let's create a simple API endpoint associated with a user.&lt;/p&gt;
-
-	&lt;h3&gt;1. Create User and Function&lt;/h3&gt;
-	&lt;p&gt;In your database (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;-- 1. Create a user who will log in to the API
-CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
-GRANT USAGE ON SCHEMA api TO demo_user;
-
--- 2. Create the Hello World function
--- Input: empty jsonb, Output: json
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
-RETURNS json
-LANGUAGE sql
-AS $$
- SELECT '"Hello World"'::json;
-$$;
-
--- 3. Grant permission to the user
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
-
--- 4. Allow PgArachne (system user) to switch to demo_user
-GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
-
-	&lt;h3&gt;2. Login via API&lt;/h3&gt;
-	&lt;p&gt;Use the JSON-RPC method &lt;code&gt;login&lt;/code&gt; to obtain a JWT token:&lt;/p&gt;</description></item><item><title>Installation</title><link>https://www.pgarachne.com/en/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/installation/</guid><description>&lt;section id="install"&gt;
+&lt;/section&gt;</description></item><item><title>Installation</title><link>https://www.pgarachne.com/en/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Installation&lt;/h2&gt;
 
 	&lt;h3&gt;1. Installation&lt;/h3&gt;
@@ -334,7 +308,33 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 			&lt;/div&gt;
 		&lt;/div&gt;
 
-		&lt;p&gt;More versions available in &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>License &amp; Trademark</title><link>https://www.pgarachne.com/en/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/license/</guid><description>&lt;section id="license"&gt;
+		&lt;p&gt;More versions available in &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>JSON-RPC &amp; Hello World</title><link>https://www.pgarachne.com/en/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+	&lt;h2&gt;JSON-RPC &amp; Hello World&lt;/h2&gt;
+	&lt;p&gt;Let's create a simple API endpoint associated with a user.&lt;/p&gt;
+
+	&lt;h3&gt;1. Create User and Function&lt;/h3&gt;
+	&lt;p&gt;In your database (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+ SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+
+-- 4. Allow PgArachne (system user) to switch to demo_user
+GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+
+	&lt;h3&gt;2. Login via API&lt;/h3&gt;
+	&lt;p&gt;Use the JSON-RPC method &lt;code&gt;login&lt;/code&gt; to obtain a JWT token:&lt;/p&gt;</description></item><item><title>License &amp; Trademark</title><link>https://www.pgarachne.com/en/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/license/</guid><description>&lt;section id="license"&gt;
 	&lt;h2&gt;License &amp; Trademark&lt;/h2&gt;
 	&lt;div class="license-box"&gt;
 		&lt;p&gt;&lt;strong&gt;The Code (MIT License):&lt;/strong&gt;&lt;br&gt;
@@ -353,7 +353,17 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;/section&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/en/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/mcp/</guid><description>&lt;section id="mcp"&gt;
+	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
+
+	&lt;p class="section-intro"&gt;
+		PgArachne natively supports the &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, an open standard that allows AI models (like Claude or Cursor) to safely access your data and functions as "tools".
+	&lt;/p&gt;
+
+	&lt;h3&gt;How does it work?&lt;/h3&gt;
+	&lt;p&gt;
+		PgArachne acts directly as an &lt;strong&gt;MCP Server&lt;/strong&gt;. Instead of writing a custom HTTP server for each project, just run PgArachne on top of your database. PgArachne automatically analyzes your allowed SQL functions and exposes them to AI clients via HTTP(S).
+	&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;The &lt;strong&gt;Explorer&lt;/strong&gt; is a powerful web GUI included in the &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; directory. It is not
 		just documentation; it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built using HTML/JS
@@ -430,6 +440,7 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 			&lt;h4&gt;Bank Transfer&lt;/h4&gt;
 			&lt;p&gt;Direct support with 0% fees.&lt;/p&gt;</description></item><item><title>What's New</title><link>https://www.pgarachne.com/en/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;What's New&lt;/h2&gt;
+	&lt;p&gt;More detailed information about changes in individual versions can be found directly in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;

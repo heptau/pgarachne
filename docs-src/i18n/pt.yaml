@@ -22,6 +22,8 @@
   translation: "Arquitetura"
 - id: nav_home
   translation: "Início"
+- id: nav_mcp
+  translation: "MCP"
 
 - id: search_label
   translation: "Pesquisa"
@@ -67,3 +69,7 @@
   translation: "Deployment e HTTPS"
 - id: link_metrics
   translation: "Métricas"
+- id: site_subtitle
+  translation: "API PostgreSQL instantânea"
+- id: whats_new_releases_link
+  translation: 'Informações mais detalhadas sobre as mudanças em cada versão podem ser encontradas diretamente em <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'

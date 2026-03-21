@@ -345,7 +345,8 @@ NOTIFY orders, 'nuovo ordine';
 NOTIFY orders, '{"id":123,"status":"created"}';
 &lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Da un trigger o una stored procedure:&lt;/p&gt;</description></item><item><title>Novità</title><link>https://www.pgarachne.com/it/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
-	&lt;h2&gt;Novità&lt;/h2&gt;
+ &lt;h2&gt;Novità&lt;/h2&gt;
+ &lt;p&gt;Informazioni più dettagliate sulle modifiche in ogni versione possono essere trovate direttamente su &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
 	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
 	&lt;ul&gt;

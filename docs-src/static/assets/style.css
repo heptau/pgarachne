@@ -18,6 +18,10 @@
 	--text-muted: #666666;
 	--border-color: #e0e0e0;
 	--shadow-main: 0 4px 15px rgba(0, 0, 0, 0.05);
+	--table-header-bg: #f9f9f9;
+	--table-row-req-bg: #f4fbf7;
+	--table-row-req-hover: #eaf8f0;
+	--card-bg-offset: #f9f9f9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -37,6 +41,10 @@
 		--teal: #2dd4bf;
 		--teal-light: #5eead4;
 		--gold: #f59e0b; /* More muted golden amber for dark mode */
+		--table-header-bg: rgba(255, 255, 255, 0.08);
+		--table-row-req-bg: rgba(45, 212, 191, 0.08);
+		--table-row-req-hover: rgba(45, 212, 191, 0.12);
+		--card-bg-offset: rgba(255, 255, 255, 0.05);
 	}
 }
 
@@ -856,8 +864,16 @@ table {
 	box-shadow: var(--shadow-main);
 }
 
+.config-table-section {
+	background-color: var(--table-header-bg) !important;
+	font-weight: bold;
+	color: var(--text-muted) !important;
+}
+
 .config-table {
 	position: relative;
+	width: 100%;
+	border-collapse: collapse;
 }
 
 .config-table thead th {
@@ -868,11 +884,11 @@ table {
 
 /* Emphasize required rows in configuration tables. */
 .config-table tbody tr.required-row {
-	background: #f4fbf7;
+	background: var(--table-row-req-bg);
 }
 
 .config-table tbody tr.required-row:hover {
-	background: #eaf8f0;
+	background: var(--table-row-req-hover);
 }
 
 th,
@@ -927,6 +943,18 @@ th {
 	padding: 20px;
 	margin-bottom: 20px;
 	border-radius: 5px;
+}
+
+/* Highlighted options in guides */
+.deployment-option.highlight {
+	background-color: var(--card-bg-offset);
+	border-left-color: #0066cc;
+}
+
+@media (prefers-color-scheme: dark) {
+	.deployment-option.highlight {
+		border-left-color: #3b82f6; /* Lighter blue for dark mode */
+	}
 }
 
 .donation-grid {
@@ -1538,8 +1566,8 @@ details[open] summary::after {
 
 	.config-table tbody tr {
 		margin: 0 0 12px;
-		background: #fff;
-		border: 1px solid #e9ecef;
+		background: var(--bg-white);
+		border: 1px solid var(--border-color);
 		border-radius: 10px;
 		overflow: hidden;
 	}

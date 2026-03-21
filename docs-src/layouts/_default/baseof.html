@@ -4,7 +4,8 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta name="description" content="{{ .Params.description | default .Site.Params.description }}">
-	{{ $pageTitle := cond .IsHome "PgArachne - Instant PostgreSQL API" (printf "%s - PgArachne" .Title) }}
+	{{ $siteSubtitle := T "site_subtitle" | default "Instant PostgreSQL API" }}
+	{{ $pageTitle := cond .IsHome (printf "PgArachne – %s" $siteSubtitle) (printf "%s – PgArachne" .Title) }}
 	<title>{{ $pageTitle }}</title>
 	<link rel="icon" type="image/png" href="{{ "assets/pgarachne-icon.png" | relURL }}">
 	<link rel="manifest" href="{{ "manifest.json" | relURL }}">
@@ -50,6 +51,7 @@
 			<div class="nav-links" id="nav-links">
 				<a href="{{ "/" | relLangURL }}">{{ i18n "nav_features" }}</a>
 				<a href="{{ "/" | relLangURL }}installation/">{{ i18n "nav_installation" }}</a>
+				<a href="{{ "/" | relLangURL }}mcp/">{{ i18n "nav_mcp" }}</a>
 				<a href="{{ "/" | relLangURL }}about-architecture/">{{ i18n "nav_architecture" }}</a>
 				<a href="{{ "/" | relLangURL }}support-donate/" class="nav-btn-donate">{{ i18n "nav_support" }}</a>
 			</div>

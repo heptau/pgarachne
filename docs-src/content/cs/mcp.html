@@ -1,0 +1,91 @@
+---
+title: "Model Context Protocol (MCP)"
+description: "Model Context Protocol (MCP) - PgArachne"
+menu:
+  main:
+    name: "MCP"
+    weight: 65
+---
+
+<section id="mcp">
+	<h2>Model Context Protocol (MCP)</h2>
+
+	<p class="section-intro">
+		PgArachne nativně podporuje <strong>Model Context Protocol (MCP)</strong>, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům“ (tools).
+	</p>
+
+	<h3>Jak to funguje?</h3>
+	<p>
+		PgArachne funguje přímo jako <strong>MCP Server</strong>. Namísto psaní vlastního HTTP serveru pro každý projekt stačí PgArachne spustit nad vaší databází. PgArachne automaticky analyzuje vaše povolené SQL funkce a vystaví je AI klientům pomocí HTTP(S).
+	</p>
+
+	<div class="card" style="margin-bottom: 2rem;">
+		<h3>🛠️ SQL Funkce jako Nástroje</h3>
+		<p>Jakákoliv SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem“ v AI. Výchozí nastavení (volání <code>pgarachne.allowed_schemas()</code>) vystavuje funkce uložené ve schématu <code>api</code>, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.</p>
+	</div>
+
+	<h3>Průvodce připojením</h3>
+
+	<div class="deployment-option">
+		<h4>1. Vytvoření API tokenu</h4>
+		<p>Pro trvalé propojení s AI doporučujeme použít <strong>dlouhodobý API token</strong> namísto krátkodobého JWT. Z bezpečnostních důvodů musí token generovat administrátor (role <code>pgarachne_admin</code>):</p>
+		<pre><code>-- Přepnutí do administrátorské role
+SET ROLE pgarachne_admin;
+
+-- Vygeneruje nový token pro roli proxy uživatele (např. 'app_user')
+SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');</code></pre>
+		<p>Poznamenejte si vrácený řetězec, bude sloužit k autentizaci. Token se validuje při každém HTTP požadavku nezávisle na platnosti expiračního data.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>2. Claude Desktop</h4>
+		<p>Přidejte PgArachne do konfigurace Claude Desktop (<code>~/Library/Application Support/Claude/claude_desktop_config.json</code>):</p>
+		<pre><code>{
+  "mcpServers": {
+    "pgarachne": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-http",
+        "--url",
+        "https://your-api.com/db/my_database/mcp"
+      ],
+      "env": {
+        "Authorization": "Bearer VÁŠ_API_TOKEN"
+      }
+    }
+  }
+}</code></pre>
+		<p><small>Poznámka: Pro připojení je <strong>vyžadováno HTTP(S)</strong>. Ukázka uses npx bridge <code>server-http</code> od Anthropicu, který zprostředkuje komunikaci mezi standardním MCP (stdio) a PgArachne (HTTP).</small></p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>3. Cursor</h4>
+		<p>V nastavení Cursoru (Settings > MCP) přidejte nový server komunikující napřímo přes HTTP (nebo pomocí výše zmíněného bridge, pokud Cursor nativní HTTP MCP server nepodporuje ve vaší verzi):</p>
+		<ul>
+			<li><strong>Type:</strong> <code>command</code> (s npx bridge) nebo <code>http</code></li>
+			<li><strong>Name:</strong> <code>PgArachne</code></li>
+			<li><strong>URL:</strong> <code>https://your-api.com/db/my_database/mcp</code></li>
+			<li><strong>Auth Header:</strong> <code>Authorization: Bearer VÁŠ_API_TOKEN</code></li>
+		</ul>
+	</div>
+
+	<div class="deployment-option highlight">
+		<h4>🌐 Veřejná dostupnost (Ngrok)</h4>
+		<p>Pokud testujete PgArachne lokálně a chcete jej propojit s webovou AI (mimo lokální instalace), váš server <strong>musí být veřejně dostupný na HTTP(S) URL</strong>.</p>
+		<pre><code># Spusťte ngrok pro HTTP port PgArachne (např. 8080)
+ngrok http 8080</code></pre>
+		<p>V konfiguraci AI poté použijte vygenerovanou HTTPS adresu od Ngroku.</p>
+	</div>
+
+	<h3>Bezpečnost</h3>
+	<p>
+		MCP endpoint v PgArachne plně respektuje nastavená pravidla databáze:
+	</p>
+	<ul>
+		<li><strong>Autentizace:</strong> Každý požadavek na HTTP endpoint vyžaduje platný API token nebo JWT, jinak je okamžitě zamítnut.</li>
+		<li><strong>Autorizace:</strong> AI vidí a může volat jen ty funkce z povolených schémat, ke kterým má autentizovaná role <code>GRANT EXECUTE</code>.</li>
+		<li><strong>RLS:</strong> Row-Level Security je plně aktivní — AI uvidí jen ty řádky, ke kterým má konkrétní role přístup.</li>
+	</ul>
+
+</section>
