@@ -8,23 +8,24 @@ menu:
 ---
 
 <section id="security">
-	<h2>Bezpečnost a autentizace</h2>
+	<h2>Bezpečnost a autentizace</h2>
 	<p>PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
-		Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
-		<code>SET LOCAL ROLE</code>.
+		PgArachne podporuje <strong>čtyři metody autentizace</strong>. Metody 1–3 používají
+		<code>SET LOCAL ROLE</code> k přepnutí identity; metoda 4 (přímé přihlášení) se připojuje
+		<em>přímo</em> jako daný uživatel, takže přepnutí role není zapotřebí.
 	</p>
 
 	<h3>1. Interaktivní přihlášení (JWT)</h3>
-	<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
-		přes přihlašovací funkci. Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne
-		aktivní roli na tohoto uživatele po dobu trvání požadavku.</p>
+	<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
+		přes metodu JSON-RPC <code>get_jwt</code>. Pokud je úspěšná, obdrží krátkodobý JWT. Při použití tohoto tokenu
+		přepne PgArachne aktivní roli na tohoto uživatele po dobu trvání každého požadavku.</p>
 
 	<h3>2. Služby (API tokeny)</h3>
-	<p>Pro automatizované systémy nebo skripty můžete použít dlouhodobé API tokeny.</p>
+	<p>Pro automatizované systémy nebo skripty lze použít dlouhodobé API tokeny.</p>
 	<ul>
-		<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
+		<li>Tokeny jsou uloženy v tabulce <code>pgarachne.api_tokens</code>.</li>
 		<li>Každý token je mapován na konkrétního databázového uživatele/roli.</li>
-		<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+		<li>Token odešlete v hlavičce <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
 	<p><em>Vytváření API tokenů vyžaduje <code>pgarachne_admin</code>. Použijte <code>pgarachne.add_api_token(...)</code> s rolí, která je členem <code>pgarachne_admin</code>.</em></p>
 
@@ -36,12 +37,12 @@ menu:
 		<li>Podepisování: pouze HMAC (<code>HS256</code>/<code>HS384</code>/<code>HS512</code>) se stejným
 			<code>JWT_SECRET</code>, jaký má PgArachne.
 		</li>
-		<li>Povinné claimy: <code>db_role</code> (string, nesmí být prázdný) a <code>db_name</code> (string, musí
+		<li>Povinné claimy: <code>db_role</code> (řetězec, nesmí být prázdný) a <code>db_name</code> (řetězec, musí
 			odpovídat <code>/api/:database</code>).
 		</li>
-		<li>Doporučený claim: <code>exp</code> (Unix timestamp) pro expiraci tokenu.</li>
+		<li>Doporučený claim: <code>exp</code> (unixový časový otisk) pro expiraci tokenu.</li>
 	</ul>
-	<p>Minimalní příklad payloadu:</p>
+	<p>Minimální příklad těla tokenu:</p>
 	<pre><code>{
   "db_role": "demo_user",
   "db_name": "my_database",
@@ -50,17 +51,93 @@ menu:
 	<p><strong>Důležité:</strong> asymetrické JWT algoritmy (např. <code>RS256</code>/<code>ES256</code>) aktuální
 		implementace serveru nepřijímá.</p>
 
-	<div class="warning">
-		<h3>Kritická konfigurace: Oprávnění proxy</h3>
-		<p>Jelikož se PgArachne připojuje jako uživatel definovaný v <code>DB_USER</code> (např.
-			<code>pgarachne</code>) a přepíná identitu na jiné uživatele, proxy uživatel <strong>musí být
-				členem</strong> těchto cílových rolí.
-		</p>
+	<h3 id="direct-credentials">4. Přímé přihlášení databázovými údaji (Basic Auth)</h3>
+	<p>Nejjednodušší možnost: zasílejte PostgreSQL uživatelské jméno a heslo s <strong>každým požadavkem</strong>
+		prostřednictvím standardní HTTP Basic Authentication. PgArachne otevře vyhrazený connection pool autentizovaný
+		přímo jako daný uživatel — <code>SET LOCAL ROLE</code> se <em>neprovede</em>.</p>
 
-		<p>Spusťte toto SQL pro každého uživatele/roli, která se potřebuje přihlásit:</p>
-		<pre><code>-- Povolit 'pgarachne' přepnout se na 'demo_user'
-GRANT demo_user TO pgarachne;</code></pre>
+	<pre><code>Authorization: Basic &lt;base64(uzivatel:heslo)&gt;</code></pre>
+
+	<p>Příklad s curl:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:heslo \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+
+	<div class="tip">
+		<strong>Kdy použít přímé přihlášení:</strong>
+		<ul>
+			<li>Rychlé prototypování a lokální vývoj — není třeba správa tokenů.</li>
+			<li>Interní služby, kde jsou přihlašovací údaje již bezpečně spravovány.</li>
+			<li>Situace, kdy by vydání JWT předem zbytečně komplikovalo řešení.</li>
+		</ul>
 	</div>
+
+	<p><strong>Klíčové rozdíly oproti metodám s tokeny:</strong></p>
+	<ul>
+		<li>Příkaz <code>GRANT demo_user TO pgarachne</code> není vyžadován — PgArachne roli nepřepíná.</li>
+		<li>PostgreSQL Row-Level Security a oprávnění definovaná pomocí <code>GRANT</code> jsou vynucena standardně,
+			protože spojení běží přímo pod daným uživatelem.</li>
+		<li>Connection pooly jsou udržovány pro každého uživatele zvlášť a mají maximální dobu životnosti 5 minut.
+			Po změně hesla stará spojení vyprší během tohoto okna.</li>
+		<li>Aby idempotency klíče fungovaly s přímým přihlášením, udělte uživateli oprávnění
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+	</ul>
+
+	<div class="warning">
+		<h3>Oprávnění proxy: vyžadováno pouze pro metody 1–3</h3>
+		<p>Při autentizaci pomocí JWT nebo API tokenů se PgArachne připojuje jako systémový uživatel definovaný v
+			<code>DB_USER</code> (např. <code>pgarachne</code>) a přepíná identitu pomocí
+			<code>SET LOCAL ROLE</code>. Systémový uživatel <strong>musí být členem</strong> každé cílové role.
+		</p>
+		<pre><code>-- Vyžadováno pouze pro JWT / API-token autentizaci:
+GRANT demo_user TO pgarachne;</code></pre>
+		<p>Tento grant <strong>není zapotřebí</strong> při použití přímého přihlášení (metoda 4).</p>
+	</div>
+
+	<h3>Srovnání metod autentizace</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Metoda</th>
+				<th>Hlavička</th>
+				<th>SET LOCAL ROLE</th>
+				<th>GRANT … TO pgarachne</th>
+				<th>Nejlépe pro</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>JWT (get_jwt)</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Ano</td>
+				<td>Vyžadováno</td>
+				<td>Uživatelské relace</td>
+			</tr>
+			<tr>
+				<td>API Token</td>
+				<td><code>Bearer &lt;token&gt;</code></td>
+				<td>✅ Ano</td>
+				<td>Vyžadováno</td>
+				<td>Automatizované služby</td>
+			</tr>
+			<tr>
+				<td>Externí JWT</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Ano</td>
+				<td>Vyžadováno</td>
+				<td>Integrace externího IdP</td>
+			</tr>
+			<tr>
+				<td><strong>Přímé přihlášení</strong></td>
+				<td><code>Basic &lt;b64&gt;</code></td>
+				<td>❌ Ne</td>
+				<td><strong>Nevyžadováno</strong></td>
+				<td>Vývoj, interní služby</td>
+			</tr>
+		</tbody>
+	</table>
+
 	<h3>Viz také</h3>
 	<ul>
 		<li><a href="../configuration/">Konfigurace</a></li>

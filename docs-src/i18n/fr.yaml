@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Votre base de données est votre backend.<br>Sécurisé, instantané, prêt pour l'IA."
+  translation: "Votre base de données est votre backend.<br>Sans boilerplate. Sécurisé, instantané, prêt pour l'IA."
 - id: hero_desc
-  translation: "Définissez une fonction SQL — votre endpoint est prêt. Support MCP natif pour Claude Desktop &amp; Cursor. Notifications SSE temps réel. Prêt pour la production dès le premier jour."
+  translation: "Définissez une fonction SQL — votre endpoint est prêt. JSON-RPC 2.0 avec support MCP natif pour Claude Desktop &amp; Cursor, notifications SSE en temps réel et sécurité native à la base de données. Prêt pour la production, un seul binaire."
 - id: hero_get_started
   translation: "Commencer"
 - id: hero_see_demo
@@ -24,6 +24,12 @@
   translation: "Accueil"
 - id: nav_mcp
   translation: "MCP"
+- id: link_mcp
+  translation: "Model Context Protocol (MCP)"
+- id: site_subtitle
+  translation: "API PostgreSQL instantanée"
+- id: whats_new_releases_link
+  translation: 'Des informations plus détaillées sur les changements dans chaque version peuvent être trouvées directement sur <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'
 
 - id: search_label
   translation: "Recherche"
@@ -69,7 +75,3 @@
   translation: "Déploiement & HTTPS"
 - id: link_metrics
   translation: "Métriques"
-- id: site_subtitle
-  translation: "API PostgreSQL instantanée"
-- id: whats_new_releases_link
-  translation: "Des informations plus détaillées sur les changements dans chaque version peuvent être trouvées directement sur <a href=\"https://github.com/heptau/pgarachne/releases\" target=\"_blank\">GitHub Releases</a>."

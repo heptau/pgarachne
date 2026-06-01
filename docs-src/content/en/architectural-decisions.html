@@ -118,7 +118,7 @@ menu:
 			<li><strong>Reverse proxy routing:</strong> A single PgArachne instance can serve multiple databases. A reverse proxy (Nginx, Caddy, Traefik) can route by prefix or database name without inspecting the request body, which is critical for load balancing and path-based routing rules.</li>
 			<li><strong>Horizontal scalability:</strong> With the database name in the URL path, you can run multiple PgArachne instances and route traffic to specific instances per database using standard proxy rules — no sticky sessions or body inspection required.</li>
 			<li><strong>Protocol multiplexing per database:</strong> Grouping <code>/jsonrpc</code>, <code>/sse</code>, and <code>/mcp</code> under the same <code>/{prefix}/{database}/</code> namespace makes it natural to apply per-database authentication, rate limiting, and access control at the proxy layer.</li>
-			<li><strong>Configurable prefix:</strong> Deployments that already use <code>/api/</code> as a prefix in their infrastructure can set <code>API_PREFIX=api</code> to match their conventions. Legacy clients are supported via a <code>307 Temporary Redirect</code> from the old paths.</li>
+			<li><strong>Configurable prefix:</strong> Deployments that already use <code>/api/</code> as a prefix in their infrastructure can set <code>API_PREFIX=api</code> to match their conventions.</li>
 			<li><strong>Observability:</strong> Log aggregators and metrics systems can group and filter traffic by database name directly from the URL without parsing JSON bodies.</li>
 		</ul>
 

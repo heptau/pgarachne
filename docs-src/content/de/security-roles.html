@@ -9,25 +9,25 @@ menu:
 
 <section id="security">
 	<h2>Sicherheit & Authentifizierung</h2>
-	<p>PgArachne verlässt sich vollständig auf das PostgreSQL-Berechtigungssystem. Es erfindet keine Access
-		Control Lists (ACLs) neu. Alle Abfragen werden unter der spezifischen Datenbankrolle
-		des authentifizierten Benutzers mit
-		<code>SET LOCAL ROLE</code> ausgeführt.
+	<p>PgArachne verlässt sich vollständig auf das PostgreSQL-Berechtigungssystem. Es erfindet keine Access
+		Control Lists (ACLs) neu. Alle Abfragen werden unter der spezifischen Datenbankrolle
+		des authentifizierten Benutzers ausgeführt — entweder durch <code>SET LOCAL ROLE</code> (Methoden 1–3)
+		oder durch eine direkte Verbindung als der jeweilige Benutzer (Methode 4).
 	</p>
 
 	<h3>1. Interaktives Login (JWT)</h3>
-	<p>Benutzer authentifizieren sich über die Login-Funktion mit ihrem <strong>echten PostgreSQL-Benutzernamen und -Passwort</strong>.
-		Bei Erfolg erhalten sie ein generisches JWT. Wenn dieses Token verwendet wird, wechselt PgArachne die aktive Rolle für die
-		Dauer der Anfrage zu diesem Benutzer.</p>
+	<p>Benutzer authentifizieren sich über die Login-Funktion mit ihrem <strong>echten PostgreSQL-Benutzernamen und -Passwort</strong>.
+		Bei Erfolg erhalten sie ein generisches JWT. Wenn dieses Token verwendet wird, wechselt PgArachne die aktive Rolle für die
+		Dauer der Anfrage zu diesem Benutzer.</p>
 
 	<h3>2. Service-Konten (API-Token)</h3>
-	<p>Für automatisierte Systeme oder Skripte können Sie langlebige API-Token verwenden.</p>
+	<p>Für automatisierte Systeme oder Skripte können Sie langlebige API-Token verwenden.</p>
 	<ul>
-		<li>Token werden in der Tabelle <code>pgarachne.api_tokens</code> gespeichert.</li>
-		<li>Jedes Token ist einem bestimmten Datenbankbenutzer/-rolle zugeordnet.</li>
-		<li>Senden Sie das Token über den Header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+		<li>Token werden in der Tabelle <code>pgarachne.api_tokens</code> gespeichert.</li>
+		<li>Jedes Token ist einem bestimmten Datenbankbenutzer/-rolle zugeordnet.</li>
+		<li>Senden Sie das Token über den Header <code>Authorization: Bearer &lt;token&gt;</code>.</li>
 	</ul>
-	<p><em>Das Erstellen von API‑Tokens erfordert <code>pgarachne_admin</code>. Verwende <code>pgarachne.add_api_token(...)</code> mit einer Rolle, die Mitglied von <code>pgarachne_admin</code> ist.</em></p>
+	<p><em>Das Erstellen von API‑Tokens erfordert <code>pgarachne_admin</code>. Verwenden Sie <code>pgarachne.add_api_token(...)</code> mit einer Rolle, die Mitglied von <code>pgarachne_admin</code> ist.</em></p>
 
 	<h3>3. Externer Identity Provider (eigenes JWT)</h3>
 	<p>Wenn Benutzer außerhalb von PgArachne authentifiziert werden (z. B. über einen externen Auth-Dienst),
@@ -51,17 +51,92 @@ menu:
 	<p><strong>Wichtig:</strong> asymmetrische JWT-Algorithmen (z. B. <code>RS256</code>/<code>ES256</code>) werden
 		von der aktuellen Server-Implementierung nicht akzeptiert.</p>
 
+	<h3>4. Direkte Datenbankzugangsdaten (Basic Auth)</h3>
+	<p>PgArachne unterstützt HTTP Basic Authentication. Der PostgreSQL-Benutzername und das Passwort werden
+		direkt im Standard-<code>Authorization</code>-Header übergeben:</p>
+	<pre><code>Authorization: Basic &lt;base64(benutzer:passwort)&gt;</code></pre>
+	<p>Mit <code>curl</code> lässt sich dies besonders einfach verwenden:</p>
+	<pre><code>curl -u demo_user:passwort \
+  -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+
+	<p><strong>Wesentliche Unterschiede zu den Methoden 1–3:</strong></p>
+	<ul>
+		<li>Es ist <strong>kein</strong> <code>GRANT demo_user TO pgarachne</code> erforderlich.</li>
+		<li>PgArachne führt <strong>kein</strong> <code>SET LOCAL ROLE</code> aus — die Verbindung wird direkt als der angegebene Benutzer hergestellt.</li>
+		<li>Verbindungs-Pools sind benutzerspezifisch und haben eine Lebensdauer von <strong>5 Minuten</strong>.</li>
+		<li>JWT bleibt optional und wird für diese Methode nicht benötigt.</li>
+	</ul>
+
+	<div class="tip">
+		<h3>Wann sollten Sie Direkte Zugangsdaten verwenden?</h3>
+		<ul>
+			<li><strong>Entwicklung &amp; lokales Testen:</strong> Kein Token-Management, sofort einsatzbereit.</li>
+			<li><strong>Skripte &amp; Automatisierung:</strong> Einfache Authentifizierung ohne vorherigen Login-Schritt.</li>
+			<li><strong>Interne Dienste:</strong> Wenn Zugangsdaten bereits sicher verwaltet werden (z. B. über Vault oder Kubernetes Secrets).</li>
+		</ul>
+		<p>Für Produktionsumgebungen mit externen Clients sind langlebige <strong>API-Token</strong> (Methode 2) die bevorzugte Wahl.</p>
+	</div>
+
+	<h3>Vergleich der Authentifizierungsmethoden</h3>
+	<div class="comparison-table-wrapper">
+		<table>
+			<thead>
+				<tr>
+					<th>Methode</th>
+					<th>Header</th>
+					<th>SET LOCAL ROLE</th>
+					<th>GRANT … TO pgarachne</th>
+					<th>Am besten für</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><strong>1. Interaktives Login (JWT)</strong></td>
+					<td><code>Authorization: Bearer &lt;jwt&gt;</code></td>
+					<td>Ja</td>
+					<td>Erforderlich</td>
+					<td>Interaktive Anwendungen</td>
+				</tr>
+				<tr>
+					<td><strong>2. API-Token</strong></td>
+					<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+					<td>Ja</td>
+					<td>Erforderlich</td>
+					<td>Service-Konten, KI-Agenten</td>
+				</tr>
+				<tr>
+					<td><strong>3. Externes JWT</strong></td>
+					<td><code>Authorization: Bearer &lt;jwt&gt;</code></td>
+					<td>Ja</td>
+					<td>Erforderlich</td>
+					<td>Externer Identity Provider</td>
+				</tr>
+				<tr>
+					<td><strong>4. Direkte Zugangsdaten (Basic Auth)</strong></td>
+					<td><code>Authorization: Basic &lt;base64&gt;</code></td>
+					<td>Nein</td>
+					<td>Nicht erforderlich</td>
+					<td>Entwicklung, Skripte, interne Dienste</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
 	<div class="warning">
-		<h3>Kritische Konfiguration: Proxy-Privilegien</h3>
-		<p>Da sich PgArachne als der in <code>DB_USER</code> definierte Benutzer (z. B. <code>pgarachne</code>)
-			verbindet und die Identität zu anderen Benutzern wechselt, muss der Proxy-Benutzer
+		<h3>Kritische Konfiguration: Proxy-Privilegien (nur Methoden 1–3)</h3>
+		<p>Da sich PgArachne bei den Methoden 1–3 als der in <code>DB_USER</code> definierte Benutzer (z. B. <code>pgarachne</code>)
+			verbindet und die Identität zu anderen Benutzern wechselt, muss der Proxy-Benutzer
 			<strong>Mitglied</strong> dieser Zielrollen sein.
 		</p>
 
-		<p>Führen Sie dieses SQL für jeden Benutzer/jede Rolle aus, die sich anmelden muss:</p>
+		<p>Führen Sie dieses SQL für jeden Benutzer/jede Rolle aus, die sich anmelden muss:</p>
 		<pre><code>-- Erlaube 'pgarachne' zu 'demo_user' zu wechseln
 GRANT demo_user TO pgarachne;</code></pre>
+		<p>Bei Methode 4 (Direkte Zugangsdaten) entfällt dieses GRANT vollständig, da PgArachne sich direkt als der jeweilige Benutzer verbindet.</p>
 	</div>
+
 	<h3>Siehe auch</h3>
 	<ul>
 		<li><a href="../configuration/">Konfiguration</a></li>

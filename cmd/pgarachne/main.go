@@ -7,12 +7,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/yourusername/pgarachne/internal/config"
-	"github.com/yourusername/pgarachne/internal/daemon"
-	"github.com/yourusername/pgarachne/internal/server"
+	"github.com/heptau/pgarachne/internal/config"
+	"github.com/heptau/pgarachne/internal/daemon"
+	"github.com/heptau/pgarachne/internal/server"
+	"github.com/heptau/pgarachne/internal/version"
 )
-
-var Version = "0.0.0"
 
 func parseLogLevel(level string) slog.Level {
 	switch strings.ToUpper(strings.TrimSpace(level)) {
@@ -37,13 +36,17 @@ func main() {
 
 	flag.Parse()
 
-	// Handle Daemon commands first
+	// Handle Daemon commands first — each function calls os.Exit internally,
+	// but explicit returns make the flow clear and prevent accidental fallthrough
+	// when Stop() and Start() are both set.
 	if *stopDaemon {
 		daemon.Stop()
+		return
 	}
 
 	if *startDaemon {
 		daemon.Start()
+		return
 	}
 
 	if *showHelp {
@@ -52,8 +55,8 @@ func main() {
 	}
 
 	if *showVersion {
-		fmt.Printf("PgArachne version %s\n", Version)
-		os.Exit(0)
+		fmt.Printf("PgArachne %s\n", version.Full())
+		return
 	}
 
 	// Load configuration
@@ -81,14 +84,14 @@ func main() {
 
 		slog.SetDefault(slog.New(slog.NewJSONHandler(file, handlerOptions)))
 
-		fmt.Printf("PgArachne version %s starting. Logging to %s\n", Version, cfg.LogOutput)
+		fmt.Printf("PgArachne %s starting. Logging to %s\n", version.Full(), cfg.LogOutput)
 	} else {
 		// No log file configured — write everything to stdout.
 		slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, handlerOptions)))
 	}
 
 	slog.Info("PgArachne starting",
-		"version", Version,
+		"version", version.Version,
 		"config_file", *configPath,
 		"log_output", cfg.LogOutput,
 		"log_level", cfg.LogLevel,

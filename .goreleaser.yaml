@@ -23,7 +23,10 @@ builds:
       - amd64
       - arm64
     ldflags:
-      - -s -w -X main.Version={{ .Version }}
+      - -s -w
+      - -X github.com/heptau/pgarachne/internal/version.Version={{ .Version }}
+      - -X github.com/heptau/pgarachne/internal/version.Commit={{ .FullCommit }}
+      - -X github.com/heptau/pgarachne/internal/version.BuildDate={{ .Date }}
 
 archives:
   - id: cli-archive

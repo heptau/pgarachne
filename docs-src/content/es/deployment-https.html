@@ -8,16 +8,16 @@ menu:
 ---
 
 <section id="deployment">
-	<h2>Despliegue y HTTPS</h2>
+	<h2>Despliegue y HTTPS</h2>
 	<p>PgArachne está diseñado para realizar bien una sola tarea: API Gateway. Para SSL/TLS (HTTPS), seguridad
-		de encabezados y enrutamiento público, deberías colocar un <strong>Proxy Inverso</strong> delante de él.
+		de encabezados y enrutamiento público, se recomienda colocar un <strong>Proxy Inverso</strong> delante de él.
 	</p>
 
 	<div class="deployment-option">
 		<h3>Opción A: Servidor Caddy</h3>
-		<p><strong>Mejor para:</strong> Despliegues de producción modernos, facilidad de uso.</p>
-		<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> es el único servidor web que obtiene
-			y renueva certificados SSL (Let's Encrypt) automáticamente por defecto. Requiere casi cero
+		<p><strong>Mejor para:</strong> Despliegues de producción modernos, facilidad de uso.</p>
+		<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> es el único servidor web que obtiene
+			y renueva certificados SSL (Let's Encrypt) automáticamente por defecto. Requiere casi cero
 			configuración.</p>
 		<pre><code># Caddyfile
 example.com {
@@ -28,8 +28,8 @@ example.com {
 	<div class="deployment-option">
 		<h3>Opción B: Nginx</h3>
 		<p><strong>Mejor para:</strong> Entornos empresariales, enrutamiento complejo.</p>
-		<p><a href="https://nginx.org/" target="_blank">Nginx</a> es el estándar de la industria para
-			balanceo de carga de alto rendimiento. Úsalo si ya tienes una infraestructura Nginx. Necesitarás
+		<p><a href="https://nginx.org/" target="_blank">Nginx</a> es el estándar de la industria para
+			balanceo de carga de alto rendimiento. Utilícelo si ya dispone de una infraestructura Nginx. Será necesario
 			gestionar Certbot manualmente.</p>
 		<pre><code>server {
     server_name example.com;
@@ -41,19 +41,19 @@ example.com {
 
 	<div class="deployment-option">
 		<h3>Opción C: Ngrok</h3>
-		<p><strong>Mejor para:</strong> Desarrollo local, Demos, pruebas de Webhook.</p>
-		<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un túnel seguro desde internet público
-			directamente a tu portátil sin configurar firewalls. Ideal para mostrar tu trabajo a colegas al
-			instante.</p>
+		<p><strong>Mejor para:</strong> Desarrollo local, demostraciones, pruebas de Webhook.</p>
+		<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> crea un túnel seguro desde internet público
+			directamente al equipo local sin necesidad de configurar firewalls. Ideal para mostrar el trabajo a colegas
+			al instante.</p>
 		<pre><code>./ngrok http 8080</code></pre>
 	</div>
 <div class="warning">
 		<h3>Checklist de producción</h3>
 		<ul>
-			<li>Termina TLS en el reverse proxy y reenvía <code>X-Forwarded-Proto</code> y <code>X-Forwarded-For</code>.</li>
-			<li>Configura <code>TRUSTED_PROXIES</code> en PgArachne con los rangos IP/CIDR de tus proxies.</li>
-			<li>Desactiva buffering en rutas SSE y usa read timeouts suficientemente largos para streaming.</li>
-			<li>Expón métricas solo internamente (por defecto <code>127.0.0.1:9090</code>) y haz scrape desde tu red de monitoreo.</li>
+			<li>Termine TLS en el reverse proxy y reenvíe <code>X-Forwarded-Proto</code> y <code>X-Forwarded-For</code>.</li>
+			<li>Configure <code>TRUSTED_PROXIES</code> en PgArachne con los rangos IP/CIDR de los proxies.</li>
+			<li>Desactive el buffering en rutas SSE y utilice read timeouts suficientemente largos para streaming.</li>
+			<li>Exponga las métricas solo internamente (por defecto <code>127.0.0.1:9090</code>) y realice el scrape desde la red de monitoreo.</li>
 		</ul>
 	</div>
 

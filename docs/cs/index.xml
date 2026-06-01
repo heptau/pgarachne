@@ -2,7 +2,7 @@
 	&lt;h2&gt;Architektonická designová rozhodnutí&lt;/h2&gt;
 	&lt;p&gt;
 		Tato stránka vysvětluje důvody klíčových architektonických a technologických voleb v projektu PgArachne.
-		Tato rozhodnutí byla učiněna s ohledem na výkon, bezpečnost a produktivitu vývojářů, přičemž byl kladen důraz na vysokou kompatibilitu s moderními AI agenty a LLM modely.
+		Tato rozhodnutí byla učiněna s ohledem na výkon, bezpečnost a produktivitu vývojářů, přičemž byl kladen důraz na vysokou kompatibilitu s moderními AI agenty a jazykovými modely (LLM).
 	&lt;/p&gt;
 
 	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
@@ -29,16 +29,17 @@
 	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
 		&lt;h3&gt;2. SSE (Server-Sent Events) vs. WebSockets&lt;/h3&gt;
 		&lt;p&gt;Pro real-time notifikace implementuje PgArachne Server-Sent Events (SSE).&lt;/p&gt;</description></item><item><title>Bezpečnost a autentizace</title><link>https://www.pgarachne.com/cs/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/security-roles/</guid><description>&lt;section id="security"&gt;
-	&lt;h2&gt;Bezpečnost a autentizace&lt;/h2&gt;
+	&lt;h2&gt;Bezpečnost a autentizace&lt;/h2&gt;
 	&lt;p&gt;PgArachne se plně spoléhá na systém oprávnění PostgreSQL. Nevynalézá znovu Access Control Lists (ACL).
-		Všechny dotazy jsou prováděny pod specifickou databázovou rolí ověřeného uživatele pomocí
-		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt;.
+		PgArachne podporuje &lt;strong&gt;čtyři metody autentizace&lt;/strong&gt;. Metody 1–3 používají
+		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; k přepnutí identity; metoda 4 (přímé přihlášení) se připojuje
+		&lt;em&gt;přímo&lt;/em&gt; jako daný uživatel, takže přepnutí role není zapotřebí.
 	&lt;/p&gt;
 
 	&lt;h3&gt;1. Interaktivní přihlášení (JWT)&lt;/h3&gt;
-	&lt;p&gt;Uživatelé se autentizují pomocí svého &lt;strong&gt;skutečného PostgreSQL uživatelského jména a hesla&lt;/strong&gt;
-		přes přihlašovací funkci. Pokud je úspěšná, obdrží obecný JWT. Při použití tohoto tokenu přepne PgArachne
-		aktivní roli na tohoto uživatele po dobu trvání požadavku.&lt;/p&gt;</description></item><item><title>Chybové kódy</title><link>https://www.pgarachne.com/cs/error-codes/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/error-codes/</guid><description>&lt;section id="errors"&gt;
+	&lt;p&gt;Uživatelé se autentizují pomocí svého &lt;strong&gt;skutečného PostgreSQL uživatelského jména a hesla&lt;/strong&gt;
+		přes metodu JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt;. Pokud je úspěšná, obdrží krátkodobý JWT. Při použití tohoto tokenu
+		přepne PgArachne aktivní roli na tohoto uživatele po dobu trvání každého požadavku.&lt;/p&gt;</description></item><item><title>Chybové kódy</title><link>https://www.pgarachne.com/cs/error-codes/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/error-codes/</guid><description>&lt;section id="errors"&gt;
 	&lt;h2&gt;Chybové kódy&lt;/h2&gt;
 	&lt;p&gt;PgArachne vrací standardní chybové objekty JSON-RPC 2.0. Níže jsou uvedeny specifické kódy, se kterými se
 		můžete setkat:&lt;/p&gt;
@@ -152,7 +153,8 @@
 
 		&lt;p&gt;Více verzí je k dispozici na &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>JSON-RPC a Hello World</title><link>https://www.pgarachne.com/cs/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
 	&lt;h2&gt;JSON-RPC a Hello World&lt;/h2&gt;
-	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k uživateli.&lt;/p&gt;
+	&lt;p&gt;Vytvoříme jednoduchý API endpoint přiřazený k databázovému uživateli. Jsou ukázány dva přístupy k autentizaci:
+		klasický tok s JWT a jednodušší tok s přímým přihlášením.&lt;/p&gt;
 
 	&lt;h3&gt;1. Vytvoření uživatele a funkce&lt;/h3&gt;
 	&lt;p&gt;V databázi (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
@@ -170,17 +172,44 @@ AS $$
 $$;
 
 -- 3. Udělíme uživateli oprávnění spustit funkci
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/pre&gt;
 
--- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
-GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Kterou metodu autentizace zvolit?&lt;/strong&gt;&lt;br&gt;
+		Zvolte &lt;strong&gt;Variantu A (JWT)&lt;/strong&gt; pro relace v prohlížeči nebo pro přihlášení koncových uživatelů.
+		Zvolte &lt;strong&gt;Variantu B (přímé přihlášení)&lt;/strong&gt; pro lokální vývoj, skripty nebo interní služby —
+		správa tokenů není nutná.
+	&lt;/div&gt;
 
-	&lt;h3&gt;2. Přihlášení přes API&lt;/h3&gt;
-	&lt;p&gt;Použijte JSON-RPC metodu &lt;code&gt;login&lt;/code&gt; pro získání JWT tokenu:&lt;/p&gt;</description></item><item><title>Konfigurace</title><link>https://www.pgarachne.com/cs/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/configuration/</guid><description>&lt;section id="config"&gt;
+	&lt;h3&gt;Varianta A: Tok s JWT tokenem&lt;/h3&gt;
+
+	&lt;p&gt;Autentizace pomocí JWT vyžaduje, aby systémový uživatel PgArachne (&lt;code&gt;pgarachne&lt;/code&gt;) mohl přepnout
+		na &lt;code&gt;demo_user&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/cs/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;JWT Getter&lt;/strong&gt; je minimalistický nástroj pro prohlížeč umístěný ve složce &lt;code&gt;tools/get-jwt&lt;/code&gt;. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním JSON-RPC metody &lt;code&gt;get_jwt&lt;/code&gt; — a zobrazuje dekódovaný payload i čas expirace.&lt;/p&gt;
+&lt;h3&gt;Kdy jej použít&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Chcete token vložit do záložky Bearer Token v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Testujete expiraci JWT nebo claimy &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; ve své aplikaci.&lt;/li&gt;
+&lt;li&gt;Ověřujete, zda systémový uživatel &lt;code&gt;pgarachne&lt;/code&gt; může přepnout na danou roli (musí existovat &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Vyplňte URL, prefix, databázi, uživatelské jméno a heslo — stiskněte &lt;kbd&gt;Enter&lt;/kbd&gt; nebo tlačítko &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Vygenerovaný token se zobrazí a lze jej jedním kliknutím zkopírovat.&lt;/li&gt;
+&lt;li&gt;Payload JWT je dekódován a zobrazen se zvýrazněním syntaxe JSON.&lt;/li&gt;
+&lt;li&gt;Badge zobrazuje zbývající životnost tokenu (nebo ho označí jako expirovaný).&lt;/li&gt;
+&lt;li&gt;Nastavení připojení a přihlašovací jméno se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Zprovoznění&lt;/h3&gt;
+&lt;p&gt;Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/get-jwt&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;, nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči.&lt;/p&gt;</description></item><item><title>Konfigurace</title><link>https://www.pgarachne.com/cs/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Konfigurace&lt;/h2&gt;
 	&lt;p&gt;PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.&lt;/p&gt;
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; se pokusí vytvořit roli &lt;code&gt;pgarachne_admin&lt;/code&gt; a přiřadit ji roli &lt;code&gt;pgarachne&lt;/code&gt;. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
+		&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; se pokusí vytvořit roli &lt;code&gt;pgarachne_admin&lt;/code&gt; a přiřadit ji roli &lt;code&gt;pgarachne&lt;/code&gt;. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
 	&lt;br&gt;
 		Proxy uživatel (&lt;code&gt;DB_USER&lt;/code&gt;) musí být členem &lt;code&gt;pgarachne&lt;/code&gt; a &lt;code&gt;pgarachne_admin&lt;/code&gt;, aby mohl ověřovat a vytvářet API tokeny.&lt;/div&gt;
 	&lt;div class="tip"&gt;
@@ -229,12 +258,15 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_events_forwarded_total&lt;/code&gt; &amp;mdash; NOTIFY události z PostgreSQLu dispatchované SSE klientům, label podle databáze&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_bytes_sent_total&lt;/code&gt; &amp;mdash; bajty zapsané do SSE response streamů (payloady, heartbeats, preamble), label podle databáze&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_listen_errors_total&lt;/code&gt; &amp;mdash; chyby LISTEN/connection a události znovupřipojení, označeno podle databáze a typu události. Nenulová hodnota si zaslouží prošetření &amp;mdash; hub při znovupřipojení odpojí všechny klienty, takže uživatelé zaznamenají krátký výpadek.&lt;/li&gt;
 	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/cs/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/mcp/</guid><description>&lt;section id="mcp"&gt;
 	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
 
 	&lt;p class="section-intro"&gt;
-		PgArachne nativně podporuje &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům“ (tools).
+		PgArachne nativně podporuje &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům" (tools).
 	&lt;/p&gt;
 
 	&lt;h3&gt;Jak to funguje?&lt;/h3&gt;
@@ -244,10 +276,10 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 
 	&lt;div class="card" style="margin-bottom: 2rem;"&gt;
 		&lt;h3&gt;🛠️ SQL Funkce jako Nástroje&lt;/h3&gt;
-		&lt;p&gt;Jakákoliv SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem“ v AI. Výchozí nastavení (volání &lt;code&gt;pgarachne.allowed_schemas()&lt;/code&gt;) vystavuje funkce uložené ve schématu &lt;code&gt;api&lt;/code&gt;, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.&lt;/p&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+		&lt;p&gt;Jakákoli SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem" v AI. Výchozí nastavení (volání &lt;code&gt;pgarachne.allowed_schemas()&lt;/code&gt;) vystavuje funkce uložené ve schématu &lt;code&gt;api&lt;/code&gt;, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.&lt;/p&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Nasazení a HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
-		hlaviček a veřejné směrování byste před něj měli umístit &lt;strong&gt;Reverzní proxy&lt;/strong&gt;.&lt;/p&gt;
+		hlaviček a veřejné směrování byste před něj měli umístit &lt;strong&gt;reverzní proxy&lt;/strong&gt;.&lt;/p&gt;
 
 	&lt;div class="deployment-option"&gt;
 		&lt;h3&gt;Možnost A: Caddy Server&lt;/h3&gt;
@@ -267,18 +299,20 @@ example.com {
 	&lt;h2&gt;Novinky&lt;/h2&gt;
 	&lt;p&gt;Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🌐 &lt;strong&gt;PgArachne Explorer – moderní PWA&lt;/strong&gt;: Kompletní vizuální a funkční obnova – tmavý/světlý motiv (automaticky), responzivní rozložení karet, zvýrazňování syntaxe JSON, tlačítko pro kopírování, lepší UX přihlašování (záložky heslo/token), podpora instalace PWA (manifest, ikony, service worker), sdílitelné odkazy pomocí parametru &lt;code&gt;?url=…&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛠️ &lt;strong&gt;Podpora Model Context Protocol (MCP)&lt;/strong&gt;: Nový endpoint &lt;code&gt;/{prefix}/{db}/mcp&lt;/code&gt; se standardními metodami &lt;code&gt;resources/list&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;prompts/list&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt; – plně podporovaný funkcemi PostgreSQL a znovu využívající stávající autentizaci a přepínání rolí.&lt;/li&gt;
-		&lt;li&gt;🔧 &lt;strong&gt;Konfigurovatelný prefix API&lt;/strong&gt;: Výchozí hodnota změněna na &lt;code&gt;/db/{database}/jsonrpc&lt;/code&gt; a &lt;code&gt;/db/{database}/sse&lt;/code&gt;. Staré cesty &lt;code&gt;/api/…&lt;/code&gt; nyní vrací trvalé přesměrování 307. Řízeno novou proměnnou prostředí &lt;code&gt;API_PREFIX&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Ochrana idempotence&lt;/strong&gt;: Volitelné pole &lt;code&gt;idempotencyKey&lt;/code&gt; v JSON-RPC požadavcích – automatická detekce duplicit (HTTP 409 + chybový kód při kolizi) pomocí &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;📚 &lt;strong&gt;Vylepšení dokumentace&lt;/strong&gt;: Nová sekce &lt;strong&gt;/tools/&lt;/strong&gt; s kartami (Explorer + chystaný macOS Toolbar), nová stránka “Architectural Decisions”, &lt;strong&gt;SECURITY.md&lt;/strong&gt; s instrukcemi pro hlášení zranitelností, lepší typografie ve všech jazycích díky TypoLima, vylepšená podpora stránky 404 pro GitHub Pages.&lt;/li&gt;
-		&lt;li&gt;📝 &lt;strong&gt;Přejmenování metody přihlášení&lt;/strong&gt;: JSON-RPC metoda &lt;code&gt;login&lt;/code&gt; byla přejmenována na &lt;code&gt;get_jwt&lt;/code&gt; (starý název zůstává jako zastaralý alias s varováním v logu).&lt;/li&gt;
-		&lt;li&gt;📊 &lt;strong&gt;Vyčištění logování&lt;/strong&gt;: Při logování do souboru se na konzoli zobrazují pouze minimální informace o spuštění → čistší výstup v produkčních / docker prostředích.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Bezpečné výchozí hodnoty (bez zpětné kompatibility)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; má nyní výchozí hodnotu &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; už nedefaultuje na &lt;code&gt;*&lt;/code&gt; a &lt;code&gt;JWT_SECRET&lt;/code&gt; musí mít alespoň 32 bajtů. Před upgradem je nutné zkontrolovat konfiguraci stávajících nasazení.&lt;/li&gt;
+		&lt;li&gt;🧹 &lt;strong&gt;Odstranění starých cest&lt;/strong&gt;: Zrušeny přesměrovací cesty &lt;code&gt;/api/…&lt;/code&gt; a &lt;code&gt;/sse/…&lt;/code&gt; a zastaralý JSON-RPC alias &lt;code&gt;login&lt;/code&gt;. Používejte přímo &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; a &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Přísnější autentizace a chybové zprávy&lt;/strong&gt;: Nový limit přihlašovacích pokusů na IP adresu (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) uzavírá mezeru pro credential spraying a chyby MCP nástrojů už standardně nevyzrazují surové chybové zprávy PostgreSQL (lze zapnout zpět pomocí &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Konfigurovatelné limity spojení&lt;/strong&gt;: Limit poolu přímých (Basic Auth) spojení je nyní konfigurovatelný přes &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔑 &lt;strong&gt;Podpora externích IdP (BYO JWT)&lt;/strong&gt;: Nová nastavení &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; a &lt;code&gt;JWT_LEEWAY&lt;/code&gt; umožňují navázat vydané tokeny na konkrétního vydavatele/publikum a upravit toleranci časového posunu.&lt;/li&gt;
+		&lt;li&gt;🧰 &lt;strong&gt;Nové nástroje&lt;/strong&gt;: Samostatný &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) a &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) doplňují Explorer pro rychlé manuální testování.&lt;/li&gt;
+		&lt;li&gt;🐛 &lt;strong&gt;Opravy stability&lt;/strong&gt;: Opraveno zaseknuté vypínání SSE a chyba v obnově mrtvého spojení, která mohla serveru znemožnit opětovné připojení k PostgreSQL.&lt;/li&gt;
+		&lt;li&gt;🧪 &lt;strong&gt;Zpřísnění CI&lt;/strong&gt;: Do každého buildu přidán &lt;code&gt;golangci-lint&lt;/code&gt;, Go race detector a &lt;code&gt;govulncheck&lt;/code&gt;, rozšířeno testovací pokrytí.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Vydávací proces&lt;/strong&gt;: Přidán &lt;code&gt;CHANGELOG.md&lt;/code&gt; a rozdělen release workflow na &lt;code&gt;make release-local&lt;/code&gt; (sestavení a ověření) a &lt;code&gt;make release&lt;/code&gt; (tag, publikace, aktualizace Homebrew tapu).&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item><item><title>O projektu a architektuře</title><link>https://www.pgarachne.com/cs/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;O projektu a architektuře&lt;/h2&gt;
 	&lt;p&gt;
 		PgArachne™ slouží jako lehký, vysoce výkonný &lt;strong&gt;webový server&lt;/strong&gt;, který stojí mezi vašimi HTTP
@@ -336,6 +370,7 @@ example.com {
 &lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
 			do čitelné dokumentace.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Moderní vzhled:&lt;/strong&gt; Podporuje tmavý i světlý režim a lze jej nainstalovat jako &lt;strong&gt;PWA aplikaci&lt;/strong&gt; na mobilní zařízení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autentizace:&lt;/strong&gt; Záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth pro přímé přihlášení jako databázový uživatel — nevyžaduje &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt;. Záložka &lt;em&gt;API Token&lt;/em&gt; přijímá JWT nebo dlouhodobý API token jako &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Parametry v URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/cs/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar pro macOS&lt;/h2&gt;
@@ -361,7 +396,7 @@ example.com {
 		&lt;!-- 1. Buy Me a Coffee (Featured) --&gt;
 		&lt;div class="donation-card featured"&gt;
 			&lt;h4&gt;☕ Staňte se členem&lt;/h4&gt;
-			&lt;p&gt;Připojte se ke komunitě na &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;. získejte exkluzivní aktualizace,
+			&lt;p&gt;Připojte se ke komunitě na &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;, získejte exkluzivní aktualizace,
 				dřívější přístup k novým funkcím a další.&lt;/p&gt;
 			&lt;a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured"&gt;Podpořit
 				na Buy Me a Coffee&lt;/a&gt;
@@ -457,4 +492,44 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 
 	&lt;h3&gt;Proč je „Hybridní PgArachne“ vítězem?&lt;/h3&gt;
 	&lt;p&gt;Díky &lt;strong&gt;univerzálním funkcím&lt;/strong&gt; (fungujícím jako emulátor) získáte to nejlepší z obou
-		světů:&lt;/p&gt;</description></item></channel></rss>
+		světů:&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/cs/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;SSE Tester&lt;/strong&gt; je jednoduchý nástroj pro prohlížeč umístěný ve složce &lt;code&gt;tools/test-sse&lt;/code&gt;. Umožňuje přihlásit se k odběru libovolného počtu PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálů přes živé &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; spojení a sledovat příchozí události v reálném čase.&lt;/p&gt;
+&lt;h3&gt;Funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Více kanálů najednou&lt;/strong&gt; — kanály přidáváte jako tagy před připojením. Všechny kanály jsou předány jako parametr &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Všechny způsoby autentizace&lt;/strong&gt; — záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth (přímé přihlášení, bez JWT); záložka &lt;em&gt;Bearer Token&lt;/em&gt; přijímá JWT nebo API token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Zvýraznění JSON syntaxe&lt;/strong&gt; — datové payload ve formátu JSON jsou zobrazeny s barevným zvýrazněním.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Ukládání nastavení&lt;/strong&gt; — URL, prefix, databáze, přihlašovací jméno a seznam kanálů se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Autentizace&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Záložka Password&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Basic &amp;lt;base64(uživatel:heslo)&amp;gt;&lt;/code&gt;. Nevyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Záložka Bearer Token&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Vložte JWT (získaný přes &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) nebo dlouhodobý API token.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Jak nástroj zprovoznit:&lt;/strong&gt; Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/test-sse&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;. Nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči — vše funguje bez lokálního serveru.
+&lt;/div&gt;
+&lt;/section&gt;</description></item><item><title>Údržba idempotency klíčů</title><link>https://www.pgarachne.com/cs/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
+&lt;div class="container"&gt;
+&lt;h1&gt;Údržba tabulky idempotency klíčů&lt;/h1&gt;
+
+&lt;p&gt;Každý JSON-RPC požadavek, který nese pole &lt;code&gt;idempotencyKey&lt;/code&gt;,
+je zaznamenán do tabulky &lt;code&gt;pgarachne.requests&lt;/code&gt; funkcí
+&lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;. Právě díky tomu funguje
+detekce duplicit — ale bez pravidelného úklidu tabulka neomezeně roste.&lt;/p&gt;
+
+&lt;p&gt;PgArachne samo o sobě neplánuje žádné úlohy na pozadí. Nejčistší
+možnosti jsou:&lt;/p&gt;
+
+&lt;h2&gt;pg_cron (doporučeno, pokud můžete instalovat rozšíření)&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;-- Každou hodinu smaž klíče starší než 24 hodin
+SELECT cron.schedule(
+ 'pgarachne-idempotency-cleanup',
+ '0 * * * *',
+ $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;Externí cron / systemd timer&lt;/h2&gt;
+&lt;p&gt;Naplánujte shell job, který zavolá funkci přes &lt;code&gt;psql&lt;/code&gt;:&lt;/p&gt;</description></item></channel></rss>

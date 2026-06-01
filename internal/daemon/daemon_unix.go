@@ -44,7 +44,9 @@ func Start() {
 		}
 	}
 
-	cmd := exec.Command(os.Args[0], args...)
+	// Relaunching our own binary with the user's own arguments (minus -start)
+	// is the point of daemon mode — there is no untrusted input here.
+	cmd := exec.Command(os.Args[0], args...) //nolint:gosec // G204: re-exec of self
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		Setsid: true, // Detach from terminal
 	}
@@ -71,7 +73,10 @@ func Start() {
 		fmt.Printf("Process started (PID %d), but failed to create PID directory: %v\n", cmd.Process.Pid, err)
 		os.Exit(0)
 	}
-	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0644); err != nil {
+	// pidFile comes from pidFilePath(), which is either the operator's own
+	// PID_FILE env var or an OS-provided cache/temp directory — not
+	// attacker-controlled input.
+	if err := os.WriteFile(pidFile, []byte(strconv.Itoa(cmd.Process.Pid)), 0600); err != nil { //nolint:gosec // G703: operator-controlled path
 		fmt.Printf("Process started (PID %d), but failed to write PID file: %v\n", cmd.Process.Pid, err)
 		// We don't exit here, the process is running.
 	} else {
@@ -114,11 +119,17 @@ func Stop() {
 		os.Exit(1)
 	}
 
-	// Wait a bit and check if it's gone?
-	// For now, just assume it works and remove PID file.
-	time.Sleep(100 * time.Millisecond)
+	// Poll until the process is gone or a 10-second deadline is exceeded.
+	// PgArachne's graceful-shutdown timeout is 5 s, so 10 s is ample.
+	deadline := time.Now().Add(10 * time.Second)
+	for time.Now().Before(deadline) {
+		time.Sleep(200 * time.Millisecond)
+		if process.Signal(syscall.Signal(0)) != nil {
+			break // process is gone
+		}
+	}
 
-	if err := os.Remove(pidFile); err != nil {
+	if err := os.Remove(pidFile); err != nil && !os.IsNotExist(err) {
 		fmt.Printf("Stopped process (PID %d), but failed to remove PID file: %v\n", pid, err)
 	} else {
 		fmt.Println("PgArachne stopped.")

@@ -1,0 +1,123 @@
+---
+title: "Model Context Protocol (MCP)"
+description: "Model Context Protocol (MCP) - PgArachne"
+menu:
+  main:
+    name: "MCP"
+    weight: 65
+---
+
+<section id="mcp">
+	<h2>Model Context Protocol (MCP)</h2>
+
+	<p class="section-intro">
+		PgArachne soporta de forma nativa el <strong>Model Context Protocol (MCP)</strong>, un estándar abierto
+		que permite a los modelos de IA (como Claude o Cursor) acceder de forma segura a sus datos y funciones
+		como "herramientas".
+	</p>
+
+	<h3>¿Cómo funciona?</h3>
+	<p>
+		PgArachne actúa directamente como <strong>servidor MCP</strong>. En lugar de escribir un servidor HTTP
+		personalizado para cada proyecto, basta con ejecutar PgArachne sobre la base de datos. PgArachne analiza
+		automáticamente las funciones SQL permitidas y las expone a los clientes de IA mediante HTTP(S).
+	</p>
+
+	<div class="card" style="margin-bottom: 2rem;">
+		<h3>Funciones SQL como herramientas</h3>
+		<p>Cualquier función SQL accesible a través del endpoint JSON-RPC 2.0 de PgArachne se convierte
+			automáticamente en una "herramienta" disponible para la IA. El comportamiento por defecto
+			(llamando a <code>pgarachne.allowed_schemas()</code>) expone las funciones almacenadas en el
+			esquema <code>api</code> a las que el rol autenticado tiene acceso (mediante <code>GRANT EXECUTE</code>).
+			El modelo de lenguaje ve el nombre de la función, sus parámetros y la descripción proveniente
+			de los comentarios SQL.</p>
+	</div>
+
+	<h3>Guía de conexión</h3>
+
+	<div class="deployment-option">
+		<h4>1a. Autenticación — Token de API (recomendado para producción)</h4>
+		<p>Para una conexión permanente con la IA, utilice un <strong>token de API de larga duración</strong>.
+			El token debe ser generado por un administrador (un miembro del rol <code>pgarachne_admin</code>):</p>
+		<pre><code>-- Cambiar al rol de administrador
+SET ROLE pgarachne_admin;
+
+-- Generar un nuevo token para el rol objetivo (ej. 'app_user')
+SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');</code></pre>
+		<p>Guarde la cadena devuelta. Úsela como <code>Authorization: Bearer SU_TOKEN_DE_API</code>
+			en la configuración del cliente de IA.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>1b. Autenticación — Credenciales directas (desarrollo y configuraciones sencillas)</h4>
+		<p>Como alternativa, es posible enviar el nombre de usuario y la contraseña de PostgreSQL directamente
+			mediante autenticación HTTP Basic. No se requiere gestión de tokens de API ni
+			<code>GRANT … TO pgarachne</code> — PgArachne se conecta directamente como el usuario indicado.</p>
+		<pre><code>Authorization: Basic &lt;base64(usuario:contraseña)&gt;</code></pre>
+		<p>Este enfoque es adecuado para pruebas locales o herramientas internas donde las credenciales ya se
+			gestionan de forma segura en el entorno. Para integraciones de IA en producción con clientes en la
+			nube, se recomienda el uso de tokens de API.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>2. Claude Desktop</h4>
+		<p>Añada PgArachne a la configuración de Claude Desktop
+			(<code>~/Library/Application Support/Claude/claude_desktop_config.json</code>):</p>
+		<pre><code>{
+  "mcpServers": {
+    "pgarachne": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-http",
+        "--url",
+        "https://su-api.com/db/my_database/mcp"
+      ],
+      "env": {
+        "Authorization": "Bearer SU_TOKEN_DE_API"
+      }
+    }
+  }
+}</code></pre>
+		<p><small>Nota: <strong>Se requiere HTTP(S)</strong> para la conexión. El ejemplo usa el puente npx
+			<code>server-http</code> de Anthropic, que actúa como intermediario entre el MCP estándar (stdio)
+			y PgArachne (HTTP).</small></p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>3. Cursor</h4>
+		<p>En la configuración de Cursor (Settings &gt; MCP), añada un nuevo servidor que se comunique
+			directamente mediante HTTP (o usando el puente mencionado si su versión de Cursor no soporta
+			servidores MCP HTTP nativos):</p>
+		<ul>
+			<li><strong>Type:</strong> <code>command</code> (con el puente npx) o <code>http</code></li>
+			<li><strong>Name:</strong> <code>PgArachne</code></li>
+			<li><strong>URL:</strong> <code>https://su-api.com/db/my_database/mcp</code></li>
+			<li><strong>Auth Header:</strong> <code>Authorization: Bearer SU_TOKEN_DE_API</code></li>
+		</ul>
+	</div>
+
+	<div class="deployment-option highlight">
+		<h4>Accesibilidad pública (Ngrok)</h4>
+		<p>Si está probando PgArachne de forma local y desea conectarlo a un cliente de IA en la nube
+			(fuera de instalaciones locales), el servidor <strong>debe ser accesible públicamente mediante
+			una URL HTTP(S)</strong>.</p>
+		<pre><code># Ejecutar ngrok para el puerto HTTP de PgArachne (ej. 8080)
+ngrok http 8080</code></pre>
+		<p>A continuación, utilice la dirección HTTPS generada por Ngrok en la configuración de la IA.</p>
+	</div>
+
+	<h3>Seguridad</h3>
+	<p>El endpoint MCP respeta completamente el sistema de permisos de PostgreSQL:</p>
+	<ul>
+		<li><strong>Autenticación:</strong> cada petición requiere un token de API válido, un JWT o
+			credenciales Basic válidas; las peticiones no autenticadas se rechazan de inmediato.</li>
+		<li><strong>Autorización:</strong> la IA solo puede ver y llamar a las funciones de los esquemas
+			permitidos para las que el rol autenticado disponga de <code>GRANT EXECUTE</code>.</li>
+		<li><strong>RLS:</strong> la seguridad a nivel de fila (Row-Level Security) está completamente
+			activa — la IA solo ve las filas a las que el rol específico tiene acceso.</li>
+	</ul>
+	<p>Consulte <a href="../security-roles/">Seguridad y Autenticación</a> para una comparativa completa
+		de todos los métodos de autenticación soportados.</p>
+
+</section>

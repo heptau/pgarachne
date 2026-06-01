@@ -1,0 +1,5 @@
+# Security Policy for PgArachne
+Contact: mailto:security@pgarachne.com
+Expires: 2027-06-25T08:00:00.000Z
+Preferred-Languages: en, cs, sk
+Canonical: https://explorer.pgarachne.com/.well-known/security.txt

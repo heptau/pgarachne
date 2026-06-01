@@ -11,7 +11,7 @@ menu:
 	<h2>Model Context Protocol (MCP)</h2>
 
 	<p class="section-intro">
-		PgArachne nativně podporuje <strong>Model Context Protocol (MCP)</strong>, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům“ (tools).
+		PgArachne nativně podporuje <strong>Model Context Protocol (MCP)</strong>, otevřený standard, který umožňuje AI modelům (jako Claude nebo Cursor) bezpečně přistupovat k vašim datům a funkcím jako k „nástrojům" (tools).
 	</p>
 
 	<h3>Jak to funguje?</h3>
@@ -21,20 +21,31 @@ menu:
 
 	<div class="card" style="margin-bottom: 2rem;">
 		<h3>🛠️ SQL Funkce jako Nástroje</h3>
-		<p>Jakákoliv SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem“ v AI. Výchozí nastavení (volání <code>pgarachne.allowed_schemas()</code>) vystavuje funkce uložené ve schématu <code>api</code>, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.</p>
+		<p>Jakákoli SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem" v AI. Výchozí nastavení (volání <code>pgarachne.allowed_schemas()</code>) vystavuje funkce uložené ve schématu <code>api</code>, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.</p>
 	</div>
 
 	<h3>Průvodce připojením</h3>
 
 	<div class="deployment-option">
-		<h4>1. Vytvoření API tokenu</h4>
-		<p>Pro trvalé propojení s AI doporučujeme použít <strong>dlouhodobý API token</strong> namísto krátkodobého JWT. Z bezpečnostních důvodů musí token generovat administrátor (role <code>pgarachne_admin</code>):</p>
+		<h4>1a. Autentizace — API Token (doporučeno pro produkci)</h4>
+		<p>Pro trvalé propojení s AI doporučujeme použít <strong>dlouhodobý API token</strong>. Z bezpečnostních důvodů musí token generovat administrátor (role <code>pgarachne_admin</code>):</p>
 		<pre><code>-- Přepnutí do administrátorské role
 SET ROLE pgarachne_admin;
 
--- Vygeneruje nový token pro roli proxy uživatele (např. 'app_user')
+-- Vygeneruje nový token pro cílovou roli (např. 'app_user')
 SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');</code></pre>
-		<p>Poznamenejte si vrácený řetězec, bude sloužit k autentizaci. Token se validuje při každém HTTP požadavku nezávisle na platnosti expiračního data.</p>
+		<p>Poznamenejte si vrácený řetězec. Použijte jej jako <code>Authorization: Bearer VÁŠ_API_TOKEN</code> v konfiguraci AI klienta.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>1b. Autentizace — Přímé přihlášení (vývoj a jednoduché konfigurace)</h4>
+		<p>Alternativně zasílejte PostgreSQL uživatelské jméno a heslo přímo pomocí HTTP Basic Authentication.
+			Správa API tokenů není nutná a příkaz <code>GRANT … TO pgarachne</code> není vyžadován — PgArachne
+			se připojuje přímo jako zadaný uživatel.</p>
+		<pre><code>Authorization: Basic &lt;base64(uzivatel:heslo)&gt;</code></pre>
+		<p>Tento přístup je vhodný pro lokální testování nebo interní nástroje, kde jsou přihlašovací údaje
+			již bezpečně spravovány. Pro produkční integrace AI s cloudovými klienty jsou API tokeny preferovanou
+			volbou.</p>
 	</div>
 
 	<div class="deployment-option">
@@ -56,7 +67,7 @@ SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');</code></pre>
     }
   }
 }</code></pre>
-		<p><small>Poznámka: Pro připojení je <strong>vyžadováno HTTP(S)</strong>. Ukázka uses npx bridge <code>server-http</code> od Anthropicu, který zprostředkuje komunikaci mezi standardním MCP (stdio) a PgArachne (HTTP).</small></p>
+		<p><small>Poznámka: Pro připojení je <strong>vyžadováno HTTP(S)</strong>. Ukázka využívá npx bridge <code>server-http</code> od Anthropicu, který zprostředkuje komunikaci mezi standardním MCP (stdio) a PgArachne (HTTP).</small></p>
 	</div>
 
 	<div class="deployment-option">
@@ -83,9 +94,11 @@ ngrok http 8080</code></pre>
 		MCP endpoint v PgArachne plně respektuje nastavená pravidla databáze:
 	</p>
 	<ul>
-		<li><strong>Autentizace:</strong> Každý požadavek na HTTP endpoint vyžaduje platný API token nebo JWT, jinak je okamžitě zamítnut.</li>
+		<li><strong>Autentizace:</strong> Každý požadavek na HTTP endpoint vyžaduje platný API token, JWT nebo HTTP Basic přihlašovací údaje; neověřené požadavky jsou okamžitě zamítnuty.</li>
 		<li><strong>Autorizace:</strong> AI vidí a může volat jen ty funkce z povolených schémat, ke kterým má autentizovaná role <code>GRANT EXECUTE</code>.</li>
 		<li><strong>RLS:</strong> Row-Level Security je plně aktivní — AI uvidí jen ty řádky, ke kterým má konkrétní role přístup.</li>
 	</ul>
+	<p>Podrobné srovnání všech podporovaných metod autentizace naleznete v části
+		<a href="../security-roles/">Bezpečnost a autentizace</a>.</p>
 
 </section>

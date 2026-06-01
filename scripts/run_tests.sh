@@ -56,7 +56,11 @@ export DB_HOST="$DB_HOST"
 export DB_PORT="$DB_PORT"
 export DB_USER="$PGARACHNE_USER"
 export PGPASSWORD="$PGARACHNE_PASSWORD"
-export JWT_SECRET="test_secret"
+export JWT_SECRET="test_secret_0123456789abcdef_0123456789abcdef"
 
 cd "$PROJECT_ROOT"
-go test ./...
+# Coverage is generated here, while Postgres is still up (the EXIT trap tears
+# it down as soon as this script exits) — a separate CI step re-running
+# `go test` with PGARACHNE_TEST_DB=1 after this script exits would fail with
+# connection-refused, since the container is already gone by then.
+go test -race -coverprofile=coverage.out -covermode=atomic ./...

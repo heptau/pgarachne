@@ -10,8 +10,13 @@ menu:
 <section id="sse">
 	<h2>Real-time Notifications (SSE)</h2>
 	<p>Subscribe to PostgreSQL <code>NOTIFY</code> channels over Server-Sent Events:</p>
-	<pre><code>curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
-  -H "Authorization: Bearer $TOKEN"</code></pre>
+	<pre><code># Bearer token (JWT or API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Direct credentials (HTTP Basic Auth — no GRANT … TO pgarachne required)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -u "alice:secret"</code></pre>
 	<p>Each message is JSON with the channel name and payload:</p>
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>If the payload is plain text, it is wrapped as a string in <code>data</code>.</p>

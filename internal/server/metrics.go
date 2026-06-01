@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"regexp"
 	"strconv"
 	"time"
@@ -86,10 +85,6 @@ func recordJSONRPC(method, result string) {
 		method = "other"
 	}
 	jsonrpcRequestsTotal.WithLabelValues(method, result).Inc()
-}
-
-func formatStatusResult(status int) string {
-	return fmt.Sprintf("%d", status)
 }
 
 var pgMethodMetricRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*$`)

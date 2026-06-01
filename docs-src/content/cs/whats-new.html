@@ -11,11 +11,24 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Bezpečné výchozí hodnoty (bez zpětné kompatibility)</strong>: <code>DB_SSLMODE</code> má nyní výchozí hodnotu <code>require</code>, <code>ALLOWED_ORIGINS</code> už nedefaultuje na <code>*</code> a <code>JWT_SECRET</code> musí mít alespoň 32 bajtů. Před upgradem je nutné zkontrolovat konfiguraci stávajících nasazení.</li>
+		<li>🧹 <strong>Odstranění starých cest</strong>: Zrušeny přesměrovací cesty <code>/api/…</code> a <code>/sse/…</code> a zastaralý JSON-RPC alias <code>login</code>. Používejte přímo <code>/{prefix}/:database/…</code> a <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Přísnější autentizace a chybové zprávy</strong>: Nový limit přihlašovacích pokusů na IP adresu (<code>LOGIN_RATE_LIMIT_PER_IP</code>) uzavírá mezeru pro credential spraying a chyby MCP nástrojů už standardně nevyzrazují surové chybové zprávy PostgreSQL (lze zapnout zpět pomocí <code>MCP_SQL_ERROR_DETAIL</code>).</li>
+		<li>⚙️ <strong>Konfigurovatelné limity spojení</strong>: Limit poolu přímých (Basic Auth) spojení je nyní konfigurovatelný přes <code>DIRECT_POOL_LIMIT</code>.</li>
+		<li>🔑 <strong>Podpora externích IdP (BYO JWT)</strong>: Nová nastavení <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code> a <code>JWT_LEEWAY</code> umožňují navázat vydané tokeny na konkrétního vydavatele/publikum a upravit toleranci časového posunu.</li>
+		<li>🧰 <strong>Nové nástroje</strong>: Samostatný <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) a <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) doplňují Explorer pro rychlé manuální testování.</li>
+		<li>🐛 <strong>Opravy stability</strong>: Opraveno zaseknuté vypínání SSE a chyba v obnově mrtvého spojení, která mohla serveru znemožnit opětovné připojení k PostgreSQL.</li>
+		<li>🧪 <strong>Zpřísnění CI</strong>: Do každého buildu přidán <code>golangci-lint</code>, Go race detector a <code>govulncheck</code>, rozšířeno testovací pokrytí.</li>
+		<li>📦 <strong>Vydávací proces</strong>: Přidán <code>CHANGELOG.md</code> a rozdělen release workflow na <code>make release-local</code> (sestavení a ověření) a <code>make release</code> (tag, publikace, aktualizace Homebrew tapu).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.3.0</p>
 	<ul>
 		<li>🌐 <strong>PgArachne Explorer – moderní PWA</strong>: Kompletní vizuální a funkční obnova – tmavý/světlý motiv (automaticky), responzivní rozložení karet, zvýrazňování syntaxe JSON, tlačítko pro kopírování, lepší UX přihlašování (záložky heslo/token), podpora instalace PWA (manifest, ikony, service worker), sdílitelné odkazy pomocí parametru <code>?url=…</code>.</li>
 		<li>🛠️ <strong>Podpora Model Context Protocol (MCP)</strong>: Nový endpoint <code>/{prefix}/{db}/mcp</code> se standardními metodami <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – plně podporovaný funkcemi PostgreSQL a znovu využívající stávající autentizaci a přepínání rolí.</li>
-		<li>🔧 <strong>Konfigurovatelný prefix API</strong>: Výchozí hodnota změněna na <code>/db/{database}/jsonrpc</code> a <code>/db/{database}/sse</code>. Staré cesty <code>/api/…</code> nyní vrací trvalé přesměrování 307. Řízeno novou proměnnou prostředí <code>API_PREFIX</code>.</li>
+		<li>🔧 <strong>Konfigurovatelný prefix API</strong>: Výchozí hodnota změněna na <code>/db/{database}/jsonrpc</code> a <code>/db/{database}/sse</code>, původní cesty <code>/api/…</code> a <code>/sse/…</code> zůstaly zachovány jako přesměrování 307 pro zpětnou kompatibilitu. Řízeno proměnnou prostředí <code>API_PREFIX</code>.</li>
 		<li>🛡️ <strong>Ochrana idempotence</strong>: Volitelné pole <code>idempotencyKey</code> v JSON-RPC požadavcích – automatická detekce duplicit (HTTP 409 + chybový kód při kolizi) pomocí <code>pgarachne.save_idempotency_key()</code>.</li>
 		<li>📚 <strong>Vylepšení dokumentace</strong>: Nová sekce <strong>/tools/</strong> s kartami (Explorer + chystaný macOS Toolbar), nová stránka “Architectural Decisions”, <strong>SECURITY.md</strong> s instrukcemi pro hlášení zranitelností, lepší typografie ve všech jazycích díky TypoLima, vylepšená podpora stránky 404 pro GitHub Pages.</li>
 		<li>📝 <strong>Přejmenování metody přihlášení</strong>: JSON-RPC metoda <code>login</code> byla přejmenována na <code>get_jwt</code> (starý název zůstává jako zastaralý alias s varováním v logu).</li>
@@ -35,7 +48,7 @@ menu:
 	<ul>
 		<li>🔌 <strong>Sjednocené API:</strong> Volání přes <code>POST /api/&lt;db&gt;</code> (volaná metoda je specifikována v JSON-RPC body).</li>
 		<li>⚡ <strong>Real-time notifikace:</strong> Nový endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> pro poslouchání událostí z databáze s podporou více kanálů.</li>
-		<li>📈 <strong>Observabilita:</strong> Detailní Prometheus metriky pro HTTP, auth, JSON-RPC a SSE.</li>
-		<li>🏋️ <strong>Zásadní zvýšení stability:</strong> Ochrana proti pomalým klientům, striktní timeouty a automatické čištění spojení.</li>
+		<li>📈 <strong>Pozorovatelnost:</strong> Podrobné Prometheus metriky pro HTTP, auth, JSON-RPC a SSE.</li>
+		<li>🏋️ <strong>Zásadní zvýšení stability:</strong> Ochrana proti pomalým klientům, přísné časové limity a automatické čištění spojení.</li>
 	</ul>
 </section>

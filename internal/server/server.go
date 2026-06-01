@@ -3,15 +3,19 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 	"syscall"
@@ -19,15 +23,21 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-jwt/jwt/v4"
+	"github.com/heptau/pgarachne/internal/auth"
+	"github.com/heptau/pgarachne/internal/config"
+	"github.com/heptau/pgarachne/internal/database"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/yourusername/pgarachne/internal/config"
-	"github.com/yourusername/pgarachne/internal/database"
 )
 
 type Server struct {
-	Cfg    *config.Config
-	sseHub *sseHub
+	Cfg     *config.Config
+	sseHub  *sseHub
+	jwtSign *auth.Signer
+	// loginLimiter throttles attempts per (client IP, username) pair;
+	// ipLoginLimiter throttles per client IP regardless of username, so an
+	// attacker cannot get a fresh budget by rotating usernames.
+	loginLimiter   *loginLimiter
+	ipLoginLimiter *loginLimiter
 }
 
 var (
@@ -40,13 +50,16 @@ var (
 	pgQuotedIdentRe = regexp.MustCompile(`^` + pgQuotedIdentPattern + `$`)
 	// schema.function where each part is quoted or unquoted
 	pgFunctionRe = regexp.MustCompile(`^(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)\.(` + pgIdentPattern + `|` + pgQuotedIdentPattern + `)$`)
-
-	loginAttemptLimiter *loginLimiter
 )
 
 func New(cfg *config.Config) *Server {
-	initLoginLimiter(cfg)
-	return &Server{Cfg: cfg, sseHub: newSSEHub(cfg)}
+	return &Server{
+		Cfg:            cfg,
+		sseHub:         newSSEHub(cfg),
+		jwtSign:        auth.NewSigner(&auth.Options{Issuer: cfg.JWTIssuer, Audience: cfg.JWTAudience, Leeway: cfg.JWTLeeway}),
+		loginLimiter:   newLoginLimiterFromConfig(cfg),
+		ipLoginLimiter: newIPLoginLimiterFromConfig(cfg),
+	}
 }
 
 func (s *Server) Run() error {
@@ -54,17 +67,14 @@ func (s *Server) Run() error {
 	router := s.buildRouter()
 	metricsRouter := s.buildMetricsRouter()
 
-	slog.Info("Starting PgArachne server", "port", s.Cfg.HTTPPort)
-
 	srv := &http.Server{
-		Addr:              ":" + s.Cfg.HTTPPort,
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      60 * time.Second, // generous for SSE; ResponseController overrides per-stream
 		IdleTimeout:       2 * time.Minute,
 	}
 	metricsSrv := &http.Server{
-		Addr:              s.Cfg.MetricsListenAddr,
 		Handler:           metricsRouter,
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       15 * time.Second,
@@ -72,29 +82,37 @@ func (s *Server) Run() error {
 		WriteTimeout:      15 * time.Second,
 	}
 
-	// Initializing the server in a goroutine so that
-	// it won't block the graceful shutdown handling below
+	// Bind the port before starting the goroutine so that a "port already in
+	// use" error is returned synchronously from Run() rather than being lost
+	// inside a goroutine where it can only be logged.
+	ln, err := net.Listen("tcp", ":"+s.Cfg.HTTPPort)
+	if err != nil {
+		return fmt.Errorf("failed to listen on port %s: %w", s.Cfg.HTTPPort, err)
+	}
+	slog.Info("Starting PgArachne server", "port", s.Cfg.HTTPPort)
 	go func() {
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("listen", "error", err)
-			// If server fails to start, we must exit, but we are in a goroutine.
-			// Ideally we communicate back, but os.Exit is acceptable for fatal startup error.
-			// However, Run() should probably return error.
-			// Let's rely on the main function handling, but here we can't easily bubble up error
-			// without a channel. For simplicity in this structure:
-			// We log and let the shutdown logic finish (or if start failed immediately).
+		if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			slog.Error("server error", "error", err)
 		}
 	}()
-	go func() {
-		if !s.Cfg.MetricsEnabled {
-			slog.Info("Metrics endpoint disabled")
-			return
+
+	if s.Cfg.MetricsEnabled {
+		metricsLn, err := net.Listen("tcp", s.Cfg.MetricsListenAddr)
+		if err != nil {
+			shutCtx, shutCancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer shutCancel()
+			_ = srv.Shutdown(shutCtx)
+			return fmt.Errorf("failed to listen on metrics addr %s: %w", s.Cfg.MetricsListenAddr, err)
 		}
 		slog.Info("Starting metrics server", "listen_addr", s.Cfg.MetricsListenAddr)
-		if err := metricsSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			slog.Error("metrics listen", "error", err)
-		}
-	}()
+		go func() {
+			if err := metricsSrv.Serve(metricsLn); err != nil && err != http.ErrServerClosed {
+				slog.Error("metrics server error", "error", err)
+			}
+		}()
+	} else {
+		slog.Info("Metrics endpoint disabled")
+	}
 
 	// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.
@@ -121,6 +139,21 @@ func (s *Server) Run() error {
 		}
 	}
 
+	// SSE hub and DB pools get their own deadline. The HTTP server is
+	// already drained, so SSE/DB shutdown only has to release sockets
+	// and goroutines — it should be fast (sub-second in practice). We
+	// keep a generous timeout in case a slow Postgres is involved.
+	sseCtx, sseCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer sseCancel()
+	if err := s.sseHub.Shutdown(sseCtx); err != nil {
+		slog.Warn("SSE hub shutdown incomplete", "error", err)
+	}
+	// DB pools are independent of the HTTP lifecycle and must be closed
+	// explicitly. Without this, sql.DB holds idle connections open until
+	// the OS reaps them or PostgreSQL's idle_in_transaction_session_timeout
+	// fires, both of which are out of our control.
+	database.CloseAll()
+
 	slog.Info("Server exiting")
 	return nil
 }
@@ -128,7 +161,9 @@ func (s *Server) Run() error {
 func (s *Server) buildRouter() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.CustomRecoveryWithWriter(io.Discard, func(c *gin.Context, recovered any) {
-		slog.Error("Panic recovered", "error", recovered, "path", c.Request.URL.Path, "method", c.Request.Method)
+		buf := make([]byte, 4096)
+		n := runtime.Stack(buf, false)
+		slog.Error("Panic recovered", "error", recovered, "path", c.Request.URL.Path, "method", c.Request.Method, "stack", string(buf[:n]))
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}))
 	router.Use(func(c *gin.Context) {
@@ -215,16 +250,11 @@ func (s *Server) buildRouter() *gin.Engine {
 	// using the same auth and role-switching logic as the JSON-RPC endpoint.
 	router.POST("/"+prefix+"/:database/mcp", s.handleMCP)
 
-	// Backward-compatibility redirects from the legacy URL layout.
-	// 307 Temporary Redirect is used intentionally: it preserves the HTTP method
-	// (POST stays POST), which is required for JSON-RPC clients that do not
-	// automatically update their endpoints.
-	// These redirects remain registered regardless of the configured prefix so
-	// that operators can safely migrate from the old "/api" and "/sse" paths to
-	// the new layout without breaking existing clients.
-	router.POST("/api/:database", legacyJSONRPCRedirect(prefix))
-	router.POST("/api/:database/", legacyJSONRPCRedirect(prefix))
-	router.GET("/sse/:database", legacySSERedirect(prefix))
+	// OpenAPI 3.1 spec, generated by pgarachne.generate_openapi_spec on
+	// the fly. The spec is database-scoped because each database exposes
+	// its own set of JSON-RPC methods. Returns the spec as
+	// application/json; OpenAPI tooling can consume the response directly.
+	router.GET("/"+prefix+"/:database/openapi.json", s.handleOpenAPISpec)
 
 	// Static files
 	if s.Cfg.StaticFilesPath != "" {
@@ -271,43 +301,6 @@ func (s *Server) buildMetricsRouter() http.Handler {
 	return mux
 }
 
-// dbJSONRPCPath builds the canonical JSON-RPC path for a given database.
-func (s *Server) dbJSONRPCPath(database string) string {
-	return "/" + s.Cfg.APIPrefix + "/" + database + "/jsonrpc"
-}
-
-// dbSSEPath builds the canonical SSE path for a given database.
-func (s *Server) dbSSEPath(database string) string {
-	return "/" + s.Cfg.APIPrefix + "/" + database + "/sse"
-}
-
-// legacyJSONRPCRedirect returns a handler that issues a 307 redirect from the
-// legacy POST /api/:database path to the current POST /{prefix}/:database/jsonrpc.
-// 307 preserves the request method and body, which is critical for JSON-RPC POST
-// clients that would otherwise lose their payload on a 301/302 redirect.
-func legacyJSONRPCRedirect(prefix string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		target := "/" + prefix + "/" + c.Param("database") + "/jsonrpc"
-		if q := c.Request.URL.RawQuery; q != "" {
-			target += "?" + q
-		}
-		c.Redirect(http.StatusTemporaryRedirect, target)
-	}
-}
-
-// legacySSERedirect returns a handler that issues a 307 redirect from the
-// legacy GET /sse/:database path to the current GET /{prefix}/:database/sse.
-// Query parameters (e.g. "channels") are preserved transparently.
-func legacySSERedirect(prefix string) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		target := "/" + prefix + "/" + c.Param("database") + "/sse"
-		if q := c.Request.URL.RawQuery; q != "" {
-			target += "?" + q
-		}
-		c.Redirect(http.StatusTemporaryRedirect, target)
-	}
-}
-
 func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName string) (string, string, int) {
 	authHeader := c.GetHeader("Authorization")
 	if authHeader == "" {
@@ -326,27 +319,15 @@ func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName stri
 
 	// 1. Try JWT
 	if strings.ToLower(authType) == "bearer" {
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		claims, err := s.jwtSign.Parse(s.Cfg.JWTSecret, tokenString)
+		if err == nil {
+			if claims.DBName != databaseName {
+				slog.Warn("JWT token used for wrong database", "token_db", claims.DBName, "requested_db", databaseName)
+				recordAuthResult("jwt", "wrong_db")
+				return "", "Invalid token for this database", http.StatusUnauthorized
 			}
-			return []byte(s.Cfg.JWTSecret), nil
-		})
-
-		if err == nil && token.Valid {
-			claims, ok := token.Claims.(jwt.MapClaims)
-			dbRole, roleOk := claims["db_role"].(string)
-			dbName, dbNameOk := claims["db_name"].(string)
-
-			if ok && roleOk && dbRole != "" && dbNameOk {
-				if dbName != databaseName {
-					slog.Warn("JWT token used for wrong database", "token_db", dbName, "requested_db", databaseName)
-					recordAuthResult("jwt", "wrong_db")
-					return "", "Invalid token for this database", http.StatusUnauthorized
-				}
-				recordAuthResult("jwt", "success")
-				return dbRole, "", 0
-			}
+			recordAuthResult("jwt", "success")
+			return claims.DBRole, "", 0
 		}
 		recordAuthResult("jwt", "invalid")
 	}
@@ -395,6 +376,16 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method is required"}, ID: req.ID})
 		return
 	}
+	if len(functionName) > MaxMethodLength {
+		recordJSONRPC("", "error")
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "JSON-RPC method is too long"}, ID: req.ID})
+		return
+	}
+	if len(req.IdempotencyKey) > MaxIdempotencyKeyLength {
+		recordJSONRPC(functionName, "error")
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "idempotencyKey is too long"}, ID: req.ID})
+		return
+	}
 
 	if !isSafeFunctionName(functionName) {
 		recordJSONRPC(functionName, "error")
@@ -408,75 +399,71 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		s.handleLoginRPC(c, req, databaseName)
 		return
 	}
-	if functionName == "login" {
-		slog.Warn("Deprecated JSON-RPC method; please migrate to 'get_jwt'",
-			"method", "login",
-			"replacement", "get_jwt",
-			"client_ip", c.ClientIP(),
-		)
-		s.handleLoginRPC(c, req, databaseName)
-		return
+
+	// --- Authentication ---
+	// Three modes, checked in order:
+	//   1. Basic Auth   → direct DB connection as the user; no SET LOCAL ROLE.
+	//   2. Bearer JWT   → system DB connection; SET LOCAL ROLE to the JWT subject.
+	//   3. API token    → system DB connection; SET LOCAL ROLE to the token's role.
+	//
+	// For modes 2 and 3, dbRole is non-empty and SET LOCAL ROLE is performed.
+	// For mode 1, dbRole is "" and SET LOCAL ROLE is skipped — the connection is
+	// already authenticated as the user.
+
+	var execDB *sql.DB
+	var dbRole string // "" signals direct auth — skip SET LOCAL ROLE below
+
+	if username, password, ok := parseBasicAuth(c.GetHeader("Authorization")); ok {
+		// Direct credential auth: validate size then open/reuse a user pool.
+		if len(username) == 0 || len(username) > MaxLoginLength || len(password) > MaxPasswordLength {
+			recordAuthResult("direct", "malformed")
+			c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid credentials"}, ID: req.ID})
+			return
+		}
+		userDB, err := database.GetUserConnection(s.Cfg, databaseName, username, password)
+		if err != nil {
+			slog.Warn("Direct authentication failed", "user", username, "database", databaseName, "error", err)
+			recordAuthResult("direct", "invalid")
+			c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid credentials"}, ID: req.ID})
+			return
+		}
+		recordAuthResult("direct", "success")
+		execDB = userDB
+		// dbRole stays "" — SET LOCAL ROLE is skipped in the execution block below.
+	} else {
+		// JWT / API token auth (existing behaviour).
+		sysDB, err := database.GetConnection(s.Cfg, databaseName)
+		if err != nil {
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusServiceUnavailable, JSONRPCResponse{Error: &JSONRPCError{Message: "Database connection failed"}, ID: req.ID})
+			return
+		}
+		role, errMsg, status := s.authenticateToken(c, sysDB, databaseName)
+		if errMsg != "" {
+			c.JSON(status, JSONRPCResponse{Error: &JSONRPCError{Message: errMsg}, ID: req.ID})
+			return
+		}
+		execDB = sysDB
+		dbRole = role
 	}
 
-	authHeader := c.GetHeader("Authorization")
-	if authHeader == "" {
-		recordAuthResult("unknown", "missing_header")
-		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is missing"}, ID: req.ID})
-		return
-	}
-	if parts := strings.SplitN(authHeader, " ", 2); len(parts) != 2 {
-		recordAuthResult("unknown", "malformed_header")
-		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Authorization header is malformed"}, ID: req.ID})
-		return
+	paramsJSON := req.Params
+	if len(paramsJSON) == 0 || string(paramsJSON) == "null" {
+		paramsJSON = json.RawMessage("{}")
 	}
 
-	db, err := database.GetConnection(s.Cfg, databaseName)
-	if err != nil {
-		recordJSONRPC(functionName, "error")
-		c.JSON(http.StatusServiceUnavailable, JSONRPCResponse{Error: &JSONRPCError{Message: "Database connection failed"}, ID: req.ID})
-		return
-	}
-
-	dbRole, errMsg, status := s.authenticateToken(c, db, databaseName)
-	if errMsg != "" {
-		c.JSON(status, JSONRPCResponse{Error: &JSONRPCError{Message: errMsg}, ID: req.ID})
-		return
-	}
-
-	paramsJSON, err := json.Marshal(req.Params)
-	if err != nil {
-		recordJSONRPC(functionName, "error")
-		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to marshal params"}, ID: req.ID})
-		return
-	}
-
-	tx, err := db.BeginTx(c.Request.Context(), nil)
+	tx, err := execDB.BeginTx(c.Request.Context(), nil)
 	if err != nil {
 		slog.Error("Failed to begin transaction", "error", err)
 		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusServiceUnavailable, JSONRPCResponse{Error: &JSONRPCError{Message: "Database unavailable"}, ID: req.ID})
 		return
 	}
-	defer tx.Rollback()
+	defer rollbackQuietly(tx)
 
-	// Idempotency check — runs as the service user (DB_USER) before SET LOCAL ROLE,
-	// so no extra privileges are needed on the client role side.
-	// The check is intentionally inside the transaction: if the function call fails
-	// and the transaction rolls back, the key is not persisted and the client may retry.
-	if req.IdempotencyKey != "" {
-		var saved bool
-		err := tx.QueryRowContext(
-			c.Request.Context(),
-			`SELECT pgarachne.save_idempotency_key($1)`,
-			req.IdempotencyKey,
-		).Scan(&saved)
-		if err != nil {
-			slog.Error("Idempotency check failed", "key", req.IdempotencyKey, "function", functionName, "error", err)
-			recordJSONRPC(functionName, "error")
-			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Idempotency check failed"}, ID: req.ID})
-			return
-		}
-		if !saved {
+	if err := s.setupRequestTx(c.Request.Context(), tx, dbRole, req.IdempotencyKey); err != nil {
+		switch {
+		case errors.Is(err, errIdempotencyDuplicate):
 			slog.Warn("Duplicate request rejected", "key", req.IdempotencyKey, "function", functionName)
 			recordJSONRPC(functionName, "duplicate")
 			c.JSON(http.StatusConflict, JSONRPCResponse{
@@ -484,27 +471,19 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 				Error:   &JSONRPCError{Code: -32000, Message: "This request has already been processed"},
 				ID:      req.ID,
 			})
-			return
+		case errors.Is(err, errIdempotencyCheckFailed):
+			slog.Error("Idempotency check failed", "key", req.IdempotencyKey, "function", functionName, "error", err)
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Idempotency check failed"}, ID: req.ID})
+		default:
+			slog.Error("Failed to SET ROLE", "role", dbRole, "error", err)
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Code: -32001, Message: "Permission denied for the specified role"}, ID: req.ID})
 		}
-	}
-
-	// Safe identifier quoting for role
-	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
-	if _, err := tx.ExecContext(c.Request.Context(), fmt.Sprintf("SET LOCAL ROLE %s", quotedRole)); err != nil {
-		slog.Error("Failed to SET ROLE", "role", dbRole, "error", err)
-		recordJSONRPC(functionName, "error")
-		c.JSON(http.StatusForbidden, JSONRPCResponse{Error: &JSONRPCError{Code: -32001, Message: "Permission denied for the specified role"}, ID: req.ID})
 		return
 	}
 
-	// Call the function
-	var query string
-	if functionName == "capabilities" || functionName == "pgarachne.capabilities" {
-		query = `SELECT pgarachne.capabilities($1::jsonb)::json`
-	} else {
-		// Allow schema-qualified function names (e.g., api.server_info)
-		query = fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
-	}
+	query := buildFunctionQuery(functionName)
 
 	var resultJSON json.RawMessage
 	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON)
@@ -534,17 +513,38 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 
 func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName string) {
 	var loginReq LoginRequest
-	paramsJSON, err := json.Marshal(req.Params)
-	if err != nil {
+	params := req.Params
+	if len(params) == 0 || string(params) == "null" {
+		params = json.RawMessage("{}")
+	}
+	if err := json.Unmarshal(params, &loginReq); err != nil {
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid params"}, ID: req.ID})
 		return
 	}
-	if err := json.Unmarshal(paramsJSON, &loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid params"}, ID: req.ID})
+	// Reject oversized credentials before they reach the rate limiter or
+	// the connection string. The limits (types.go) are wide enough for any
+	// legitimate user but keep an attacker from blowing up memory with a
+	// single multi-megabyte "password" field.
+	if len(loginReq.Login) > MaxLoginLength {
+		recordLoginResult("invalid")
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
+		return
+	}
+	if len(loginReq.Password) > MaxPasswordLength {
+		recordLoginResult("invalid")
+		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
 		return
 	}
 
-	if loginAttemptLimiter != nil && !loginAttemptLimiter.Allow(c.ClientIP()+"|"+loginReq.Login) {
+	// Per-IP check first: it has the higher limit, and checking it before the
+	// per-(IP, username) limiter means a spraying attacker burns the IP budget
+	// even when each individual username is below its own limit.
+	if s.ipLoginLimiter != nil && !s.ipLoginLimiter.Allow(c.ClientIP()) {
+		recordLoginResult("rate_limited")
+		c.JSON(http.StatusTooManyRequests, JSONRPCResponse{Error: &JSONRPCError{Message: "Too many login attempts. Please try again later."}, ID: req.ID})
+		return
+	}
+	if s.loginLimiter != nil && !s.loginLimiter.Allow(c.ClientIP()+"|"+loginReq.Login) {
 		recordLoginResult("rate_limited")
 		c.JSON(http.StatusTooManyRequests, JSONRPCResponse{Error: &JSONRPCError{Message: "Too many login attempts. Please try again later."}, ID: req.ID})
 		return
@@ -578,10 +578,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 		return
 	}
 
-	expirationTime := time.Now().Add(time.Duration(s.Cfg.JWTExpiryHours) * time.Hour)
-	claims := jwt.MapClaims{"db_role": loginReq.Login, "db_name": databaseName, "exp": expirationTime.Unix()}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	tokenString, err := token.SignedString([]byte(s.Cfg.JWTSecret))
+	tokenString, err := s.jwtSign.Issue(s.Cfg.JWTSecret, loginReq.Login, databaseName, time.Duration(s.Cfg.JWTExpiryHours)*time.Hour)
 	if err != nil {
 		slog.Error("Failed to sign JWT", "error", err)
 		recordLoginResult("error")
@@ -593,7 +590,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	if err != nil {
 		slog.Error("Failed to marshal login response", "error", err)
 		recordLoginResult("error")
-		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to create session token"}, ID: req.ID})
+		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to encode session response"}, ID: req.ID})
 		return
 	}
 
@@ -609,6 +606,65 @@ func (s *Server) handleHealthCheck(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
+// handleOpenAPISpec returns an OpenAPI 3.1 document for the requested
+// database. The spec is generated on the server by calling
+// pgarachne.generate_openapi_spec with the request's Host header as the
+// public base URL (so the spec is portable across reverse-proxy
+// configurations). The endpoint is intentionally unauthenticated — the
+// spec only describes method *names* and *descriptions*, not data — and
+// it is served as application/json, which is what OpenAPI tooling
+// (Swagger UI, Redoc, openapi-generator) expects.
+//
+// We do not cache the result because pgarachne.capabilities() reflects
+// the live state of pg_proc and any function changes (additions, drops,
+// comment edits) should be visible in the spec immediately. The
+// pgarachne service user executes generate_openapi_spec (it is granted
+// to public), so the route is reachable without an authenticated role.
+func (s *Server) handleOpenAPISpec(c *gin.Context) {
+	databaseName := c.Param("database")
+	if !isSafeDatabaseName(databaseName) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid database name"})
+		return
+	}
+
+	db, err := database.GetConnection(s.Cfg, databaseName)
+	if err != nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database connection failed"})
+		return
+	}
+
+	// Build a best-effort public base URL. The Host header is what the
+	// client sent; in a typical deployment behind a reverse proxy this
+	// will be the public hostname. Operators who need a different
+	// origin in the spec can override the apiPrefix config and put
+	// their public host in front.
+	//
+	// X-Forwarded-Proto is only trusted when the request originates from a
+	// configured trusted proxy (gin sets c.Request.Header only after proxy
+	// validation). We check TLS first; only fall back to the header when
+	// TrustedProxies is non-empty, mirroring gin's own proxy-trust logic.
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	} else if len(s.Cfg.TrustedProxies) > 0 && strings.EqualFold(c.GetHeader("X-Forwarded-Proto"), "https") {
+		scheme = "https"
+	}
+	serverURLBase := scheme + "://" + c.Request.Host
+
+	row := db.QueryRowContext(c.Request.Context(),
+		`SELECT pgarachne.generate_openapi_spec($1)::text`, serverURLBase)
+	var spec string
+	if err := row.Scan(&spec); err != nil {
+		slog.Warn("OpenAPI spec generation failed", "database", databaseName, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate OpenAPI spec"})
+		return
+	}
+
+	c.Header("Content-Type", "application/json; charset=utf-8")
+	c.Header("Cache-Control", "no-cache")
+	c.String(http.StatusOK, spec)
+}
+
 func isSafeDatabaseName(name string) bool {
 	if name == "" {
 		return false
@@ -616,41 +672,94 @@ func isSafeDatabaseName(name string) bool {
 	return pgIdentRe.MatchString(name) || pgQuotedIdentRe.MatchString(name)
 }
 
+// quoteRole returns a double-quoted PostgreSQL identifier safe for use in
+// SET LOCAL ROLE. Inner double-quotes are escaped by doubling them, which
+// is the standard SQL identifier quoting rule (ISO/IEC 9075).
+// buildFunctionQuery returns the SQL query string for calling a JSON-RPC
+// function. The capabilities method is always routed to pgarachne.capabilities
+// regardless of how the caller spelled it (with or without schema prefix).
+func buildFunctionQuery(functionName string) string {
+	if functionName == "capabilities" || functionName == "pgarachne.capabilities" {
+		return `SELECT pgarachne.capabilities($1::jsonb)::json`
+	}
+	return fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
+}
+
+func quoteRole(role string) string {
+	return `"` + strings.ReplaceAll(role, `"`, `""`) + `"`
+}
+
 func isSafeFunctionName(name string) bool {
 	if name == "" {
 		return false
 	}
-	if name == "capabilities" || name == "get_jwt" || name == "login" {
+	if name == "capabilities" || name == "get_jwt" {
 		return true
 	}
 	return pgFunctionRe.MatchString(name)
 }
 
-func initLoginLimiter(cfg *config.Config) {
+// parseBasicAuth parses an HTTP Basic-Auth header value of the form
+// "Basic base64(username:password)" and returns the decoded credentials.
+// Returns ok=false for any malformed input (wrong scheme, bad base64, no colon).
+// The password may itself contain colons — only the first colon is treated as
+// the separator, consistent with RFC 7617 §2.
+func parseBasicAuth(header string) (username, password string, ok bool) {
+	const prefix = "Basic "
+	if len(header) <= len(prefix) || !strings.EqualFold(header[:len(prefix)], prefix) {
+		return "", "", false
+	}
+	payload, err := base64.StdEncoding.DecodeString(strings.TrimSpace(header[len(prefix):]))
+	if err != nil {
+		return "", "", false
+	}
+	pair := string(payload)
+	idx := strings.IndexByte(pair, ':')
+	if idx < 0 {
+		return "", "", false
+	}
+	return pair[:idx], pair[idx+1:], true
+}
+
+func newLoginLimiterFromConfig(cfg *config.Config) *loginLimiter {
 	if cfg == nil {
-		loginAttemptLimiter = newLoginLimiter(5, time.Minute)
-		return
+		return newLoginLimiter(5, time.Minute)
 	}
 	if cfg.LoginRateLimit == 0 {
-		loginAttemptLimiter = nil
-		return
+		return nil
 	}
-	loginAttemptLimiter = newLoginLimiter(cfg.LoginRateLimit, cfg.LoginRateWindow)
+	return newLoginLimiter(cfg.LoginRateLimit, cfg.LoginRateWindow)
+}
+
+func newIPLoginLimiterFromConfig(cfg *config.Config) *loginLimiter {
+	if cfg == nil {
+		return newLoginLimiter(25, time.Minute)
+	}
+	if cfg.LoginRateLimitPerIP == 0 {
+		return nil
+	}
+	return newLoginLimiter(cfg.LoginRateLimitPerIP, cfg.LoginRateWindow)
 }
 
 type loginLimiter struct {
-	mu          sync.Mutex
-	limit       int
-	window      time.Duration
+	mu     sync.Mutex
+	limit  int
+	window time.Duration
+	// maxEntries caps the number of distinct keys tracked. Cleanup is lazy
+	// (O(n) once per window), so under a high-cardinality attack (many unique
+	// IPs) the map can grow unboundedly without this bound. When full, new
+	// keys are rate-limited immediately (fail-closed) rather than admitted.
+	maxEntries  int
 	entries     map[string][]time.Time
 	lastCleanup time.Time
 }
 
 func newLoginLimiter(limit int, window time.Duration) *loginLimiter {
 	return &loginLimiter{
-		limit:   limit,
-		window:  window,
-		entries: make(map[string][]time.Time),
+		limit:      limit,
+		window:     window,
+		maxEntries: 100_000,
+		entries:    make(map[string][]time.Time),
 	}
 }
 
@@ -661,26 +770,17 @@ func (l *loginLimiter) Allow(key string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
+	// Trigger O(n) cleanup in a goroutine so the hot Allow path is never
+	// blocked by full-map iteration. We snapshot lastCleanup under the lock,
+	// launch the goroutine, and update lastCleanup before releasing — this
+	// prevents multiple concurrent cleanups.
 	if l.lastCleanup.IsZero() || now.Sub(l.lastCleanup) > l.window {
-		for k, entries := range l.entries {
-			kept := entries[:0]
-			for _, t := range entries {
-				if t.After(cutoff) {
-					kept = append(kept, t)
-				}
-			}
-			if len(kept) == 0 {
-				delete(l.entries, k)
-				continue
-			}
-			l.entries[k] = kept
-		}
 		l.lastCleanup = now
+		go l.cleanup(cutoff)
 	}
 
-	entries := l.entries[key]
-	kept := entries[:0]
-	for _, t := range entries {
+	var kept []time.Time
+	for _, t := range l.entries[key] {
 		if t.After(cutoff) {
 			kept = append(kept, t)
 		}
@@ -691,7 +791,32 @@ func (l *loginLimiter) Allow(key string) bool {
 		return false
 	}
 
+	// New key but map is full — fail closed to prevent unbounded memory growth.
+	if _, exists := l.entries[key]; !exists && l.maxEntries > 0 && len(l.entries) >= l.maxEntries {
+		return false
+	}
+
 	kept = append(kept, now)
 	l.entries[key] = kept
 	return true
+}
+
+// cleanup removes expired entries from the map. Called from a goroutine to
+// avoid blocking Allow() callers during full-map iteration.
+func (l *loginLimiter) cleanup(cutoff time.Time) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for k, entries := range l.entries {
+		var kept []time.Time
+		for _, t := range entries {
+			if t.After(cutoff) {
+				kept = append(kept, t)
+			}
+		}
+		if len(kept) == 0 {
+			delete(l.entries, k)
+		} else {
+			l.entries[k] = kept
+		}
+	}
 }

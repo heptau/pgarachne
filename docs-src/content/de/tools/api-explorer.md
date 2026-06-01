@@ -18,6 +18,7 @@ description: "PgArachne Explorer - PgArachne"
 <li><strong>Automatische Dokumentation:</strong> Er rendert die SQL-Kommentare (einschließlich <code>--- PARAMS ---</code>
 			Metadaten) in eine lesbare Dokumentation.</li>
 <li><strong>Modernes UI:</strong> Bietet Unterstützung für den Dunkel-/Hell-Modus und kann als <strong>PWA</strong> auf mobilen Geräten installiert werden.</li>
+<li><strong>Authentifizierung:</strong> Der Tab <em>Password</em> nutzt HTTP Basic Auth zur direkten Anmeldung als Datenbankbenutzer — kein <code>GRANT … TO pgarachne</code> erforderlich. Der Tab <em>API Token</em> akzeptiert ein JWT oder einen langlebigen API-Token als <code>Bearer</code>.</li>
 </ul>
 
 <p><strong>URL-Parameter:</strong></p>

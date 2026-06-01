@@ -11,7 +11,7 @@ menu:
 	<h2>Konfigurace</h2>
 	<p>PgArachne načítá konfiguraci z proměnných prostředí nebo ze souboru.</p>
 	<div class="tip">
-		<strong>Note:</strong> <code>schema.sql</code> se pokusí vytvořit roli <code>pgarachne_admin</code> a přiřadit ji roli <code>pgarachne</code>. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
+		<strong>Poznámka:</strong> <code>schema.sql</code> se pokusí vytvořit roli <code>pgarachne_admin</code> a přiřadit ji roli <code>pgarachne</code>. Bez superuser práv se vytvoření přeskočí. V tom případě vytvořte roli a nastavte grant ručně.
 	<br>
 		Proxy uživatel (<code>DB_USER</code>) musí být členem <code>pgarachne</code> a <code>pgarachne_admin</code>, aby mohl ověřovat a vytvářet API tokeny.</div>
 	<div class="tip">
@@ -44,14 +44,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=change_me_to_something_secure</code></pre>
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 
 	<h3>Rychlý validační checklist</h3>
 	<ul>
 		<li><code>JWT_SECRET</code> je dlouhý, náhodný a není sdílený mezi prostředími.</li>
 		<li><code>DB_USER</code> může přepínat jen do očekávaných rolí (zkontrolujte role membership granty).</li>
 		<li><code>TRUSTED_PROXIES</code> je nastaveno, pokud běžíte za reverse proxy.</li>
-		<li><code>LOGIN_RATE_LIMIT</code> je zapnutý pro veřejně dostupné nasazení.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> je zapnut pro veřejně dostupné nasazení.</li>
 		<li><code>METRICS_LISTEN_ADDR</code> je neveřejný (např. <code>127.0.0.1:9090</code>).</li>
 	</ul>
 
@@ -88,7 +88,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>SSL režim PostgreSQL. Výchozí: <code>disable</code>.</td>
+				<td>SSL režim PostgreSQL. Výchozí: <code>require</code>. Hodnotu <code>disable</code> nastavte explicitně jen pro lokální vývoj proti PostgreSQL bez TLS.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
@@ -119,7 +119,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>První segment URL cesty pro všechny databázové endpointy (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Výchozí: <code>db</code>, výsledné cesty jako <code>/db/:databaze/jsonrpc</code>. Nastavte na <code>api</code> pro zachování starých cest. Povoleny jsou pouze písmena, číslice, pomlčky a podtržítka.</td>
+				<td>První segment URL cesty pro všechny databázové endpointy (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Výchozí: <code>db</code>, výsledné cesty jako <code>/db/:databaze/jsonrpc</code>. Povoleny jsou pouze písmena, číslice, pomlčky a podtržítka.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -131,7 +131,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Nastavení CORS. Čárkou oddělený seznam povolených domén (např.
 					<code>https://mojeaplikace.cz</code>).
-					Výchozí: <code>*</code>.
+					Výchozí: nenastaveno — cross-origin požadavky z prohlížeče jsou zakázané. Pro povolení libovolného původu nastavte explicitně <code>*</code>.
 				</td>
 			</tr>
 			<tr>
@@ -148,25 +148,45 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Povinné" aria-label="Povinné">✓</span></td>
-				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů.</td>
+				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů. Minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
 			</tr>
+				<tr>
+					<td><code>JWT_ISSUER</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+					<td>Pokud je nastaveno, zapisuje se do claimu <code>iss</code> a musí přesně souhlasit při ověření. Prázdné = kontrola vypnuta.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_AUDIENCE</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+					<td>Pokud je nastaveno, zapisuje se do claimu <code>aud</code> a musí souhlasit při ověření. Prázdné = kontrola vypnuta.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_LEEWAY</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+					<td>Tolerance hodinového posunu pro <code>exp</code>/<code>nbf</code>/<code>iat</code> (např. <code>30s</code>). Výchozí: <code>30s</code>.</td>
+				</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Max. počet pokusů o přihlášení v okně. Pro vypnutí nastavte <code>0</code>. Výchozí: <code>5</code></td>
 			</tr>
 			<tr>
-				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Délka časového okna pro limit. Výchozí: <code>1m</code>.</td>
+				<td>Max. počet pokusů o přihlášení na IP klienta napříč všemi uživatelskými jmény, takže střídání jmen limit neobejde. Výchozí: 5× <code>LOGIN_RATE_LIMIT</code>. Pro vypnutí nastavte <code>0</code>.</td>
 			</tr>
 			<tr>
-				<td colspan="3" style="color:#777;font-size:0.95em;">Omezení přihlášení je per instance (v paměti). Ve více instancích je potřeba sdílený limiter pro globální vynucení.</td>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Délka časového okna pro omezení. Výchozí: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Omezení přihlášení je platné pro jednu instanci (uloženo v paměti). Při provozu více instancí je nutný sdílený limiter pro globální vynucení.</td>
 			</tr>
 			<tr>
 				<td><code>TRUSTED_PROXIES</code></td>
@@ -177,6 +197,16 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>MAX_REQUEST_BYTES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Maximální velikost request body v bajtech. Výchozí: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Zahrnout surovou chybovou zprávu PostgreSQL do chyb MCP nástrojů. Detailní chyby pomáhají LLM agentům se opravit, ale mohou odhalit detaily schématu (názvy tabulek a omezení) autentizovaným volajícím. Výchozí: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Maximální počet různých connection poolů pro přihlašovací údaje Basic Auth. Výchozí: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>

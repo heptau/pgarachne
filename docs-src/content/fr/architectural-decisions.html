@@ -64,7 +64,7 @@ menu:
 		<h4>Pourquoi Go :</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Binaires Statiques :</strong> Un seul fichier exécutable sans dépendances externes.</li>
-			<li><strong>Concurrence :</strong> Les goroutines gèrent des milliers de connexions simultanées légèrement.</li>
+			<li><strong>Concurrence :</strong> Les goroutines gèrent des milliers de connexions simultanées avec légèreté.</li>
 			<li><strong>Bibliothèque Standard Robuste :</strong> HTTP, TLS et JSON intégrés, de qualité production.</li>
 			<li><strong>Compilation Croisée :</strong> Linux, macOS et Windows (amd64 et arm64) depuis n'importe quelle machine.</li>
 		</ul>
@@ -110,7 +110,7 @@ menu:
 		<p>
 			PgArachne route tous les endpoints sous un segment de préfixe configurable :
 			<code>/db/{base_de_donnees}/jsonrpc</code>, <code>/db/{base_de_donnees}/sse</code>, <code>/db/{base_de_donnees}/mcp</code>.
-			Le préfixe par défaut est <code>db</code> et peut être changé via <code>API_PREFIX</code>.
+			Le préfixe par défaut est <code>db</code> et peut être modifié via <code>API_PREFIX</code>.
 		</p>
 
 		<h4>Pourquoi cette structure :</h4>
@@ -118,7 +118,7 @@ menu:
 			<li><strong>Routage par reverse proxy :</strong> Un seul serveur PgArachne peut servir plusieurs bases de données. Un reverse proxy peut router par préfixe ou nom de base de données sans inspecter le corps de la requête, ce qui est essentiel pour l'équilibrage de charge.</li>
 			<li><strong>Scalabilité horizontale :</strong> Avec le nom de base de données dans le chemin URL, plusieurs instances PgArachne peuvent être déployées et le trafic dirigé par base de données via des règles de proxy standard, sans sessions persistantes.</li>
 			<li><strong>Multiplexage de protocoles par base de données :</strong> Regrouper <code>/jsonrpc</code>, <code>/sse</code> et <code>/mcp</code> sous le même espace de noms permet d'appliquer l'authentification, le rate limiting et le contrôle d'accès par base de données au niveau du proxy.</li>
-			<li><strong>Préfixe configurable :</strong> Les déploiements utilisant déjà <code>/api/</code> peuvent configurer <code>API_PREFIX=api</code>. Les clients legacy sont supportés via <code>307 Temporary Redirect</code>.</li>
+			<li><strong>Préfixe configurable :</strong> Les déploiements utilisant déjà <code>/api/</code> peuvent configurer <code>API_PREFIX=api</code>.</li>
 			<li><strong>Observabilité :</strong> Les systèmes de logs et de métriques peuvent grouper le trafic par nom de base de données directement depuis l'URL sans parser les corps JSON.</li>
 		</ul>
 

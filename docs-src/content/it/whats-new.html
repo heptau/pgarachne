@@ -9,13 +9,26 @@ menu:
 
 <section id="whats-new" class="section-light">
         <h2>Novità</h2>
-        <p>Informazioni più dettagliate sulle modifiche in ogni versione possono essere trovate direttamente su <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+        <p>Informazioni più dettagliate sulle modifiche in ogni versione sono disponibili direttamente su <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Valori predefiniti sicuri (con modifiche incompatibili)</strong>: <code>DB_SSLMODE</code> ora è <code>require</code> di default, <code>ALLOWED_ORIGINS</code> non è più <code>*</code> di default e <code>JWT_SECRET</code> deve avere almeno 32 byte. I deployment esistenti devono rivedere la configurazione prima dell'aggiornamento.</li>
+		<li>🧹 <strong>Pulizia del codice legacy</strong>: Rimossi i percorsi di reindirizzamento <code>/api/…</code> e <code>/sse/…</code> e l'alias JSON-RPC deprecato <code>login</code>. Usa direttamente <code>/{prefix}/:database/…</code> e <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Autenticazione e gestione errori più rigorose</strong>: Un nuovo limite di login per IP (<code>LOGIN_RATE_LIMIT_PER_IP</code>) chiude una falla di credential spraying, e gli errori degli strumenti MCP non espongono più il testo grezzo degli errori PostgreSQL per default (riattivabile con <code>MCP_SQL_ERROR_DETAIL</code>).</li>
+		<li>⚙️ <strong>Limiti di connessione configurabili</strong>: Il limite del pool di connessioni per l'autenticazione diretta è ora configurabile tramite <code>DIRECT_POOL_LIMIT</code>.</li>
+		<li>🔑 <strong>Supporto per IdP esterni (BYO JWT)</strong>: Le nuove impostazioni <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code> e <code>JWT_LEEWAY</code> associano i token emessi a un emittente/pubblico specifico e permettono di regolare la tolleranza di sfasamento orario.</li>
+		<li>🧰 <strong>Nuovi strumenti</strong>: Un <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) e un <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) autonomi si uniscono all'Explorer per test manuali rapidi.</li>
+		<li>🐛 <strong>Correzioni di stabilità</strong>: Risolto un blocco nello spegnimento SSE e un bug nel ripristino delle connessioni morte che poteva impedire al server di riconnettersi a PostgreSQL.</li>
+		<li>🧪 <strong>Rafforzamento della CI</strong>: Aggiunti <code>golangci-lint</code>, il race detector di Go e <code>govulncheck</code> a ogni build, oltre a una maggiore copertura dei test.</li>
+		<li>📦 <strong>Processo di rilascio</strong>: Aggiunto <code>CHANGELOG.md</code> e suddiviso il flusso di rilascio in <code>make release-local</code> (build e verifica) e <code>make release</code> (tag, pubblicazione, aggiornamento del tap Homebrew).</li>
+	</ul>
 
 	<p class="whats-new-subtitle">v1.3.0</p>
 	<ul>
 		<li>🌐 <strong>PgArachne Explorer – PWA moderno</strong>: Completo rinnovamento visivo e funzionale – tema scuro/chiaro (automatico), layout a schede responsive, evidenziazione della sintassi JSON, pulsante copia negli appunti, migliore UX di autenticazione (schede password/token), supporto all'installazione PWA (manifest, icone, service worker), link condivisibili tramite parametro <code>?url=…</code>.</li>
 		<li>🛠️ <strong>Supporto Model Context Protocol (MCP)</strong>: Nuovo endpoint <code>/{prefix}/{db}/mcp</code> con i metodi standard <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – interamente supportato da funzioni PostgreSQL e che riutilizza l'autenticazione e il cambio di ruolo esistenti.</li>
-		<li>🔧 <strong>Prefisso API configurabile</strong>: Il valore predefinito è stato modificato in <code>/db/{database}/jsonrpc</code> e <code>/db/{database}/sse</code>. I vecchi percorsi <code>/api/…</code> ora restituiscono reindirizzamenti permanenti 307. Controllato tramite la nuova variabile d'ambiente <code>API_PREFIX</code>.</li>
+		<li>🔧 <strong>Prefisso API configurabile</strong>: Il valore predefinito è stato modificato in <code>/db/{database}/jsonrpc</code> e <code>/db/{database}/sse</code>, i vecchi percorsi <code>/api/…</code> e <code>/sse/…</code> restano disponibili come redirect 307 per compatibilità. Controllato tramite la variabile d'ambiente <code>API_PREFIX</code>.</li>
 		<li>🛡️ <strong>Protezione idempotenza</strong>: Campo opzionale <code>idempotencyKey</code> nelle richieste JSON-RPC – rilevamento automatico dei duplicati (HTTP 409 + codice errore in caso di collisione) utilizzando <code>pgarachne.save_idempotency_key()</code>.</li>
 		<li>📚 <strong>Miglioramenti alla documentazione</strong>: Nuova sezione <strong>/tools/</strong> con schede (Explorer + prossima barra degli strumenti per macOS), nuova pagina “Architectural Decisions”, <strong>SECURITY.md</strong> con istruzioni per la segnalazione di vulnerabilità, migliore tipografia in tutte le lingue tramite TypoLima, supporto migliorato per la pagina 404 per GitHub Pages.</li>
 		<li>📝 <strong>Rinominato metodo di accesso</strong>: Il metodo JSON-RPC <code>login</code> è stato rinominato in <code>get_jwt</code> (il vecchio nome rimane come alias deprecato con avviso nei log).</li>

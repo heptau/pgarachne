@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>PgArachne JWT Getter</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			--bg-body: #0f111a;
+			--bg-card: #161b22;
+			--bg-input: #0d1117;
+			--fg: #c9d1d9;
+			--fg-heading: #e6edf3;
+			--fg-muted: #8b949e;
+			--border: #30363d;
+			--border-h2: #21262d;
+			--accent: #58a6ff;
+			--accent-glow: rgba(88, 166, 255, 0.15);
+			--btn-primary: #238636;
+			--btn-primary-hover: #2ea043;
+			--btn-secondary: #30363d;
+			--btn-secondary-hover: #3d444d;
+			--btn-danger: #da3633;
+			--btn-danger-hover: #e5534b;
+			--status-ok: #3fb950;
+			--json-key: #79c0ff;
+			--json-string: #a5d6ff;
+			--json-number: #f0883e;
+			--json-boolean: #ff7b72;
+			--json-null: #8b949e;
+		}
+
+		@media (prefers-color-scheme: light) {
+			:root {
+				--bg-body: #f6f8fa;
+				--bg-card: #ffffff;
+				--bg-input: #f6f8fa;
+				--fg: #1f2328;
+				--fg-heading: #1f2328;
+				--fg-muted: #656d76;
+				--border: #d0d7de;
+				--border-h2: #d8dee4;
+				--accent: #0969da;
+				--accent-glow: rgba(9, 105, 218, 0.12);
+				--btn-primary: #1a7f37;
+				--btn-primary-hover: #218c3a;
+				--btn-secondary: #e9ecef;
+				--btn-secondary-hover: #d0d7de;
+				--btn-danger: #cf222e;
+				--btn-danger-hover: #a40e26;
+				--status-ok: #1a7f37;
+				--json-key: #0550ae;
+				--json-string: #0a3069;
+				--json-number: #953800;
+				--json-boolean: #cf222e;
+				--json-null: #656d76;
+			}
+		}
+
+		*, *::before, *::after { box-sizing: border-box; }
+
+		body {
+			font-family: 'Inter', system-ui, sans-serif;
+			max-width: 700px;
+			margin: 0 auto;
+			padding: 24px;
+			background: var(--bg-body);
+			color: var(--fg);
+			line-height: 1.5;
+		}
+
+		h1 {
+			font-size: 1.6rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 24px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		h1::before { content: '🔐'; font-size: 1.4rem; }
+
+		h2 {
+			font-size: 1rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 16px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--border-h2);
+		}
+
+		.card {
+			margin-bottom: 20px;
+			border: 1px solid var(--border);
+			padding: 20px;
+			border-radius: 10px;
+			background: var(--bg-card);
+			transition: border-color 0.3s ease;
+		}
+
+		label {
+			display: block;
+			margin: 12px 0 4px;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--fg-muted);
+		}
+
+		label:first-of-type { margin-top: 0; }
+
+		input[type="text"],
+		input[type="password"] {
+			width: 100%;
+			padding: 9px 12px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: var(--bg-input);
+			color: var(--fg-heading);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.85rem;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		input:focus {
+			outline: none;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px var(--accent-glow);
+		}
+
+		.url-config-row {
+			display: grid;
+			grid-template-columns: 1fr 90px 1fr;
+			gap: 12px;
+			align-items: end;
+		}
+
+		button {
+			padding: 9px 16px;
+			background: var(--btn-primary);
+			color: #fff;
+			border: 1px solid rgba(240, 246, 252, 0.1);
+			cursor: pointer;
+			border-radius: 6px;
+			font-family: 'Inter', system-ui, sans-serif;
+			font-size: 0.82rem;
+			font-weight: 500;
+			transition: background 0.15s ease, transform 0.1s ease;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		button:hover { background: var(--btn-primary-hover); transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+		button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+		.btn-secondary { background: var(--btn-secondary); }
+		@media (prefers-color-scheme: light) { .btn-secondary { color: var(--fg); } }
+		.btn-secondary:hover { background: var(--btn-secondary-hover); }
+
+		.btn-danger { background: var(--btn-danger); }
+		.btn-danger:hover { background: var(--btn-danger-hover); }
+
+		.btn-small { padding: 5px 10px; font-size: 0.75rem; }
+
+		.button-group {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			margin-top: 16px;
+			flex-wrap: wrap;
+		}
+
+		/* --- Result section --- */
+		.result-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
+		}
+
+		.result-header h2 { margin: 0; border: none; padding: 0; }
+
+		.token-box {
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 14px 16px;
+			background: var(--bg-input);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.82rem;
+			word-break: break-all;
+			white-space: pre-wrap;
+			line-height: 1.6;
+			min-height: 60px;
+			color: var(--fg);
+		}
+
+		.token-box.success {
+			border-color: var(--status-ok);
+			color: var(--accent);
+		}
+
+		.token-box.error {
+			border-color: var(--btn-danger);
+			color: var(--btn-danger);
+		}
+
+		/* --- Decoded payload --- */
+		.payload-section { margin-top: 16px; }
+
+		.payload-section h3 {
+			font-size: 0.85rem;
+			font-weight: 600;
+			color: var(--fg-muted);
+			margin: 0 0 8px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+		}
+
+		#payload-box {
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 14px 16px;
+			background: var(--bg-input);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.82rem;
+			white-space: pre-wrap;
+			word-break: break-all;
+			line-height: 1.6;
+			color: var(--fg);
+		}
+
+		/* JWT expiry banner */
+		.expiry-badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 4px;
+			font-size: 0.78rem;
+			font-family: 'JetBrains Mono', monospace;
+			margin-top: 10px;
+		}
+
+		.expiry-badge.ok { background: rgba(63,185,80,0.15); color: var(--status-ok); border: 1px solid var(--status-ok); }
+		.expiry-badge.expired { background: rgba(218,54,51,0.15); color: var(--btn-danger); border: 1px solid var(--btn-danger); }
+
+		/* JSON coloring */
+		.json-key { color: var(--json-key); }
+		.json-string { color: var(--json-string); }
+		.json-number { color: var(--json-number); }
+		.json-boolean { color: var(--json-boolean); }
+		.json-null { color: var(--json-null); }
+
+		/* Loading animation */
+		.loading::after {
+			content: '';
+			display: inline-block;
+			animation: dots 1.4s steps(4, end) infinite;
+		}
+
+		@keyframes dots {
+			0%   { content: ''; }
+			25%  { content: '.'; }
+			50%  { content: '..'; }
+			75%  { content: '...'; }
+		}
+
+		.hidden { display: none !important; }
+
+		.footer {
+			margin-top: 32px;
+			padding-top: 12px;
+			border-top: 1px solid var(--border);
+			text-align: center;
+			font-size: 0.75rem;
+			color: var(--fg-muted);
+		}
+
+		.footer a { color: var(--fg-muted); text-decoration: none; transition: color 0.2s ease; }
+		.footer a:hover { color: var(--accent); }
+	</style>
+</head>
+
+<body>
+	<h1>PgArachne JWT Getter</h1>
+
+	<div class="card">
+		<h2>Connection &amp; Credentials</h2>
+
+		<div class="url-config-row">
+			<div>
+				<label for="apiUrl">API URL</label>
+				<input type="text" id="apiUrl" placeholder="http://localhost:8080" autocapitalize="off" autocorrect="off">
+			</div>
+			<div>
+				<label for="urlPrefix">Prefix</label>
+				<input type="text" id="urlPrefix" placeholder="db" autocapitalize="off" autocorrect="off">
+			</div>
+			<div>
+				<label for="databaseName">Database</label>
+				<input type="text" id="databaseName" placeholder="my_database" autocapitalize="off" autocorrect="off">
+			</div>
+		</div>
+
+		<label for="login">Login</label>
+		<input type="text" id="login" placeholder="username" autocapitalize="off" autocorrect="off">
+
+		<label for="password">Password</label>
+		<input type="password" id="password" placeholder="password" onkeydown="if(event.key==='Enter') getJWT()">
+
+		<p style="font-size:0.78rem; color:var(--fg-muted); margin: 10px 0 0;">
+			Calls the <code>get_jwt</code> JSON-RPC method and returns a short-lived JWT.
+			Requires <code>GRANT &lt;role&gt; TO pgarachne</code> in the database. For passwordless access,
+			use the <a href="../pgarachne-explorer/" style="color:var(--accent);">Explorer</a> or
+			<a href="../test-sse/" style="color:var(--accent);">SSE Tester</a> with direct credentials instead.
+		</p>
+
+		<div class="button-group">
+			<button id="get-jwt-btn" onclick="getJWT()">&#9654; Get JWT</button>
+			<button id="clear-btn" onclick="clearResult()" class="btn-secondary btn-small">&#10005; Clear</button>
+		</div>
+	</div>
+
+	<!-- Result -->
+	<div>
+		<div class="result-header">
+			<h2>JWT Token</h2>
+			<button onclick="copyToken()" class="btn-secondary btn-small" id="copy-btn">&#9014; Copy</button>
+		</div>
+		<div class="token-box" id="token-box">Token will appear here&hellip;</div>
+		<div id="expiry-area"></div>
+	</div>
+
+	<!-- Decoded payload -->
+	<div class="payload-section hidden" id="payload-section">
+		<h3>Decoded Payload</h3>
+		<div id="payload-box"></div>
+	</div>
+
+	<footer class="footer">
+		Part of <a href="https://www.pgarachne.com" target="_blank" rel="noopener">PgArachne</a> &mdash; expose PostgreSQL functions as a JSON-RPC API
+	</footer>
+
+	<script>
+		var currentToken = null;
+
+		function getJsonRpcUrl() {
+			var base   = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
+			var prefix = document.getElementById('urlPrefix').value.trim() || 'db';
+			var db     = document.getElementById('databaseName').value.trim();
+			return base + '/' + prefix + '/' + db + '/jsonrpc';
+		}
+
+		/* ---- JSON highlight ---- */
+		function syntaxHighlight(json) {
+			return json.replace(
+				/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+				function (match) {
+					var cls = 'json-number';
+					if (/^"/.test(match)) { cls = /:$/.test(match) ? 'json-key' : 'json-string'; }
+					else if (/true|false/.test(match)) { cls = 'json-boolean'; }
+					else if (/null/.test(match)) { cls = 'json-null'; }
+					return '<span class="' + cls + '">' + match + '</span>';
+				}
+			);
+		}
+
+		/* ---- Local storage ---- */
+		function save(id) { localStorage.setItem('getjwt_' + id, document.getElementById(id).value); }
+		function load(id, def) {
+			var el = document.getElementById(id);
+			el.value = localStorage.getItem('getjwt_' + id) || def || '';
+			el.addEventListener('input', function () { save(id); });
+		}
+
+		/* ---- Decode JWT payload ---- */
+		function decodeJwtPayload(token) {
+			try {
+				var parts = token.split('.');
+				if (parts.length !== 3) return null;
+				// Base64url → Base64
+				var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+				var pad = b64.length % 4;
+				if (pad) b64 += '===='.slice(pad);
+				return JSON.parse(atob(b64));
+			} catch (e) {
+				return null;
+			}
+		}
+
+		function renderExpiry(payload) {
+			var area = document.getElementById('expiry-area');
+			area.innerHTML = '';
+			if (!payload || !payload.exp) return;
+			var exp = new Date(payload.exp * 1000);
+			var now = new Date();
+			var badge = document.createElement('span');
+			if (exp > now) {
+				var diff = Math.round((exp - now) / 1000);
+				var hh = Math.floor(diff / 3600);
+				var mm = Math.floor((diff % 3600) / 60);
+				var ss = diff % 60;
+				var human = (hh ? hh + 'h ' : '') + (mm ? mm + 'm ' : '') + ss + 's';
+				badge.className = 'expiry-badge ok';
+				badge.textContent = 'Expires: ' + exp.toLocaleString() + ' (in ' + human + ')';
+			} else {
+				badge.className = 'expiry-badge expired';
+				badge.textContent = 'Expired: ' + exp.toLocaleString();
+			}
+			area.appendChild(badge);
+		}
+
+		/* ---- Main ---- */
+		async function getJWT() {
+			var login    = document.getElementById('login').value.trim();
+			var password = document.getElementById('password').value;
+			var apiUrl   = document.getElementById('apiUrl').value.trim();
+			var db       = document.getElementById('databaseName').value.trim();
+
+			if (!apiUrl || !db || !login || !password) {
+				showError('Please fill in all fields.');
+				return;
+			}
+
+			setLoading(true);
+
+			try {
+				var resp = await fetch(getJsonRpcUrl(), {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						jsonrpc: '2.0',
+						method: 'get_jwt',
+						params: { login: login, password: password },
+						id: 1
+					})
+				});
+
+				var data = await resp.json();
+
+				if (resp.ok && data.result && data.result.token) {
+					var token = data.result.token;
+					currentToken = token;
+					showToken(token);
+					save('login');
+				} else {
+					var msg = (data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
+					showError('Error: ' + msg);
+				}
+			} catch (e) {
+				showError('Connection error: ' + e.message);
+			}
+
+			setLoading(false);
+		}
+
+		function showToken(token) {
+			var box = document.getElementById('token-box');
+			box.className = 'token-box success';
+			box.textContent = token;
+
+			var payload = decodeJwtPayload(token);
+			renderExpiry(payload);
+
+			var paySection = document.getElementById('payload-section');
+			var payBox = document.getElementById('payload-box');
+			if (payload) {
+				payBox.innerHTML = syntaxHighlight(JSON.stringify(payload, null, 2));
+				paySection.classList.remove('hidden');
+			} else {
+				paySection.classList.add('hidden');
+			}
+		}
+
+		function showError(msg) {
+			var box = document.getElementById('token-box');
+			box.className = 'token-box error';
+			box.textContent = msg;
+			document.getElementById('expiry-area').innerHTML = '';
+			document.getElementById('payload-section').classList.add('hidden');
+			currentToken = null;
+		}
+
+		function clearResult() {
+			var box = document.getElementById('token-box');
+			box.className = 'token-box';
+			box.textContent = 'Token will appear here…';
+			document.getElementById('expiry-area').innerHTML = '';
+			document.getElementById('payload-section').classList.add('hidden');
+			currentToken = null;
+		}
+
+		function setLoading(on) {
+			var btn = document.getElementById('get-jwt-btn');
+			btn.disabled = on;
+			if (on) {
+				var box = document.getElementById('token-box');
+				box.className = 'token-box loading';
+				box.textContent = 'Fetching JWT';
+			}
+		}
+
+		function copyToken() {
+			if (!currentToken) return;
+			navigator.clipboard.writeText(currentToken).then(function () {
+				var btn = document.getElementById('copy-btn');
+				var orig = btn.textContent;
+				btn.textContent = '✓ Copied';
+				setTimeout(function () { btn.textContent = orig; }, 1400);
+			});
+		}
+
+		window.onload = function () {
+			load('apiUrl', 'http://localhost:8080');
+			load('urlPrefix', 'db');
+			load('databaseName', 'my_database');
+			load('login', '');
+		};
+	</script>
+</body>
+
+</html>

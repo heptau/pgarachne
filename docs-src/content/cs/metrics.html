@@ -15,5 +15,8 @@ menu:
 		<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>
 		<li><code>pgarachne_jsonrpc_requests_total</code></li>
 		<li><code>pgarachne_sse_clients</code>, <code>pgarachne_sse_channels</code>, <code>pgarachne_sse_client_drops_total</code></li>
+		<li><code>pgarachne_sse_events_forwarded_total</code> &mdash; NOTIFY události z PostgreSQLu dispatchované SSE klientům, label podle databáze</li>
+		<li><code>pgarachne_sse_bytes_sent_total</code> &mdash; bajty zapsané do SSE response streamů (payloady, heartbeats, preamble), label podle databáze</li>
+		<li><code>pgarachne_sse_listen_errors_total</code> &mdash; chyby LISTEN/connection a události znovupřipojení, označeno podle databáze a typu události. Nenulová hodnota si zaslouží prošetření &mdash; hub při znovupřipojení odpojí všechny klienty, takže uživatelé zaznamenají krátký výpadek.</li>
 	</ul>
 </section>

@@ -18,7 +18,8 @@ description: "Explorateur PgArachne - PgArachne"
 			le navigateur.</li>
 <li><strong>Auto-Documentation :</strong> Il rend les commentaires SQL (y compris les métadonnées <code>---
 			PARAMS ---</code>) en documentation lisible.</li>
-<li><strong>Interface moderne :</strong> Propose un support pour le mode Sombre/Clair et peut être installée comme une <strong>PWA</strong> sur les appareils mobiles.</li>
+<li><strong>Interface moderne :</strong> Propose un support pour le mode sombre/clair et peut être installée comme une <strong>PWA</strong> sur les appareils mobiles.</li>
+<li><strong>Authentification :</strong> L’onglet <em>Password</em> utilise HTTP Basic Auth pour se connecter directement en tant qu’utilisateur de la base de données — sans <code>GRANT … TO pgarachne</code>. L’onglet <em>API Token</em> accepte un JWT ou un token d’API longue durée en tant que <code>Bearer</code>.</li>
 </ul>
 
 <p><strong>Paramètres URL :</strong></p>

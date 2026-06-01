@@ -12,7 +12,7 @@ menu:
 	<p>
 		Diese Seite erläutert die Beweggründe hinter den wichtigsten Architektur- und Technologieentscheidungen in PgArachne.
 		Diese Entscheidungen wurden getroffen, um Leistung, Sicherheit und Entwicklerproduktivität zu priorisieren und gleichzeitig eine
-		hohe Kompatibilität mit modernen AI- und LLM-Agenten sicherzustellen.
+		hohe Kompatibilität mit modernen KI- und LLM-Agenten sicherzustellen.
 	</p>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
@@ -22,15 +22,15 @@ menu:
 		<h4>Warum JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Einzelner Endpunkt:</strong> Die gesamte Kommunikation erfolgt über <code>POST /{prefix}/{datenbank}/jsonrpc</code>. Es müssen keine komplexen URL-Strukturen entworfen oder HTTP-Verb-Semantiken debattiert werden.</li>
-			<li><strong>Eigenständige Aufrufe:</strong> Jede Anfrage ist ein vollständiges JSON-Objekt (Methode + Parameter + ID). Dieses Format ist für LLMs und AI-Agenten trivial zu generieren und mit hoher Zuverlässigkeit zu parsen.</li>
+			<li><strong>Eigenständige Aufrufe:</strong> Jede Anfrage ist ein vollständiges JSON-Objekt (Methode + Parameter + ID). Dieses Format ist für LLMs und KI-Agenten trivial zu generieren und mit hoher Zuverlässigkeit zu parsen.</li>
 			<li><strong>Standardisierte Fehlerbehandlung:</strong> Fehlercodes und -meldungen sind Teil der Spezifikation, was die Notwendigkeit eliminiert, HTTP-Statuscode-Konventionen für Geschäftsfehler selbst zu „erfinden".</li>
 			<li><strong>Stapelverarbeitung (Batching):</strong> Das Protokoll unterstützt nativ Batch-Anfragen, was mehrere Operationen in einem einzigen HTTP-Roundtrip ohne zusätzliche Arbeit ermöglicht.</li>
-			<li><strong>Discovery:</strong> Der Capabilities-Endpunkt bietet eine vollständige Beschreibung der API in einem Format, das AI-Agenten konsumieren können, um verfügbare Werkzeuge ohne Halluzinationen zu verstehen.</li>
+			<li><strong>Discovery:</strong> Der Capabilities-Endpunkt bietet eine vollständige Beschreibung der API in einem Format, das KI-Agenten konsumieren können, um verfügbare Werkzeuge ohne Halluzinationen zu verstehen.</li>
 		</ul>
 
 		<h4>Warum nicht REST:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Komplexität für AI:</strong> REST-Semantiken (GET/POST/PATCH/DELETE + URL-Parameter + Body) sind über mehrere Stellen verteilt, was es AI-Agenten erschwert, Aufrufe zuverlässig zu konstruieren.</li>
+			<li><strong>Komplexität für KI:</strong> REST-Semantiken (GET/POST/PATCH/DELETE + URL-Parameter + Body) sind über mehrere Stellen verteilt, was es KI-Agenten erschwert, Aufrufe zuverlässig zu konstruieren.</li>
 			<li><strong>Schema-Leckage:</strong> CRUD über Tabellen (wie bei PostgREST) gibt oft die interne Datenbankstruktur direkt über die API preis. PgArachne exponiert bewusst Funktionen und behält die Geschäftslogik in SQL gekapselt.</li>
 			<li><strong>Fehlende Standards:</strong> REST bietet keinen universellen Standard für Batch-Operationen, plattformübergreifende Fehlerformate oder automatisierte API-Erkennung.</li>
 		</ul>
@@ -118,7 +118,7 @@ menu:
 			<li><strong>Reverse-Proxy-Routing:</strong> Eine einzelne PgArachne-Instanz kann mehrere Datenbanken bedienen. Ein Reverse-Proxy (Nginx, Caddy, Traefik) kann nach Präfix oder Datenbankname routen, ohne den Request-Body zu inspizieren — entscheidend für Load Balancing und pfadbasierte Regeln.</li>
 			<li><strong>Horizontale Skalierbarkeit:</strong> Mit dem Datenbanknamen im URL-Pfad können mehrere PgArachne-Instanzen betrieben werden, wobei der Datenverkehr über Standard-Proxy-Regeln zu datenbankspezifischen Instanzen geleitet wird — ohne Sticky Sessions oder Body-Inspektion.</li>
 			<li><strong>Protokoll-Multiplexing pro Datenbank:</strong> Die Gruppierung von <code>/jsonrpc</code>, <code>/sse</code> und <code>/mcp</code> unter demselben <code>/{prefix}/{datenbank}/</code>-Namensraum ermöglicht es, datenbankspezifische Authentifizierung, Rate Limiting und Zugriffskontrolle auf Proxy-Ebene anzuwenden.</li>
-			<li><strong>Konfigurierbarer Präfix:</strong> Deployments, die bereits <code>/api/</code> als Präfix in ihrer Infrastruktur verwenden, können <code>API_PREFIX=api</code> setzen. Legacy-Clients werden über <code>307 Temporary Redirect</code> von den alten Pfaden unterstützt.</li>
+			<li><strong>Konfigurierbarer Präfix:</strong> Deployments, die bereits <code>/api/</code> als Präfix in ihrer Infrastruktur verwenden, können <code>API_PREFIX=api</code> setzen.</li>
 			<li><strong>Beobachtbarkeit:</strong> Log-Aggregatoren und Metriksysteme können den Datenverkehr direkt anhand des Datenbanknamens aus der URL gruppieren und filtern, ohne JSON-Bodies zu parsen.</li>
 		</ul>
 

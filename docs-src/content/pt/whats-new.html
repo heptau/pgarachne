@@ -9,25 +9,38 @@ menu:
 
 <section id="whats-new" class="section-light">
 	        <h2>Novidades</h2>
-        <p>Informações mais detalhadas sobre as mudanças em cada versão podem ser encontradas diretamente em <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+        <p>Informações mais detalhadas sobre as alterações em cada versão podem ser encontradas diretamente em <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Padrões seguros (com quebra de compatibilidade)</strong>: <code>DB_SSLMODE</code> agora tem como padrão <code>require</code>, <code>ALLOWED_ORIGINS</code> deixou de ter <code>*</code> como padrão, e <code>JWT_SECRET</code> deve ter no mínimo 32 bytes. Implantações existentes devem revisar a configuração antes de atualizar.</li>
+		<li>🧹 <strong>Limpeza de itens legados</strong>: Removidas as rotas de redirecionamento <code>/api/…</code> e <code>/sse/…</code> e o alias JSON-RPC obsoleto <code>login</code>. Use diretamente <code>/{prefix}/:database/…</code> e <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Autenticação e tratamento de erros mais rígidos</strong>: Um novo limite de login por IP (<code>LOGIN_RATE_LIMIT_PER_IP</code>) fecha uma brecha de credential spraying, e os erros das ferramentas MCP não expõem mais o texto de erro bruto do PostgreSQL por padrão (pode ser reativado com <code>MCP_SQL_ERROR_DETAIL</code>).</li>
+		<li>⚙️ <strong>Limites de conexão configuráveis</strong>: O limite do pool de conexões de autenticação direta agora é configurável via <code>DIRECT_POOL_LIMIT</code>.</li>
+		<li>🔑 <strong>Suporte a IdPs externos (BYO JWT)</strong>: As novas configurações <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code> e <code>JWT_LEEWAY</code> vinculam os tokens emitidos a um emissor/audiência específicos e permitem ajustar a tolerância de desvio de relógio.</li>
+		<li>🧰 <strong>Novas ferramentas</strong>: Um <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) e um <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) independentes se juntam ao Explorer para testes manuais rápidos.</li>
+		<li>🐛 <strong>Correções de confiabilidade</strong>: Corrigido um bloqueio no encerramento do SSE e um bug na recuperação de conexões mortas que podia deixar o servidor incapaz de reconectar ao PostgreSQL.</li>
+		<li>🧪 <strong>Reforço de CI</strong>: Adicionados <code>golangci-lint</code>, o detector de race conditions do Go e <code>govulncheck</code> a cada build, além de maior cobertura de testes.</li>
+		<li>📦 <strong>Processo de lançamento</strong>: Adicionado o <code>CHANGELOG.md</code> e dividido o fluxo de lançamento em <code>make release-local</code> (build e verificação) e <code>make release</code> (tag, publicação, atualização do tap Homebrew).</li>
+	</ul>
 
 	<p class="whats-new-subtitle">v1.3.0</p>
 	<ul>
-		<li>🌐 <strong>PgArachne Explorer – PWA moderno</strong>: Renovação visual e funcional completa – tema escuro/claro (automático), layout de cartões responsivo, realce de sintaxe JSON, botão copiar para área de transferência, melhor UX de autenticação (abas senha/token), suporte à instalação PWA (manifesto, ícones, service worker), links compartilháveis via parâmetro <code>?url=…</code>.</li>
-		<li>🛠️ <strong>Suporte ao Model Context Protocol (MCP)</strong>: Novo endpoint <code>/{prefix}/{db}/mcp</code> com métodos padrão <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – totalmente suportado por funções PostgreSQL e reutilizando a autenticação e troca de função existentes.</li>
-		<li>🔧 <strong>Prefixo de API configurável</strong>: O padrão foi alterado para <code>/db/{database}/jsonrpc</code> e <code>/db/{database}/sse</code>. Caminhos antigos <code>/api/…</code> agora retornam redirecionamentos permanentes 307. Controlado pela nova variável de ambiente <code>API_PREFIX</code>.</li>
-		<li>🛡️ <strong>Proteção de idempotência</strong>: Campo opcional <code>idempotencyKey</code> em solicitações JSON-RPC – detecção automática de duplicatas (HTTP 409 + código de erro em caso de colisão) usando <code>pgarachne.save_idempotency_key()</code>.</li>
-		<li>📚 <strong>Melhorias na documentação</strong>: Nova seção <strong>/tools/</strong> com cartões (Explorer + futura barra de ferramentas para macOS), nova página “Architectural Decisions”, <strong>SECURITY.md</strong> com instruções para relatar vulnerabilidades, melhor tipografia em todos os idiomas via TypoLima, suporte aprimorado para página 404 no GitHub Pages.</li>
-		<li>📝 <strong>Renomeação do método de login</strong>: O método JSON-RPC <code>login</code> foi renomeado para <code>get_jwt</code> (o nome antigo permanece como um alias obsoleto com aviso nos logs).</li>
-		<li>📊 <strong>Limpeza de registros (logging)</strong>: Ao registrar em arquivo, o console mostra apenas informações mínimas de inicialização → saída mais limpa em ambientes de produção / docker.</li>
+		<li>🌐 <strong>PgArachne Explorer – PWA moderno</strong>: Renovação visual e funcional completa – tema escuro/claro (automático), layout de cartões responsivo, realce de sintaxe JSON, botão copiar para área de transferência, melhor experiência de autenticação (abas senha/token), suporte à instalação PWA (manifesto, ícones, service worker), links compartilháveis via parâmetro <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Suporte ao Model Context Protocol (MCP)</strong>: Novo endpoint <code>/{prefix}/{db}/mcp</code> com métodos padrão <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – totalmente suportado por funções PostgreSQL e reutilizando a autenticação e troca de papel existentes.</li>
+		<li>🔧 <strong>Prefixo de API configurável</strong>: O padrão foi alterado para <code>/db/{database}/jsonrpc</code> e <code>/db/{database}/sse</code>, as rotas antigas <code>/api/…</code> e <code>/sse/…</code> permanecem como redirecionamentos 307 por compatibilidade. Controlado pela variável de ambiente <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Proteção de idempotência</strong>: Campo opcional <code>idempotencyKey</code> em requisições JSON-RPC – detecção automática de duplicatas (HTTP 409 + código de erro em caso de colisão) usando <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Melhorias na documentação</strong>: Nova seção <strong>/tools/</strong> com cartões (Explorer + futura barra de ferramentas para macOS), nova página "Architectural Decisions", <strong>SECURITY.md</strong> com instruções para comunicar vulnerabilidades, melhor tipografia em todos os idiomas via TypoLima, suporte aprimorado para página 404 no GitHub Pages.</li>
+		<li>📝 <strong>Renomeação do método de login</strong>: O método JSON-RPC <code>login</code> foi renomeado para <code>get_jwt</code> (o nome antigo permanece como alias obsoleto com aviso nos logs).</li>
+		<li>📊 <strong>Limpeza de registros (logging)</strong>: Ao registrar em arquivo, o console exibe apenas informações mínimas de inicialização → saída mais limpa em ambientes de produção/Docker.</li>
 	</ul>
 
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
-		<li>🛡️ <strong>Segurança:</strong> A validação do token de acesso ocorre antes de estabelecer uma conexão com o banco de dados. Melhoria na proteção contra falsificação de IP (adicionada a configuração <code>TRUSTED_PROXIES</code>) e ocultação de erros internos do banco de dados para o usuário final.</li>
-		<li>📊 <strong>Métricas isoladas:</strong> O endpoint Prometheus <code>/metrics</code> foi movido da API pública para sua própria porta segura (por padrão, disponível apenas em <code>127.0.0.1:9090</code>).</li>
-		<li>📦 <strong>Nova opção de instalação:</strong> O projeto agora tem um tap Homebrew oficial para macOS e Linux. As builds são assinadas e geradas via GoReleaser.</li>
-		<li>📚 <strong>Documentação reformulada:</strong> Visual totalmente novo construído sobre o framework Hugo. Adição de busca rápida de texto completo, opção de copiar código e exemplos de implantação em produção (Nginx hardening, BYO JWT).</li>
+		<li>🛡️ <strong>Segurança:</strong> A validação do token de acesso ocorre antes de estabelecer uma conexão com o banco de dados. Melhoria na proteção contra falsificação de IP (adicionada a configuração <code>TRUSTED_PROXIES</code>) e ocultação de erros internos do banco de dados para o utilizador final.</li>
+		<li>📊 <strong>Métricas isoladas:</strong> O endpoint Prometheus <code>/metrics</code> foi movido da API pública para a sua própria porta segura (por padrão, disponível apenas em <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Nova opção de instalação:</strong> O projeto conta agora com um tap Homebrew oficial para macOS e Linux. As compilações são assinadas e geradas via GoReleaser.</li>
+		<li>📚 <strong>Documentação reformulada:</strong> Visual totalmente novo construído sobre o framework Hugo. Adição de busca rápida de texto completo, opção de copiar código e exemplos de implantação em produção (hardening com Nginx, BYO JWT).</li>
 		<li>⚙️ <strong>Gerenciamento aprimorado de daemon:</strong> Adicionado suporte para configuração de caminho personalizado do <code>PID_FILE</code>.</li>
 	</ul>
 
@@ -35,7 +48,7 @@ menu:
 	<ul>
 		<li>🔌 <strong>API unificada:</strong> Chamadas via <code>POST /api/&lt;db&gt;</code> (o método chamado é especificado no corpo JSON-RPC).</li>
 		<li>⚡ <strong>Notificações em tempo real:</strong> Novo endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> para escutar eventos do banco de dados com suporte a múltiplos canais.</li>
-		<li>📈 <strong>Observabilidade:</strong> Métricas detalhadas do Prometheus para HTTP, auth, JSON-RPC e SSE.</li>
-		<li>🏋️ <strong>Melhoria substancial na estabilidade:</strong> Proteção contra clientes lentos, tempos de limite rigorosos e limpeza automática de conexões.</li>
+		<li>📈 <strong>Observabilidade:</strong> Métricas detalhadas do Prometheus para HTTP, autenticação, JSON-RPC e SSE.</li>
+		<li>🏋️ <strong>Melhoria substancial na estabilidade:</strong> Proteção contra clientes lentos, limites de tempo rigorosos e limpeza automática de conexões.</li>
 	</ul>
 </section>

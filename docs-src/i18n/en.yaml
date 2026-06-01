@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Your database is your backend.<br>Secure, instant, AI-ready."
+  translation: "Your database is your backend.<br>No boilerplate. Secure, instant, AI-ready."
 - id: hero_desc
-  translation: "Define a SQL function — your API endpoint is ready. Native MCP support for Claude Desktop &amp; Cursor. Real-time SSE notifications. Production-grade from day one."
+  translation: "Define a SQL function — your API endpoint is ready. JSON-RPC&nbsp;2.0 with native MCP support for Claude Desktop &amp; Cursor, real-time SSE notifications, and database-native security. Production-grade, single binary."
 - id: hero_get_started
   translation: "Get Started"
 - id: hero_see_demo

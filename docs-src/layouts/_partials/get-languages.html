@@ -1,0 +1,23 @@
+{{/*
+  Returns a deduplicated, weight-sorted slice of Language objects
+  configured for the project. Used by language selectors in lieu of
+  the deprecated .Site.Languages method (slated for removal in a
+  future Hugo release).
+
+  Dedupe is keyed on .Language.Lang because hugo.Sites yields one site
+  per dimension combination (language × version × role); for a
+  project-wide language selector we only want one entry per language.
+
+  Ref: https://discourse.gohugo.io/t/56732
+*/}}
+{{ $byLang := dict }}
+{{ range hugo.Sites }}
+  {{ $byLang = merge $byLang (dict .Language.Lang .Language) }}
+{{ end }}
+{{ $langs := slice }}
+{{ range $byLang }}
+  {{ $langs = $langs | append . }}
+{{ end }}
+{{ return sort $langs "Weight" "asc" }}
+</content>
+</invoke>

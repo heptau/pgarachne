@@ -12,8 +12,30 @@
 &lt;li&gt;&lt;strong&gt;Autodocumentação:&lt;/strong&gt; Ele renderiza os comentários SQL (incluindo metadados &lt;code&gt;--- PARAMS
 			---&lt;/code&gt;) em documentação legível.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Interface moderna:&lt;/strong&gt; Oferece suporte para os modos Escuro/Claro e pode ser instalada como um &lt;strong&gt;PWA&lt;/strong&gt; em dispositivos móveis.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autenticação:&lt;/strong&gt; A aba &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth para conectar diretamente como o usuário do banco de dados — sem &lt;code&gt;GRANT … TO pgarachne&lt;/code&gt;. A aba &lt;em&gt;API Token&lt;/em&gt; aceita um JWT ou token de API de longa duração como &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/pt/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;JWT Getter&lt;/strong&gt; é uma ferramenta minimalista para navegador localizada em &lt;code&gt;tools/get-jwt&lt;/code&gt;. Troca um nome de usuário e senha do PostgreSQL por um JWT de curta duração chamando o método JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — e exibe o payload decodificado e o tempo de expiração.&lt;/p&gt;
+&lt;h3&gt;Quando usar&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Para colar um token na aba Bearer Token do &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ou do &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Para testar a expiração de um JWT ou os claims &lt;code&gt;db_role&lt;/code&gt;/&lt;code&gt;db_name&lt;/code&gt; na sua aplicação.&lt;/li&gt;
+&lt;li&gt;Para verificar que o usuário do sistema &lt;code&gt;pgarachne&lt;/code&gt; consegue trocar para um determinado papel (&lt;code&gt;GRANT &amp;lt;papel&amp;gt; TO pgarachne&lt;/code&gt; deve existir).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Nota:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; requer &lt;code&gt;GRANT &amp;lt;papel&amp;gt; TO pgarachne&lt;/code&gt;. Para evitar esse grant, use credenciais diretas (HTTP Basic Auth) no &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ou no &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Funcionalidades&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Preencha URL, prefixo, banco de dados, nome de usuário e senha — pressione &lt;kbd&gt;Enter&lt;/kbd&gt; ou clique em &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;O token gerado é exibido e pode ser copiado com um clique.&lt;/li&gt;
+&lt;li&gt;O payload do JWT é decodificado em Base64 e exibido com realce de sintaxe JSON.&lt;/li&gt;
+&lt;li&gt;Um badge mostra o tempo de vida restante (ou marca o token como expirado).&lt;/li&gt;
+&lt;li&gt;As configurações de conexão e o nome de usuário são salvos no &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Como habilitar&lt;/h3&gt;
+&lt;p&gt;Defina &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; como &lt;code&gt;tools/get-jwt&lt;/code&gt; e visite &lt;code&gt;http://localhost:8080&lt;/code&gt;, ou abra &lt;code&gt;index.html&lt;/code&gt; diretamente no navegador.&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
 &lt;p&gt;O &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; é um aplicativo nativo profissional para macOS projetado para oferecer uma experiência de gerenciamento sem esforço para suas instâncias de gateway JSON-RPC.&lt;/p&gt;
 &lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
@@ -27,4 +49,23 @@
 &lt;li&gt;&lt;strong&gt;Experiência Nativa:&lt;/strong&gt; Construído especificamente para macOS com suporte ao modo escuro e Apple Silicon.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Em breve na Mac App Store&lt;/h3&gt;
-&lt;p&gt;O aplicativo está sendo otimizado para a Mac App Store para garantir a máxima segurança e atualizações perfeitas.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;O aplicativo está sendo otimizado para a Mac App Store para garantir a máxima segurança e atualizações perfeitas.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/pt/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;O &lt;strong&gt;SSE Tester&lt;/strong&gt; é uma ferramenta de arquivo único para navegador localizada em &lt;code&gt;tools/test-sse&lt;/code&gt;. Permite subscrever qualquer número de canais PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; via uma conexão &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; ao vivo e observar os eventos em tempo real.&lt;/p&gt;
+&lt;h3&gt;Funcionalidades&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Múltiplos canais&lt;/strong&gt; — os canais são adicionados como tags e passados como parâmetro &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Todos os métodos de autenticação&lt;/strong&gt; — a aba &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth (sem JWT); a aba &lt;em&gt;Bearer Token&lt;/em&gt; aceita um JWT ou token de API.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Stream ao vivo&lt;/strong&gt; — utiliza a Fetch Streams API com &lt;code&gt;AbortController&lt;/code&gt; para desconexão limpa.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Realce de sintaxe JSON&lt;/strong&gt; — os payloads JSON são exibidos com cores.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Configurações persistentes&lt;/strong&gt; — URL, prefixo, banco de dados, nome de usuário e lista de canais são salvos no &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Autenticação&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Aba Password&lt;/strong&gt; — envia &lt;code&gt;Authorization: Basic &amp;lt;base64(usuário:senha)&amp;gt;&lt;/code&gt;. Não requer &lt;code&gt;GRANT &amp;lt;papel&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Aba Bearer Token&lt;/strong&gt; — envia &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Cole um JWT (obtido pelo &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) ou um token de API de longa duração.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Como habilitar:&lt;/strong&gt; Defina &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; como &lt;code&gt;tools/test-sse&lt;/code&gt; e visite &lt;code&gt;http://localhost:8080&lt;/code&gt;. Ou abra &lt;code&gt;index.html&lt;/code&gt; diretamente no navegador.
+&lt;/div&gt;
+&lt;/section&gt;</description></item></channel></rss>

@@ -18,6 +18,7 @@ description: "PgArachne Explorer - PgArachne"
 <li><strong>Automatická dokumentace:</strong> Vykresluje SQL komentáře (včetně metadat <code>--- PARAMS ---</code>)
 			do čitelné dokumentace.</li>
 <li><strong>Moderní vzhled:</strong> Podporuje tmavý i světlý režim a lze jej nainstalovat jako <strong>PWA aplikaci</strong> na mobilní zařízení.</li>
+<li><strong>Autentizace:</strong> Záložka <em>Password</em> používá HTTP Basic Auth pro přímé přihlášení jako databázový uživatel — nevyžaduje <code>GRANT &hellip; TO pgarachne</code>. Záložka <em>API Token</em> přijímá JWT nebo dlouhodobý API token jako <code>Bearer</code>.</li>
 </ul>
 
 <p><strong>Parametry v URL:</strong></p>

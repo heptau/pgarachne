@@ -8,8 +8,9 @@ menu:
 ---
 
 <section id="hello-world">
-	<h2>JSON-RPC & Hello World</h2>
-	<p>Let's create a simple API endpoint associated with a user.</p>
+	<h2>JSON-RPC &amp; Hello World</h2>
+	<p>This example creates a simple API endpoint associated with a database user. Two authentication
+		approaches are shown: the classic JWT flow and the simpler direct-credentials flow.</p>
 
 	<h3>1. Create User and Function</h3>
 	<p>In your database (<code>my_database</code>):</p>
@@ -27,27 +28,57 @@ AS $$
 $$;
 
 -- 3. Grant permission to the user
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. Allow PgArachne (system user) to switch to demo_user
+	<div class="tip">
+		<strong>Which authentication approach should you use?</strong><br>
+		Choose <strong>Option A (JWT)</strong> for browser-based or end-user sessions.
+		Choose <strong>Option B (direct credentials)</strong> for local development, scripts,
+		or internal services — no token management is required.
+	</div>
+
+	<h3>Option A: JWT Token Flow</h3>
+
+	<p>JWT authentication requires the PgArachne system user (<code>pgarachne</code>) to be able to switch
+		to <code>demo_user</code>:</p>
+	<pre><code>-- Required for JWT auth only: allow PgArachne to switch to demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Login via API</h3>
-	<p>Use the JSON-RPC method <code>login</code> to obtain a JWT token:</p>
+	<h4>Step 1 — Obtain a JWT</h4>
+	<p>Call the <code>get_jwt</code> JSON-RPC method with the user's credentials:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Response:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Call the Function</h3>
-	<p>Use the token to call the <code>hello_world</code> function:</p>
+	<h4>Step 2 — Call the Function</h4>
+	<p>Use the JWT in the <code>Authorization</code> header:</p>
 	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
 	<p>Response:</p>
-	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<h3>Option B: Direct Credentials (No JWT Required)</h3>
+
+	<p>Send the PostgreSQL username and password directly with every request using HTTP Basic
+		Authentication. PgArachne opens a connection pool as that user — no <code>GRANT … TO pgarachne</code>
+		is needed.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Response:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>The <code>-u user:password</code> flag in curl automatically sets the
+		<code>Authorization: Basic …</code> header. Both options produce identical responses.</p>
+
+	<p>See <a href="../security-roles/#direct-credentials">Security &amp; Authentication — Direct Credentials</a>
+		for a full comparison of all authentication methods.</p>
 </section>

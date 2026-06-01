@@ -1,5 +1,20 @@
 # PgArachne
 
+[![GitHub License](https://img.shields.io/github/license/heptau/pgarachne?label=License)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/heptau/pgarachne.svg?label=Release)](https://github.com/heptau/pgarachne/releases)
+[![Install with Homebrew](https://img.shields.io/badge/install%20with-Homebrew-orange?logo=homebrew&logoColor=white)](https://www.pgarachne.com#installation)
+[![Tests](https://img.shields.io/badge/Tests-73%20passed-brightgreen?logo=go&logoColor=white)](https://github.com/heptau/pgarachne/actions)
+[![codecov](https://codecov.io/gh/heptau/pgarachne/graph/badge.svg)](https://codecov.io/gh/heptau/pgarachne)
+
+[![docs](https://img.shields.io/badge/docs-PgArachne.com-indigo?logo=read-the-docs&logoColor=white&label=Docs)](https://www.pgarachne.com/)
+[![Telegram News](https://img.shields.io/badge/Telegram-News-26A5E4?logo=telegram&logoColor=white)](https://t.me/pgarachne)
+[![Support the project](https://img.shields.io/badge/Support-Buy%20Me%20a%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=white)](https://www.buymeacoffee.com/pgarachne)
+
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15%2B-336791?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![API](https://img.shields.io/badge/API-JSON--RPC%202.0-orange)](https://www.pgarachne.com#hello-world-example)
+[![Stream](https://img.shields.io/badge/Stream-SSE-blue)](https://www.pgarachne.com#real-time-notifications)
+[![Server](https://img.shields.io/badge/Server-MCP-D97757?logo=anthropic&logoColor=white)](https://www.pgarachne.com#mcp)
+
 <div align="center">
   <img src="docs-src/static/assets/pgarachne-logo.webp" alt="PgArachne Logo" width="200"/>
   <h1>PgArachne</h1>
@@ -88,16 +103,18 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
 # Optional: URL prefix (default: "db" → /db/:database/jsonrpc)
-# Set to "api" for backward-compatible paths.
 # API_PREFIX=db
-# Optional TLS settings (default sslmode=disable)
-DB_SSLMODE=disable
+# Optional TLS settings (default sslmode=require; set "disable" only for
+# local development against a non-TLS PostgreSQL)
+# DB_SSLMODE=require
 # DB_SSLROOTCERT=/path/to/ca.pem
 # DB_SSLCERT=/path/to/client-cert.pem
 # DB_SSLKEY=/path/to/client-key.pem
 # Optional login rate limiting (default: 5 attempts per 1m, set 0 to disable)
 LOGIN_RATE_LIMIT=5
 LOGIN_RATE_WINDOW=1m
+# Optional per-IP login limit across all usernames (default: 5x LOGIN_RATE_LIMIT)
+# LOGIN_RATE_LIMIT_PER_IP=25
 # Optional trusted proxies for client IP resolution (comma-separated)
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
 # Optional request body size limit in bytes (default: 2097152)
@@ -116,11 +133,15 @@ SSE_SEND_TIMEOUT=2s
 SSE_HEARTBEAT=20s
 SSE_IDLE_TIMEOUT=90s
 # Note: Password is read from .pgpass
-JWT_SECRET=change_this_to_something_secret
+# Must be at least 32 bytes; generate with: openssl rand -hex 32
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 HTTP_PORT=8080
+# Optional CORS origins (unset = cross-origin browser requests disabled;
+# set explicit origins, or "*" to allow any origin)
+# ALLOWED_ORIGINS=https://myapp.example.com
 ```
 
-Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET`.
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET` (minimum 32 bytes).
 
 If you run PgArachne behind a reverse proxy, set `TRUSTED_PROXIES` so client IPs are resolved correctly and rate limiting cannot be spoofed.
 
@@ -179,12 +200,12 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
 
 **2. Login via API**
 
-Use the JSON-RPC `login` method to obtain a JWT token:
+Use the JSON-RPC `get_jwt` method to obtain a JWT token:
 
 ```bash
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"app_user","password":"user_password"},"id":1}'
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"app_user","password":"user_password"},"id":1}'
 ```
 
 Response:
@@ -256,15 +277,11 @@ PostgreSQL functions require **no changes** — they remain JSON-RPC-shaped.
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/db/:database/jsonrpc` | POST | JSON-RPC 2.0 gateway (including `login`) |
+| `/db/:database/jsonrpc` | POST | JSON-RPC 2.0 gateway (including `get_jwt`) |
 | `/db/:database/sse` | GET | SSE stream for PostgreSQL `NOTIFY` channels |
 | `/db/:database/mcp` | POST | MCP (Model Context Protocol) endpoint |
 | `/health` | GET | Health check |
 | `/metrics` | GET | Prometheus metrics (dedicated listener, default `127.0.0.1:9090`) |
-
-**Legacy redirects** (307 Temporary Redirect, method-preserving):
-- `POST /api/:database` → `POST /db/:database/jsonrpc`
-- `GET /sse/:database` → `GET /db/:database/sse`
 
 The `db` prefix is the default and is configurable via `API_PREFIX`.
 
@@ -290,18 +307,22 @@ Build docs with:
 make docs
 ```
 
-Build release artifacts and Brew files with GoReleaser:
+Build and verify release artifacts locally, without publishing anything:
+```bash
+make release-local
+```
+
+This runs the test suite, then generates local release assets in `dist/` with GoReleaser:
+* CLI archives: `darwin`, `linux`, `windows` (`amd64` + `arm64`) + `checksums.txt`
+* macOS GUI app archives: `pgarachne-macos-amd64-app.zip`, `pgarachne-macos-arm64-app.zip`, `pgarachne-macos-universal-app.zip`
+* Homebrew formula/cask: `dist/homebrew-tap/Formula/pgarachne.rb`, `dist/homebrew-tap/Casks/pgarachne-app.rb`
+* Release notes for the current `VERSION`, extracted from [`CHANGELOG.md`](CHANGELOG.md): `dist/RELEASE_NOTES.md`
+
+To actually publish that version — tag, push, create the GitHub release with those assets and notes, and update the `heptau/tap` Homebrew tap — run:
 ```bash
 make release
 ```
-
-This generates local release assets in `dist/`:
-* CLI archives: `darwin`, `linux`, `windows` (`amd64` + `arm64`)
-* macOS GUI app archives: `pgarachne-macos-amd64-app.zip`, `pgarachne-macos-arm64-app.zip`, `pgarachne-macos-universal-app.zip`
-
-It also generates local Homebrew files for manual copy to your tap repository:
-* `dist/homebrew-tap/Formula/pgarachne.rb`
-* `dist/homebrew-tap/Casks/pgarachne-app.rb`
+This requires a clean working tree and the [`gh`](https://cli.github.com/) CLI, authenticated with push access to both `heptau/pgarachne` and `heptau/tap`.
 
 Generated documentation is available in the [`docs/`](docs/index.html) directory, including:
 

@@ -11,7 +11,7 @@ menu:
 	<h2>Configuração</h2>
 	<p>O PgArachne carrega a configuração a partir de variáveis de ambiente ou de um arquivo.</p>
 	<div class="tip">
-		<strong>Note:</strong> <code>schema.sql</code> tenta criar o papel <code>pgarachne_admin</code> e concedê-lo a <code>pgarachne</code>. Sem privilégios de superusuário, a criação é ignorada. Crie o papel e o grant manualmente se necessário.
+		<strong>Nota:</strong> <code>schema.sql</code> tenta criar o papel <code>pgarachne_admin</code> e concedê-lo a <code>pgarachne</code>. Sem privilégios de superusuário, a criação é ignorada. Crie o papel e o grant manualmente se necessário.
 	<br>
 		O usuário proxy (<code>DB_USER</code>) deve ser membro de <code>pgarachne</code> e <code>pgarachne_admin</code> para validar e criar tokens de API.</div>
 	<div class="tip">
@@ -44,7 +44,7 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=change_me_to_something_secure</code></pre>
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 
 	<h3>Referência de Configuração</h3>
 	<table class="config-table">
@@ -79,7 +79,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Modo SSL do PostgreSQL. Padrão: <code>disable</code>.</td>
+				<td>Modo SSL do PostgreSQL. Padrão: <code>require</code>. Defina <code>disable</code> explicitamente apenas para desenvolvimento local contra um PostgreSQL sem TLS.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
@@ -109,7 +109,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Primeiro segmento do caminho URL para todos os endpoints do banco de dados (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Padrão: <code>db</code>, gerando rotas como <code>/db/:banco_de_dados/jsonrpc</code>. Defina como <code>api</code> para caminhos legados. Apenas letras, dígitos, hífens e underscores são permitidos.</td>
+				<td>Primeiro segmento do caminho URL para todos os endpoints do banco de dados (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Padrão: <code>db</code>, gerando rotas como <code>/db/:banco_de_dados/jsonrpc</code>. Apenas letras, dígitos, hífens e underscores são permitidos.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -121,7 +121,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Configurações de CORS. Lista separada por vírgulas de domínios permitidos (ex:
 					<code>https://meuapp.com</code>).
-					Padrão: <code>*</code>.
+					Padrão: não definido — as requisições cross-origin do navegador ficam desabilitadas. Defina <code>*</code> explicitamente para permitir qualquer origem.
 				</td>
 			</tr>
 			<tr>
@@ -138,17 +138,37 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obrigatório" aria-label="Obrigatório">✓</span></td>
-				<td>Uma string longa e aleatória usada para assinar tokens de sessão.</td>
+				<td>Uma string longa e aleatória usada para assinar tokens de sessão. Mínimo de 32 bytes; gere com <code>openssl rand -hex 32</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Validade da sessão em horas. Padrão: <code>8</code>.</td>
 			</tr>
+				<tr>
+					<td><code>JWT_ISSUER</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Se definido, é escrito no claim <code>iss</code> e deve corresponder exatamente na validação. Vazio = sem verificação.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_AUDIENCE</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Se definido, é escrito no claim <code>aud</code> e deve corresponder na validação. Vazio = sem verificação.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_LEEWAY</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Tolerância de relógio para <code>exp</code>/<code>nbf</code>/<code>iat</code> (ex. <code>30s</code>). Padrão: <code>30s</code>.</td>
+				</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Máximo de tentativas de login por janela. Padrão: <code>5</code>. Use <code>0</code> para desativar.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Máximo de tentativas de login por IP do cliente entre todos os nomes de usuário, para que alternar nomes não contorne o limite. Padrão: 5× <code>LOGIN_RATE_LIMIT</code>. Use <code>0</code> para desativar.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>
@@ -167,6 +187,16 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>MAX_REQUEST_BYTES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Tamanho máximo do body em bytes. Padrão: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Incluir a mensagem de erro bruta do PostgreSQL nos erros das ferramentas MCP. Erros detalhados ajudam agentes LLM a se autocorrigirem, mas podem expor detalhes do esquema (nomes de tabelas e restrições) a chamadores autenticados. Padrão: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Número máximo de pools de conexão distintos para credenciais Basic Auth. Padrão: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>

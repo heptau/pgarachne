@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/pgarachne/internal/config"
+	"github.com/heptau/pgarachne/internal/config"
 )
 
 // ---------------------------------------------------------------------------
@@ -192,11 +192,11 @@ func TestMCPNotificationReturns202(t *testing.T) {
 	ts := newProtocolTestServer(t)
 	defer ts.Close()
 
-	// A notification has no "id" field — server must return 202 with no body.
+	// A notification has a method name in the notifications/ namespace.
+	// The server must return 202 with no body.
 	body, _ := json.Marshal(map[string]interface{}{
 		"jsonrpc": "2.0",
-		// no "id"
-		"method": "notifications/initialized",
+		"method":  "notifications/initialized",
 	})
 	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
@@ -215,6 +215,37 @@ func TestMCPNotificationReturns202(t *testing.T) {
 	bodyBytes, _ := io.ReadAll(resp.Body)
 	if len(bytes.TrimSpace(bodyBytes)) != 0 {
 		t.Fatalf("expected empty body for notification, got: %s", bodyBytes)
+	}
+}
+
+func TestMCPRequestWithNullIDGetsResponse(t *testing.T) {
+	// A request with id: null is still a request per JSON-RPC 2.0: the
+	// client expects a JSON-RPC response (whose id is also null). The server
+	// must NOT treat it as a notification and return 202.
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      nil,
+		"method":  "ping",
+	})
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	if out["error"] != nil {
+		t.Fatalf("unexpected error: %v", out["error"])
+	}
+	// id must round-trip as null (not absent).
+	if _, present := out["id"]; !present {
+		t.Fatalf("id key missing from response")
+	}
+	if out["id"] != nil {
+		t.Fatalf("id = %v, want nil", out["id"])
 	}
 }
 
@@ -782,10 +813,10 @@ func TestMCPResourcesReadInvalidURIReturnsError(t *testing.T) {
 	}
 
 	for _, uri := range []string{
-		"db:///",                                      // no schema/table
-		"db:///public/",                               // empty table
-		"db:///public/no_such_table_xyz_999",          // nonexistent table
-		"http://not-a-db-uri",                         // wrong scheme
+		"db:///",                             // no schema/table
+		"db:///public/",                      // empty table
+		"db:///public/no_such_table_xyz_999", // nonexistent table
+		"http://not-a-db-uri",                // wrong scheme
 	} {
 		resp := mcpDo(t, env.mcpURL(), token, map[string]interface{}{
 			"jsonrpc": "2.0",

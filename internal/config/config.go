@@ -14,37 +14,76 @@ import (
 )
 
 type Config struct {
-	DBHost            string
-	DBPort            int
-	DBUser            string
-	DBSSLMode         string
-	DBSSLRootCert     string
-	DBSSLCert         string
-	DBSSLKey          string
+	DBHost        string
+	DBPort        int
+	DBUser        string
+	DBSSLMode     string
+	DBSSLRootCert string
+	DBSSLCert     string
+	DBSSLKey      string
+	// DB connection pool tuning. Zero values are replaced with defaults.
+	DBMaxOpenConns    int
+	DBMaxIdleConns    int
+	DBConnMaxLifetime time.Duration
+	DBConnMaxIdleTime time.Duration
 	HTTPPort          string
 	JWTSecret         string
 	JWTExpiryHours    int
-	AllowedOrigins    []string
-	StaticFilesPath   string
-	LogLevel          string
-	LogOutput         string
-	LoginRateLimit    int
-	LoginRateWindow   time.Duration
-	TrustedProxies    []string
-	MaxRequestBytes   int64
-	MetricsEnabled    bool
-	MetricsListenAddr string
-	SSEMaxChannels    int
-	SSEHeartbeat      time.Duration
-	SSEIdleTimeout    time.Duration
-	SSEMaxClients     int
-	SSEClientBuffer   int
-	SSESendTimeout    time.Duration
+	// JWTIssuer, if non-empty, is written into the "iss" claim of issued
+	// tokens and required to match exactly on every Parse. Empty means
+	// no issuer check.
+	JWTIssuer string
+	// JWTAudience, if non-empty, is written into the "aud" claim of issued
+	// tokens and required to match on every Parse. Empty means no audience
+	// check.
+	JWTAudience string
+	// JWTLeeway is the clock-skew tolerance applied to exp / nbf / iat
+	// validation. Zero means use auth.DefaultClockSkew (30s).
+	JWTLeeway       time.Duration
+	AllowedOrigins  []string
+	StaticFilesPath string
+	LogLevel        string
+	LogOutput       string
+	LoginRateLimit  int
+	// LoginRateLimitPerIP caps login attempts per client IP regardless of the
+	// attempted username, so rotating usernames does not buy a fresh budget
+	// (credential spraying / username enumeration). Zero disables the check.
+	// Defaults to 5× LoginRateLimit.
+	LoginRateLimitPerIP int
+	LoginRateWindow     time.Duration
+	TrustedProxies      []string
+	MaxRequestBytes     int64
+	MetricsEnabled      bool
+	MetricsListenAddr   string
+	SSEMaxChannels      int
+	SSEHeartbeat        time.Duration
+	SSEIdleTimeout      time.Duration
+	SSEMaxClients       int
+	SSEClientBuffer     int
+	SSESendTimeout      time.Duration
+	// MCPSQLErrorDetail controls whether MCP tool/resource errors include the
+	// raw PostgreSQL error message. Detailed errors help LLM agents
+	// self-correct, but they can leak schema details (table and constraint
+	// names, RAISE text) to any authenticated caller. Default false — generic
+	// messages, matching the JSON-RPC endpoint.
+	MCPSQLErrorDetail bool
+	// DirectPoolLimit caps the number of distinct (user, password, dbname)
+	// connection pools created for Basic-Auth direct credentials.
+	DirectPoolLimit int
 	// APIPrefix is the first path segment for all database endpoints.
 	// Defaults to "db", giving routes like /db/:database/jsonrpc and /db/:database/sse.
-	// Set to "api" for backward-compatible paths, or any other value for custom deployments.
+	// Set to any value that suits the deployment, e.g. "api".
 	APIPrefix string
 }
+
+const (
+	// minJWTSecretLength is the minimum accepted JWT_SECRET length in bytes.
+	// 32 bytes matches the 256-bit output size of HMAC-SHA256.
+	minJWTSecretLength = 32
+	// jwtSecretPlaceholder is the example value shipped in
+	// config/example.pgarachne.env; it must never be used for real signing.
+	jwtSecretPlaceholder = "CHANGE_THIS_TO_A_SECURE_SECRET_KEY"
+)
 
 // Search paths for configuration
 // 1. Explicitly provided path (flag)
@@ -84,11 +123,16 @@ func Load(configPath string) (*Config, error) {
 
 		// Try to load first existing
 		for _, path := range searchPaths {
-			if _, err := os.Stat(path); err == nil {
-				if err := godotenv.Load(path); err == nil {
-					loadedFile = path
-					break
+			// Search paths are built from a hardcoded filename, the
+			// operator's own XDG_CONFIG_HOME/home dir, and a fixed system
+			// path — not from remote or attacker-controlled input.
+			if _, err := os.Stat(path); err == nil { //nolint:gosec // G703: operator-controlled config search path
+				if err := godotenv.Load(path); err != nil {
+					slog.Warn("Found config file but failed to parse it, skipping", "path", path, "error", err)
+					continue
 				}
+				loadedFile = path
+				break
 			}
 		}
 	}
@@ -106,13 +150,54 @@ func Load(configPath string) (*Config, error) {
 	cfg.HTTPPort = os.Getenv("HTTP_PORT")
 	cfg.JWTSecret = os.Getenv("JWT_SECRET")
 
+	// Secure by default: require TLS to PostgreSQL unless the operator
+	// explicitly opts out (DB_SSLMODE=disable for local/dev setups).
 	cfg.DBSSLMode = os.Getenv("DB_SSLMODE")
 	if cfg.DBSSLMode == "" {
-		cfg.DBSSLMode = "disable"
+		cfg.DBSSLMode = "require"
+	}
+	if cfg.DBSSLMode == "disable" {
+		slog.Warn("DB_SSLMODE=disable — database traffic (including credentials) is unencrypted; use 'require' or 'verify-full' in production")
 	}
 	cfg.DBSSLRootCert = os.Getenv("DB_SSLROOTCERT")
 	cfg.DBSSLCert = os.Getenv("DB_SSLCERT")
 	cfg.DBSSLKey = os.Getenv("DB_SSLKEY")
+
+	// Connection pool tuning. The defaults are deliberately conservative:
+	// PgArachne typically runs a single instance per database, and an
+	// unbounded pool can swamp Postgres with idle connections.
+	cfg.DBMaxOpenConns = 25
+	if v := os.Getenv("DB_MAX_OPEN_CONNS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("invalid DB_MAX_OPEN_CONNS value: '%s', must be a positive integer", v)
+		}
+		cfg.DBMaxOpenConns = n
+	}
+	cfg.DBMaxIdleConns = 5
+	if v := os.Getenv("DB_MAX_IDLE_CONNS"); v != "" {
+		n, err := strconv.Atoi(v)
+		if err != nil || n <= 0 {
+			return nil, fmt.Errorf("invalid DB_MAX_IDLE_CONNS value: '%s', must be a positive integer", v)
+		}
+		cfg.DBMaxIdleConns = n
+	}
+	cfg.DBConnMaxLifetime = 30 * time.Minute
+	if v := os.Getenv("DB_CONN_MAX_LIFETIME"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d <= 0 {
+			return nil, fmt.Errorf("invalid DB_CONN_MAX_LIFETIME value: '%s', must be a positive duration like 30m", v)
+		}
+		cfg.DBConnMaxLifetime = d
+	}
+	cfg.DBConnMaxIdleTime = 5 * time.Minute
+	if v := os.Getenv("DB_CONN_MAX_IDLE_TIME"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d <= 0 {
+			return nil, fmt.Errorf("invalid DB_CONN_MAX_IDLE_TIME value: '%s', must be a positive duration like 5m", v)
+		}
+		cfg.DBConnMaxIdleTime = d
+	}
 
 	cfg.LogLevel = os.Getenv("LOG_LEVEL")
 	if cfg.LogLevel == "" {
@@ -134,6 +219,18 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid LOGIN_RATE_LIMIT value: '%s', must be >= 0", limitStr)
 		}
 		cfg.LoginRateLimit = limit
+	}
+
+	cfg.LoginRateLimitPerIP = cfg.LoginRateLimit * 5
+	if limitStr := os.Getenv("LOGIN_RATE_LIMIT_PER_IP"); limitStr != "" {
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_LIMIT_PER_IP value: '%s', must be an integer", limitStr)
+		}
+		if limit < 0 {
+			return nil, fmt.Errorf("invalid LOGIN_RATE_LIMIT_PER_IP value: '%s', must be >= 0", limitStr)
+		}
+		cfg.LoginRateLimitPerIP = limit
 	}
 
 	cfg.LoginRateWindow = time.Minute
@@ -170,6 +267,24 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be > 0", maxBodyStr)
 		}
 		cfg.MaxRequestBytes = value
+	}
+
+	cfg.MCPSQLErrorDetail = false
+	if v := os.Getenv("MCP_SQL_ERROR_DETAIL"); v != "" {
+		detail, err := strconv.ParseBool(v)
+		if err != nil {
+			return nil, fmt.Errorf("invalid MCP_SQL_ERROR_DETAIL value: '%s', must be true/false", v)
+		}
+		cfg.MCPSQLErrorDetail = detail
+	}
+
+	cfg.DirectPoolLimit = 1000
+	if v := os.Getenv("DIRECT_POOL_LIMIT"); v != "" {
+		limit, err := strconv.Atoi(v)
+		if err != nil || limit <= 0 {
+			return nil, fmt.Errorf("invalid DIRECT_POOL_LIMIT value: '%s', must be a positive integer", v)
+		}
+		cfg.DirectPoolLimit = limit
 	}
 
 	cfg.MetricsEnabled = true
@@ -261,8 +376,8 @@ func Load(configPath string) (*Config, error) {
 	dbPortStr := os.Getenv("DB_PORT")
 	if dbPortStr != "" {
 		port, err := strconv.Atoi(dbPortStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid DB_PORT value: '%s', must be an integer", dbPortStr)
+		if err != nil || port < 1 || port > 65535 {
+			return nil, fmt.Errorf("invalid DB_PORT value: '%s', must be an integer in range 1-65535", dbPortStr)
 		}
 		cfg.DBPort = port
 	}
@@ -276,6 +391,16 @@ func Load(configPath string) (*Config, error) {
 		cfg.JWTExpiryHours = hours
 	} else {
 		cfg.JWTExpiryHours = 8 // Default
+	}
+
+	cfg.JWTIssuer = os.Getenv("JWT_ISSUER")
+	cfg.JWTAudience = os.Getenv("JWT_AUDIENCE")
+	if v := os.Getenv("JWT_LEEWAY"); v != "" {
+		d, err := time.ParseDuration(v)
+		if err != nil || d < 0 {
+			return nil, fmt.Errorf("invalid JWT_LEEWAY value: '%s', must be a non-negative duration like 30s", v)
+		}
+		cfg.JWTLeeway = d
 	}
 
 	if cfg.HTTPPort == "" {
@@ -293,8 +418,18 @@ func Load(configPath string) (*Config, error) {
 			}
 		}
 	}
+	// No fallback to "*": an unset ALLOWED_ORIGINS means no cross-origin
+	// requests are allowed (same-origin and non-browser clients only).
+	// Operators who really want to allow any origin must set ALLOWED_ORIGINS=*
+	// explicitly.
 	if len(cfg.AllowedOrigins) == 0 {
-		cfg.AllowedOrigins = []string{"*"}
+		slog.Info("ALLOWED_ORIGINS not set — cross-origin browser requests are disabled (same-origin only)")
+	}
+	for _, origin := range cfg.AllowedOrigins {
+		if origin == "*" {
+			slog.Warn("ALLOWED_ORIGINS contains '*' — any website may call this API from a browser; list explicit origins in production")
+			break
+		}
 	}
 
 	staticPath := os.Getenv("STATIC_FILES_PATH")
@@ -320,8 +455,24 @@ func Load(configPath string) (*Config, error) {
 		return nil, fmt.Errorf("missing required database environment variables: DB_HOST, DB_USER, DB_PORT")
 	}
 
+	// Go's database/sql silently clamps idle conns to open conns, so an idle
+	// value larger than open would be confusing — flag it explicitly.
+	if cfg.DBMaxIdleConns > cfg.DBMaxOpenConns {
+		return nil, fmt.Errorf("DB_MAX_IDLE_CONNS (%d) must not exceed DB_MAX_OPEN_CONNS (%d)",
+			cfg.DBMaxIdleConns, cfg.DBMaxOpenConns)
+	}
+
 	if cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("jwt_secret not set in config (environment variable JWT_SECRET)")
+	}
+	if cfg.JWTSecret == jwtSecretPlaceholder {
+		return nil, fmt.Errorf("JWT_SECRET is still the example placeholder; generate a real secret, e.g. with: openssl rand -hex 32")
+	}
+	// HS256 needs a key with at least 256 bits of entropy; anything shorter
+	// is realistically brute-forceable offline from a single captured token.
+	if len(cfg.JWTSecret) < minJWTSecretLength {
+		return nil, fmt.Errorf("JWT_SECRET is too short (%d bytes); must be at least %d bytes, e.g. generated with: openssl rand -hex 32",
+			len(cfg.JWTSecret), minJWTSecretLength)
 	}
 
 	if err := validateDBSSLConfig(cfg); err != nil {
@@ -408,16 +559,16 @@ func validateAPIPrefix(prefix string) error {
 func (c *Config) DBSSLParams() string {
 	parts := []string{}
 	if c.DBSSLMode != "" {
-		parts = append(parts, fmt.Sprintf("sslmode=%s", c.DBSSLMode))
+		parts = append(parts, "sslmode="+QuoteConninfoValue(c.DBSSLMode))
 	}
 	if c.DBSSLRootCert != "" {
-		parts = append(parts, fmt.Sprintf("sslrootcert=%s", c.DBSSLRootCert))
+		parts = append(parts, "sslrootcert="+QuoteConninfoValue(c.DBSSLRootCert))
 	}
 	if c.DBSSLCert != "" {
-		parts = append(parts, fmt.Sprintf("sslcert=%s", c.DBSSLCert))
+		parts = append(parts, "sslcert="+QuoteConninfoValue(c.DBSSLCert))
 	}
 	if c.DBSSLKey != "" {
-		parts = append(parts, fmt.Sprintf("sslkey=%s", c.DBSSLKey))
+		parts = append(parts, "sslkey="+QuoteConninfoValue(c.DBSSLKey))
 	}
 	return strings.Join(parts, " ")
 }

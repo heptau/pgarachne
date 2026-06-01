@@ -142,7 +142,7 @@
 		&lt;/table&gt;
 	&lt;/div&gt;
 
-	&lt;h3&gt;Why “Hybrid PgArachne” is the Winner?&lt;/h3&gt;
+	&lt;h3&gt;Why “Hybrid PgArachne” Wins&lt;/h3&gt;
 	&lt;p&gt;Thanks to the &lt;strong&gt;Universal Functions&lt;/strong&gt; (acting as an emulator), you get the best of both
 		worlds:&lt;/p&gt;</description></item><item><title>Configuration</title><link>https://www.pgarachne.com/en/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/configuration/</guid><description>&lt;section id="config"&gt;
 	&lt;h2&gt;Configuration&lt;/h2&gt;
@@ -252,7 +252,29 @@ example.com {
 		&lt;li&gt;&lt;a href="../security-roles/"&gt;Security &amp; Authentication&lt;/a&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;a href="../configuration/"&gt;Configuration&lt;/a&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>Installation</title><link>https://www.pgarachne.com/en/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/installation/</guid><description>&lt;section id="install"&gt;
+&lt;/section&gt;</description></item><item><title>Idempotency Key Cleanup</title><link>https://www.pgarachne.com/en/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
+&lt;div class="container"&gt;
+&lt;h1&gt;Idempotency Key Cleanup&lt;/h1&gt;
+
+&lt;p&gt;Every JSON-RPC request that carries an &lt;code&gt;idempotencyKey&lt;/code&gt; field
+is recorded in the &lt;code&gt;pgarachne.requests&lt;/code&gt; table by the
+&lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt; function. This is what makes
+duplicate detection work — but it also means the table grows without bound
+unless an operator runs cleanup periodically.&lt;/p&gt;
+
+&lt;p&gt;PgArachne does not run a background scheduler itself. The cleanest
+options:&lt;/p&gt;
+
+&lt;h2&gt;pg_cron (recommended if you can install extensions)&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+ 'pgarachne-idempotency-cleanup',
+ '0 * * * *',
+ $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;External cron / systemd timer&lt;/h2&gt;
+&lt;p&gt;Schedule a shell job that calls the function via &lt;code&gt;psql&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>Installation</title><link>https://www.pgarachne.com/en/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Installation&lt;/h2&gt;
 
 	&lt;h3&gt;1. Installation&lt;/h3&gt;
@@ -309,8 +331,9 @@ example.com {
 		&lt;/div&gt;
 
 		&lt;p&gt;More versions available in &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>JSON-RPC &amp; Hello World</title><link>https://www.pgarachne.com/en/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
-	&lt;h2&gt;JSON-RPC &amp; Hello World&lt;/h2&gt;
-	&lt;p&gt;Let's create a simple API endpoint associated with a user.&lt;/p&gt;
+	&lt;h2&gt;JSON-RPC &amp;amp; Hello World&lt;/h2&gt;
+	&lt;p&gt;This example creates a simple API endpoint associated with a database user. Two authentication
+		approaches are shown: the classic JWT flow and the simpler direct-credentials flow.&lt;/p&gt;
 
 	&lt;h3&gt;1. Create User and Function&lt;/h3&gt;
 	&lt;p&gt;In your database (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
@@ -328,13 +351,41 @@ AS $$
 $$;
 
 -- 3. Grant permission to the user
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/pre&gt;
 
--- 4. Allow PgArachne (system user) to switch to demo_user
-GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Which authentication approach should you use?&lt;/strong&gt;&lt;br&gt;
+		Choose &lt;strong&gt;Option A (JWT)&lt;/strong&gt; for browser-based or end-user sessions.
+		Choose &lt;strong&gt;Option B (direct credentials)&lt;/strong&gt; for local development, scripts,
+		or internal services — no token management is required.
+	&lt;/div&gt;
 
-	&lt;h3&gt;2. Login via API&lt;/h3&gt;
-	&lt;p&gt;Use the JSON-RPC method &lt;code&gt;login&lt;/code&gt; to obtain a JWT token:&lt;/p&gt;</description></item><item><title>License &amp; Trademark</title><link>https://www.pgarachne.com/en/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/license/</guid><description>&lt;section id="license"&gt;
+	&lt;h3&gt;Option A: JWT Token Flow&lt;/h3&gt;
+
+	&lt;p&gt;JWT authentication requires the PgArachne system user (&lt;code&gt;pgarachne&lt;/code&gt;) to be able to switch
+		to &lt;code&gt;demo_user&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/en/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;JWT Getter&lt;/strong&gt; is a minimal single-file browser tool located in &lt;code&gt;tools/get-jwt&lt;/code&gt;. It exchanges a PostgreSQL username and password for a short-lived JWT by calling the &lt;code&gt;get_jwt&lt;/code&gt; JSON-RPC method — and shows you the decoded payload and expiry time.&lt;/p&gt;
+&lt;h3&gt;When to use it&lt;/h3&gt;
+&lt;p&gt;Use the JWT Getter when you need a token for one of these purposes:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pasting a token into the &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; or &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; (Bearer Token tab).&lt;/li&gt;
+&lt;li&gt;Testing JWT expiry or &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; claims in your application.&lt;/li&gt;
+&lt;li&gt;Quickly verifying that the &lt;code&gt;pgarachne&lt;/code&gt; system user can switch to a given role (&lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; must be in place).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; requires &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; in the database because PgArachne verifies the password internally via &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. If you want to skip that grant, use direct credentials (HTTP Basic Auth) in the &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; or &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; instead.
+&lt;/div&gt;
+&lt;h3&gt;Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Enter API URL, prefix, database, username and password — press &lt;kbd&gt;Enter&lt;/kbd&gt; or click &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;The raw token is displayed and can be copied with one click.&lt;/li&gt;
+&lt;li&gt;The JWT payload is Base64-decoded and displayed with JSON syntax highlighting.&lt;/li&gt;
+&lt;li&gt;An expiry badge shows the remaining lifetime (or marks the token as expired).&lt;/li&gt;
+&lt;li&gt;Connection settings and login are saved to &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;How to enable it&lt;/h3&gt;
+&lt;p&gt;Set &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; to &lt;code&gt;tools/get-jwt&lt;/code&gt; and visit &lt;code&gt;http://localhost:8080&lt;/code&gt;, or open &lt;code&gt;index.html&lt;/code&gt; directly in a browser.&lt;/p&gt;</description></item><item><title>License &amp; Trademark</title><link>https://www.pgarachne.com/en/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/license/</guid><description>&lt;section id="license"&gt;
 	&lt;h2&gt;License &amp; Trademark&lt;/h2&gt;
 	&lt;div class="license-box"&gt;
 		&lt;p&gt;&lt;strong&gt;The Code (MIT License):&lt;/strong&gt;&lt;br&gt;
@@ -352,6 +403,9 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_events_forwarded_total&lt;/code&gt; &amp;mdash; PostgreSQL NOTIFY events dispatched to SSE clients, labelled by database&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_bytes_sent_total&lt;/code&gt; &amp;mdash; bytes written to SSE response streams (payloads, heartbeats, preamble), labelled by database&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_listen_errors_total&lt;/code&gt; &amp;mdash; PostgreSQL LISTEN/connection errors and reconnect events, labelled by database and event type. A non-zero value warrants investigation &amp;mdash; the hub drops all clients on reconnect so users see a brief interruption.&lt;/li&gt;
 	&lt;/ul&gt;
 &lt;/section&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/en/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/mcp/</guid><description>&lt;section id="mcp"&gt;
 	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
@@ -360,14 +414,14 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		PgArachne natively supports the &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, an open standard that allows AI models (like Claude or Cursor) to safely access your data and functions as "tools".
 	&lt;/p&gt;
 
-	&lt;h3&gt;How does it work?&lt;/h3&gt;
+	&lt;h3&gt;How Does It Work?&lt;/h3&gt;
 	&lt;p&gt;
-		PgArachne acts directly as an &lt;strong&gt;MCP Server&lt;/strong&gt;. Instead of writing a custom HTTP server for each project, just run PgArachne on top of your database. PgArachne automatically analyzes your allowed SQL functions and exposes them to AI clients via HTTP(S).
+		PgArachne acts directly as an &lt;strong&gt;MCP Server&lt;/strong&gt;. Instead of writing a custom HTTP server for each project, simply run PgArachne on top of your database. PgArachne automatically analyzes your permitted SQL functions and exposes them to AI clients via HTTP(S).
 	&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;The &lt;strong&gt;Explorer&lt;/strong&gt; is a powerful web GUI included in the &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; directory. It is not
-		just documentation; it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built using HTML/JS
-		that communicates with the database exclusively via PgArachne. You can also use the hosted version at 
+		merely a documentation tool — it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built with HTML/JS
+		that communicates with the database exclusively via PgArachne. A hosted version is also available at
 &lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;What can it do?&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
@@ -377,6 +431,7 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;li&gt;&lt;strong&gt;Auto-Documentation:&lt;/strong&gt; It renders the SQL comments (including &lt;code&gt;--- PARAMS ---&lt;/code&gt;
 			metadata) into readable documentation.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Modern UI:&lt;/strong&gt; Features Dark/Light mode support and can be installed as a &lt;strong&gt;PWA&lt;/strong&gt; on mobile devices.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Authentication:&lt;/strong&gt; The &lt;em&gt;Password&lt;/em&gt; tab uses HTTP Basic Auth to connect directly as the database user — no &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt; required. The &lt;em&gt;API Token&lt;/em&gt; tab accepts a JWT or long-lived API token sent as &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;URL Parameters:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/en/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar for macOS&lt;/h2&gt;
@@ -395,31 +450,40 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;p&gt;The application is being optimized for the Mac App Store to ensure the highest security and seamless updates.&lt;/p&gt;</description></item><item><title>Real-time Notifications (SSE)</title><link>https://www.pgarachne.com/en/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time Notifications (SSE)&lt;/h2&gt;
 	&lt;p&gt;Subscribe to PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; channels over Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
- -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
+	&lt;pre&gt;&lt;code&gt;# Bearer token (JWT or API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -H "Authorization: Bearer $TOKEN"
+
+# Direct credentials (HTTP Basic Auth — no GRANT … TO pgarachne required)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -u "alice:secret"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Each message is JSON with the channel name and payload:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
-	&lt;p&gt;If the payload is plain text, it is wrapped as a string in &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
-
-	&lt;h3&gt;Sending notifications from PostgreSQL&lt;/h3&gt;
-	&lt;p&gt;From &lt;code&gt;psql&lt;/code&gt; or any database session:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;-- Simple text payload
-NOTIFY orders, 'new order';
-
--- JSON payload
-NOTIFY orders, '{"id":123,"status":"created"}';
-&lt;/code&gt;&lt;/pre&gt;
-	&lt;p&gt;From a trigger or stored procedure:&lt;/p&gt;</description></item><item><title>Security &amp; Authentication</title><link>https://www.pgarachne.com/en/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/security-roles/</guid><description>&lt;section id="security"&gt;
-	&lt;h2&gt;Security &amp; Authentication&lt;/h2&gt;
-	&lt;p&gt;PgArachne relies entirely on the PostgreSQL permission system. It does not reinvent Access Control Lists
-		(ACLs). All queries are executed under the specific database role of the authenticated user using
-		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt;.
+	&lt;p&gt;If the payload is plain text, it is wrapped as a string in &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Security &amp; Authentication</title><link>https://www.pgarachne.com/en/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/security-roles/</guid><description>&lt;section id="security"&gt;
+	&lt;h2&gt;Security &amp;amp; Authentication&lt;/h2&gt;
+	&lt;p&gt;PgArachne relies entirely on the PostgreSQL permission system. It does not reinvent Access Control Lists (ACLs).
+		PgArachne supports &lt;strong&gt;four authentication methods&lt;/strong&gt;. Methods 1–3 use
+		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; to switch identity; method 4 (direct credentials) connects
+		&lt;em&gt;directly&lt;/em&gt; as the user, so no role switch is needed.
 	&lt;/p&gt;
 
 	&lt;h3&gt;1. Interactive Login (JWT)&lt;/h3&gt;
-	&lt;p&gt;Users authenticate using their &lt;strong&gt;real PostgreSQL username and password&lt;/strong&gt; via the login
-		function. If successful, they receive a generic JWT. When this token is used, PgArachne switches the
-		active role to that user for the duration of the request.&lt;/p&gt;</description></item><item><title>Support the Development</title><link>https://www.pgarachne.com/en/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;p&gt;Users authenticate using their &lt;strong&gt;real PostgreSQL username and password&lt;/strong&gt; via the
+		&lt;code&gt;get_jwt&lt;/code&gt; JSON-RPC method. If successful, they receive a short-lived JWT. Subsequent requests
+		carry this token in the &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt; header, and PgArachne switches the
+		active role to that user for the duration of each request.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/en/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;SSE Tester&lt;/strong&gt; is a single-file browser tool located in &lt;code&gt;tools/test-sse&lt;/code&gt;. It lets you subscribe to any number of PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; channels over a live &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; connection and watch the incoming events in real time.&lt;/p&gt;
+&lt;h3&gt;Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Multi-channel subscriptions&lt;/strong&gt; — add or remove channels as pill tags before connecting. All channels are passed as a comma-separated &lt;code&gt;?channels=&lt;/code&gt; query parameter.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;All authentication methods&lt;/strong&gt; — the &lt;em&gt;Password&lt;/em&gt; tab uses HTTP Basic Auth (direct credentials, no JWT needed); the &lt;em&gt;Bearer Token&lt;/em&gt; tab accepts a JWT or API token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Live stream&lt;/strong&gt; — uses the Fetch Streams API with an &lt;code&gt;AbortController&lt;/code&gt; for clean disconnect. SSE lines are parsed manually so &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt;, and heartbeat (&lt;code&gt;:&lt;/code&gt;) fields are all handled correctly.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JSON syntax highlighting&lt;/strong&gt; — data payloads that are valid JSON are pretty-printed with colour coding.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Persistent settings&lt;/strong&gt; — API URL, prefix, database, login, and channel list are saved to &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Authentication&lt;/h3&gt;
+&lt;p&gt;The tool verifies credentials before revealing the subscription panel. Clicking &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; calls &lt;code&gt;capabilities&lt;/code&gt; with the chosen header — if PgArachne returns a successful response, the subscription panel unlocks.&lt;/p&gt;</description></item><item><title>Support the Development</title><link>https://www.pgarachne.com/en/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Support the Development&lt;/h2&gt;
 	&lt;p&gt;Developing open-source software like PgArachne takes significant time. If this tool saves you time,
 		please consider supporting its maintenance.&lt;/p&gt;
@@ -440,17 +504,19 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 			&lt;h4&gt;Bank Transfer&lt;/h4&gt;
 			&lt;p&gt;Direct support with 0% fees.&lt;/p&gt;</description></item><item><title>What's New</title><link>https://www.pgarachne.com/en/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;What's New&lt;/h2&gt;
-	&lt;p&gt;More detailed information about changes in individual versions can be found directly in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
+	&lt;p&gt;More detailed information about changes in each version can be found in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🌐 &lt;strong&gt;PgArachne Explorer – modern PWA&lt;/strong&gt;: Complete visual &amp; functional refresh – dark/light theme (auto), responsive cards layout, JSON syntax highlighting, copy-to-clipboard button, better auth UX (password/token tabs), PWA install support (manifest, icons, service worker), shareable links via &lt;code&gt;?url=…&lt;/code&gt; parameter.&lt;/li&gt;
-		&lt;li&gt;🛠️ &lt;strong&gt;Model Context Protocol (MCP) support&lt;/strong&gt;: New endpoint &lt;code&gt;/{prefix}/{db}/mcp&lt;/code&gt; with standard methods &lt;code&gt;resources/list&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;prompts/list&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt; – fully backed by PostgreSQL functions and reusing existing auth &amp; role switching.&lt;/li&gt;
-		&lt;li&gt;🔧 &lt;strong&gt;Configurable API prefix&lt;/strong&gt;: Default changed to &lt;code&gt;/db/{database}/jsonrpc&lt;/code&gt; and &lt;code&gt;/db/{database}/sse&lt;/code&gt;. Old &lt;code&gt;/api/…&lt;/code&gt; paths now return permanent 307 redirects. Controlled via new &lt;code&gt;API_PREFIX&lt;/code&gt; environment variable.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Idempotency protection&lt;/strong&gt;: Optional &lt;code&gt;idempotencyKey&lt;/code&gt; field in JSON-RPC requests – automatic duplicate detection (HTTP 409 + error code on collision) using &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;📚 &lt;strong&gt;Documentation improvements&lt;/strong&gt;: New &lt;strong&gt;/tools/&lt;/strong&gt; section with cards (Explorer + upcoming macOS Toolbar), new page “Architectural Decisions”, &lt;strong&gt;SECURITY.md&lt;/strong&gt; with vulnerability reporting instructions, better typography across all languages via TypoLima, improved 404 page support for GitHub Pages.&lt;/li&gt;
-		&lt;li&gt;📝 &lt;strong&gt;Login method rename&lt;/strong&gt;: JSON-RPC method &lt;code&gt;login&lt;/code&gt; renamed to &lt;code&gt;get_jwt&lt;/code&gt; (old name kept as deprecated alias with warning in logs).&lt;/li&gt;
-		&lt;li&gt;📊 &lt;strong&gt;Logging cleanup&lt;/strong&gt;: When logging to file, console shows only minimal startup info → cleaner output in production / docker environments.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Secure defaults (breaking)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; now defaults to &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; no longer defaults to &lt;code&gt;*&lt;/code&gt;, and &lt;code&gt;JWT_SECRET&lt;/code&gt; must be at least 32 bytes. Existing deployments must review their configuration before upgrading.&lt;/li&gt;
+		&lt;li&gt;🧹 &lt;strong&gt;Legacy cleanup&lt;/strong&gt;: Removed the &lt;code&gt;/api/…&lt;/code&gt; and &lt;code&gt;/sse/…&lt;/code&gt; redirect routes and the deprecated JSON-RPC &lt;code&gt;login&lt;/code&gt; alias. Use &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; and &lt;code&gt;get_jwt&lt;/code&gt; directly.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Tighter auth &amp;amp; error handling&lt;/strong&gt;: New per-IP login rate limit (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) closes a credential-spraying gap, and MCP tool errors no longer leak raw PostgreSQL error text by default (opt back in with &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Configurable connection limits&lt;/strong&gt;: The direct-auth connection pool cap is now configurable via &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔑 &lt;strong&gt;External IdP support (BYO JWT)&lt;/strong&gt;: New &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt;, and &lt;code&gt;JWT_LEEWAY&lt;/code&gt; settings bind issued tokens to a specific issuer/audience and tune clock-skew tolerance.&lt;/li&gt;
+		&lt;li&gt;🧰 &lt;strong&gt;New tools&lt;/strong&gt;: A standalone &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) and &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) join the Explorer for quick manual testing.&lt;/li&gt;
+		&lt;li&gt;🐛 &lt;strong&gt;Reliability fixes&lt;/strong&gt;: Fixed a stuck SSE shutdown and a dead-connection recovery bug that could leave the server unable to reconnect to PostgreSQL.&lt;/li&gt;
+		&lt;li&gt;🧪 &lt;strong&gt;CI hardening&lt;/strong&gt;: Added &lt;code&gt;golangci-lint&lt;/code&gt;, the Go race detector, and &lt;code&gt;govulncheck&lt;/code&gt; to every build, plus expanded test coverage.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Release process&lt;/strong&gt;: Added &lt;code&gt;CHANGELOG.md&lt;/code&gt; and split the release workflow into &lt;code&gt;make release-local&lt;/code&gt; (build &amp;amp; verify) and &lt;code&gt;make release&lt;/code&gt; (tag, publish, update the Homebrew tap).&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;</description></item></channel></rss>
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item></channel></rss>

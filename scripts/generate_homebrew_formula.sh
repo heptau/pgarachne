@@ -8,7 +8,7 @@ OUTPUT_DIR="${1:-${ROOT_DIR}/dist/homebrew-tap/Formula}"
 OUTPUT_FILE="${OUTPUT_DIR}/pgarachne.rb"
 
 if [[ ! -f "${CHECKSUMS_FILE}" ]]; then
-  echo "Missing ${CHECKSUMS_FILE}. Run make release-snapshot first." >&2
+  echo "Missing ${CHECKSUMS_FILE}. Run make release-local first." >&2
   exit 1
 fi
 

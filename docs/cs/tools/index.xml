@@ -1,4 +1,25 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Nástroje on PgArachne</title><link>https://www.pgarachne.com/cs/tools/</link><description>Recent content in Nástroje on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/cs/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Nástroje on PgArachne</title><link>https://www.pgarachne.com/cs/tools/</link><description>Recent content in Nástroje on PgArachne</description><generator>Hugo</generator><language>cs</language><atom:link href="https://www.pgarachne.com/cs/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>JWT Getter</title><link>https://www.pgarachne.com/cs/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;JWT Getter&lt;/strong&gt; je minimalistický nástroj pro prohlížeč umístěný ve složce &lt;code&gt;tools/get-jwt&lt;/code&gt;. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním JSON-RPC metody &lt;code&gt;get_jwt&lt;/code&gt; — a zobrazuje dekódovaný payload i čas expirace.&lt;/p&gt;
+&lt;h3&gt;Kdy jej použít&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Chcete token vložit do záložky Bearer Token v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Testujete expiraci JWT nebo claimy &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; ve své aplikaci.&lt;/li&gt;
+&lt;li&gt;Ověřujete, zda systémový uživatel &lt;code&gt;pgarachne&lt;/code&gt; může přepnout na danou roli (musí existovat &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Vyplňte URL, prefix, databázi, uživatelské jméno a heslo — stiskněte &lt;kbd&gt;Enter&lt;/kbd&gt; nebo tlačítko &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Vygenerovaný token se zobrazí a lze jej jedním kliknutím zkopírovat.&lt;/li&gt;
+&lt;li&gt;Payload JWT je dekódován a zobrazen se zvýrazněním syntaxe JSON.&lt;/li&gt;
+&lt;li&gt;Badge zobrazuje zbývající životnost tokenu (nebo ho označí jako expirovaný).&lt;/li&gt;
+&lt;li&gt;Nastavení připojení a přihlašovací jméno se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Zprovoznění&lt;/h3&gt;
+&lt;p&gt;Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/get-jwt&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;, nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči.&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/cs/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; je webové rozhraní přiložené ve složce &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Nejedná se
 		jen o dokumentaci; je to plně funkční &lt;strong&gt;demo aplikace&lt;/strong&gt; postavená na HTML/JS,
@@ -12,6 +33,7 @@
 &lt;li&gt;&lt;strong&gt;Automatická dokumentace:&lt;/strong&gt; Vykresluje SQL komentáře (včetně metadat &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
 			do čitelné dokumentace.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Moderní vzhled:&lt;/strong&gt; Podporuje tmavý i světlý režim a lze jej nainstalovat jako &lt;strong&gt;PWA aplikaci&lt;/strong&gt; na mobilní zařízení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autentizace:&lt;/strong&gt; Záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth pro přímé přihlášení jako databázový uživatel — nevyžaduje &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt;. Záložka &lt;em&gt;API Token&lt;/em&gt; přijímá JWT nebo dlouhodobý API token jako &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Parametry v URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/cs/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar pro macOS&lt;/h2&gt;
@@ -27,4 +49,23 @@
 &lt;li&gt;&lt;strong&gt;Nativní zážitek:&lt;/strong&gt; Vyvinuto přímo pro macOS s podporou tmavého režimu a Apple Silicon.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Míří do Mac App Store&lt;/h3&gt;
-&lt;p&gt;Aplikace je optimalizována pro distribuci přes Mac App Store, aby byla zajištěna maximální bezpečnost a plynulé aktualizace.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;Aplikace je optimalizována pro distribuci přes Mac App Store, aby byla zajištěna maximální bezpečnost a plynulé aktualizace.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/cs/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;SSE Tester&lt;/strong&gt; je jednoduchý nástroj pro prohlížeč umístěný ve složce &lt;code&gt;tools/test-sse&lt;/code&gt;. Umožňuje přihlásit se k odběru libovolného počtu PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálů přes živé &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; spojení a sledovat příchozí události v reálném čase.&lt;/p&gt;
+&lt;h3&gt;Funkce&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Více kanálů najednou&lt;/strong&gt; — kanály přidáváte jako tagy před připojením. Všechny kanály jsou předány jako parametr &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Všechny způsoby autentizace&lt;/strong&gt; — záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth (přímé přihlášení, bez JWT); záložka &lt;em&gt;Bearer Token&lt;/em&gt; přijímá JWT nebo API token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Zvýraznění JSON syntaxe&lt;/strong&gt; — datové payload ve formátu JSON jsou zobrazeny s barevným zvýrazněním.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Ukládání nastavení&lt;/strong&gt; — URL, prefix, databáze, přihlašovací jméno a seznam kanálů se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Autentizace&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Záložka Password&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Basic &amp;lt;base64(uživatel:heslo)&amp;gt;&lt;/code&gt;. Nevyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Záložka Bearer Token&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Vložte JWT (získaný přes &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) nebo dlouhodobý API token.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Jak nástroj zprovoznit:&lt;/strong&gt; Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/test-sse&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;. Nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči — vše funguje bez lokálního serveru.
+&lt;/div&gt;
+&lt;/section&gt;</description></item></channel></rss>

@@ -86,17 +86,17 @@ make build</code></pre>
 	</div>
 
 	<h3>2. Configuración de la base de datos</h3>
-	<p>1. Crea una base de datos (por ejemplo, <code>my_database</code>).</p>
-	<p>2. Ejecuta el script de esquema para crear la estructura necesaria de <code>pgarachne</code>.</p>
+	<p>1. Cree una base de datos (por ejemplo, <code>my_database</code>).</p>
+	<p>2. Ejecute el script de esquema para crear la estructura necesaria de <code>pgarachne</code>.</p>
 <pre><code>psql -d my_database -f sql/schema.sql</code></pre>
-	<p>3. Crea el usuario del sistema <code>pgarachne</code> (opcional pero recomendado para entornos de producción):</p>
+	<p>3. Cree el usuario del sistema <code>pgarachne</code> (opcional pero recomendado para entornos de producción):</p>
 	<pre><code>-- Conectar a tu base de datos
 CREATE ROLE pgarachne WITH LOGIN PASSWORD 'secure_password';
 GRANT ALL PRIVILEGES ON DATABASE my_database TO pgarachne;
--- Asegúrate de que pueda utilizar el esquema
+-- Asegúrese de que pueda utilizar el esquema
 GRANT USAGE ON SCHEMA pgarachne TO pgarachne;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA pgarachne TO pgarachne;</code></pre>
-	<p>4. Configura <code>~/.pgpass</code> para permitir que <code>pgarachne</code> se conecte sin pedir contraseña:</p>
+	<p>4. Configure <code>~/.pgpass</code> para permitir que <code>pgarachne</code> se conecte sin solicitar contraseña:</p>
 	<pre><code># Format: hostname:port:database:username:password
 echo "localhost:5432:*:pgarachne:secure_password" >> ~/.pgpass
 chmod 0600 ~/.pgpass</code></pre>

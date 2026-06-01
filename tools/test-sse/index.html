@@ -1,0 +1,983 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>PgArachne SSE Tester</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+	<style>
+		/* --- Theme variables --- */
+		:root {
+			--bg-body: #0f111a;
+			--bg-card: #161b22;
+			--bg-input: #0d1117;
+			--bg-tab: #21262d;
+			--bg-tab-hover: #292e36;
+			--bg-event: #0d1117;
+			--bg-event-alt: #161b22;
+			--fg: #c9d1d9;
+			--fg-heading: #e6edf3;
+			--fg-muted: #8b949e;
+			--border: #30363d;
+			--border-h2: #21262d;
+			--accent: #58a6ff;
+			--accent-glow: rgba(88, 166, 255, 0.15);
+			--btn-primary: #238636;
+			--btn-primary-hover: #2ea043;
+			--btn-secondary: #30363d;
+			--btn-secondary-hover: #3d444d;
+			--btn-danger: #da3633;
+			--btn-danger-hover: #e5534b;
+			--status-ok: #3fb950;
+			--status-warn: #d29922;
+			--status-err: #f85149;
+			--auth-ok: #238636;
+			--json-key: #79c0ff;
+			--json-string: #a5d6ff;
+			--json-number: #f0883e;
+			--json-boolean: #ff7b72;
+			--json-null: #8b949e;
+			--event-border: #4ec9b0;
+			--event-border-err: #f85149;
+			--event-border-sys: #58a6ff;
+		}
+
+		@media (prefers-color-scheme: light) {
+			:root {
+				--bg-body: #f6f8fa;
+				--bg-card: #ffffff;
+				--bg-input: #f6f8fa;
+				--bg-tab: #e9ecef;
+				--bg-tab-hover: #dfe2e5;
+				--bg-event: #f6f8fa;
+				--bg-event-alt: #ffffff;
+				--fg: #1f2328;
+				--fg-heading: #1f2328;
+				--fg-muted: #656d76;
+				--border: #d0d7de;
+				--border-h2: #d8dee4;
+				--accent: #0969da;
+				--accent-glow: rgba(9, 105, 218, 0.12);
+				--btn-primary: #1a7f37;
+				--btn-primary-hover: #218c3a;
+				--btn-secondary: #e9ecef;
+				--btn-secondary-hover: #d0d7de;
+				--btn-danger: #cf222e;
+				--btn-danger-hover: #a40e26;
+				--status-ok: #1a7f37;
+				--status-warn: #9a6700;
+				--status-err: #cf222e;
+				--auth-ok: #1a7f37;
+				--json-key: #0550ae;
+				--json-string: #0a3069;
+				--json-number: #953800;
+				--json-boolean: #cf222e;
+				--json-null: #656d76;
+				--event-border: #0f7b6c;
+				--event-border-err: #cf222e;
+				--event-border-sys: #0969da;
+			}
+		}
+
+		*, *::before, *::after { box-sizing: border-box; }
+
+		body {
+			font-family: 'Inter', system-ui, sans-serif;
+			max-width: 860px;
+			margin: 0 auto;
+			padding: 24px;
+			background: var(--bg-body);
+			color: var(--fg);
+			line-height: 1.5;
+		}
+
+		h1 {
+			font-size: 1.6rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 24px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		h1::before { content: '📡'; font-size: 1.4rem; }
+
+		h2 {
+			font-size: 1rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 16px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--border-h2);
+		}
+
+		/* --- Cards --- */
+		.card {
+			margin-bottom: 20px;
+			border: 1px solid var(--border);
+			padding: 20px;
+			border-radius: 10px;
+			background: var(--bg-card);
+			transition: border-color 0.3s ease;
+		}
+
+		.card.authenticated { border-color: var(--auth-ok); }
+
+		/* --- Inputs --- */
+		label {
+			display: block;
+			margin: 12px 0 4px;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--fg-muted);
+		}
+
+		label:first-of-type { margin-top: 0; }
+
+		input[type="text"],
+		input[type="password"] {
+			width: 100%;
+			padding: 9px 12px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: var(--bg-input);
+			color: var(--fg-heading);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.85rem;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		input:focus {
+			outline: none;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px var(--accent-glow);
+		}
+
+		input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+		/* --- URL config row --- */
+		.url-config-row {
+			display: grid;
+			grid-template-columns: 1fr 90px 1fr;
+			gap: 12px;
+			align-items: end;
+		}
+
+		/* --- Buttons --- */
+		button {
+			padding: 9px 16px;
+			background: var(--btn-primary);
+			color: #fff;
+			border: 1px solid rgba(240, 246, 252, 0.1);
+			cursor: pointer;
+			border-radius: 6px;
+			font-family: 'Inter', system-ui, sans-serif;
+			font-size: 0.82rem;
+			font-weight: 500;
+			transition: background 0.15s ease, transform 0.1s ease;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		button:hover { background: var(--btn-primary-hover); transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+		button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+		.btn-secondary { background: var(--btn-secondary); }
+		@media (prefers-color-scheme: light) { .btn-secondary { color: var(--fg); } }
+		.btn-secondary:hover { background: var(--btn-secondary-hover); }
+
+		.btn-danger { background: var(--btn-danger); }
+		.btn-danger:hover { background: var(--btn-danger-hover); }
+
+		.btn-small { padding: 5px 10px; font-size: 0.75rem; }
+
+		.button-group {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			margin-top: 16px;
+			flex-wrap: wrap;
+		}
+
+		/* --- Auth tabs --- */
+		.auth-tabs {
+			display: flex;
+			gap: 2px;
+			margin: 16px 0 0;
+		}
+
+		.auth-tab-button {
+			background: var(--bg-tab);
+			color: var(--fg-muted);
+			border: 1px solid var(--border);
+			border-bottom: none;
+			border-radius: 6px 6px 0 0;
+			padding: 8px 16px;
+			font-size: 0.82rem;
+			margin: 0;
+			transform: none;
+		}
+
+		.auth-tab-button:hover {
+			background: var(--bg-tab-hover);
+			color: var(--fg);
+			transform: none;
+		}
+
+		.auth-tab-button.active {
+			background: var(--bg-card);
+			color: var(--fg-heading);
+			border-color: var(--border);
+			border-bottom: 1px solid var(--bg-card);
+			margin-bottom: -1px;
+			position: relative;
+			z-index: 1;
+		}
+
+		.auth-content {
+			border: 1px solid var(--border);
+			border-radius: 0 6px 6px 6px;
+			padding: 16px;
+			background: var(--bg-card);
+		}
+
+		/* --- User status --- */
+		#user-status {
+			font-size: 0.82rem;
+			color: var(--fg-muted);
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+		}
+
+		#user-status .dot {
+			width: 8px;
+			height: 8px;
+			border-radius: 50%;
+			background: var(--fg-muted);
+			display: inline-block;
+			transition: background 0.3s ease;
+		}
+
+		.status-ok .dot { background: var(--status-ok) !important; }
+		.status-ok { color: var(--status-ok) !important; }
+
+		/* --- SSE Status bar --- */
+		.sse-status-bar {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			padding: 10px 14px;
+			border-radius: 6px;
+			font-size: 0.82rem;
+			font-family: 'JetBrains Mono', monospace;
+			margin-bottom: 12px;
+			border: 1px solid var(--border);
+			background: var(--bg-input);
+			transition: border-color 0.3s ease, background 0.3s ease;
+		}
+
+		.sse-status-bar .dot {
+			width: 9px;
+			height: 9px;
+			border-radius: 50%;
+			background: var(--fg-muted);
+			flex-shrink: 0;
+			transition: background 0.3s ease;
+		}
+
+		.sse-status-bar.connected { border-color: var(--status-ok); }
+		.sse-status-bar.connected .dot { background: var(--status-ok); }
+		.sse-status-bar.connecting { border-color: var(--status-warn); }
+		.sse-status-bar.connecting .dot { background: var(--status-warn); animation: pulse 1s ease infinite; }
+		.sse-status-bar.error { border-color: var(--status-err); }
+		.sse-status-bar.error .dot { background: var(--status-err); }
+
+		@keyframes pulse {
+			0%, 100% { opacity: 1; }
+			50% { opacity: 0.3; }
+		}
+
+		/* --- Channel tags --- */
+		.channel-list {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 8px;
+			margin: 8px 0;
+			min-height: 36px;
+			align-items: center;
+		}
+
+		.channel-tag {
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			padding: 4px 10px;
+			border: 1px solid var(--accent);
+			border-radius: 20px;
+			font-size: 0.8rem;
+			font-family: 'JetBrains Mono', monospace;
+			color: var(--accent);
+			background: var(--accent-glow);
+		}
+
+		.channel-tag button {
+			background: none;
+			border: none;
+			color: var(--accent);
+			padding: 0;
+			font-size: 0.9rem;
+			line-height: 1;
+			transform: none;
+			min-width: unset;
+		}
+
+		.channel-tag button:hover {
+			background: none;
+			color: var(--status-err);
+			transform: none;
+		}
+
+		.channel-add-row {
+			display: flex;
+			gap: 8px;
+			align-items: end;
+			margin-top: 8px;
+		}
+
+		.channel-add-row input { flex: 1; }
+		.channel-add-row button { flex-shrink: 0; white-space: nowrap; }
+
+		.channel-hint {
+			font-size: 0.75rem;
+			color: var(--fg-muted);
+			margin-top: 4px;
+		}
+
+		/* --- Events panel --- */
+		.events-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 10px;
+		}
+
+		.events-header h2 { margin: 0; border: none; padding: 0; }
+
+		.event-count {
+			font-size: 0.75rem;
+			font-family: 'JetBrains Mono', monospace;
+			color: var(--fg-muted);
+			background: var(--bg-tab);
+			padding: 2px 8px;
+			border-radius: 10px;
+		}
+
+		.events-panel {
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			background: var(--bg-input);
+			max-height: 560px;
+			overflow-y: auto;
+			padding: 0;
+		}
+
+		.events-empty {
+			padding: 32px;
+			text-align: center;
+			color: var(--fg-muted);
+			font-size: 0.85rem;
+		}
+
+		.event-item {
+			padding: 10px 14px;
+			border-left: 3px solid var(--event-border);
+			border-bottom: 1px solid var(--border);
+			font-family: 'JetBrains Mono', monospace;
+			font-size: 0.8rem;
+			background: var(--bg-event);
+			transition: background 0.15s ease;
+		}
+
+		.event-item:last-child { border-bottom: none; }
+		.event-item:hover { background: var(--bg-event-alt); }
+		.event-item.sys { border-left-color: var(--event-border-sys); }
+		.event-item.err { border-left-color: var(--event-border-err); }
+		.event-item.hb { border-left-color: var(--fg-muted); opacity: 0.6; }
+
+		.event-meta {
+			display: flex;
+			gap: 12px;
+			align-items: baseline;
+			margin-bottom: 4px;
+		}
+
+		.event-time { color: var(--fg-muted); font-size: 0.75rem; }
+		.event-type { color: var(--accent); font-weight: 500; }
+
+		.event-body {
+			white-space: pre-wrap;
+			word-break: break-all;
+			color: var(--fg);
+			line-height: 1.5;
+		}
+
+		/* JSON coloring inside events */
+		.json-key { color: var(--json-key); }
+		.json-string { color: var(--json-string); }
+		.json-number { color: var(--json-number); }
+		.json-boolean { color: var(--json-boolean); }
+		.json-null { color: var(--json-null); }
+
+		.hidden { display: none !important; }
+
+		/* --- Footer --- */
+		.footer {
+			margin-top: 32px;
+			padding-top: 12px;
+			border-top: 1px solid var(--border);
+			text-align: center;
+			font-size: 0.75rem;
+			color: var(--fg-muted);
+		}
+
+		.footer a {
+			color: var(--fg-muted);
+			text-decoration: none;
+			transition: color 0.2s ease;
+		}
+
+		.footer a:hover { color: var(--accent); }
+	</style>
+</head>
+
+<body>
+	<h1>PgArachne SSE Tester</h1>
+
+	<!-- Step 1: Authentication -->
+	<div id="auth-card" class="card">
+		<h2>1. Authentication</h2>
+
+		<div class="url-config-row">
+			<div>
+				<label for="apiUrl">API URL</label>
+				<input type="text" id="apiUrl" placeholder="http://localhost:8080" autocapitalize="off" autocorrect="off">
+			</div>
+			<div>
+				<label for="urlPrefix">Prefix</label>
+				<input type="text" id="urlPrefix" placeholder="db" autocapitalize="off" autocorrect="off">
+			</div>
+			<div>
+				<label for="databaseName">Database</label>
+				<input type="text" id="databaseName" placeholder="my_database" autocapitalize="off" autocorrect="off">
+			</div>
+		</div>
+
+		<div class="auth-tabs">
+			<button id="tab-password" class="auth-tab-button active" onclick="switchAuthMode('password')">🔑 Password</button>
+			<button id="tab-token" class="auth-tab-button" onclick="switchAuthMode('token')">🎫 Bearer Token</button>
+		</div>
+
+		<div class="auth-content">
+			<div id="password-auth-content">
+				<label for="login">Login</label>
+				<input type="text" id="login" placeholder="username" autocapitalize="off" autocorrect="off">
+				<label for="password">Password</label>
+				<input type="password" id="password" placeholder="password">
+				<p style="font-size:0.78rem; color:var(--fg-muted); margin: 8px 0 0;">
+					Uses HTTP Basic Auth — connects directly as the database user. No JWT required, no <code>GRANT &hellip; TO pgarachne</code> needed.
+				</p>
+			</div>
+			<div id="token-auth-content" class="hidden">
+				<label for="bearerToken">JWT or API Token</label>
+				<input type="text" id="bearerToken" placeholder="Paste a JWT or long-lived API token" autocapitalize="off" autocorrect="off">
+				<p style="font-size:0.78rem; color:var(--fg-muted); margin: 8px 0 0;">
+					Sent as <code>Authorization: Bearer &hellip;</code>. Obtain a JWT via <code>get_jwt</code> or use a long-lived API token created with <code>pgarachne.add_api_token()</code>.
+				</p>
+			</div>
+		</div>
+
+		<div class="button-group">
+			<button onclick="authenticate()">&#10003; Verify &amp; Continue</button>
+			<span id="user-status"><span class="dot"></span>&nbsp;Not verified</span>
+			<button onclick="logout()" id="logout-button" class="btn-danger hidden">&#10005; Logout</button>
+		</div>
+	</div>
+
+	<!-- Step 2: SSE Subscription (hidden until authed) -->
+	<div id="sse-card" class="card hidden">
+		<h2>2. SSE Subscription</h2>
+
+		<label>Channels</label>
+		<div class="channel-list" id="channel-list">
+			<span style="color:var(--fg-muted); font-size:0.82rem;">No channels added yet.</span>
+		</div>
+		<div class="channel-add-row">
+			<input type="text" id="channel-input" placeholder="channel_name" autocapitalize="off" autocorrect="off"
+				onkeydown="if(event.key==='Enter') addChannel()">
+			<button onclick="addChannel()" class="btn-secondary">+ Add Channel</button>
+		</div>
+		<p class="channel-hint">Enter the PostgreSQL NOTIFY channel name. You can subscribe to multiple channels at once.</p>
+
+		<div class="button-group">
+			<button id="connect-btn" onclick="connect()">&#9654; Connect</button>
+			<button id="disconnect-btn" onclick="disconnect()" class="btn-danger" disabled>&#9632; Disconnect</button>
+			<button onclick="clearEvents()" class="btn-secondary">&#10005; Clear Events</button>
+		</div>
+	</div>
+
+	<!-- Events panel (always visible) -->
+	<div>
+		<div class="events-header">
+			<h2>Events</h2>
+			<span class="event-count" id="event-count">0 events</span>
+		</div>
+		<div class="sse-status-bar" id="sse-status-bar">
+			<span class="dot"></span>
+			<span id="sse-status-text">Not connected</span>
+		</div>
+		<div class="events-panel" id="events-panel">
+			<div class="events-empty" id="events-empty">Connect to a channel to start receiving events.</div>
+		</div>
+	</div>
+
+	<footer class="footer">
+		Part of <a href="https://www.pgarachne.com" target="_blank" rel="noopener">PgArachne</a> &mdash; expose PostgreSQL functions as a JSON-RPC API
+	</footer>
+
+	<script>
+		/* ---- State ---- */
+		let authMode = 'password';
+		let authHeader = null;       // value for Authorization header
+		let authIdentifier = null;   // display name
+		let channels = [];           // subscribed channel names
+		let eventCount = 0;
+		let streamAbort = null;      // AbortController for active SSE fetch
+
+		/* ---- Helpers ---- */
+		function getSSEUrl() {
+			const base = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
+			const prefix = document.getElementById('urlPrefix').value.trim() || 'db';
+			const db = document.getElementById('databaseName').value.trim();
+			const ch = channels.join(',');
+			return base + '/' + prefix + '/' + db + '/sse' + (ch ? '?channels=' + encodeURIComponent(ch) : '');
+		}
+
+		function getJsonRpcUrl() {
+			const base = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
+			const prefix = document.getElementById('urlPrefix').value.trim() || 'db';
+			const db = document.getElementById('databaseName').value.trim();
+			return base + '/' + prefix + '/' + db + '/jsonrpc';
+		}
+
+		/* ---- JSON syntax highlight ---- */
+		// JSON.stringify output is safe: it escapes <, >, & and quotes.
+		function syntaxHighlight(json) {
+			return json.replace(
+				/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+				function (match) {
+					var cls = 'json-number';
+					if (/^"/.test(match)) {
+						cls = /:$/.test(match) ? 'json-key' : 'json-string';
+					} else if (/true|false/.test(match)) {
+						cls = 'json-boolean';
+					} else if (/null/.test(match)) {
+						cls = 'json-null';
+					}
+					return '<span class="' + cls + '">' + match + '</span>';
+				}
+			);
+		}
+
+		/* ---- Local storage ---- */
+		function save(id) { localStorage.setItem('sse_' + id, document.getElementById(id).value); }
+		function load(id, def) {
+			var el = document.getElementById(id);
+			el.value = localStorage.getItem('sse_' + id) || def || '';
+			el.addEventListener('input', function () { save(id); });
+		}
+
+		/* ---- Auth mode switch ---- */
+		function switchAuthMode(mode) {
+			authMode = mode;
+			document.getElementById('password-auth-content').classList.toggle('hidden', mode !== 'password');
+			document.getElementById('token-auth-content').classList.toggle('hidden', mode !== 'token');
+			document.getElementById('tab-password').classList.toggle('active', mode === 'password');
+			document.getElementById('tab-token').classList.toggle('active', mode === 'token');
+		}
+
+		/* ---- Auth UI helpers ---- */
+		var AUTH_INPUTS = ['apiUrl', 'urlPrefix', 'databaseName', 'login', 'password', 'bearerToken',
+		                   'tab-password', 'tab-token'];
+
+		function setLoggedInUI(identifier) {
+			document.getElementById('auth-card').classList.add('authenticated');
+			var s = document.getElementById('user-status');
+			s.className = 'status-ok';
+			s.innerHTML = '<span class="dot"></span>&nbsp;Verified (' + identifier + ')';
+			document.getElementById('logout-button').classList.remove('hidden');
+			document.getElementById('sse-card').classList.remove('hidden');
+			AUTH_INPUTS.forEach(function (id) {
+				var el = document.getElementById(id);
+				if (el) el.disabled = true;
+			});
+		}
+
+		function setLoggedOutUI() {
+			if (streamAbort) { streamAbort.abort(); streamAbort = null; }
+			document.getElementById('auth-card').classList.remove('authenticated');
+			var s = document.getElementById('user-status');
+			s.className = '';
+			s.innerHTML = '<span class="dot"></span>&nbsp;Not verified';
+			document.getElementById('logout-button').classList.add('hidden');
+			document.getElementById('sse-card').classList.add('hidden');
+			AUTH_INPUTS.forEach(function (id) {
+				var el = document.getElementById(id);
+				if (el) el.disabled = false;
+			});
+			updateSSEStatus('', 'Not connected');
+			setConnectedUI(false);
+			authHeader = null;
+			authIdentifier = null;
+		}
+
+		/* ---- Authentication ---- */
+		function authenticate() {
+			if (authMode === 'password') {
+				loginWithPassword();
+			} else {
+				loginWithToken();
+			}
+		}
+
+		async function loginWithPassword() {
+			var username = document.getElementById('login').value.trim();
+			var password = document.getElementById('password').value;
+			var apiUrl   = document.getElementById('apiUrl').value.trim();
+			var db       = document.getElementById('databaseName').value.trim();
+
+			if (!apiUrl || !db || !username || !password) {
+				addSystemEvent('Please fill in API URL, database, username and password.', 'err');
+				return;
+			}
+
+			var b64 = btoa(username + ':' + password);
+			var testHeader = 'Basic ' + b64;
+
+			addSystemEvent('Verifying credentials via Basic Auth…', 'sys');
+			try {
+				var resp = await fetch(getJsonRpcUrl(), {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': testHeader
+					},
+					body: JSON.stringify({ jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 })
+				});
+				var data = await resp.json();
+				if (resp.ok && data.result !== undefined) {
+					authHeader = testHeader;
+					authIdentifier = username;
+					save('login');
+					addSystemEvent('Verified as ' + username + ' (direct credentials).', 'sys');
+					setLoggedInUI(username);
+				} else {
+					var msg = (data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
+					addSystemEvent('Authentication failed: ' + msg, 'err');
+				}
+			} catch (e) {
+				addSystemEvent('Connection error: ' + e.message, 'err');
+			}
+		}
+
+		async function loginWithToken() {
+			var token  = document.getElementById('bearerToken').value.trim();
+			var apiUrl = document.getElementById('apiUrl').value.trim();
+			var db     = document.getElementById('databaseName').value.trim();
+
+			if (!apiUrl || !db || !token) {
+				addSystemEvent('Please fill in API URL, database and token.', 'err');
+				return;
+			}
+
+			var testHeader = 'Bearer ' + token;
+			addSystemEvent('Verifying token…', 'sys');
+			try {
+				var resp = await fetch(getJsonRpcUrl(), {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': testHeader
+					},
+					body: JSON.stringify({ jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 })
+				});
+				var data = await resp.json();
+				if (resp.ok && data.result !== undefined) {
+					authHeader = testHeader;
+					authIdentifier = 'Bearer token';
+					addSystemEvent('Token verified.', 'sys');
+					setLoggedInUI('Bearer token');
+				} else {
+					var msg = (data.error && data.error.message) ? data.error.message : ('HTTP ' + resp.status);
+					addSystemEvent('Token verification failed: ' + msg, 'err');
+				}
+			} catch (e) {
+				addSystemEvent('Connection error: ' + e.message, 'err');
+			}
+		}
+
+		function logout() {
+			setLoggedOutUI();
+		}
+
+		/* ---- Channel management ---- */
+		function renderChannels() {
+			var list = document.getElementById('channel-list');
+			if (channels.length === 0) {
+				list.innerHTML = '<span style="color:var(--fg-muted); font-size:0.82rem;">No channels added yet.</span>';
+				return;
+			}
+			list.innerHTML = '';
+			channels.forEach(function (ch, i) {
+				var tag = document.createElement('span');
+				tag.className = 'channel-tag';
+				tag.innerHTML = escapeHtml(ch) + ' <button onclick="removeChannel(' + i + ')" title="Remove">&times;</button>';
+				list.appendChild(tag);
+			});
+		}
+
+		function addChannel() {
+			var input = document.getElementById('channel-input');
+			var name = input.value.trim();
+			if (!name) return;
+			if (channels.indexOf(name) !== -1) { input.value = ''; return; }
+			channels.push(name);
+			input.value = '';
+			renderChannels();
+			saveChannels();
+		}
+
+		function removeChannel(i) {
+			channels.splice(i, 1);
+			renderChannels();
+			saveChannels();
+		}
+
+		function saveChannels() {
+			localStorage.setItem('sse_channels', JSON.stringify(channels));
+		}
+
+		function loadChannels() {
+			try {
+				var saved = JSON.parse(localStorage.getItem('sse_channels') || '[]');
+				channels = Array.isArray(saved) ? saved : [];
+			} catch (e) { channels = []; }
+			renderChannels();
+		}
+
+		/* ---- SSE connection ---- */
+		function updateSSEStatus(cls, text) {
+			var bar = document.getElementById('sse-status-bar');
+			bar.className = 'sse-status-bar' + (cls ? ' ' + cls : '');
+			document.getElementById('sse-status-text').textContent = text;
+		}
+
+		function setConnectedUI(connected) {
+			document.getElementById('connect-btn').disabled = connected;
+			document.getElementById('disconnect-btn').disabled = !connected;
+		}
+
+		function connect() {
+			if (!authHeader) return;
+			if (channels.length === 0) {
+				addSystemEvent('Add at least one channel before connecting.', 'err');
+				return;
+			}
+
+			if (streamAbort) { streamAbort.abort(); }
+			streamAbort = new AbortController();
+
+			var url = getSSEUrl();
+			updateSSEStatus('connecting', 'Connecting to ' + url + '…');
+			setConnectedUI(false);
+			addSystemEvent('Connecting → ' + url, 'sys');
+
+			var hdr = authHeader;
+			var abort = streamAbort;
+
+			(async function () {
+				try {
+					var resp = await fetch(url, {
+						method: 'GET',
+						headers: {
+							'Accept': 'text/event-stream',
+							'Authorization': hdr
+						},
+						signal: abort.signal
+					});
+
+					if (!resp.ok) {
+						throw new Error('HTTP ' + resp.status + ': ' + resp.statusText);
+					}
+
+					updateSSEStatus('connected', 'Connected — listening on: ' + channels.join(', '));
+					setConnectedUI(true);
+					addSystemEvent('Connected (HTTP ' + resp.status + ')', 'sys');
+
+					var reader = resp.body.getReader();
+					var decoder = new TextDecoder();
+					var buffer = '';
+					var currentEvent = { type: null, data: [] };
+
+					while (true) {
+						var chunk = await reader.read();
+						if (chunk.done) break;
+
+						buffer += decoder.decode(chunk.value, { stream: true });
+
+						var nlIdx;
+						while ((nlIdx = buffer.indexOf('\n')) !== -1) {
+							var line = buffer.slice(0, nlIdx);
+							buffer = buffer.slice(nlIdx + 1);
+							if (line.endsWith('\r')) line = line.slice(0, -1);
+
+							if (line === '') {
+								// Dispatch accumulated event
+								if (currentEvent.data.length > 0) {
+									var raw = currentEvent.data.join('\n');
+									dispatchSSEEvent(currentEvent.type || 'message', raw);
+								}
+								currentEvent = { type: null, data: [] };
+								continue;
+							}
+
+							if (line.charAt(0) === ':') {
+								// Heartbeat / comment
+								addEvent('heartbeat', line, 'hb', false);
+								continue;
+							}
+
+							var colonIdx = line.indexOf(':');
+							if (colonIdx === -1) continue;
+							var field = line.slice(0, colonIdx);
+							var val = line.slice(colonIdx + 1).replace(/^ /, '');
+
+							if (field === 'event') {
+								currentEvent.type = val;
+							} else if (field === 'data') {
+								currentEvent.data.push(val);
+							}
+						}
+					}
+
+					updateSSEStatus('', 'Connection closed by server');
+					addSystemEvent('Connection closed by server.', 'sys');
+				} catch (e) {
+					if (e.name === 'AbortError') {
+						updateSSEStatus('', 'Disconnected');
+					} else {
+						updateSSEStatus('error', 'Error: ' + e.message);
+						addSystemEvent('Error: ' + e.message, 'err');
+					}
+				}
+				setConnectedUI(false);
+				streamAbort = null;
+			})();
+		}
+
+		function disconnect() {
+			if (streamAbort) {
+				streamAbort.abort();
+				streamAbort = null;
+			}
+			updateSSEStatus('', 'Disconnected');
+			setConnectedUI(false);
+			addSystemEvent('Manually disconnected.', 'sys');
+		}
+
+		/* ---- Event rendering ---- */
+		function dispatchSSEEvent(type, rawData) {
+			var body;
+			var isHtml = false;
+			try {
+				var parsed = JSON.parse(rawData);
+				body = syntaxHighlight(JSON.stringify(parsed, null, 2));
+				isHtml = true;
+			} catch (e) {
+				body = escapeHtml(rawData);
+			}
+			addEvent(type, body, 'data', isHtml);
+		}
+
+		function addEvent(type, body, cls, isHtml) {
+			if (cls === undefined) cls = 'data';
+			if (isHtml === undefined) isHtml = false;
+
+			eventCount++;
+			updateEventCount();
+
+			var empty = document.getElementById('events-empty');
+			if (empty) empty.parentNode.removeChild(empty);
+
+			var panel = document.getElementById('events-panel');
+			var item = document.createElement('div');
+			item.className = 'event-item ' + cls;
+
+			var now = new Date();
+			var time = now.toLocaleTimeString('en-GB', { hour12: false });
+			var bodyHtml = isHtml ? body : escapeHtml(body);
+
+			item.innerHTML =
+				'<div class="event-meta">' +
+					'<span class="event-time">' + time + '</span>' +
+					'<span class="event-type">' + escapeHtml(type) + '</span>' +
+				'</div>' +
+				'<div class="event-body">' + bodyHtml + '</div>';
+
+			// Prepend so newest is at top
+			panel.insertBefore(item, panel.firstChild);
+		}
+
+		function addSystemEvent(message, cls) {
+			addEvent('system', message, cls || 'sys', false);
+		}
+
+		function clearEvents() {
+			eventCount = 0;
+			updateEventCount();
+			var panel = document.getElementById('events-panel');
+			panel.innerHTML = '<div class="events-empty" id="events-empty">Events cleared. Connect to start listening.</div>';
+		}
+
+		function updateEventCount() {
+			document.getElementById('event-count').textContent = eventCount + ' event' + (eventCount === 1 ? '' : 's');
+		}
+
+		function escapeHtml(str) {
+			return String(str)
+				.replace(/&/g, '&amp;')
+				.replace(/</g, '&lt;')
+				.replace(/>/g, '&gt;')
+				.replace(/"/g, '&quot;');
+		}
+
+		/* ---- Page init ---- */
+		window.onload = function () {
+			load('apiUrl', 'http://localhost:8080');
+			load('urlPrefix', 'db');
+			load('databaseName', 'my_database');
+			load('login', '');
+			loadChannels();
+			setLoggedOutUI();
+			switchAuthMode('password');
+		};
+	</script>
+</body>
+
+</html>

@@ -9,7 +9,8 @@ menu:
 
 <section id="hello-world">
 	<h2>JSON-RPC a Hello World</h2>
-	<p>Vytvoříme jednoduchý API endpoint přiřazený k uživateli.</p>
+	<p>Vytvoříme jednoduchý API endpoint přiřazený k databázovému uživateli. Jsou ukázány dva přístupy k autentizaci:
+		klasický tok s JWT a jednodušší tok s přímým přihlášením.</p>
 
 	<h3>1. Vytvoření uživatele a funkce</h3>
 	<p>V databázi (<code>my_database</code>):</p>
@@ -27,27 +28,57 @@ AS $$
 $$;
 
 -- 3. Udělíme uživateli oprávnění spustit funkci
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. Povolíme PgArachne (systémovému uživateli), aby se mohl přepnout na demo_user
+	<div class="tip">
+		<strong>Kterou metodu autentizace zvolit?</strong><br>
+		Zvolte <strong>Variantu A (JWT)</strong> pro relace v prohlížeči nebo pro přihlášení koncových uživatelů.
+		Zvolte <strong>Variantu B (přímé přihlášení)</strong> pro lokální vývoj, skripty nebo interní služby —
+		správa tokenů není nutná.
+	</div>
+
+	<h3>Varianta A: Tok s JWT tokenem</h3>
+
+	<p>Autentizace pomocí JWT vyžaduje, aby systémový uživatel PgArachne (<code>pgarachne</code>) mohl přepnout
+		na <code>demo_user</code>:</p>
+	<pre><code>-- Vyžadováno pouze pro JWT autentizaci: povolí PgArachne přepnout se na demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Přihlášení přes API</h3>
-	<p>Použijte JSON-RPC metodu <code>login</code> pro získání JWT tokenu:</p>
+	<h4>Krok 1 — Získání JWT</h4>
+	<p>Zavolejte metodu JSON-RPC <code>get_jwt</code> s přihlašovacími údaji uživatele:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Odpověď:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Volání funkce</h3>
-	<p>Pomocí získaného tokenu zavolejte funkci <code>hello_world</code>:</p>
+	<h4>Krok 2 — Volání funkce</h4>
+	<p>Použijte JWT v hlavičce <code>Authorization</code>:</p>
 	<pre><code>export TOKEN="VÁŠ_JWT_TOKEN_ZDE"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
 	<p>Odpověď:</p>
-	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<h3>Varianta B: Přímé přihlášení (bez JWT)</h3>
+
+	<p>Zasílejte PostgreSQL uživatelské jméno a heslo přímo s každým požadavkem pomocí HTTP Basic Authentication.
+		PgArachne otevře connection pool jako daný uživatel — příkaz <code>GRANT … TO pgarachne</code>
+		není potřeba.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Odpověď:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>Přepínač <code>-u uzivatel:heslo</code> v curl automaticky nastaví hlavičku
+		<code>Authorization: Basic …</code>. Obě varianty vrátí shodnou odpověď.</p>
+
+	<p>Podrobné srovnání všech metod autentizace naleznete v části
+		<a href="../security-roles/#direct-credentials">Bezpečnost a autentizace — Přímé přihlášení</a>.</p>
 </section>

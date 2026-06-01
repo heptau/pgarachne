@@ -3,9 +3,38 @@
 -- They mimic PostgREST behavior but accept parameters as a single JSONB object.
 --
 -- DEFAULT SCHEMA: 'api' (if not specified in params)
+--
+-- SECURITY: All four functions validate _schema and _table against a strict
+-- whitelist pattern ([a-z_][a-z0-9_]*) before building dynamic SQL. format()'s
+-- %I specifier also escapes identifiers safely, so this is defense in depth
+-- — the goal is to fail fast with a clear error rather than bubble up a
+-- cryptic "invalid identifier" message from PostgreSQL, and to keep the
+-- surface area limited to plain lowercase names. Schemas like pg_catalog
+-- and information_schema are reachable only by callers who can EXECUTE
+-- these functions, so the validation pattern is the first line of guard.
 
 -- We assume 'api' schema exists (created by main schema.sql conventions usually)
 CREATE SCHEMA IF NOT EXISTS api;
+
+-- =============================================================================
+-- Helper: api._validate_identifier
+-- Description: Raises an exception if the supplied string is not a safe
+--              unquoted PostgreSQL identifier. Used by all universal_*
+--              functions to validate _schema and _table before dynamic SQL.
+-- =============================================================================
+CREATE OR REPLACE FUNCTION api._validate_identifier(_name text, _role text)
+RETURNS void
+LANGUAGE plpgsql
+IMMUTABLE
+AS $fn$
+BEGIN
+	IF _name IS NULL OR _name !~ '^[a-z_][a-z0-9_]*$' THEN
+		RAISE EXCEPTION 'Invalid %: % (must match [a-z_][a-z0-9_]*)', _role, _name;
+	END IF;
+END;
+$fn$;
+
+COMMENT ON FUNCTION api._validate_identifier(text, text) IS 'Internal helper. Raises if the identifier is not a safe unquoted PostgreSQL name ([a-z_][a-z0-9_]*). Note: this validates *shape* only — it does NOT restrict which schemas/tables may be targeted. Access control still relies on the calling role''s privileges, just like direct SQL.';
 
 -- =============================================================================
 -- 1. READ (GET)
@@ -32,6 +61,8 @@ BEGIN
 	IF _table IS NULL THEN
 		RAISE EXCEPTION 'Parameter "table" is required.';
 	END IF;
+	PERFORM api._validate_identifier(_schema, 'schema');
+	PERFORM api._validate_identifier(_table, 'table');
 
 	_cols   := COALESCE(_params->>'select', '*');
 	_limit  := COALESCE((_params->>'limit')::int, 10);
@@ -45,11 +76,13 @@ BEGIN
 		RAISE EXCEPTION 'Invalid characters in "select" parameter';
 	END IF;
 
-	-- Security: Validate _order (prevent SQL Injection)
-	-- Only allow alphanumeric, underscores, commas, spaces, dots, and standard keywords.
+	-- Security: Validate _order (prevent SQL Injection).
+	-- Whitelist pattern: comma-separated identifiers, each optionally followed
+	-- by ASC or DESC. Rejects subqueries, semicolons, parentheses, and any
+	-- other SQL keywords.
 	IF _order IS NOT NULL THEN
-		IF _order ~* '[;''"()--]' THEN
-			RAISE EXCEPTION 'Potential SQL injection in "order" parameter';
+		IF _order !~* '^\s*[a-z_][a-z0-9_]*(\s+(ASC|DESC))?\s*(,\s*[a-z_][a-z0-9_]*(\s+(ASC|DESC))?\s*)*$' THEN
+			RAISE EXCEPTION 'Invalid "order" parameter: % (expected comma-separated column names with optional ASC/DESC)', _order;
 		END IF;
 	END IF;
 
@@ -108,6 +141,8 @@ BEGIN
 	IF _table IS NULL OR _data IS NULL THEN
 		RAISE EXCEPTION 'Parameters "table" and "data" are required.';
 	END IF;
+	PERFORM api._validate_identifier(_schema, 'schema');
+	PERFORM api._validate_identifier(_table, 'table');
 
 	-- Note: Returns a single object. If strict PostgREST emulation is desired, should return array.
 	-- Keeping as single object for now as input is single object.
@@ -153,6 +188,8 @@ BEGIN
 	IF _table IS NULL OR _data IS NULL THEN
 		RAISE EXCEPTION 'Parameters "table" and "data" are required.';
 	END IF;
+	PERFORM api._validate_identifier(_schema, 'schema');
+	PERFORM api._validate_identifier(_table, 'table');
 
 	-- Build SET clause
 	SELECT string_agg(format('%I = %L', key, value), ', ')
@@ -211,6 +248,8 @@ BEGIN
 	IF _table IS NULL THEN
 		RAISE EXCEPTION 'Parameter "table" is required.';
 	END IF;
+	PERFORM api._validate_identifier(_schema, 'schema');
+	PERFORM api._validate_identifier(_table, 'table');
 
 	-- Build WHERE clause
 	FOR _key, _val IN

@@ -4,13 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/yourusername/pgarachne/internal/database"
+	"github.com/heptau/pgarachne/internal/database"
+	"github.com/heptau/pgarachne/internal/version"
 )
 
 // mcpProtocolVersion is the MCP protocol version this server advertises.
@@ -210,17 +212,43 @@ func (s *Server) handleMCP(c *gin.Context) {
 	}
 
 	// All remaining methods require a valid database connection and authentication.
-	db, err := database.GetConnection(s.Cfg, databaseName)
-	if err != nil {
-		slog.Error("MCP: database connection failed", "database", databaseName, "error", err)
-		c.JSON(http.StatusServiceUnavailable, newMCPError(req.ID, mcpErrInternal, "Database connection failed"))
-		return
-	}
+	// Three modes — mirrors the JSON-RPC endpoint:
+	//   Basic Auth  → direct user pool, dbRole = "" (no SET LOCAL ROLE).
+	//   Bearer JWT  → system pool, dbRole = JWT subject.
+	//   API token   → system pool, dbRole = token's role.
+	var db *sql.DB
+	var dbRole string
 
-	dbRole, errMsg, httpStatus := s.authenticateToken(c, db, databaseName)
-	if errMsg != "" {
-		c.JSON(httpStatus, newMCPError(req.ID, mcpErrAuth, errMsg))
-		return
+	if username, password, ok := parseBasicAuth(c.GetHeader("Authorization")); ok {
+		if len(username) == 0 || len(username) > MaxLoginLength || len(password) > MaxPasswordLength {
+			recordAuthResult("direct", "malformed")
+			c.JSON(http.StatusUnauthorized, newMCPError(req.ID, mcpErrAuth, "Invalid credentials"))
+			return
+		}
+		userDB, err := database.GetUserConnection(s.Cfg, databaseName, username, password)
+		if err != nil {
+			slog.Warn("MCP: direct authentication failed", "user", username, "database", databaseName, "error", err)
+			recordAuthResult("direct", "invalid")
+			c.JSON(http.StatusUnauthorized, newMCPError(req.ID, mcpErrAuth, "Invalid credentials"))
+			return
+		}
+		recordAuthResult("direct", "success")
+		db = userDB
+		// dbRole = "" → SET LOCAL ROLE is skipped in sub-handlers.
+	} else {
+		sysDB, err := database.GetConnection(s.Cfg, databaseName)
+		if err != nil {
+			slog.Error("MCP: database connection failed", "database", databaseName, "error", err)
+			c.JSON(http.StatusServiceUnavailable, newMCPError(req.ID, mcpErrInternal, "Database connection failed"))
+			return
+		}
+		role, errMsg, httpStatus := s.authenticateToken(c, sysDB, databaseName)
+		if errMsg != "" {
+			c.JSON(httpStatus, newMCPError(req.ID, mcpErrAuth, errMsg))
+			return
+		}
+		db = sysDB
+		dbRole = role
 	}
 
 	// tools/* methods are handled explicitly because tools/call has special
@@ -242,6 +270,7 @@ func (s *Server) handleMCP(c *gin.Context) {
 		return
 	}
 
+	slog.Warn("MCP: unknown method", "method", req.Method, "database", databaseName)
 	c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrMethod, "Method not found: "+req.Method))
 }
 
@@ -272,7 +301,7 @@ func (s *Server) handleMCPInitialize(c *gin.Context, req mcpRequest) {
 			},
 			ServerInfo: mcpImplementation{
 				Name:    "PgArachne",
-				Version: "1.0.0",
+				Version: version.Version,
 			},
 		},
 	})
@@ -342,16 +371,26 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Tool name is required"))
 		return
 	}
+	if len(functionName) > MaxMethodLength {
+		recordJSONRPC("", "error")
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Tool name is too long"))
+		return
+	}
 	if !isSafeFunctionName(functionName) {
 		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Invalid tool name"))
 		return
 	}
+	if params.Meta != nil && len(params.Meta.IdempotencyKey) > MaxIdempotencyKeyLength {
+		recordJSONRPC(functionName, "error")
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "idempotencyKey is too long"))
+		return
+	}
 
-	// Treat absent arguments as an empty JSON object so the SQL function
-	// always receives a valid jsonb value.
+	// Treat absent or null arguments as an empty JSON object so the SQL
+	// function always receives a valid jsonb value.
 	argsJSON := params.Arguments
-	if len(argsJSON) == 0 {
+	if len(argsJSON) == 0 || string(argsJSON) == "null" {
 		argsJSON = json.RawMessage(`{}`)
 	}
 
@@ -362,30 +401,22 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Database unavailable"))
 		return
 	}
-	defer tx.Rollback()
+	defer rollbackQuietly(tx)
 
-	// Idempotency check — identical semantics to the JSON-RPC endpoint.
-	// Runs as the service user (DB_USER) before SET LOCAL ROLE, so no extra
-	// privileges are needed on the client role. The check is inside the
-	// transaction: if the function call fails and the tx rolls back, the key
-	// is not persisted and the client may retry.
-	if params.Meta != nil && params.Meta.IdempotencyKey != "" {
-		var saved bool
-		err := tx.QueryRowContext(
-			c.Request.Context(),
-			`SELECT pgarachne.save_idempotency_key($1)`,
-			params.Meta.IdempotencyKey,
-		).Scan(&saved)
-		if err != nil {
-			slog.Error("MCP tools/call: idempotency check failed",
-				"key", params.Meta.IdempotencyKey, "function", functionName, "error", err)
-			recordJSONRPC(functionName, "error")
-			c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Idempotency check failed"))
-			return
-		}
-		if !saved {
+	idempotencyKey := ""
+	if params.Meta != nil {
+		idempotencyKey = params.Meta.IdempotencyKey
+	}
+
+	// Shared setup with the JSON-RPC endpoint: API prefix, idempotency check,
+	// SET LOCAL ROLE — see setupRequestTx for ordering and privilege notes.
+	// Per MCP spec, a duplicate request is a tool-level error; the other
+	// failures are protocol errors.
+	if err := s.setupRequestTx(c.Request.Context(), tx, dbRole, idempotencyKey); err != nil {
+		switch {
+		case errors.Is(err, errIdempotencyDuplicate):
 			slog.Warn("MCP tools/call: duplicate request rejected",
-				"key", params.Meta.IdempotencyKey, "function", functionName)
+				"key", idempotencyKey, "function", functionName)
 			recordJSONRPC(functionName, "duplicate")
 			c.JSON(http.StatusOK, mcpResponse{
 				JSONRPC: "2.0",
@@ -395,25 +426,20 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 					IsError: true,
 				},
 			})
-			return
+		case errors.Is(err, errIdempotencyCheckFailed):
+			slog.Error("MCP tools/call: idempotency check failed",
+				"key", idempotencyKey, "function", functionName, "error", err)
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Idempotency check failed"))
+		default:
+			slog.Error("MCP tools/call: SET LOCAL ROLE failed", "role", dbRole, "function", functionName, "error", err)
+			recordJSONRPC(functionName, "error")
+			c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrAuth, "Permission denied for the specified role"))
 		}
-	}
-
-	// Impersonate the authenticated role for the duration of the transaction.
-	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
-	if _, err := tx.ExecContext(c.Request.Context(), "SET LOCAL ROLE "+quotedRole); err != nil {
-		slog.Error("MCP tools/call: SET LOCAL ROLE failed", "role", dbRole, "function", functionName, "error", err)
-		recordJSONRPC(functionName, "error")
-		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrAuth, "Permission denied for the specified role"))
 		return
 	}
 
-	var query string
-	if functionName == "capabilities" || functionName == "pgarachne.capabilities" {
-		query = `SELECT pgarachne.capabilities($1::jsonb)::json`
-	} else {
-		query = fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
-	}
+	query := buildFunctionQuery(functionName)
 
 	var resultJSON json.RawMessage
 	if err := tx.QueryRowContext(c.Request.Context(), query, []byte(argsJSON)).Scan(&resultJSON); err != nil {
@@ -422,7 +448,7 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 
 		// Return a tool-level error, not a JSON-RPC protocol error.
 		// Per MCP spec, SQL failures are tool failures, not transport failures.
-		errText := fmt.Sprintf("Function call failed: %s", sanitiseSQLError(err))
+		errText := s.sqlErrorText(err)
 		c.JSON(http.StatusOK, mcpResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
@@ -469,7 +495,11 @@ func (s *Server) handleMCPDatabaseMethod(c *gin.Context, req mcpRequest, db *sql
 	if err != nil {
 		slog.Error("MCP database method failed",
 			"method", req.Method, "func", sqlFunc, "error", err)
-		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, sanitiseSQLError(err)))
+		errText := "Method execution failed"
+		if s.Cfg.MCPSQLErrorDetail {
+			errText = sanitiseSQLError(err)
+		}
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, errText))
 		return
 	}
 
@@ -508,10 +538,11 @@ func (s *Server) callPgarachneFunc(
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback()
+	defer rollbackQuietly(tx)
 
-	quotedRole := fmt.Sprintf(`"%s"`, strings.ReplaceAll(dbRole, `"`, `""`))
-	if _, err := tx.ExecContext(ctx, "SET LOCAL ROLE "+quotedRole); err != nil {
+	// Shared setup with the JSON-RPC endpoint (API prefix + SET LOCAL ROLE);
+	// no idempotency key for infrastructure queries.
+	if err := s.setupRequestTx(ctx, tx, dbRole, ""); err != nil {
 		return nil, fmt.Errorf("set role %s: %w", dbRole, err)
 	}
 
@@ -532,11 +563,13 @@ func (s *Server) callPgarachneFunc(
 }
 
 // isNotification reports whether req is an MCP notification.
-// Notifications never carry a response: the server must return 202 Accepted.
-// A message is a notification when it has no "id" field (ID is nil after
-// unmarshal) OR when the method name is in the notifications/ namespace.
+// Notifications never carry a response: the server must return 202 Accepted
+// with no body. Per the MCP spec, a message is a notification when its method
+// name starts with "notifications/". The "id" field is intentionally NOT used
+// for this classification: a request with id:null is still a request and the
+// client expects a JSON-RPC response (whose id is also null).
 func isNotification(req mcpRequest) bool {
-	return req.ID == nil || strings.HasPrefix(req.Method, "notifications/")
+	return strings.HasPrefix(req.Method, "notifications/")
 }
 
 // newMCPError builds a JSON-RPC error response.
@@ -561,6 +594,19 @@ func mcpFormatResult(raw json.RawMessage) string {
 		return string(raw)
 	}
 	return string(pretty)
+}
+
+// sqlErrorText returns the text shown to MCP clients for a failed tool call.
+// With MCPSQLErrorDetail enabled it includes the PostgreSQL error message,
+// which helps LLM agents self-correct (wrong argument names, missing values).
+// Disabled (the default), it returns a generic message matching the JSON-RPC
+// endpoint, so authenticated callers cannot harvest schema details (table and
+// constraint names, RAISE text) from error responses.
+func (s *Server) sqlErrorText(err error) string {
+	if !s.Cfg.MCPSQLErrorDetail {
+		return "Function call failed"
+	}
+	return "Function call failed: " + sanitiseSQLError(err)
 }
 
 // sanitiseSQLError returns the error message with driver-level prefixes

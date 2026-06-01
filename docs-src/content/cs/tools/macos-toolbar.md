@@ -23,14 +23,33 @@ description: "PgArachne Toolbar pro macOS - Dokumentace."
 <p>Aplikace je optimalizována pro distribuci přes Mac App Store, aby byla zajištěna maximální bezpečnost a plynulé aktualizace.</p>
 
 <div class="screenshot-gallery" style="display: flex; gap: 20px; overflow-x: auto; padding: 20px 0; margin-top: 30px; border-top: 1px solid #eee;">
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 1<br>(Hlavní menu)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-3.webp"
+		alt="Menu při vypnutí a okno s logy"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 2<br>(Okno logů)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-1.webp"
+		alt="Menu po spuštění a okno s metrikami"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 3<br>(Metriky)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-2.webp"
+		alt="Okno s konfigurací"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
+
 </div>
 </section>

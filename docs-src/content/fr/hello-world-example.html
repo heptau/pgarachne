@@ -27,21 +27,32 @@ AS $$
 $$;
 
 -- 3. Accorder les permissions à l'utilisateur
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. Permettre à PgArachne (utilisateur système) de passer à demo_user
+	<div class="tip">
+		<h4>Choisir votre méthode d'authentification</h4>
+		<p>PgArachne propose deux approches pour cet exemple :</p>
+		<ul>
+			<li><strong>Option A — Flux de jeton JWT :</strong> obtenez un jeton via <code>get_jwt</code> et utilisez-le comme en-tête <code>Bearer</code>. Nécessite un <code>GRANT demo_user TO pgarachne</code> supplémentaire.</li>
+			<li><strong>Option B — Identifiants directs :</strong> envoyez directement le nom d'utilisateur et le mot de passe via HTTP Basic Auth. Aucun <code>GRANT</code> supplémentaire requis.</li>
+		</ul>
+	</div>
+
+	<h3>Option A — Flux de jeton JWT</h3>
+
+	<h4>A1. Autoriser PgArachne à basculer vers demo_user</h4>
+	<pre><code>-- Permettre à PgArachne (utilisateur système) de passer à demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Connexion via l'API</h3>
-	<p>Utilisez la méthode JSON-RPC <code>login</code> pour obtenir un token JWT :</p>
+	<h4>A2. Obtenir un jeton JWT</h4>
+	<p>Utilisez la méthode JSON-RPC <code>get_jwt</code> pour obtenir un token JWT :</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Réponse :</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Appeler la fonction</h3>
-	<p>Utilisez le token pour appeler la fonction <code>hello_world</code> :</p>
+	<h4>A3. Appeler la fonction avec le jeton</h4>
 	<pre><code>export TOKEN="VOTRE_TOKEN_JWT_ICI"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
@@ -50,4 +61,16 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Réponse :</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+
+	<h3>Option B — Identifiants directs</h3>
+	<p>Aucun <code>GRANT … TO pgarachne</code> n'est nécessaire. Envoyez directement les identifiants PostgreSQL
+		via HTTP Basic Auth :</p>
+	<pre><code>curl -u demo_user:user_password \
+  -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Réponse :</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<p>Pour en savoir plus sur les méthodes d'authentification disponibles, consultez la page
+		<a href="../security-roles/">Sécurité &amp; Authentification</a>.</p>
 </section>

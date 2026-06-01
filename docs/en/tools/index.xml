@@ -1,8 +1,30 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tools on PgArachne</title><link>https://www.pgarachne.com/en/tools/</link><description>Recent content in Tools on PgArachne</description><generator>Hugo</generator><language>en</language><atom:link href="https://www.pgarachne.com/en/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tools on PgArachne</title><link>https://www.pgarachne.com/en/tools/</link><description>Recent content in Tools on PgArachne</description><generator>Hugo</generator><language>en</language><atom:link href="https://www.pgarachne.com/en/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>JWT Getter</title><link>https://www.pgarachne.com/en/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;JWT Getter&lt;/strong&gt; is a minimal single-file browser tool located in &lt;code&gt;tools/get-jwt&lt;/code&gt;. It exchanges a PostgreSQL username and password for a short-lived JWT by calling the &lt;code&gt;get_jwt&lt;/code&gt; JSON-RPC method — and shows you the decoded payload and expiry time.&lt;/p&gt;
+&lt;h3&gt;When to use it&lt;/h3&gt;
+&lt;p&gt;Use the JWT Getter when you need a token for one of these purposes:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Pasting a token into the &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; or &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; (Bearer Token tab).&lt;/li&gt;
+&lt;li&gt;Testing JWT expiry or &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; claims in your application.&lt;/li&gt;
+&lt;li&gt;Quickly verifying that the &lt;code&gt;pgarachne&lt;/code&gt; system user can switch to a given role (&lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; must be in place).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; requires &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; in the database because PgArachne verifies the password internally via &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. If you want to skip that grant, use direct credentials (HTTP Basic Auth) in the &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; or &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; instead.
+&lt;/div&gt;
+&lt;h3&gt;Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Enter API URL, prefix, database, username and password — press &lt;kbd&gt;Enter&lt;/kbd&gt; or click &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;The raw token is displayed and can be copied with one click.&lt;/li&gt;
+&lt;li&gt;The JWT payload is Base64-decoded and displayed with JSON syntax highlighting.&lt;/li&gt;
+&lt;li&gt;An expiry badge shows the remaining lifetime (or marks the token as expired).&lt;/li&gt;
+&lt;li&gt;Connection settings and login are saved to &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;How to enable it&lt;/h3&gt;
+&lt;p&gt;Set &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; to &lt;code&gt;tools/get-jwt&lt;/code&gt; and visit &lt;code&gt;http://localhost:8080&lt;/code&gt;, or open &lt;code&gt;index.html&lt;/code&gt; directly in a browser.&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/en/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;The &lt;strong&gt;Explorer&lt;/strong&gt; is a powerful web GUI included in the &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; directory. It is not
-		just documentation; it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built using HTML/JS
-		that communicates with the database exclusively via PgArachne. You can also use the hosted version at 
+		merely a documentation tool — it is a fully functional &lt;strong&gt;demo application&lt;/strong&gt; built with HTML/JS
+		that communicates with the database exclusively via PgArachne. A hosted version is also available at
 &lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
 &lt;p&gt;&lt;strong&gt;What can it do?&lt;/strong&gt;&lt;/p&gt;
 &lt;ul&gt;
@@ -12,6 +34,7 @@
 &lt;li&gt;&lt;strong&gt;Auto-Documentation:&lt;/strong&gt; It renders the SQL comments (including &lt;code&gt;--- PARAMS ---&lt;/code&gt;
 			metadata) into readable documentation.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Modern UI:&lt;/strong&gt; Features Dark/Light mode support and can be installed as a &lt;strong&gt;PWA&lt;/strong&gt; on mobile devices.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Authentication:&lt;/strong&gt; The &lt;em&gt;Password&lt;/em&gt; tab uses HTTP Basic Auth to connect directly as the database user — no &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt; required. The &lt;em&gt;API Token&lt;/em&gt; tab accepts a JWT or long-lived API token sent as &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;URL Parameters:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/en/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar for macOS&lt;/h2&gt;
@@ -27,4 +50,16 @@
 &lt;li&gt;&lt;strong&gt;Native Experience:&lt;/strong&gt; Built specifically for macOS with support for dark mode and Apple Silicon.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Coming to the Mac App Store&lt;/h3&gt;
-&lt;p&gt;The application is being optimized for the Mac App Store to ensure the highest security and seamless updates.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;The application is being optimized for the Mac App Store to ensure the highest security and seamless updates.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/en/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/en/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;The &lt;strong&gt;SSE Tester&lt;/strong&gt; is a single-file browser tool located in &lt;code&gt;tools/test-sse&lt;/code&gt;. It lets you subscribe to any number of PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; channels over a live &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; connection and watch the incoming events in real time.&lt;/p&gt;
+&lt;h3&gt;Features&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Multi-channel subscriptions&lt;/strong&gt; — add or remove channels as pill tags before connecting. All channels are passed as a comma-separated &lt;code&gt;?channels=&lt;/code&gt; query parameter.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;All authentication methods&lt;/strong&gt; — the &lt;em&gt;Password&lt;/em&gt; tab uses HTTP Basic Auth (direct credentials, no JWT needed); the &lt;em&gt;Bearer Token&lt;/em&gt; tab accepts a JWT or API token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Live stream&lt;/strong&gt; — uses the Fetch Streams API with an &lt;code&gt;AbortController&lt;/code&gt; for clean disconnect. SSE lines are parsed manually so &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt;, and heartbeat (&lt;code&gt;:&lt;/code&gt;) fields are all handled correctly.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JSON syntax highlighting&lt;/strong&gt; — data payloads that are valid JSON are pretty-printed with colour coding.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Persistent settings&lt;/strong&gt; — API URL, prefix, database, login, and channel list are saved to &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Authentication&lt;/h3&gt;
+&lt;p&gt;The tool verifies credentials before revealing the subscription panel. Clicking &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; calls &lt;code&gt;capabilities&lt;/code&gt; with the chosen header — if PgArachne returns a successful response, the subscription panel unlocks.&lt;/p&gt;</description></item></channel></rss>

@@ -11,9 +11,9 @@ menu:
 	<h2>Configuración</h2>
 	<p>PgArachne carga la configuración desde variables de entorno o un archivo.</p>
 	<div class="tip">
-		<strong>Note:</strong> <code>schema.sql</code> intenta crear el rol <code>pgarachne_admin</code> y concederlo a <code>pgarachne</code>. Sin privilegios de superusuario, la creación se omite. Crea el rol y el grant manualmente si es necesario.
+		<strong>Nota:</strong> <code>schema.sql</code> intenta crear el rol <code>pgarachne_admin</code> y concederlo a <code>pgarachne</code>. Sin privilegios de superusuario, la creación se omite. Cree el rol y el grant manualmente si es necesario.
 	<br>
-		El usuario proxy (<code>DB_USER</code>) debe ser miembro de <code>pgarachne</code> y <code>pgarachne_admin</code> para verificar y crear tokens API.</div>
+		El usuario proxy (<code>DB_USER</code>) debe ser miembro de <code>pgarachne</code> y <code>pgarachne_admin</code> para verificar y crear tokens de API.</div>
 	<div class="tip">
 		<strong>Nota de Seguridad:</strong> PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
 		Confía en el mecanismo estándar de archivo <code>.pgpass</code> de PostgreSQL (o la variable del sistema
@@ -39,17 +39,17 @@ menu:
 	</div>
 
 	<h3>Ejemplo de configuración mínima</h3>
-	<p>Esto es todo lo que necesitas para empezar:</p>
+	<p>Esto es todo lo necesario para comenzar:</p>
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=change_me_to_something_secure</code></pre>
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 
 	<h3>Checklist rápida de validación</h3>
 	<ul>
 		<li><code>JWT_SECRET</code> es largo, aleatorio y no se reutiliza entre entornos.</li>
-		<li><code>DB_USER</code> solo puede cambiar a roles esperados (revisa los grants de membresía).</li>
-		<li><code>TRUSTED_PROXIES</code> está configurado si ejecutas detrás de un reverse proxy.</li>
+		<li><code>DB_USER</code> solo puede cambiar a roles esperados (verifique los grants de membresía).</li>
+		<li><code>TRUSTED_PROXIES</code> está configurado si se ejecuta detrás de un reverse proxy.</li>
 		<li><code>LOGIN_RATE_LIMIT</code> está habilitado para despliegues expuestos a internet.</li>
 		<li><code>METRICS_LISTEN_ADDR</code> es privado (por ejemplo <code>127.0.0.1:9090</code>).</li>
 	</ul>
@@ -87,7 +87,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Modo SSL de PostgreSQL. Por defecto: <code>disable</code>.</td>
+				<td>Modo SSL de PostgreSQL. Por defecto: <code>require</code>. Establece <code>disable</code> explícitamente solo para desarrollo local contra un PostgreSQL sin TLS.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
@@ -117,7 +117,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-				<td>Primer segmento de ruta URL para todos los endpoints de base de datos (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Por defecto: <code>db</code>, generando rutas como <code>/db/:base_de_datos/jsonrpc</code>. Usa <code>api</code> para rutas legacy. Solo se permiten letras, dígitos, guiones y guiones bajos.</td>
+				<td>Primer segmento de ruta URL para todos los endpoints de base de datos (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Por defecto: <code>db</code>, generando rutas como <code>/db/:base_de_datos/jsonrpc</code>. Solo se permiten letras, dígitos, guiones y guiones bajos.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -128,7 +128,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Configuración de CORS. Lista separada por comas de dominios permitidos (ej. <code>https://miapp.com</code>).
-					Por defecto: <code>*</code>.</td>
+					Por defecto: sin definir — las solicitudes de origen cruzado del navegador están deshabilitadas. Establece <code>*</code> explícitamente para permitir cualquier origen.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
@@ -144,17 +144,37 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Obligatorio" aria-label="Obligatorio">✓</span></td>
-				<td>Una cadena larga y aleatoria utilizada para firmar tokens de sesión.</td>
+				<td>Una cadena larga y aleatoria utilizada para firmar tokens de sesión. Mínimo 32 bytes; genéralo con <code>openssl rand -hex 32</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Validez de la sesión en horas. Por defecto: <code>8</code>.</td>
 			</tr>
+				<tr>
+					<td><code>JWT_ISSUER</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Si se establece, se escribe en el claim <code>iss</code> y debe coincidir exactamente al validar. Vacío = sin verificación.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_AUDIENCE</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Si se establece, se escribe en el claim <code>aud</code> y debe coincidir al validar. Vacío = sin verificación.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_LEEWAY</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+					<td>Tolerancia de reloj para <code>exp</code>/<code>nbf</code>/<code>iat</code> (ej. <code>30s</code>). Por defecto: <code>30s</code>.</td>
+				</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Máximo de intentos de login por ventana. Por defecto: <code>5</code>. Usa <code>0</code> para desactivar.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Máximo de intentos de login por IP de cliente entre todos los nombres de usuario, para que rotar nombres no eluda el límite. Por defecto: 5× <code>LOGIN_RATE_LIMIT</code>. Usa <code>0</code> para desactivar.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>
@@ -173,6 +193,16 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>MAX_REQUEST_BYTES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
 				<td>Tamaño máximo del body en bytes. Por defecto: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Incluir el mensaje de error crudo de PostgreSQL en los errores de las herramientas MCP. Los errores detallados ayudan a los agentes LLM a autocorregirse, pero pueden exponer detalles del esquema (nombres de tablas y restricciones) a los llamantes autenticados. Por defecto: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
+				<td>Número máximo de pools de conexión distintos para credenciales de Basic Auth. Por defecto: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>

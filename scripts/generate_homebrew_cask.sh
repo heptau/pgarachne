@@ -11,7 +11,7 @@ AMD_ZIP="${ROOT_DIR}/dist/pgarachne-macos-amd64-app.zip"
 mkdir -p "${OUTPUT_DIR}"
 
 if [[ ! -f "${ARM_ZIP}" || ! -f "${AMD_ZIP}" ]]; then
-  echo "Missing macOS app archives in dist/. Run make release first." >&2
+  echo "Missing macOS app archives in dist/. Run make release-local first." >&2
   exit 1
 fi
 

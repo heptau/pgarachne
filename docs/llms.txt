@@ -1,0 +1,3 @@
+# PgArachne
+
+A modern, lightweight JSON-RPC 2.0 API gateway built directly for PostgreSQL. It exposes stored procedures and functions as a secure, high-performance web API.

@@ -31,7 +31,7 @@ menu:
 		<h4>Perché non REST:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Complessità per l'AI:</strong> La semantica REST è distribuita in più punti, rendendo difficile la costruzione di chiamate affidabili per gli agenti AI.</li>
-			<li><strong>Fuga dello Schema:</strong> Il CRUD sulle tabelle espone spesso la struttura interna. PgArachne espone deliberatamente funzioni.</li>
+			<li><strong>Schema Esposto:</strong> Il CRUD sulle tabelle espone spesso la struttura interna. PgArachne espone deliberatamente funzioni.</li>
 			<li><strong>Mancanza di Standard:</strong> REST non offre uno standard universale per batch, wrapper di errore o scoperta automatizzata.</li>
 		</ul>
 	</div>
@@ -78,7 +78,7 @@ menu:
 
 		<h4>Perché non Rust:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Velocità di Sviluppo:</strong> La sua complessità rallenta l'iterazione per uno strumento I/O dove Go è già sufficiente.</li>
+			<li><strong>Velocità di Sviluppo:</strong> La sua complessità rallenta l'iterazione per uno strumento di I/O dove Go è già sufficiente.</li>
 		</ul>
 
 		<h4>Perché non C / C++:</h4>
@@ -118,7 +118,7 @@ menu:
 			<li><strong>Routing tramite reverse proxy:</strong> Un'unica istanza PgArachne può servire più database. Un reverse proxy può instradare per prefisso o nome database senza ispezionare il corpo della richiesta, essenziale per il bilanciamento del carico.</li>
 			<li><strong>Scalabilità orizzontale:</strong> Con il nome del database nel percorso URL, è possibile eseguire più istanze PgArachne e instradare il traffico a istanze specifiche tramite regole di proxy standard, senza sessioni persistenti.</li>
 			<li><strong>Multiplexing di protocolli per database:</strong> Raggruppare <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sotto lo stesso namespace consente di applicare autenticazione, rate limiting e controllo accessi per database a livello di proxy.</li>
-			<li><strong>Prefisso configurabile:</strong> I deployment che usano già <code>/api/</code> possono impostare <code>API_PREFIX=api</code>. I client legacy sono supportati tramite <code>307 Temporary Redirect</code>.</li>
+			<li><strong>Prefisso configurabile:</strong> I deployment che usano già <code>/api/</code> possono impostare <code>API_PREFIX=api</code>.</li>
 			<li><strong>Osservabilità:</strong> I sistemi di log e metriche possono raggruppare il traffico per nome database direttamente dall'URL senza analizzare i corpi JSON.</li>
 		</ul>
 
@@ -130,7 +130,7 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>6. MCP come Strato di Traduzione, non come Protocollo di Database</h3>
+		<h3>6. MCP come Livello di Traduzione, non come Protocollo di Database</h3>
 		<p>
 			PgArachne implementa il <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
 			come un sottile strato di traduzione nel server Go. Le funzioni PostgreSQL non sanno mai di MCP —
@@ -140,7 +140,7 @@ menu:
 		<h4>Perché tradurre MCP sul server:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Nessuna modifica alle funzioni esistenti:</strong> Qualsiasi funzione già esposta via JSON-RPC è immediatamente disponibile come tool MCP. Nessuna modifica SQL.</li>
-			<li><strong>MCP è più che soli tool:</strong> Il protocollo include l'handshake di inizializzazione, ping, notifiche ed estensioni future — preoccupazioni di livello protocollo che appartengono a Go.</li>
+			<li><strong>MCP è più che soli tool:</strong> Il protocollo include l'handshake di inizializzazione, ping, notifiche ed estensioni future — preoccupazioni a livello di protocollo che appartengono a Go.</li>
 			<li><strong>La sicurezza rimane in un unico posto:</strong> Autenticazione, cambio di ruolo e validazione sono già implementati in Go. L'endpoint MCP riutilizza questa logica invariata.</li>
 			<li><strong>Più protocolli, un backend:</strong> La stessa funzione PostgreSQL può essere chiamata via JSON-RPC, MCP o SSE. Il database è agnostico al protocollo.</li>
 			<li><strong>SQL più semplice:</strong> Elaborare gli envelope MCP in PostgreSQL richiederebbe il parsing di strutture JSON complesse in PL/pgSQL, rendendo le funzioni più difficili da scrivere e mantenere.</li>
@@ -149,7 +149,7 @@ menu:
 		<h4>Perché non portare MCP nel database:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>L'handshake MCP non necessita del database:</strong> <code>initialize</code> e <code>ping</code> sono messaggi di protocollo puri. Aprire una connessione per essi spreca risorse.</li>
-			<li><strong>SQL è lo strumento sbagliato per la logica di protocollo:</strong> Codici di errore JSON-RPC, routing delle notifiche e gestione delle chiavi di idempotenza sono preoccupazioni middleware, non dati.</li>
+			<li><strong>SQL è lo strumento sbagliato per la logica di protocollo:</strong> Codici di errore JSON-RPC, routing delle notifiche e gestione delle chiavi di idempotenza sono preoccupazioni di tipo middleware, non dati.</li>
 		</ul>
 	</div>
 </section>

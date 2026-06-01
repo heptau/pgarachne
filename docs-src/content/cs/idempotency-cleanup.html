@@ -1,0 +1,51 @@
+---
+title: "Údržba idempotency klíčů"
+description: "Údržba tabulky pgarachne.requests."
+menu:
+  main:
+    name: "Údržba idempotence"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Údržba tabulky idempotency klíčů</h1>
+
+<p>Každý JSON-RPC požadavek, který nese pole <code>idempotencyKey</code>,
+je zaznamenán do tabulky <code>pgarachne.requests</code> funkcí
+<code>pgarachne.save_idempotency_key()</code>. Právě díky tomu funguje
+detekce duplicit — ale bez pravidelného úklidu tabulka neomezeně roste.</p>
+
+<p>PgArachne samo o sobě neplánuje žádné úlohy na pozadí. Nejčistší
+možnosti jsou:</p>
+
+<h2>pg_cron (doporučeno, pokud můžete instalovat rozšíření)</h2>
+<pre><code>-- Každou hodinu smaž klíče starší než 24 hodin
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Externí cron / systemd timer</h2>
+<p>Naplánujte shell job, který zavolá funkci přes <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manuálně / ad-hoc</h2>
+<p>Funkci můžete kdykoli zavolat z psql, migračního skriptu nebo
+libovolného klienta. Vrací počet smazaných řádků.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- výchozí: 24 hodin
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Volba retenčního okna</h2>
+<p>Zvolte okno s dostatečnou rezervou nad nejdelším očekávaným
+retry intervalem vašich klientů. Pokud chybový klient opakuje stejný
+idempotency klíč 48 hodin po prvním požadavku, 24hodinové okno
+duplicitu nezachytí a požadavek bude zpracován znovu.</p>
+
+<p>Pro většinu nasazení je 24 hodin bezpečný výchozí bod.</p>
+
+</div>
+</section>

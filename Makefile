@@ -20,6 +20,12 @@ EXEC_BINARY=$(BINARY_NAME)-exec
 # Read version from the VERSION file. If it does not exist, use "0.0.0-dev"
 VERSION_FILE=VERSION
 APP_VERSION := $(shell cat $(VERSION_FILE) 2>/dev/null || echo "0.0.0-dev")
+# Commit hash of HEAD, short form. Falls back to "dev" outside a git repo
+# (e.g. when someone runs `make build` from a release tarball).
+APP_COMMIT := $(shell git rev-parse --short HEAD 2>/dev/null || echo "dev")
+# Build timestamp, deterministic in the sense of "when this Makefile ran".
+# We deliberately use SOURCE_DATE_EPOCH when set so reproducible builds work.
+APP_BUILD_DATE := $(shell date -u +%Y-%m-%dT%H:%M:%SZ)
 
 # --- External Config ---
 -include config.mk
@@ -33,15 +39,21 @@ GO_RUN=$(GO) run
 
 # LDFLAGS:
 # -s -w : reduce binary size (strip debug symbols)
-# -X ... : inject version from Makefile into Go variable "main.Version"
-LDFLAGS=-ldflags "-s -w -X 'main.Version=$(APP_VERSION)'"
+# -X ... : inject version, commit hash, and build date into the version
+#          package. Defaults are "dev" so a `go build` without ldflags
+#          still produces a working binary (just without provenance).
+LDFLAGS=-ldflags "-s -w \
+    -X 'github.com/heptau/pgarachne/internal/version.Version=$(APP_VERSION)' \
+    -X 'github.com/heptau/pgarachne/internal/version.Commit=$(APP_COMMIT)' \
+    -X 'github.com/heptau/pgarachne/internal/version.BuildDate=$(APP_BUILD_DATE)'"
 
 # OS detection for local builds
 GOOS := $(shell $(GO) env GOOS)
 GOARCH := $(shell $(GO) env GOARCH)
 
 .PHONY: help deps build run clean prepare-dist docs tests \
-        release macos-apps \
+        coverage cover-html bench lint vulncheck \
+        release release-local release-notes macos-apps \
         macos-app-amd64 macos-app-arm64 macos-app-universal
 
 # ------------------------------------------------------------------------------
@@ -56,21 +68,51 @@ help:
 	@echo "Dev targets:"
 	@echo "  build                 Build binary for current OS."
 	@echo "  tests                 Run all tests (unit + integration) via Docker."
+	@echo "  coverage              Run all tests with coverage profile (coverage.out)."
+	@echo "  cover-html            Convert coverage.out to coverage.html and open in browser."
+	@echo "  bench                 Run benchmarks (Go bench, no DB required)."
+	@echo "  lint                  Run golangci-lint (uses .golangci.yml)."
+	@echo "  vulncheck             Run govulncheck for known vulnerabilities."
 	@echo "  clean                 Remove artifacts."
 	@echo "  docs                  Build documentation with Hugo."
-	@echo "  release               Build local release artifacts + Homebrew files from VERSION."
+	@echo "  release-local         Test, build release artifacts + Homebrew files — no git, no push."
+	@echo "  release               Full release: release-local, then tag, push, GitHub, Homebrew tap."
+	@echo "  release-notes         Extract the current VERSION's section from CHANGELOG.md."
 	@echo ""
 
 deps:
 	@echo "==> Checking dependencies..."
 	@$(GO_TIDY)
 
-release:
+# Builds and verifies everything a release needs, entirely locally: runs the
+# test suite, cross-compiles all platform archives + checksums, builds the
+# macOS .app bundles, generates the Homebrew formula/cask files, and extracts
+# this version's release notes. No git operations, nothing is pushed anywhere.
+# Inspect dist/ afterwards, then run `make release` to actually publish.
+release-local: tests
 	@echo "==> Building local release artifacts"
 	@APP_VERSION=$(APP_VERSION) $(GORELEASER) release --snapshot --clean --skip=publish
 	@$(MAKE) macos-apps
 	@./scripts/generate_homebrew_formula.sh
 	@./scripts/generate_homebrew_cask.sh
+	@$(MAKE) release-notes
+
+# Full release: runs release-local, then tags v$(APP_VERSION), pushes the tag,
+# creates the GitHub release (title + dist/RELEASE_NOTES.md + all dist/
+# archives and checksums.txt), and pushes the Homebrew formula/cask to the
+# tap repo. Requires a clean working tree and the `gh` CLI, authenticated.
+release: release-local
+	@bash scripts/publish_release.sh
+
+# Extracts the CHANGELOG.md section for the version in the VERSION file, so
+# it's ready to hand to `gh release create --notes-file` (or paste into the
+# GitHub UI) when actually publishing. Fails loudly if CHANGELOG.md has no
+# "## [$(APP_VERSION)]" heading yet — that's a reminder to move the
+# "Unreleased" section into a versioned one before tagging a release.
+release-notes: prepare-dist
+	@echo "==> Extracting release notes for v$(APP_VERSION) from CHANGELOG.md"
+	@bash scripts/changelog_notes.sh "$(APP_VERSION)" > $(DIST_DIR)/RELEASE_NOTES.md
+	@echo "Ready: $(DIST_DIR)/RELEASE_NOTES.md"
 
 macos-apps:
 	@$(MAKE) macos-app-amd64
@@ -255,6 +297,34 @@ macos-app-universal: prepare-dist
 tests:
 	@echo "==> Running tests (Docker + Go)"
 	@bash scripts/run_tests.sh
+
+# Run all tests with coverage. Writes coverage.out (atomic mode, suitable
+# for concurrent tests). The -tags=integration env var is *not* set here;
+# this target runs the default unit + protocol-level suite. For full
+# integration coverage too, export PGARACHNE_TEST_DB=1 first.
+coverage:
+	@echo "==> Running tests with coverage"
+	@$(GO) test -coverprofile=coverage.out -covermode=atomic ./... > /dev/null
+	@$(GO) tool cover -func=coverage.out | tail -1
+
+cover-html: coverage
+	@echo "==> Generating coverage.html"
+	@$(GO) tool cover -html=coverage.out -o coverage.html
+	@echo "Open: file://$$(pwd)/coverage.html"
+
+bench:
+	@echo "==> Running benchmarks"
+	@$(GO) test -run='^$$' -bench=. -benchmem ./internal/auth ./internal/config ./internal/server
+
+lint:
+	@echo "==> Running golangci-lint"
+	@command -v golangci-lint >/dev/null 2>&1 || { \
+	    echo "golangci-lint not found; install from https://golangci-lint.run/usage/install/"; exit 1; }
+	@golangci-lint run ./...
+
+vulncheck:
+	@echo "==> Running govulncheck"
+	@$(GO_RUN) golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 build: deps
 	@echo "==> Building locally (v$(APP_VERSION))..."

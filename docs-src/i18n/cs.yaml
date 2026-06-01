@@ -1,7 +1,7 @@
 - id: hero_lead
-  translation: "Vaše databáze je váš backend.<br>Bezpečně, okamžitě, připravena pro AI."
+  translation: "Vaše databáze je váš backend.<br>Žádný boilerplate. Bezpečně, okamžitě, připraveno pro AI."
 - id: hero_desc
-  translation: "Definujte SQL funkci — endpoint je hotový. Nativní MCP podpora pro Claude Desktop a Cursor. Real-time SSE notifikace. Produkčně připraveno od prvního dne."
+  translation: "Definujte SQL funkci — endpoint je hotový. JSON-RPC 2.0 s nativní MCP podporou pro Claude Desktop a Cursor, real-time SSE notifikace a bezpečnost postavená na databázi. Produkčně připraveno, jeden binární soubor."
 - id: hero_get_started
   translation: "Začínáme"
 - id: hero_see_demo

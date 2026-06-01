@@ -65,14 +65,15 @@
 			<div class="lang-dropdown">
 				<button class="lang-btn">{{ i18n "nav_language" }}</button>
 				<div class="lang-content">
-					{{ range .Site.Languages }}
+					{{ $langs := partial "get-languages.html" . }}
+					{{ range $langs }}
 					{{ $lang := .Lang }}
 					{{ $link := (printf "/%s/" $lang) }}
 					{{ range $.Translations }}
 						{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
 					{{ end }}
 					{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
-					<a href="{{ $link }}" class="{{ if eq $lang $.Site.Language.Lang }}active{{ end }}">{{ .LanguageName }}</a>
+					<a href="{{ $link }}" class="{{ if eq $lang $.Site.Language.Lang }}active{{ end }}">{{ .Label }}</a>
 					{{ end }}
 				</div>
 			</div>

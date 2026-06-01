@@ -23,7 +23,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Endpoint Único:</strong> Toda la comunicación ocurre a través de <code>POST /{prefijo}/{base_de_datos}/jsonrpc</code>. No es necesario diseñar estructuras de URL complejas ni debatir sobre la semántica de los verbos HTTP.</li>
 			<li><strong>Llamadas Autocontenidas:</strong> Cada petición es un objeto JSON completo (método + parámetros + id). Este formato es trivial de generar y parsear para LLMs y agentes de IA con alta fiabilidad.</li>
-			<li><strong>Gestión de Errores Estandarizada:</strong> Los códigos y mensajes de error forman parte de la especificación, eliminando la necesidad de „inventar" convenciones de códigos de estado HTTP para errores de negocio.</li>
+			<li><strong>Gestión de Errores Estandarizada:</strong> Los códigos y mensajes de error forman parte de la especificación, eliminando la necesidad de «inventar» convenciones de códigos de estado HTTP para errores de negocio.</li>
 			<li><strong>Loteado (Batching):</strong> El protocolo admite nativamente peticiones por lotes, lo que permite múltiples operaciones en un solo viaje de ida y vuelta HTTP sin trabajo extra.</li>
 			<li><strong>Descubrimiento (Discovery):</strong> El endpoint de capacidades proporciona una descripción completa de la API en un formato que los agentes de IA pueden consumir para entender las herramientas disponibles sin alucinaciones.</li>
 		</ul>
@@ -118,7 +118,7 @@ menu:
 			<li><strong>Enrutamiento por reverse proxy:</strong> Un único servidor PgArachne puede servir múltiples bases de datos. Un reverse proxy puede enrutar por prefijo o nombre de base de datos sin inspeccionar el cuerpo de la petición, lo que es clave para el balanceo de carga.</li>
 			<li><strong>Escalabilidad horizontal:</strong> Con el nombre de la base de datos en la ruta URL, se pueden ejecutar múltiples instancias de PgArachne y dirigir el tráfico a instancias específicas usando reglas de proxy estándar, sin sesiones persistentes.</li>
 			<li><strong>Multiplexado de protocolos por base de datos:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> y <code>/mcp</code> bajo el mismo espacio de nombres permite aplicar autenticación, rate limiting y control de acceso por base de datos a nivel de proxy.</li>
-			<li><strong>Prefijo configurable:</strong> Los despliegues que ya usan <code>/api/</code> pueden configurar <code>API_PREFIX=api</code>. Los clientes legacy son compatibles mediante <code>307 Temporary Redirect</code>.</li>
+			<li><strong>Prefijo configurable:</strong> Los despliegues que ya usan <code>/api/</code> pueden configurar <code>API_PREFIX=api</code>.</li>
 			<li><strong>Observabilidad:</strong> Los sistemas de logs y métricas pueden agrupar y filtrar el tráfico por nombre de base de datos directamente desde la URL sin parsear cuerpos JSON.</li>
 		</ul>
 

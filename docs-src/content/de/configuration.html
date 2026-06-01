@@ -22,7 +22,7 @@ menu:
 		<code>PGPASSWORD</code>) für die Authentifizierung.
 	</div>
 	<div class="tip">
-		<strong>Tipp:</strong> Wenn PgArachne hinter einem Reverse Proxy läuft, setze <code>TRUSTED_PROXIES</code>, damit die Client-IP korrekt ermittelt wird und das Rate Limiting nicht spoofbar ist.
+		<strong>Tipp:</strong> Wenn PgArachne hinter einem Reverse Proxy läuft, setzen Sie <code>TRUSTED_PROXIES</code>, damit die Client-IP korrekt ermittelt wird und das Rate Limiting nicht spoofbar ist.
 	</div>
 
 	<div class="tip">
@@ -45,7 +45,7 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=change_me_to_something_secure</code></pre>
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 
 	<h3>Schnelle Validierungs-Checkliste</h3>
 	<ul>
@@ -89,7 +89,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>PostgreSQL-SSL-Modus. Standard: <code>disable</code>.</td>
+				<td>PostgreSQL-SSL-Modus. Standard: <code>require</code>. Setzen Sie <code>disable</code> nur für die lokale Entwicklung gegen ein PostgreSQL ohne TLS explizit.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
@@ -120,7 +120,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Erstes URL-Pfadsegment für alle Datenbank-Endpunkte (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Standard: <code>db</code>, ergibt Routen wie <code>/db/:datenbank/jsonrpc</code>. Auf <code>api</code> setzen für Legacy-Pfade. Nur Buchstaben, Ziffern, Bindestriche und Unterstriche erlaubt.</td>
+				<td>Erstes URL-Pfadsegment für alle Datenbank-Endpunkte (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Standard: <code>db</code>, ergibt Routen wie <code>/db/:datenbank/jsonrpc</code>. Nur Buchstaben, Ziffern, Bindestriche und Unterstriche erlaubt.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -131,7 +131,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>CORS-Einstellungen. Kommagetrennte Liste zulässiger Domains (z. B. <code>https://meineapp.de</code>).
-					Standard: <code>*</code>.</td>
+					Standard: nicht gesetzt — Cross-Origin-Anfragen aus dem Browser sind deaktiviert. Setzen Sie <code>*</code> explizit, um jeden Origin zuzulassen.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
@@ -147,17 +147,37 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
-				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken.</td>
+				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken. Mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Gültigkeit der Sitzung in Stunden. Standard: <code>8</code>.</td>
 			</tr>
+				<tr>
+					<td><code>JWT_ISSUER</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+					<td>Falls gesetzt, wird in den <code>iss</code>-Claim geschrieben und muss bei der Validierung exakt übereinstimmen. Leer lassen = keine Prüfung.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_AUDIENCE</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+					<td>Falls gesetzt, wird in den <code>aud</code>-Claim geschrieben und muss bei der Validierung übereinstimmen. Leer lassen = keine Prüfung.</td>
+				</tr>
+				<tr>
+					<td><code>JWT_LEEWAY</code></td>
+					<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+					<td>Uhr-Toleranz für <code>exp</code>/<code>nbf</code>/<code>iat</code>-Prüfung (z.B. <code>30s</code>). Standard: <code>30s</code>.</td>
+				</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Login-Versuche pro Zeitfenster. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Maximale Login-Versuche pro Client-IP über alle Benutzernamen hinweg, sodass wechselnde Benutzernamen das Limit nicht umgehen. Standard: 5× <code>LOGIN_RATE_LIMIT</code>. <code>0</code> deaktiviert.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>
@@ -176,6 +196,16 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>MAX_REQUEST_BYTES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Maximale Request-Body-Größe in Bytes. Standard: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Rohe PostgreSQL-Fehlermeldung in MCP-Tool-Fehlern einschließen. Detaillierte Fehler helfen LLM-Agenten bei der Selbstkorrektur, können aber Schemadetails (Tabellen- und Constraint-Namen) an authentifizierte Aufrufer preisgeben. Standard: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Maximale Anzahl unterschiedlicher Verbindungspools für Basic-Auth-Zugangsdaten. Standard: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>

@@ -11,7 +11,7 @@ menu:
 	<h2>Architektonická designová rozhodnutí</h2>
 	<p>
 		Tato stránka vysvětluje důvody klíčových architektonických a technologických voleb v projektu PgArachne.
-		Tato rozhodnutí byla učiněna s ohledem na výkon, bezpečnost a produktivitu vývojářů, přičemž byl kladen důraz na vysokou kompatibilitu s moderními AI agenty a LLM modely.
+		Tato rozhodnutí byla učiněna s ohledem na výkon, bezpečnost a produktivitu vývojářů, přičemž byl kladen důraz na vysokou kompatibilitu s moderními AI agenty a jazykovými modely (LLM).
 	</p>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
@@ -63,7 +63,7 @@ menu:
 		<h4>Proč Go:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Statické binární soubory:</strong> Kompiluje se do jediného souboru bez externích závislostí. Nasazení je tak prosté jako zkopírování souboru na server.</li>
-			<li><strong>Konkurence (concurrency):</strong> Gorutiny v Go dělají obsluhu tisíců souběžných SSE a databázových připojení lehkou a přímočarou.</li>
+			<li><strong>Konkurence (concurrency):</strong> Gorutiny činí obsluhu tisíců souběžných SSE a databázových připojení jednoduchou a přímočarou.</li>
 			<li><strong>Robustní standardní knihovna:</strong> Vestavěné knihovny pro HTTP, TLS a JSON jsou na produkční úrovni a nevyžadují žádné „node_modules" ani externí runtime prostředí.</li>
 			<li><strong>Křížová kompilace:</strong> Snadno cílí na Linux, macOS i Windows (amd64 i arm64) z jakéhokoli vývojářského stroje.</li>
 		</ul>
@@ -117,7 +117,7 @@ menu:
 			<li><strong>Směrování přes reverse proxy:</strong> Jedna instance PgArachne může obsluhovat více databází. Reverse proxy (Nginx, Caddy, Traefik) může směrovat podle prefixu nebo názvu databáze bez nutnosti inspekce těla požadavku, což je klíčové pro load balancing a path-based pravidla.</li>
 			<li><strong>Horizontální škálovatelnost:</strong> S názvem databáze v URL cestě lze provozovat více instancí PgArachne a směrovat provoz do konkrétních instancí podle databáze pomocí standardních proxy pravidel — bez sticky sessions nebo inspekce těla.</li>
 			<li><strong>Multiplexování protokolů na databázi:</strong> Seskupení <code>/jsonrpc</code>, <code>/sse</code> a <code>/mcp</code> pod stejný jmenný prostor <code>/{prefix}/{databaze}/</code> umožňuje přirozeně aplikovat per-databázové ověřování, rate limiting a řízení přístupu na úrovni proxy.</li>
-			<li><strong>Konfigurovatelný prefix:</strong> Nasazení, která již používají <code>/api/</code> jako prefix ve své infrastruktuře, mohou nastavit <code>API_PREFIX=api</code>. Starší klienti jsou podporováni přes <code>307 Temporary Redirect</code> ze starých cest.</li>
+			<li><strong>Konfigurovatelný prefix:</strong> Nasazení, která již používají <code>/api/</code> jako prefix ve své infrastruktuře, mohou nastavit <code>API_PREFIX=api</code>.</li>
 			<li><strong>Pozorovatelnost:</strong> Agregátory logů a metrické systémy mohou seskupovat a filtrovat provoz podle názvu databáze přímo z URL bez parsování JSON těl.</li>
 		</ul>
 

@@ -6,8 +6,8 @@ description: "PgArachne Explorer - PgArachne"
 <section id="explorer">
 <h2>PgArachne Explorer</h2>
 <p>The <strong>Explorer</strong> is a powerful web GUI included in the <code>tools/pgarachne-explorer</code> directory. It is not
-		just documentation; it is a fully functional <strong>demo application</strong> built using HTML/JS
-		that communicates with the database exclusively via PgArachne. You can also use the hosted version at 
+		merely a documentation tool — it is a fully functional <strong>demo application</strong> built with HTML/JS
+		that communicates with the database exclusively via PgArachne. A hosted version is also available at
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
 
 <p><strong>What can it do?</strong></p>
@@ -18,6 +18,7 @@ description: "PgArachne Explorer - PgArachne"
 <li><strong>Auto-Documentation:</strong> It renders the SQL comments (including <code>--- PARAMS ---</code>
 			metadata) into readable documentation.</li>
 <li><strong>Modern UI:</strong> Features Dark/Light mode support and can be installed as a <strong>PWA</strong> on mobile devices.</li>
+<li><strong>Authentication:</strong> The <em>Password</em> tab uses HTTP Basic Auth to connect directly as the database user — no <code>GRANT &hellip; TO pgarachne</code> required. The <em>API Token</em> tab accepts a JWT or long-lived API token sent as <code>Bearer</code>.</li>
 </ul>
 
 <p><strong>URL Parameters:</strong></p>

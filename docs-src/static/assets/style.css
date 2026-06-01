@@ -1654,3 +1654,105 @@ details[open] summary::after {
 .footer-links a:hover .footer-icon {
 	color: var(--teal);
 }
+
+/* ── Animations ──────────────────────────────────────────────────────────── */
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(24px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes floatY {
+	0%, 100% { transform: translateY(0); }
+	50%       { transform: translateY(-10px); }
+}
+
+@keyframes heroGradient {
+	0%   { background-position: 0% 50%; }
+	50%  { background-position: 100% 50%; }
+	100% { background-position: 0% 50%; }
+}
+
+/* Scroll-reveal: elements start hidden; JS adds .is-visible when in viewport */
+.fade-in {
+	opacity: 0;
+	transform: translateY(20px);
+	transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.fade-in.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}
+
+/* Stagger siblings so they cascade in one by one */
+.fade-in:nth-child(2) { transition-delay: 0.08s; }
+.fade-in:nth-child(3) { transition-delay: 0.16s; }
+.fade-in:nth-child(4) { transition-delay: 0.24s; }
+.fade-in:nth-child(5) { transition-delay: 0.32s; }
+.fade-in:nth-child(6) { transition-delay: 0.40s; }
+
+@media (prefers-reduced-motion: reduce) {
+	.fade-in,
+	.fade-in.is-visible {
+		opacity: 1;
+		transform: none;
+		transition: none;
+	}
+	@keyframes floatY { from, to { transform: none; } }
+	@keyframes heroGradient { from, to {} }
+}
+
+/* Hero logo floating animation */
+.hero-logo-img {
+	animation: floatY 5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.hero-logo-img { animation: none; }
+}
+
+/* Animated hero background */
+.hero-section {
+	background: linear-gradient(135deg, var(--bg-hero) 0%, rgba(134, 68, 134, 0.06) 50%, var(--bg-hero) 100%);
+	background-size: 200% 200%;
+	animation: heroGradient 12s ease infinite;
+}
+
+/* Enhanced card hover: lift + shadow */
+.card {
+	transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.card:hover {
+	transform: translateY(-4px);
+	box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+	.card:hover {
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+	}
+}
+
+/* Feature card hover */
+.feature-card {
+	transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.feature-card:hover {
+	transform: translateY(-3px);
+	box-shadow: var(--shadow-main);
+}
+
+/* Nav link active indicator */
+.nav-links a.active {
+	color: var(--gold);
+	font-weight: 700;
+}

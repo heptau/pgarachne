@@ -1,4 +1,25 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Werkzeuge on PgArachne</title><link>https://www.pgarachne.com/de/tools/</link><description>Recent content in Werkzeuge on PgArachne</description><generator>Hugo</generator><language>de</language><atom:link href="https://www.pgarachne.com/de/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/de/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Werkzeuge on PgArachne</title><link>https://www.pgarachne.com/de/tools/</link><description>Recent content in Werkzeuge on PgArachne</description><generator>Hugo</generator><language>de</language><atom:link href="https://www.pgarachne.com/de/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>JWT Getter</title><link>https://www.pgarachne.com/de/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;Der &lt;strong&gt;JWT Getter&lt;/strong&gt; ist ein minimalistisches Browser-Werkzeug im Verzeichnis &lt;code&gt;tools/get-jwt&lt;/code&gt;. Er tauscht PostgreSQL-Benutzername und Passwort gegen ein kurzlebiges JWT über die JSON-RPC-Methode &lt;code&gt;get_jwt&lt;/code&gt; — und zeigt den dekodierten Payload sowie die Ablaufzeit an.&lt;/p&gt;
+&lt;h3&gt;Wann verwenden&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Ein Token in den Tab Bearer Token im &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; oder &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; einfügen.&lt;/li&gt;
+&lt;li&gt;JWT-Ablauf oder &lt;code&gt;db_role&lt;/code&gt;/&lt;code&gt;db_name&lt;/code&gt;-Claims in der eigenen Anwendung testen.&lt;/li&gt;
+&lt;li&gt;Überprüfen, ob der Systembenutzer &lt;code&gt;pgarachne&lt;/code&gt; auf eine bestimmte Rolle wechseln kann (&lt;code&gt;GRANT &amp;lt;Rolle&amp;gt; TO pgarachne&lt;/code&gt; muss vorhanden sein).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Hinweis:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; erfordert &lt;code&gt;GRANT &amp;lt;Rolle&amp;gt; TO pgarachne&lt;/code&gt;. Um dieses Grant zu vermeiden, verwenden Sie direkte Anmeldedaten (HTTP Basic Auth) im &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; oder &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Funktionen&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;URL, Präfix, Datenbank, Benutzername und Passwort eingeben — &lt;kbd&gt;Enter&lt;/kbd&gt; drücken oder &lt;strong&gt;Get JWT&lt;/strong&gt; klicken.&lt;/li&gt;
+&lt;li&gt;Das generierte Token wird angezeigt und kann per Klick kopiert werden.&lt;/li&gt;
+&lt;li&gt;Der JWT-Payload wird Base64-dekodiert und mit JSON-Syntaxhervorhebung dargestellt.&lt;/li&gt;
+&lt;li&gt;Ein Badge zeigt die verbleibende Laufzeit an (oder markiert das Token als abgelaufen).&lt;/li&gt;
+&lt;li&gt;Verbindungseinstellungen und Anmeldename werden in &lt;code&gt;localStorage&lt;/code&gt; gespeichert.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Aktivierung&lt;/h3&gt;
+&lt;p&gt;Setzen Sie &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; auf &lt;code&gt;tools/get-jwt&lt;/code&gt; und besuchen Sie &lt;code&gt;http://localhost:8080&lt;/code&gt;, oder öffnen Sie &lt;code&gt;index.html&lt;/code&gt; direkt im Browser.&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/de/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;Der &lt;strong&gt;Explorer&lt;/strong&gt; ist eine leistungsstarke Web-GUI, die im Verzeichnis &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt; enthalten ist. Es ist nicht
 		nur Dokumentation; es ist eine voll funktionsfähige &lt;strong&gt;Demo-Anwendung&lt;/strong&gt;, die mit HTML/JS erstellt wurde
@@ -12,6 +33,7 @@
 &lt;li&gt;&lt;strong&gt;Automatische Dokumentation:&lt;/strong&gt; Er rendert die SQL-Kommentare (einschließlich &lt;code&gt;--- PARAMS ---&lt;/code&gt;
 			Metadaten) in eine lesbare Dokumentation.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Modernes UI:&lt;/strong&gt; Bietet Unterstützung für den Dunkel-/Hell-Modus und kann als &lt;strong&gt;PWA&lt;/strong&gt; auf mobilen Geräten installiert werden.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Authentifizierung:&lt;/strong&gt; Der Tab &lt;em&gt;Password&lt;/em&gt; nutzt HTTP Basic Auth zur direkten Anmeldung als Datenbankbenutzer — kein &lt;code&gt;GRANT … TO pgarachne&lt;/code&gt; erforderlich. Der Tab &lt;em&gt;API Token&lt;/em&gt; akzeptiert ein JWT oder einen langlebigen API-Token als &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;URL-Parameter:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/de/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar für macOS&lt;/h2&gt;
@@ -27,4 +49,23 @@
 &lt;li&gt;&lt;strong&gt;Natives Erlebnis:&lt;/strong&gt; Speziell für macOS entwickelt, mit Unterstützung für den Dunkelmodus und Apple Silicon.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;In Kürze im Mac App Store&lt;/h3&gt;
-&lt;p&gt;Die Anwendung wird für den Mac App Store optimiert, um höchste Sicherheit und nahtlose Updates zu gewährleisten.&lt;/p&gt;</description></item></channel></rss>
+&lt;p&gt;Die Anwendung wird für den Mac App Store optimiert, um höchste Sicherheit und nahtlose Updates zu gewährleisten.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/de/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;Der &lt;strong&gt;SSE Tester&lt;/strong&gt; ist ein einzelnes Browser-Werkzeug im Verzeichnis &lt;code&gt;tools/test-sse&lt;/code&gt;. Er ermöglicht das Abonnieren beliebig vieler PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;-Kanäle über eine Live &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt;-Verbindung und die Beobachtung eingehender Ereignisse in Echtzeit.&lt;/p&gt;
+&lt;h3&gt;Funktionen&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Mehrere Kanäle&lt;/strong&gt; — Kanäle werden als Tags hinzugefügt; alle werden als &lt;code&gt;?channels=&lt;/code&gt;-Parameter übergeben.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Alle Authentifizierungsmethoden&lt;/strong&gt; — der Tab &lt;em&gt;Password&lt;/em&gt; nutzt HTTP Basic Auth (direkte Anmeldedaten, kein JWT erforderlich); der Tab &lt;em&gt;Bearer Token&lt;/em&gt; akzeptiert ein JWT oder API-Token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Live-Stream&lt;/strong&gt; — verwendet die Fetch Streams API mit &lt;code&gt;AbortController&lt;/code&gt; für sauberes Trennen.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;JSON-Syntaxhervorhebung&lt;/strong&gt; — JSON-Payloads werden farbig formatiert dargestellt.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Einstellungen speichern&lt;/strong&gt; — URL, Präfix, Datenbank, Anmeldename und Kanalliste werden in &lt;code&gt;localStorage&lt;/code&gt; gespeichert.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Authentifizierung&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Tab Password&lt;/strong&gt; — sendet &lt;code&gt;Authorization: Basic &amp;lt;base64(Benutzer:Passwort)&amp;gt;&lt;/code&gt;. Kein &lt;code&gt;GRANT &amp;lt;Rolle&amp;gt; TO pgarachne&lt;/code&gt; erforderlich.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tab Bearer Token&lt;/strong&gt; — sendet &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. JWT (über den &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) oder langlebigen API-Token einfügen.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Aktivierung:&lt;/strong&gt; Setzen Sie &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; auf &lt;code&gt;tools/test-sse&lt;/code&gt; und besuchen Sie &lt;code&gt;http://localhost:8080&lt;/code&gt;. Alternativ öffnen Sie &lt;code&gt;index.html&lt;/code&gt; direkt im Browser — alles funktioniert ohne lokalen Server.
+&lt;/div&gt;
+&lt;/section&gt;</description></item></channel></rss>

@@ -9,10 +9,10 @@ menu:
 
 <section id="hello-world">
 	<h2>Ejemplo Hello World</h2>
-	<p>Vamos a crear un endpoint simple de API asociado a un usuario.</p>
+	<p>A continuación se crea un endpoint simple de API asociado a un usuario.</p>
 
 	<h3>1. Crear usuario y función</h3>
-	<p>En tu base de datos (<code>my_database</code>):</p>
+	<p>En la base de datos (<code>my_database</code>):</p>
 	<pre><code>-- 1. Crear un usuario que iniciará sesión en la API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
@@ -27,21 +27,33 @@ AS $$
 $$;
 
 -- 3. Otorgar permiso al usuario
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. Permitir que PgArachne (usuario del sistema) pueda cambiar al demo_user
+	<div class="tip">
+		<h4>¿Qué opción de autenticación utilizar?</h4>
+		<ul>
+			<li><strong>Opción A — Token JWT:</strong> recomendada cuando se desea gestionar sesiones con tokens de corta duración. Requiere el paso adicional de <code>GRANT demo_user TO pgarachne</code>.</li>
+			<li><strong>Opción B — Credenciales directas:</strong> más sencilla para desarrollo local y scripts. No requiere GRANT adicional ni gestión de tokens.</li>
+		</ul>
+	</div>
+
+	<h3>Opción A: Flujo de token JWT</h3>
+
+	<h4>A.1 Configurar privilegios del proxy</h4>
+	<p>Para este método es necesario permitir que PgArachne cambie de rol al usuario:</p>
+	<pre><code>-- Permitir que PgArachne (usuario del sistema) pueda cambiar al demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Iniciar sesión mediante la API</h3>
-	<p>Usa el método JSON-RPC <code>login</code> para obtener un token JWT:</p>
+	<h4>A.2 Obtener un token JWT</h4>
+	<p>Utilice el método JSON-RPC <code>get_jwt</code> para obtener un token:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Respuesta:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Llamar a la función</h3>
-	<p>Usa el token para llamar a la función <code>hello_world</code>:</p>
+	<h4>A.3 Llamar a la función</h4>
+	<p>Utilice el token para llamar a la función <code>hello_world</code>:</p>
 	<pre><code>export TOKEN="TU_TOKEN_JWT_AQUÍ"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
@@ -50,4 +62,16 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Respuesta:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+
+	<h3>Opción B: Credenciales directas (Basic Auth)</h3>
+	<p>Con este método no se requiere ningún GRANT adicional ni gestión de tokens. Las credenciales de
+		PostgreSQL se envían directamente en cada petición mediante HTTP Basic Authentication.</p>
+	<pre><code>curl -u demo_user:user_password \
+  -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Respuesta:</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<p>Para más información sobre este método, consulte
+		<a href="../security-roles/#4-credenciales-directas">Seguridad y Autenticación — Credenciales directas</a>.</p>
 </section>

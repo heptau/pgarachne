@@ -27,20 +27,32 @@ AS $$
 $$;
 
 -- 3. Conceda permissão ao usuário
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. Permita que o PgArachne (usuário do sistema) possa alternar para demo_user
+	<div class="tip">
+		<h4>Escolha a forma de autenticação</h4>
+		<ul>
+			<li><strong>Opção A — Fluxo de token JWT:</strong> requer um passo adicional de SQL (<code>GRANT demo_user TO pgarachne</code>) e a obtenção de um token antes de chamar a função. Recomendado para aplicações com múltiplos utilizadores.</li>
+			<li><strong>Opção B — Credenciais diretas:</strong> envie utilizador e senha diretamente via HTTP Basic Auth. Nenhum <code>GRANT … TO pgarachne</code> é necessário. Ideal para desenvolvimento e scripts internos.</li>
+		</ul>
+	</div>
+
+	<h3>Opção A: Fluxo de Token JWT</h3>
+
+	<h4>A1. Configurar privilégios do proxy</h4>
+	<p>Permita que o PgArachne possa alternar para <code>demo_user</code>:</p>
+	<pre><code>-- Permita que o PgArachne (usuário do sistema) possa alternar para demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Login via API</h3>
-	<p>Use o método JSON-RPC <code>login</code> para obter um token JWT:</p>
+	<h4>A2. Obter token JWT via API</h4>
+	<p>Use o método JSON-RPC <code>get_jwt</code> para obter um token JWT:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Resposta:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Chamar a Função</h3>
+	<h4>A3. Chamar a Função com Bearer Token</h4>
 	<p>Use o token para chamar a função <code>hello_world</code>:</p>
 	<pre><code>export TOKEN="SEU_TOKEN_JWT_AQUI"
 
@@ -50,4 +62,18 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Resposta:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+
+	<h3>Opção B: Credenciais Diretas (Basic Auth)</h3>
+	<p>Não é necessário executar nenhum passo adicional de SQL. Envie as credenciais diretamente no cabeçalho
+		da requisição usando a flag <code>-u</code> do curl:</p>
+	<pre><code>curl -u demo_user:user_password \
+  -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Resposta:</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<p>O PgArachne conecta-se diretamente ao PostgreSQL como <code>demo_user</code> — nenhum
+		<code>SET LOCAL ROLE</code> é executado e nenhum <code>GRANT demo_user TO pgarachne</code> é necessário.
+		Consulte <a href="../security-roles/">Segurança e Autenticação</a> para uma comparação completa de todos
+		os métodos suportados.</p>
 </section>

@@ -1,0 +1,52 @@
+---
+title: "Idempotency Key Cleanup"
+description: "Maintenance of the pgarachne.requests table."
+menu:
+  main:
+    name: "Idempotency Cleanup"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Idempotency Key Cleanup</h1>
+
+<p>Every JSON-RPC request that carries an <code>idempotencyKey</code> field
+is recorded in the <code>pgarachne.requests</code> table by the
+<code>pgarachne.save_idempotency_key()</code> function. This is what makes
+duplicate detection work — but it also means the table grows without bound
+unless an operator runs cleanup periodically.</p>
+
+<p>PgArachne does not run a background scheduler itself. The cleanest
+options:</p>
+
+<h2>pg_cron (recommended if you can install extensions)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>External cron / systemd timer</h2>
+<p>Schedule a shell job that calls the function via <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manual / ad-hoc</h2>
+<p>You can call the function at any time from psql, a migration script,
+or any other client. It returns the number of rows deleted.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Choosing a retention window</h2>
+<p>Pick a window comfortably longer than the longest expected retry
+interval for your clients. If a buggy client retries the same
+idempotency key 48 hours after the original request, a 24-hour
+retention window will silently let the duplicate through.</p>
+
+<p>For most deployments, 24 hours is a safe default.</p>
+
+</div>
+</section>

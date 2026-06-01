@@ -11,11 +11,24 @@ menu:
 	        <h2>Neuigkeiten</h2>
         <p>Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Sichere Standardwerte (breaking)</strong>: <code>DB_SSLMODE</code> ist nun standardmäßig <code>require</code>, <code>ALLOWED_ORIGINS</code> ist nicht mehr standardmäßig <code>*</code>, und <code>JWT_SECRET</code> muss mindestens 32 Byte lang sein. Bestehende Deployments müssen ihre Konfiguration vor dem Upgrade prüfen.</li>
+		<li>🧹 <strong>Legacy-Bereinigung</strong>: Die Weiterleitungspfade <code>/api/…</code> und <code>/sse/…</code> sowie der veraltete JSON-RPC-Alias <code>login</code> wurden entfernt. Verwenden Sie direkt <code>/{prefix}/:database/…</code> und <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Strengere Authentifizierung &amp; Fehlerbehandlung</strong>: Ein neues Login-Rate-Limit pro IP (<code>LOGIN_RATE_LIMIT_PER_IP</code>) schließt eine Lücke für Credential-Spraying, und MCP-Tool-Fehler geben standardmäßig keine rohen PostgreSQL-Fehlermeldungen mehr weiter (mit <code>MCP_SQL_ERROR_DETAIL</code> wieder aktivierbar).</li>
+		<li>⚙️ <strong>Konfigurierbare Verbindungslimits</strong>: Das Limit für den Direct-Auth-Verbindungspool ist nun über <code>DIRECT_POOL_LIMIT</code> konfigurierbar.</li>
+		<li>🔑 <strong>Unterstützung externer IdPs (BYO JWT)</strong>: Neue Einstellungen <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code> und <code>JWT_LEEWAY</code> binden ausgestellte Token an einen bestimmten Aussteller/Zielgruppe und ermöglichen eine anpassbare Uhr-Toleranz.</li>
+		<li>🧰 <strong>Neue Tools</strong>: Ein eigenständiger <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) und <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) ergänzen den Explorer für schnelle manuelle Tests.</li>
+		<li>🐛 <strong>Stabilitätskorrekturen</strong>: Ein blockierendes SSE-Shutdown-Problem und ein Fehler bei der Wiederherstellung toter Verbindungen wurden behoben, der den Server dauerhaft von PostgreSQL trennen konnte.</li>
+		<li>🧪 <strong>CI-Härtung</strong>: <code>golangci-lint</code>, der Go-Race-Detector und <code>govulncheck</code> laufen nun bei jedem Build, zusätzlich erweiterte Testabdeckung.</li>
+		<li>📦 <strong>Release-Prozess</strong>: <code>CHANGELOG.md</code> hinzugefügt und der Release-Workflow in <code>make release-local</code> (Build &amp; Verifikation) und <code>make release</code> (Tag, Veröffentlichung, Aktualisierung des Homebrew-Taps) aufgeteilt.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v1.3.0</p>
 	<ul>
 		<li>🌐 <strong>PgArachne Explorer – moderne PWA</strong>: Komplette visuelle und funktionale Überarbeitung – dunkles/helles Farbschema (automatisch), responsives Kartenlayout, JSON-Syntaxhervorhebung, Kopieren-in-die-Zwischenablage-Schaltfläche, bessere Auth-Benutzerführung (Passwort/Token-Tabs), PWA-Installationsunterstützung (Manifest, Icons, Service Worker), freigebbare Links über <code>?url=…</code>-Parameter.</li>
-		<li>🛠️ <strong>Model Context Protocol (MCP) Unterstützung</strong>: Neuer Endpoint <code>/{prefix}/{db}/mcp</code> mit Standardmethoden <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – vollständig von PostgreSQL-Funktionen unterstützt und unter Wiederverwendung der bestehenden Authentifizierung & Rollenumschaltung.</li>
-		<li>🔧 <strong>Konfigurierbares API-Präfix</strong>: Standard wurde auf <code>/db/{database}/jsonrpc</code> und <code>/db/{database}/sse</code> geändert. Alte <code>/api/…</code>-Pfade geben jetzt permanente 307-Weiterleitungen zurück. Gesteuert über die neue Umgebungsvariable <code>API_PREFIX</code>.</li>
+		<li>🛠️ <strong>Model Context Protocol (MCP) Unterstützung</strong>: Neuer Endpunkt <code>/{prefix}/{db}/mcp</code> mit Standardmethoden <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – vollständig von PostgreSQL-Funktionen unterstützt und unter Wiederverwendung der bestehenden Authentifizierung & Rollenumschaltung.</li>
+		<li>🔧 <strong>Konfigurierbares API-Präfix</strong>: Standard wurde auf <code>/db/{database}/jsonrpc</code> und <code>/db/{database}/sse</code> geändert, die Legacy-Pfade <code>/api/…</code> und <code>/sse/…</code> bleiben als 307-Weiterleitung für Abwärtskompatibilität erhalten. Gesteuert über die Umgebungsvariable <code>API_PREFIX</code>.</li>
 		<li>🛡️ <strong>Idempotenzschutz</strong>: Optionales <code>idempotencyKey</code>-Feld in JSON-RPC-Anfragen – automatische Duplikatserkennung (HTTP 409 + Fehlercode bei Kollision) mittels <code>pgarachne.save_idempotency_key()</code>.</li>
 		<li>📚 <strong>Dokumentationsverbesserungen</strong>: Neuer <strong>/tools/</strong>-Bereich mit Karten (Explorer + kommende macOS Toolbar), neue Seite “Architectural Decisions”, <strong>SECURITY.md</strong> mit Anweisungen zur Meldung von Schwachstellen, bessere Typografie in allen Sprachen durch TypoLima, verbesserte 404-Seitenunterstützung für GitHub Pages.</li>
 		<li>📝 <strong>Umbenennung der Login-Methode</strong>: JSON-RPC-Methode <code>login</code> umbenannt in <code>get_jwt</code> (alter Name bleibt als veralteter Alias mit Warnung im Log erhalten).</li>
@@ -25,7 +38,7 @@ menu:
 	<p class="whats-new-subtitle">v1.2.0</p>
 	<ul>
 		<li>🛡️ <strong>Sicherheit:</strong> Die Validierung des Zugriffstokens erfolgt nun vor dem Herstellen einer Datenbankverbindung. Verbesserter Schutz gegen IP-Spoofing (Einstellung <code>TRUSTED_PROXIES</code> hinzugefügt) und Verbergen interner Datenbankfehler vor dem Endbenutzer.</li>
-		<li>📊 <strong>Isolierte Metriken:</strong> Der Prometheus-Endpoint <code>/metrics</code> wurde von der öffentlichen API auf einen eigenen, sicheren Port verschoben (standardmäßig nur unter <code>127.0.0.1:9090</code> verfügbar).</li>
+		<li>📊 <strong>Isolierte Metriken:</strong> Der Prometheus-Endpunkt <code>/metrics</code> wurde von der öffentlichen API auf einen eigenen, sicheren Port verschoben (standardmäßig nur unter <code>127.0.0.1:9090</code> verfügbar).</li>
 		<li>📦 <strong>Neue Installationsmöglichkeit:</strong> Das Projekt verfügt nun über einen offiziellen Homebrew-Tap für macOS und Linux. Builds werden signiert und über GoReleaser generiert.</li>
 		<li>📚 <strong>Überarbeitete Dokumentation:</strong> Komplett neues Erscheinungsbild basierend auf dem Hugo-Framework. Blitzschnelle Volltextsuche, Möglichkeit zum Kopieren von Code und Beispiele für den Produktiveinsatz (Nginx-Hardening, BYO JWT) hinzugefügt.</li>
 		<li>⚙️ <strong>Verbesserte Daemon-Verwaltung:</strong> Unterstützung für die benutzerdefinierte Pfadkonfiguration der <code>PID_FILE</code> hinzugefügt.</li>
@@ -34,7 +47,7 @@ menu:
 	<p class="whats-new-subtitle">v1.1.0</p>
 	<ul>
 		<li>🔌 <strong>Vereinheitlichte API:</strong> Aufrufe über <code>POST /api/&lt;db&gt;</code> (die aufgerufene Methode wird im JSON-RPC-Body angegeben).</li>
-		<li>⚡ <strong>Echtzeit-Benachrichtigungen:</strong> Neuer Endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> zum Abhören von Datenbankereignissen mit Mehrkanalunterstützung.</li>
+		<li>⚡ <strong>Echtzeit-Benachrichtigungen:</strong> Neuer Endpunkt <code>GET /sse/&lt;db&gt;?channels=...</code> zum Abhören von Datenbankereignissen mit Mehrkanalunterstützung.</li>
 		<li>📈 <strong>Observability (Beobachtbarkeit):</strong> Detaillierte Prometheus-Metriken für HTTP, Auth, JSON-RPC und SSE.</li>
 		<li>🏋️ <strong>Wesentliche Stabilitätsverbesserungen:</strong> Schutz vor langsamen Clients, strikte Timeouts und automatische Verbindungsbereinigung.</li>
 	</ul>

@@ -1,0 +1,32 @@
+# golangci-lint configuration (v2 format; requires golangci-lint v2.x).
+# Run locally with: make lint
+version: "2"
+linters:
+  enable:
+    - copyloopvar
+    - gosec
+    - misspell
+    - unconvert
+    - unparam
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - gosec
+        path: _test\.go
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

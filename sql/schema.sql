@@ -74,6 +74,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_api_tokens_timestamp ON pgarachne.api_tokens;
+
 CREATE TRIGGER update_api_tokens_timestamp
 BEFORE UPDATE ON pgarachne.api_tokens
 FOR EACH ROW
@@ -167,6 +169,28 @@ $$;
 
 
 -- =============================================================================
+-- Function: pgarachne.api_prefix
+-- Description: Returns the URL path prefix used by the running PgArachne
+--              instance. PgArachne sets the GUC `app.api_prefix` on every
+--              connection, so generated endpoint URLs in capabilities() and
+--              generate_openapi_spec() match the actual server route.
+--              The GUC may be unset for ad-hoc psql sessions — in that case
+--              we fall back to the documented default of 'db' (the value the
+--              Go server uses when API_PREFIX is empty).
+-- =============================================================================
+CREATE OR REPLACE FUNCTION pgarachne.api_prefix()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+	SELECT COALESCE(NULLIF(current_setting('app.api_prefix', true), ''), 'db');
+$$;
+
+COMMENT ON FUNCTION pgarachne.api_prefix() IS 'Returns the API path prefix (first URL segment) used by the running PgArachne instance.';
+GRANT EXECUTE ON FUNCTION pgarachne.api_prefix() TO public;
+
+
+-- =============================================================================
 -- Function: pgarachne.capabilities
 -- Description: Introspects database to list available JSON-RPC functions.
 -- =============================================================================
@@ -207,7 +231,7 @@ BEGIN
 			'required', jsonb_build_array()
 		),
 		'http_method', 'POST',
-        'endpoint', '/api/' || current_catalog
+        'endpoint', '/' || pgarachne.api_prefix() || '/' || current_catalog || '/jsonrpc'
 	)) INTO result
 	FROM api_functions af;
 
@@ -234,62 +258,122 @@ SET search_path = pg_catalog
 STABLE
 AS $$
 DECLARE
-    paths_object JSONB;
+    methods_array   JSONB;
+    method_descriptions JSONB;
+    path_template   TEXT;
+    methods_list    TEXT;
 BEGIN
-    paths_object := jsonb_build_object(
-        '/',
-        jsonb_build_object(
-            'post', jsonb_build_object(
-                'summary', 'JSON-RPC endpoint',
-                'description', 'Call database functions by setting the JSON-RPC method in the request body.',
-                'tags', ARRAY['JSON-RPC'],
-                'requestBody', jsonb_build_object(
-                    'required', true,
-                    'content', jsonb_build_object(
-                        'application/json', jsonb_build_object(
-                            'schema', jsonb_build_object(
-                                'type', 'object',
-                                'properties', jsonb_build_object(
-                                    'jsonrpc', jsonb_build_object('type', 'string', 'example', '2.0'),
-                                    'method', jsonb_build_object('type', 'string', 'example', 'api.hello_world'),
-                                    'id', jsonb_build_object('type', 'integer', 'example', 1),
-                                    'params', jsonb_build_object('type', 'object', 'description', 'Function arguments')
-                                ),
-                                'required', jsonb_build_array('jsonrpc', 'method')
-                            )
-                        )
-                    )
-                ),
-                'responses', jsonb_build_object(
-                    '200', jsonb_build_object('description', 'Successful JSON-RPC response')
-                ),
-                'security', jsonb_build_array(
-                    jsonb_build_object('BearerAuth', '{}'::jsonb)
-                )
-            )
-        )
-    );
+    -- Pull the list of callable methods from the same source that the
+    -- capabilities() method uses, so the spec stays in sync with what
+    -- is actually executable. The first element of the array is the
+    -- synthetic "capabilities" entry that lists the database itself.
+    methods_array := COALESCE(pgarachne.capabilities()::jsonb, '[]'::jsonb);
+
+    -- Build the per-method extension block. Each entry carries the
+    -- JSON-RPC method name, its first-line description, and the
+    -- parameters schema parsed from the function's --- PARAMS ---
+    -- comment marker (or a generic placeholder when absent).
+    SELECT COALESCE(jsonb_agg(jsonb_build_object(
+        'name',        method_entry->>'method',
+        'description', COALESCE(method_entry->>'description', 'No description'),
+        'parameters',  COALESCE(method_entry->'parameters', '{}'::jsonb)
+    )), '[]'::jsonb)
+    INTO method_descriptions
+    FROM jsonb_array_elements(methods_array) AS method_entry;
+
+    -- Aggregate the method names into a comma-separated string for the
+    -- human-readable description. Order follows the source order, so
+    -- the most "official" methods (capabilities, etc.) appear first.
+    SELECT string_agg(method_entry->>'method', ', ' ORDER BY ord)
+    INTO methods_list
+    FROM jsonb_array_elements(methods_array)
+    WITH ORDINALITY AS t(method_entry, ord);
+
+    path_template := '/' || pgarachne.api_prefix() || '/' || CURRENT_CATALOG || '/jsonrpc';
 
     RETURN jsonb_build_object(
-        'openapi', '3.0.1',
+        'openapi', '3.1.0',
         'info', jsonb_build_object(
-            'title', 'PgArachne API for ''' || CURRENT_CATALOG || ''' database',
-            'version', '1.0.0',
-            'description', 'Auto-generated OpenAPI spec.'
+            'title',       'PgArachne API for ''' || CURRENT_CATALOG || ''' database',
+            'summary',     'JSON-RPC gateway for PostgreSQL functions',
+            'version',     '1.0.0',
+            'description', 'Auto-generated OpenAPI 3.1 spec. Set the JSON-RPC `method` field to one of: ' ||
+                            COALESCE(methods_list, '(no methods exposed)')
         ),
         'servers', jsonb_build_array(
             jsonb_build_object(
-                'url', server_url_base || '/api/' || CURRENT_CATALOG,
-                'description', 'API Server'
+                'url',         server_url_base || path_template,
+                'description', 'PgArachne JSON-RPC endpoint'
             )
         ),
-        'paths', COALESCE(paths_object, '{}'::jsonb),
+        'paths', jsonb_build_object(
+            path_template,
+            jsonb_build_object(
+                'post', jsonb_build_object(
+                    'summary',     'Invoke any exposed database function via JSON-RPC',
+                    'description', 'All exposed methods: ' || COALESCE(methods_list, '(none)'),
+                    'tags',        ARRAY['JSON-RPC'],
+                    'requestBody', jsonb_build_object(
+                        'required', true,
+                        'content', jsonb_build_object(
+                            'application/json', jsonb_build_object(
+                                'schema', jsonb_build_object(
+                                    'type', 'object',
+                                    'properties', jsonb_build_object(
+                                        'jsonrpc', jsonb_build_object(
+                                            'type',    'string',
+                                            'const',   '2.0',
+                                            'examples', jsonb_build_array('2.0')
+                                        ),
+                                        'method', jsonb_build_object(
+                                            'type',    'string',
+                                            'examples', jsonb_build_array('api.hello_world')
+                                        ),
+                                        'id', jsonb_build_object(
+                                            'type',     jsonb_build_array('integer', 'string', 'null'),
+                                            'examples', jsonb_build_array(1, 'abc', NULL)
+                                        ),
+                                        'params', jsonb_build_object(
+                                            'type',        'object',
+                                            'description', 'Function arguments, passed through to the SQL function as jsonb.'
+                                        ),
+                                        'idempotencyKey', jsonb_build_object(
+                                            'type',        'string',
+                                            'description', 'Optional non-standard extension. When present, a previously-seen key returns HTTP 409 Conflict.'
+                                        )
+                                    ),
+                                    'required', jsonb_build_array('jsonrpc', 'method')
+                                )
+                            )
+                        )
+                    ),
+                    'responses', jsonb_build_object(
+                        '200', jsonb_build_object('description', 'Successful JSON-RPC response (result field populated)'),
+                        '400', jsonb_build_object('description', 'Malformed JSON-RPC request'),
+                        '401', jsonb_build_object('description', 'Missing or invalid Authorization header'),
+                        '409', jsonb_build_object('description', 'Idempotency key has been used before'),
+                        '429', jsonb_build_object('description', 'Login rate limit exceeded'),
+                        '500', jsonb_build_object('description', 'Server-side error while executing the SQL function')
+                    ),
+                    'security', jsonb_build_array(
+                        jsonb_build_object('BearerAuth', '{}'::jsonb)
+                    ),
+                    -- PgArachne-specific extension. OpenAPI 3.1 explicitly
+                    -- permits x-* extensions at any level, and we use this
+                    -- slot to expose the per-method metadata that the single
+                    -- JSON-RPC POST operation cannot convey in the standard
+                    -- schema. Tools that understand the extension can render
+                    -- a method picker; others ignore it safely.
+                    'x-pgarachne-methods', method_descriptions
+                )
+            )
+        ),
         'components', jsonb_build_object(
             'securitySchemes', jsonb_build_object(
                 'BearerAuth', jsonb_build_object(
-                    'type', 'http',
-                    'scheme', 'bearer',
-                    'description', 'Accepts a short-lived JWT or a long-lived API Token.'
+                    'type',        'http',
+                    'scheme',      'bearer',
+                    'description', 'Accepts a short-lived JWT or a long-lived API token.'
                 )
             )
         )
@@ -297,12 +381,21 @@ BEGIN
 END;
 $$;
 
+COMMENT ON FUNCTION pgarachne.generate_openapi_spec(text, text)
+    IS 'Build an OpenAPI 3.1 spec for the current database. server_url_base is the public base URL (e.g. https://api.example.com). The second argument is accepted for API symmetry and currently unused; the function always reflects the database it is invoked from.';
+GRANT EXECUTE ON FUNCTION pgarachne.generate_openapi_spec(text, text) TO public;
+
 --
 
-CREATE TABLE pgarachne.requests (
+CREATE TABLE IF NOT EXISTS pgarachne.requests (
     idempotency_id uuid PRIMARY KEY,
     created_at timestamptz DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index speeds up the periodic cleanup below. Without it, every sweep
+-- would do a sequential scan on a table that grows without bound.
+CREATE INDEX IF NOT EXISTS requests_created_at_idx
+    ON pgarachne.requests (created_at);
 
 
 CREATE OR REPLACE FUNCTION pgarachne.to_uuid(_text text)
@@ -313,12 +406,12 @@ STRICT
 PARALLEL SAFE
 AS $fn$
 
-   SELECT
-      CASE
-         WHEN pg_input_is_valid(_text, 'uuid') THEN _text::uuid
-         WHEN pg_input_is_valid(_text, 'bigint') THEN lpad(to_hex(_text::bigint), 32, '0')::uuid
-         ELSE md5(_text)::uuid
-      END;
+	SELECT
+		CASE
+			WHEN pg_input_is_valid(_text, 'uuid') THEN _text
+			WHEN pg_input_is_valid(_text, 'bigint') THEN lpad(to_hex(CASE WHEN pg_input_is_valid(_text, 'bigint') THEN _text END::bigint), 32, '0')
+			ELSE md5(_text)
+		END::uuid;
 
 $fn$;
 
@@ -341,5 +434,30 @@ AS $fn$
 
 $fn$;
 
-COMMENT ON FUNCTION pgarachne.save_idempotency_key(text) IS 'TODO';
+COMMENT ON FUNCTION pgarachne.save_idempotency_key(text) IS 'Atomically reserves an idempotency key for the current request. Returns TRUE on first use, FALSE on a duplicate (caller should reject as a replay). Cleanup is the operator''s responsibility — see pgarachne.cleanup_idempotency_keys().';
 GRANT EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text) TO public;
+
+
+-- =============================================================================
+-- Function: pgarachne.cleanup_idempotency_keys
+-- Description: Removes idempotency keys older than the given retention window.
+--              Call this from cron, pg_cron, or any external scheduler. A
+--              sensible default is once per hour with a 24h window.
+--              Returns the number of rows deleted.
+-- =============================================================================
+CREATE OR REPLACE FUNCTION pgarachne.cleanup_idempotency_keys(_older_than interval DEFAULT '24 hours')
+RETURNS bigint
+LANGUAGE SQL
+AS $fn$
+
+   WITH deleted AS (
+      DELETE FROM pgarachne.requests
+      WHERE created_at < NOW() - _older_than
+      RETURNING 1
+   )
+   SELECT COUNT(*)::bigint FROM deleted;
+
+$fn$;
+
+COMMENT ON FUNCTION pgarachne.cleanup_idempotency_keys(interval) IS 'Deletes idempotency keys older than the supplied interval (default 24h). Schedule via pg_cron or an external scheduler. Returns the number of rows removed.';
+GRANT EXECUTE ON FUNCTION pgarachne.cleanup_idempotency_keys(interval) TO public;

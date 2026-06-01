@@ -20,29 +20,29 @@ menu:
 		<ul style="margin-left: 20px; list-style-type: disc;">
 			<li style="margin-bottom: 10px;">
 				<strong>Gateway JSON-RPC 2.0:</strong> Todas as interações da API seguem a especificação estrita
-				JSON-RPC 2.0. Não há endpoints REST para projetar; você simplesmente chama funções SQL pelo nome
+				JSON-RPC 2.0. Não há endpoints REST a projetar; você simplesmente chama funções SQL pelo nome
 				via requisições POST.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Autenticação Nativa de BD:</strong> Sem tabelas de usuários separadas. Os usuários fazem
-				login com suas credenciais reais do PostgreSQL para receber um <strong>JWT</strong>.
+				<strong>Autenticação Nativa de BD:</strong> Sem tabelas de utilizadores separadas. Os utilizadores fazem
+				login com as suas credenciais reais do PostgreSQL para receber um <strong>JWT</strong>.
 				Alternativamente, contas de serviço podem usar <strong>Tokens de API</strong> persistentes.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Mascaramento de Papéis (Role Masquerading):</strong> O PgArachne™ conecta-se como um usuário
-				proxy, mas executa cada requisição usando <code>SET LOCAL ROLE</code> para mudar para a identidade
-				do usuário autenticado. A segurança em nível de linha (Row-Level Security – RLS) funciona
+				<strong>Mascaramento de Papéis (Role Masquerading):</strong> O PgArachne™ conecta-se como um utilizador
+				proxy, mas executa cada requisição usando <code>SET LOCAL ROLE</code> para assumir a identidade
+				do utilizador autenticado. A segurança em nível de linha (Row-Level Security – RLS) funciona
 				automaticamente.
 			</li>
 			<li style="margin-bottom: 10px;">
 				<strong>MCP (Model Context Protocol):</strong> Um endpoint MCP nativo permite que clientes de IA
-				como Claude Desktop, Cursor e outras ferramentas MCP-compatíveis descubram e chamem suas funções
+				como Claude Desktop, Cursor e outras ferramentas compatíveis com MCP descubram e chamem as suas funções
 				PostgreSQL diretamente como ferramentas — sem nenhum código de integração adicional. A mesma
-				autenticação e segurança de papéis se aplica. Recursos (tabelas/views) e modelos de prompts
+				autenticação e segurança de papéis é aplicada. Recursos (tabelas/views) e modelos de prompts
 				também são expostos via MCP.
 			</li>
 			<li style="margin-bottom: 10px;">
-				<strong>Notificações em tempo real (SSE):</strong> Assine canais PostgreSQL <code>NOTIFY</code>
+				<strong>Notificações em tempo real (SSE):</strong> Subscreva canais PostgreSQL <code>NOTIFY</code>
 				via SSE para atualizações em tempo real sem polling.
 			</li>
 			<li style="margin-bottom: 10px;">
@@ -54,7 +54,7 @@ menu:
 	</div>
 
 	<p>
-		Esta arquitetura simplifica drasticamente a stack: <strong>Banco de Dados ↔ PgArachne ↔ Frontend / Agente IA</strong>.
+		Esta arquitetura simplifica drasticamente a stack: <strong>Banco de Dados ↔ PgArachne ↔ Frontend / Agente de IA</strong>.
 	</p>
 
 	<div class="tip">

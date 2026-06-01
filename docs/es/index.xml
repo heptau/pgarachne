@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/es/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>es</language><atom:link href="https://www.pgarachne.com/es/index.xml" rel="self" type="application/rss+xml"/><item><title>Acerca de y Arquitectura</title><link>https://www.pgarachne.com/es/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;Acerca de y Arquitectura&lt;/h2&gt;
 	&lt;p&gt;
-		PgArachne™ sirve como un &lt;strong&gt;servidor web&lt;/strong&gt; ligero y de alto rendimiento que se sitúa entre tus
-		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes backend tradicionales
+		PgArachne™ sirve como un &lt;strong&gt;servidor web&lt;/strong&gt; ligero y de alto rendimiento que se sitúa entre los
+		clientes HTTP y la base de datos PostgreSQL. Elimina la necesidad de lenguajes de backend tradicionales
 		(como Python, Node.js o PHP) al mapear las peticiones HTTP directamente a funciones de la base de datos.
 	&lt;/p&gt;
 
@@ -11,7 +11,7 @@
 		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
 				&lt;strong&gt;Pasarela JSON-RPC 2.0:&lt;/strong&gt; Todas las interacciones de la API siguen la estricta
-				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente llamas a funciones SQL
+				especificación JSON-RPC 2.0. No hay endpoints REST que diseñar; simplemente se invocan funciones SQL
 				por su nombre mediante peticiones POST.
 			&lt;/li&gt;
 			&lt;li style="margin-bottom: 10px;"&gt;
@@ -46,14 +46,14 @@
 		Esta arquitectura simplifica drásticamente el stack: &lt;strong&gt;Base de Datos ↔ PgArachne ↔ Frontend / Agente IA&lt;/strong&gt;.
 	&lt;/p&gt;</description></item><item><title>Apoya el Desarrollo</title><link>https://www.pgarachne.com/es/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Apoya el Desarrollo&lt;/h2&gt;
-	&lt;p&gt;Desarrollar software de código abierto como PgArachne requiere mucho tiempo. Si esta herramienta te
-		ahorra tiempo, por favor considera apoyar su mantenimiento.&lt;/p&gt;
+	&lt;p&gt;Desarrollar software de código abierto como PgArachne requiere mucho tiempo. Si esta herramienta le
+		ahorra tiempo, por favor considere apoyar su mantenimiento.&lt;/p&gt;
 
 	&lt;div class="donation-grid"&gt;
 
 	&lt;!-- 1. Buy Me a Coffee (Destacado) --&gt;
 	&lt;div class="donation-card featured"&gt;
-		&lt;h4&gt;☕ Hazte Miembro&lt;/h4&gt;
+		&lt;h4&gt;☕ Hágase Miembro&lt;/h4&gt;
 		&lt;p&gt;Únete a la comunidad en &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;. Obtén actualizaciones exclusivas, acceso
 			anticipado a nuevas características y más.&lt;/p&gt;
 		&lt;a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured"&gt;Apoyar
@@ -199,9 +199,9 @@
 	&lt;h2&gt;Configuración&lt;/h2&gt;
 	&lt;p&gt;PgArachne carga la configuración desde variables de entorno o un archivo.&lt;/p&gt;
 	&lt;div class="tip"&gt;
-		&lt;strong&gt;Note:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; intenta crear el rol &lt;code&gt;pgarachne_admin&lt;/code&gt; y concederlo a &lt;code&gt;pgarachne&lt;/code&gt;. Sin privilegios de superusuario, la creación se omite. Crea el rol y el grant manualmente si es necesario.
+		&lt;strong&gt;Nota:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; intenta crear el rol &lt;code&gt;pgarachne_admin&lt;/code&gt; y concederlo a &lt;code&gt;pgarachne&lt;/code&gt;. Sin privilegios de superusuario, la creación se omite. Cree el rol y el grant manualmente si es necesario.
 	&lt;br&gt;
-		El usuario proxy (&lt;code&gt;DB_USER&lt;/code&gt;) debe ser miembro de &lt;code&gt;pgarachne&lt;/code&gt; y &lt;code&gt;pgarachne_admin&lt;/code&gt; para verificar y crear tokens API.&lt;/div&gt;
+		El usuario proxy (&lt;code&gt;DB_USER&lt;/code&gt;) debe ser miembro de &lt;code&gt;pgarachne&lt;/code&gt; y &lt;code&gt;pgarachne_admin&lt;/code&gt; para verificar y crear tokens de API.&lt;/div&gt;
 	&lt;div class="tip"&gt;
 		&lt;strong&gt;Nota de Seguridad:&lt;/strong&gt; PgArachne no maneja contraseñas de base de datos en el archivo de configuración.
 		Confía en el mecanismo estándar de archivo &lt;code&gt;.pgpass&lt;/code&gt; de PostgreSQL (o la variable del sistema
@@ -227,7 +227,7 @@
 	&lt;/div&gt;
 
 	&lt;h3&gt;Ejemplo de configuración mínima&lt;/h3&gt;
-	&lt;p&gt;Esto es todo lo que necesitas para empezar:&lt;/p&gt;</description></item><item><title>Decisiones de Arquitectura</title><link>https://www.pgarachne.com/es/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;p&gt;Esto es todo lo necesario para comenzar:&lt;/p&gt;</description></item><item><title>Decisiones de Arquitectura</title><link>https://www.pgarachne.com/es/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
 	&lt;h2&gt;Decisiones de Diseño Arquitectónico&lt;/h2&gt;
 	&lt;p&gt;
 		Esta página explica el razonamiento detrás de las principales elecciones tecnológicas y de arquitectura en PgArachne.
@@ -238,16 +238,16 @@
 	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
 		&lt;h3&gt;1. JSON-RPC 2.0 frente a REST&lt;/h3&gt;
 		&lt;p&gt;PgArachne utiliza JSON-RPC 2.0 como su protocolo de comunicación principal en lugar del tradicional REST.&lt;/p&gt;</description></item><item><title>Despliegue y HTTPS</title><link>https://www.pgarachne.com/es/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/deployment-https/</guid><description>&lt;section id="deployment"&gt;
-	&lt;h2&gt;Despliegue y HTTPS&lt;/h2&gt;
+	&lt;h2&gt;Despliegue y HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne está diseñado para realizar bien una sola tarea: API Gateway. Para SSL/TLS (HTTPS), seguridad
-		de encabezados y enrutamiento público, deberías colocar un &lt;strong&gt;Proxy Inverso&lt;/strong&gt; delante de él.
+		de encabezados y enrutamiento público, se recomienda colocar un &lt;strong&gt;Proxy Inverso&lt;/strong&gt; delante de él.
 	&lt;/p&gt;
 
 	&lt;div class="deployment-option"&gt;
 		&lt;h3&gt;Opción A: Servidor Caddy&lt;/h3&gt;
-		&lt;p&gt;&lt;strong&gt;Mejor para:&lt;/strong&gt; Despliegues de producción modernos, facilidad de uso.&lt;/p&gt;
-		&lt;p&gt;&lt;a href="https://caddyserver.com/" target="_blank"&gt;Caddy&lt;/a&gt; es el único servidor web que obtiene
-			y renueva certificados SSL (Let's Encrypt) automáticamente por defecto. Requiere casi cero
+		&lt;p&gt;&lt;strong&gt;Mejor para:&lt;/strong&gt; Despliegues de producción modernos, facilidad de uso.&lt;/p&gt;
+		&lt;p&gt;&lt;a href="https://caddyserver.com/" target="_blank"&gt;Caddy&lt;/a&gt; es el único servidor web que obtiene
+			y renueva certificados SSL (Let's Encrypt) automáticamente por defecto. Requiere casi cero
 			configuración.&lt;/p&gt;
 		&lt;pre&gt;&lt;code&gt;# Caddyfile
 example.com {
@@ -259,10 +259,10 @@ example.com {
 		&lt;h3&gt;Opción B: Nginx&lt;/h3&gt;
 		&lt;p&gt;&lt;strong&gt;Mejor para:&lt;/strong&gt; Entornos empresariales, enrutamiento complejo.&lt;/p&gt;</description></item><item><title>Ejemplo Hello World</title><link>https://www.pgarachne.com/es/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
 	&lt;h2&gt;Ejemplo Hello World&lt;/h2&gt;
-	&lt;p&gt;Vamos a crear un endpoint simple de API asociado a un usuario.&lt;/p&gt;
+	&lt;p&gt;A continuación se crea un endpoint simple de API asociado a un usuario.&lt;/p&gt;
 
 	&lt;h3&gt;1. Crear usuario y función&lt;/h3&gt;
-	&lt;p&gt;En tu base de datos (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;p&gt;En la base de datos (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;-- 1. Crear un usuario que iniciará sesión en la API
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
@@ -277,13 +277,20 @@ AS $$
 $$;
 
 -- 3. Otorgar permiso al usuario
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/pre&gt;
 
--- 4. Permitir que PgArachne (usuario del sistema) pueda cambiar al demo_user
-GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
+	&lt;div class="tip"&gt;
+		&lt;h4&gt;¿Qué opción de autenticación utilizar?&lt;/h4&gt;
+		&lt;ul&gt;
+			&lt;li&gt;&lt;strong&gt;Opción A — Token JWT:&lt;/strong&gt; recomendada cuando se desea gestionar sesiones con tokens de corta duración. Requiere el paso adicional de &lt;code&gt;GRANT demo_user TO pgarachne&lt;/code&gt;.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Opción B — Credenciales directas:&lt;/strong&gt; más sencilla para desarrollo local y scripts. No requiere GRANT adicional ni gestión de tokens.&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
 
-	&lt;h3&gt;2. Iniciar sesión mediante la API&lt;/h3&gt;
-	&lt;p&gt;Usa el método JSON-RPC &lt;code&gt;login&lt;/code&gt; para obtener un token JWT:&lt;/p&gt;</description></item><item><title>Explorador de PgArachne</title><link>https://www.pgarachne.com/es/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+	&lt;h3&gt;Opción A: Flujo de token JWT&lt;/h3&gt;
+
+	&lt;h4&gt;A.1 Configurar privilegios del proxy&lt;/h4&gt;
+	&lt;p&gt;Para este método es necesario permitir que PgArachne cambie de rol al usuario:&lt;/p&gt;</description></item><item><title>Explorador de PgArachne</title><link>https://www.pgarachne.com/es/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;Explorador de PgArachne&lt;/h2&gt;
 &lt;p&gt;El &lt;strong&gt;Explorer&lt;/strong&gt; es una potente interfaz web incluida en el directorio &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. No es
 		solo documentación; es una &lt;strong&gt;aplicación de demostración&lt;/strong&gt; completamente funcional construida usando
@@ -298,6 +305,7 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 &lt;li&gt;&lt;strong&gt;Autodocumentación:&lt;/strong&gt; Renderiza los comentarios SQL (incluyendo metadatos &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
 			en documentación legible.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Interfaz moderna:&lt;/strong&gt; Incluye soporte para modo oscuro/claro y se puede instalar como una &lt;strong&gt;PWA&lt;/strong&gt; en dispositivos móviles.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Autenticación:&lt;/strong&gt; La pestaña &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth para conectarse directamente como usuario de la base de datos — sin necesidad de &lt;code&gt;GRANT … TO pgarachne&lt;/code&gt;. La pestaña &lt;em&gt;API Token&lt;/em&gt; acepta un JWT o un token de API duradero como &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;p&gt;&lt;strong&gt;Parámetros de URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>Instalación</title><link>https://www.pgarachne.com/es/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Instalación&lt;/h2&gt;
@@ -356,7 +364,28 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 			&lt;/div&gt;
 		&lt;/div&gt;
 
-		&lt;p&gt;Más versiones disponibles en &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Licencia y Marca Registrada</title><link>https://www.pgarachne.com/es/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/license/</guid><description>&lt;section id="license"&gt;
+		&lt;p&gt;Más versiones disponibles en &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/es/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;El &lt;strong&gt;JWT Getter&lt;/strong&gt; es una herramienta minimalista para el navegador ubicada en &lt;code&gt;tools/get-jwt&lt;/code&gt;. Intercambia un nombre de usuario y contraseña de PostgreSQL por un JWT de corta duración llamando al método JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt;, y muestra el payload decodificado y el tiempo de expiración.&lt;/p&gt;
+&lt;h3&gt;Cuándo usarlo&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Para pegar un token en la pestaña Bearer Token del &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; o del &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.&lt;/li&gt;
+&lt;li&gt;Para probar la expiración de un JWT o los claims &lt;code&gt;db_role&lt;/code&gt;/&lt;code&gt;db_name&lt;/code&gt; en su aplicación.&lt;/li&gt;
+&lt;li&gt;Para verificar que el usuario del sistema &lt;code&gt;pgarachne&lt;/code&gt; puede cambiar a un rol concreto (&lt;code&gt;GRANT &amp;lt;rol&amp;gt; TO pgarachne&lt;/code&gt; debe existir).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Nota:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; requiere &lt;code&gt;GRANT &amp;lt;rol&amp;gt; TO pgarachne&lt;/code&gt;. Para evitar ese grant, use credenciales directas (HTTP Basic Auth) en el &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; o el &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Funciones&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Rellene URL, prefijo, base de datos, usuario y contraseña — pulse &lt;kbd&gt;Enter&lt;/kbd&gt; o haga clic en &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;El token generado se muestra y puede copiarse con un clic.&lt;/li&gt;
+&lt;li&gt;El payload del JWT se decodifica en Base64 y se muestra con resaltado de sintaxis JSON.&lt;/li&gt;
+&lt;li&gt;Un indicador muestra el tiempo de vida restante (o marca el token como expirado).&lt;/li&gt;
+&lt;li&gt;La configuración de conexión y el nombre de usuario se guardan en &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Cómo habilitarlo&lt;/h3&gt;
+&lt;p&gt;Establezca &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; en &lt;code&gt;tools/get-jwt&lt;/code&gt; y visite &lt;code&gt;http://localhost:8080&lt;/code&gt;, o abra &lt;code&gt;index.html&lt;/code&gt; directamente en el navegador.&lt;/p&gt;</description></item><item><title>Licencia y Marca Registrada</title><link>https://www.pgarachne.com/es/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/license/</guid><description>&lt;section id="license"&gt;
 	&lt;h2&gt;Licencia y Marca Registrada&lt;/h2&gt;
 	&lt;div class="license-box"&gt;
 		&lt;p&gt;&lt;strong&gt;El Código (Licencia MIT):&lt;/strong&gt;&lt;br&gt;
@@ -377,7 +406,21 @@ GRANT demo_user TO pgarachne;&lt;/code&gt;&lt;/pre&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
 		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
 	&lt;/ul&gt;
-&lt;/section&gt;</description></item><item><title>Notificaciones en tiempo real (SSE)</title><link>https://www.pgarachne.com/es/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+&lt;/section&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/es/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/mcp/</guid><description>&lt;section id="mcp"&gt;
+	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
+
+	&lt;p class="section-intro"&gt;
+		PgArachne soporta de forma nativa el &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, un estándar abierto
+		que permite a los modelos de IA (como Claude o Cursor) acceder de forma segura a sus datos y funciones
+		como "herramientas".
+	&lt;/p&gt;
+
+	&lt;h3&gt;¿Cómo funciona?&lt;/h3&gt;
+	&lt;p&gt;
+		PgArachne actúa directamente como &lt;strong&gt;servidor MCP&lt;/strong&gt;. En lugar de escribir un servidor HTTP
+		personalizado para cada proyecto, basta con ejecutar PgArachne sobre la base de datos. PgArachne analiza
+		automáticamente las funciones SQL permitidas y las expone a los clientes de IA mediante HTTP(S).
+	&lt;/p&gt;</description></item><item><title>Notificaciones en tiempo real (SSE)</title><link>https://www.pgarachne.com/es/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Notificaciones en tiempo real (SSE)&lt;/h2&gt;
 	&lt;p&gt;Suscríbete a canales &lt;code&gt;NOTIFY&lt;/code&gt; de PostgreSQL mediante Server-Sent Events:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
@@ -398,18 +441,20 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 	 &lt;h2&gt;Novedades&lt;/h2&gt;
  &lt;p&gt;Puede encontrar información más detallada sobre los cambios en cada versión directamente en &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🌐 &lt;strong&gt;Explorador PgArachne – PWA moderno&lt;/strong&gt;: Renovación visual y funcional completa – tema oscuro/claro (automático), diseño de tarjetas adaptable, resaltado de sintaxis JSON, botón de copiar al portapapeles, mejor UX de autenticación (pestañas de contraseña/token), soporte de instalación PWA (manifiesto, iconos, service worker), enlaces compartibles mediante el parámetro &lt;code&gt;?url=…&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛠️ &lt;strong&gt;Soporte para Model Context Protocol (MCP)&lt;/strong&gt;: Nuevo endpoint &lt;code&gt;/{prefix}/{db}/mcp&lt;/code&gt; con métodos estándar &lt;code&gt;resources/list&lt;/code&gt;, &lt;code&gt;resources/read&lt;/code&gt;, &lt;code&gt;prompts/list&lt;/code&gt;, &lt;code&gt;prompts/get&lt;/code&gt; – completamente respaldado por funciones de PostgreSQL y reutilizando la autenticación y el cambio de roles existentes.&lt;/li&gt;
-		&lt;li&gt;🔧 &lt;strong&gt;Prefijo de API configurable&lt;/strong&gt;: El valor predeterminado cambió a &lt;code&gt;/db/{database}/jsonrpc&lt;/code&gt; y &lt;code&gt;/db/{database}/sse&lt;/code&gt;. Las rutas antiguas &lt;code&gt;/api/…&lt;/code&gt; ahora devuelven redirecciones permanentes 307. Controlado mediante la nueva variable de entorno &lt;code&gt;API_PREFIX&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Protección de idempotencia&lt;/strong&gt;: Campo opcional &lt;code&gt;idempotencyKey&lt;/code&gt; en solicitudes JSON-RPC – detección automática de duplicados (HTTP 409 + código de error en caso de colisión) usando &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;📚 &lt;strong&gt;Mejoras en la documentación&lt;/strong&gt;: Nueva sección &lt;strong&gt;/tools/&lt;/strong&gt; con tarjetas (Explorador + próxima barra de herramientas para macOS), nueva página “Architectural Decisions”, &lt;strong&gt;SECURITY.md&lt;/strong&gt; con instrucciones para reportar vulnerabilidades, mejor tipografía en todos los idiomas gracias a TypoLima, soporte mejorado para la página 404 en GitHub Pages.&lt;/li&gt;
-		&lt;li&gt;📝 &lt;strong&gt;Cambio de nombre del método de inicio de sesión&lt;/strong&gt;: El método JSON-RPC &lt;code&gt;login&lt;/code&gt; pasó a llamarse &lt;code&gt;get_jwt&lt;/code&gt; (el nombre antiguo se mantiene como alias obsoleto con advertencia en los registros).&lt;/li&gt;
-		&lt;li&gt;📊 &lt;strong&gt;Limpieza de registros (logging)&lt;/strong&gt;: Al registrar en un archivo, la consola muestra solo información mínima de inicio → salida más limpia en entornos de producción / docker.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Valores seguros por defecto (con cambios incompatibles)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; ahora tiene por defecto &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; ya no usa &lt;code&gt;*&lt;/code&gt; por defecto, y &lt;code&gt;JWT_SECRET&lt;/code&gt; debe tener al menos 32 bytes. Los despliegues existentes deben revisar su configuración antes de actualizar.&lt;/li&gt;
+		&lt;li&gt;🧹 &lt;strong&gt;Limpieza de elementos obsoletos&lt;/strong&gt;: Se eliminaron las rutas de redirección &lt;code&gt;/api/…&lt;/code&gt; y &lt;code&gt;/sse/…&lt;/code&gt; y el alias JSON-RPC obsoleto &lt;code&gt;login&lt;/code&gt;. Use directamente &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; y &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Autenticación y manejo de errores más estrictos&lt;/strong&gt;: Un nuevo límite de inicio de sesión por IP (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) cierra una brecha de credential spraying, y los errores de herramientas MCP ya no exponen texto de error de PostgreSQL sin procesar por defecto (puede reactivarse con &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Límites de conexión configurables&lt;/strong&gt;: El límite del pool de conexiones de autenticación directa ahora es configurable mediante &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔑 &lt;strong&gt;Soporte para IdP externos (BYO JWT)&lt;/strong&gt;: Las nuevas opciones &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; y &lt;code&gt;JWT_LEEWAY&lt;/code&gt; vinculan los tokens emitidos a un emisor/audiencia específicos y permiten ajustar la tolerancia de desfase horario.&lt;/li&gt;
+		&lt;li&gt;🧰 &lt;strong&gt;Nuevas herramientas&lt;/strong&gt;: Un &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) y un &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) independientes se unen al Explorador para pruebas manuales rápidas.&lt;/li&gt;
+		&lt;li&gt;🐛 &lt;strong&gt;Correcciones de fiabilidad&lt;/strong&gt;: Se corrigió un cierre de SSE que podía quedar bloqueado y un error en la recuperación de conexiones muertas que podía dejar al servidor incapaz de reconectar con PostgreSQL.&lt;/li&gt;
+		&lt;li&gt;🧪 &lt;strong&gt;Refuerzo de CI&lt;/strong&gt;: Se añadieron &lt;code&gt;golangci-lint&lt;/code&gt;, el detector de carreras de Go y &lt;code&gt;govulncheck&lt;/code&gt; a cada build, junto con una mayor cobertura de pruebas.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Proceso de publicación&lt;/strong&gt;: Se añadió &lt;code&gt;CHANGELOG.md&lt;/code&gt; y se dividió el flujo de publicación en &lt;code&gt;make release-local&lt;/code&gt; (compilación y verificación) y &lt;code&gt;make release&lt;/code&gt; (etiquetado, publicación y actualización del tap de Homebrew).&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.2.0&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/es/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/es/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
 &lt;p&gt;El &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; es una aplicación nativa profesional para macOS diseñada para ofrecer una experiencia de gestión sin esfuerzo para sus instancias de gateway JSON-RPC.&lt;/p&gt;
 &lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
@@ -424,15 +469,33 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 &lt;/ul&gt;
 &lt;h3&gt;Próximamente en la Mac App Store&lt;/h3&gt;
 &lt;p&gt;La aplicación está siendo optimizada para la Mac App Store para garantizar la máxima seguridad y actualizaciones fluidas.&lt;/p&gt;</description></item><item><title>Seguridad y Autenticación</title><link>https://www.pgarachne.com/es/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/security-roles/</guid><description>&lt;section id="security"&gt;
-	&lt;h2&gt;Seguridad y Autenticación&lt;/h2&gt;
-	&lt;p&gt;PgArachne se basa completamente en el sistema de permisos de PostgreSQL. No reinventa las Listas
-		de Control de Acceso (ACLs). Todas las consultas se ejecutan bajo el rol de base de datos específico del
-		usuario autenticado usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;.
+	&lt;h2&gt;Seguridad y Autenticación&lt;/h2&gt;
+	&lt;p&gt;PgArachne se basa completamente en el sistema de permisos de PostgreSQL. No reinventa las Listas
+		de Control de Acceso (ACLs). La mayoría de los métodos de autenticación ejecutan las consultas bajo
+		el rol de base de datos específico del usuario autenticado usando &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;.
 	&lt;/p&gt;
 
-	&lt;h3&gt;1. Inicio de Sesión Interactivo (JWT)&lt;/h3&gt;
-	&lt;p&gt;Los usuarios se autentican usando su &lt;strong&gt;nombre de usuario y contraseña reales de PostgreSQL&lt;/strong&gt;
-		a través de la función de inicio de sesión.
-		Si tiene éxito, reciben un JWT genérico. Cuando se usa este token, PgArachne cambia el rol activo a ese
-		usuario
-		durante la duración de la petición.&lt;/p&gt;</description></item></channel></rss>
+	&lt;h3&gt;1. Inicio de Sesión Interactivo (JWT)&lt;/h3&gt;
+	&lt;p&gt;Los usuarios se autentican usando su &lt;strong&gt;nombre de usuario y contraseña reales de PostgreSQL&lt;/strong&gt;
+		a través de la función de inicio de sesión.
+		Si tiene éxito, reciben un JWT genérico. Cuando se usa este token, PgArachne cambia el rol activo a ese
+		usuario durante la duración de la petición.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/es/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;El &lt;strong&gt;SSE Tester&lt;/strong&gt; es una herramienta de un único archivo para el navegador, ubicada en &lt;code&gt;tools/test-sse&lt;/code&gt;. Permite suscribirse a cualquier número de canales PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; a través de una conexión &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; en vivo y observar los eventos en tiempo real.&lt;/p&gt;
+&lt;h3&gt;Funciones&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Múltiples canales&lt;/strong&gt; — los canales se añaden como etiquetas y se pasan como parámetro &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Todos los métodos de autenticación&lt;/strong&gt; — la pestaña &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth (sin JWT); la pestaña &lt;em&gt;Bearer Token&lt;/em&gt; acepta un JWT o token de API.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Stream en vivo&lt;/strong&gt; — utiliza la Fetch Streams API con &lt;code&gt;AbortController&lt;/code&gt; para una desconexión limpia.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Resaltado de sintaxis JSON&lt;/strong&gt; — los payloads JSON se muestran con colores.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Configuración persistente&lt;/strong&gt; — URL, prefijo, base de datos, nombre de usuario y lista de canales se guardan en &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Autenticación&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Pestaña Password&lt;/strong&gt; — envía &lt;code&gt;Authorization: Basic &amp;lt;base64(usuario:contraseña)&amp;gt;&lt;/code&gt;. No requiere &lt;code&gt;GRANT &amp;lt;rol&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Pestaña Bearer Token&lt;/strong&gt; — envía &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Pegue un JWT (obtenido con el &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) o un token de API duradero.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Cómo habilitarlo:&lt;/strong&gt; Establezca &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; en &lt;code&gt;tools/test-sse&lt;/code&gt; y visite &lt;code&gt;http://localhost:8080&lt;/code&gt;. También puede abrir &lt;code&gt;index.html&lt;/code&gt; directamente en el navegador.
+&lt;/div&gt;
+&lt;/section&gt;</description></item></channel></rss>

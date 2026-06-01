@@ -23,14 +23,34 @@ description: "PgArachne Toolbar per macOS - Documentazione."
 <p>L'applicazione è in fase di ottimizzazione per il Mac App Store per garantire la massima sicurezza e aggiornamenti fluidi.</p>
 
 <div class="screenshot-gallery" style="display: flex; gap: 20px; overflow-x: auto; padding: 20px 0; margin-top: 30px; border-top: 1px solid #eee;">
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 1<br>(Menu principale)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-3.webp"
+		alt="Menu al spegnimento e finestra dei log"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 2<br>(Finestra dei log)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-1.webp"
+		alt="Menu dopo l’avvio e finestra delle metriche"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
-<div class="screenshot-placeholder" style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border: 2px dashed #ccc; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #999; text-align: center; padding: 20px;">
-			Screenshot 3<br>(Vista metriche)
+
+<div
+	class="screenshot-placeholder"
+	style="flex: 0 0 250px; height: 450px; background: #f0f0f0; border-radius: 12px; overflow: hidden; box-shadow: 7px 3px 18px rgba(0, 0, 0, 0.4);">
+	<img
+		src="/assets/pgarachne-screenshot-2.webp"
+		alt="Finestra di configurazione"
+		style="width: 100%; height: 100%; object-fit: cover; display: block;">
 </div>
+
+
 </div>
 </section>

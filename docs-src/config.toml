@@ -4,6 +4,19 @@ publishDir = "../docs"
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
 relativeURLs = true
+
+# Hugo >= 0.145 ships a default-deny policy for page content types. The
+# PgArachne docs use raw HTML files (custom markup, embedded iframes for
+# the explorer demo, hardcoded <br> tags inside i18n strings) and a small
+# amount of markdown for release notes. We override the default-deny list
+# with explicit allow patterns for those MIME types.
+[security]
+  enableInlineShortcodes = true
+  allowContent = ['^text/html$', '^text/markdown$', '^text/plain$']
+  [security.exec]
+    allow = ['^dart-sass-embedded$', '^dart-sass$', '^go$', '^git$', '^node$', '^postcss$', '^tailwindcss$']
+    osEnv = ['(?i)^((HTTPS?|NO)_PROXY|PATH(EXT)?|APPDATA|TE?MP|TERM|GO\w+|(XDG_CONFIG_)?HOME|USERPROFILE|SSH_AUTH_SOCK|DISPLAY|LANG|SYSTEMDRIVE|PROGRAMDATA)$']
+
 [minify]
   minifyOutput = true
 
@@ -20,30 +33,30 @@ relativeURLs = true
 
 [languages]
   [languages.en]
-    languageName = "English"
+    label = "English"
     weight = 1
     contentDir = "content/en"
   [languages.cs]
-    languageName = "Čeština"
+    label = "Čeština"
     weight = 2
     contentDir = "content/cs"
   [languages.es]
-    languageName = "Español"
+    label = "Español"
     weight = 3
     contentDir = "content/es"
   [languages.de]
-    languageName = "Deutsch"
+    label = "Deutsch"
     weight = 4
     contentDir = "content/de"
   [languages.fr]
-    languageName = "Français"
+    label = "Français"
     weight = 5
     contentDir = "content/fr"
   [languages.it]
-    languageName = "Italiano"
+    label = "Italiano"
     weight = 6
     contentDir = "content/it"
   [languages.pt]
-    languageName = "Português"
+    label = "Português"
     weight = 7
     contentDir = "content/pt"

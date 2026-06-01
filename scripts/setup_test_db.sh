@@ -63,6 +63,13 @@ export PGPASSWORD="$PGARACHNE_PASSWORD"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 -f "$PROJECT_ROOT/sql/schema.sql"
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 -f "$PROJECT_ROOT/sql/mcp_functions.sql"
 
+# seed_data.sql ships example functions (api.server_info) that mirror the
+# documentation's hello-world walkthrough. Load it so integration tests can
+# exercise at least one documented, public-schema function.
+if [ -f "$PROJECT_ROOT/sql/seed_data.sql" ]; then
+  psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 -f "$PROJECT_ROOT/sql/seed_data.sql"
+fi
+
 psql -h "$DB_HOST" -p "$DB_PORT" -U "$PGARACHNE_USER" -d "$TEST_DB_NAME" -v ON_ERROR_STOP=1 <<SQL
 CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
 RETURNS json
@@ -73,6 +80,9 @@ AS \$\$
 
 GRANT USAGE ON SCHEMA api TO ${TEST_USER};
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO ${TEST_USER};
+-- Grant EXECUTE on any seed functions (api.server_info) so the test user
+-- can call them via the gateway.
+GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA api TO ${TEST_USER};
 SQL
 
 cat <<EOF

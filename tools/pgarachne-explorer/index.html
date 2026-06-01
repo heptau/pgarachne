@@ -466,6 +466,12 @@
 				<input type="text" id="login" placeholder="username" autocapitalize="off" autocorrect="off">
 				<label for="password">Password</label>
 				<input type="password" id="password" placeholder="password">
+				<p style="font-size:0.78rem;color:var(--fg-muted);margin:8px 0 0;">
+					Uses HTTP Basic Auth — connects directly as the database user.
+					No <code>GRANT &hellip; TO pgarachne</code> needed.
+					To obtain a JWT token instead, use the
+					<a href="../get-jwt/" style="color:var(--accent);">JWT Getter</a> tool.
+				</p>
 			</div>
 
 			<!-- API Token Auth Content -->
@@ -513,7 +519,7 @@
 
 	<script>
 		let availableFunctions = new Map();
-		let authToken = null;
+		let authHeader = null;   // full Authorization header value (Basic … or Bearer …)
 		let currentAuthMode = 'password';
 
 		// --- Build JSONRPC URL ---
@@ -555,7 +561,7 @@
 			document.getElementById('endpoint-suggestions').innerHTML = '';
 			document.querySelectorAll('#apiUrl, #urlPrefix, #databaseName').forEach(el => el.disabled = false);
 			document.querySelectorAll('.auth-tab-button, #login, #password, #apiToken').forEach(el => el.disabled = false);
-			authToken = null;
+			authHeader = null;
 			availableFunctions.clear();
 		}
 
@@ -648,22 +654,25 @@
 				return;
 			}
 
+			// Authenticate directly as the database user via HTTP Basic Auth.
+			// No get_jwt call needed, no GRANT … TO pgarachne required.
+			const b64 = btoa(login + ':' + password);
+			const candidate = 'Basic ' + b64;
+
 			try {
-				showResultLoading('Logging in');
+				showResultLoading('Verifying credentials');
 				const response = await fetch(getJsonRpcUrl(), {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						jsonrpc: '2.0',
-						method: 'get_jwt',
-						params: { login: login, password: password },
-						id: 1
-					})
+					headers: {
+						'Content-Type': 'application/json',
+						'Authorization': candidate
+					},
+					body: JSON.stringify({ jsonrpc: '2.0', method: 'capabilities', params: {}, id: 1 })
 				});
 
 				const data = await response.json();
-				if (response.ok && data.result && data.result.token) {
-					authToken = data.result.token;
+				if (response.ok && data.result !== undefined) {
+					authHeader = candidate;
 					showResultText('Login successful. You can now load and call functions.');
 					setLoggedInUI('user ' + login);
 					loadCapabilities();
@@ -682,7 +691,7 @@
 				showResultText('Error: Please enter an API token.');
 				return;
 			}
-			authToken = token;
+			authHeader = 'Bearer ' + token;
 			showResultLoading('Verifying API token');
 			try {
 				await loadCapabilities(true);
@@ -690,7 +699,7 @@
 				setLoggedInUI('API Token');
 			} catch (error) {
 				showResultText('Error: API token is invalid or communication failed. ' + error.message);
-				authToken = null;
+				authHeader = null;
 			}
 		}
 
@@ -700,14 +709,14 @@
 
 		// --- API Request Functions ---
 		async function makeApiRequest(url, payload) {
-			if (!authToken) {
-				throw new Error("Not authenticated (missing token).");
+			if (!authHeader) {
+				throw new Error("Not authenticated.");
 			}
 			return fetch(url, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${authToken}`
+					'Authorization': authHeader
 				},
 				body: JSON.stringify(payload)
 			});

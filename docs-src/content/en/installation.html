@@ -94,7 +94,7 @@ GRANT ALL PRIVILEGES ON DATABASE my_database TO pgarachne;
 -- Ensure it can use the schema
 GRANT USAGE ON SCHEMA pgarachne TO pgarachne;
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA pgarachne TO pgarachne;</code></pre>
-	<p>4. Configure <code>~/.pgpass</code> to allow <code>pgarachne</code> to connect without password prompt:</p>
+	<p>4. Configure <code>~/.pgpass</code> to allow <code>pgarachne</code> to connect without a password prompt:</p>
 	<pre><code># Format: hostname:port:database:username:password
 echo "localhost:5432:*:pgarachne:secure_password" >> ~/.pgpass
 chmod 0600 ~/.pgpass</code></pre>

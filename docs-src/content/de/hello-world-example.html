@@ -27,20 +27,33 @@ AS $$
 $$;
 
 -- 3. Berechtigung für den Benutzer vergeben
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
--- 4. PgArachne (Systembenutzer) darf zu demo_user wechseln
+	<div class="tip">
+		<h3>Welche Authentifizierungsmethode soll ich wählen?</h3>
+		<ul>
+			<li><strong>Option A — JWT-Token:</strong> Empfohlen für Produktionsanwendungen und externe Clients. Erfordert einen zusätzlichen Login-Schritt sowie <code>GRANT demo_user TO pgarachne</code>.</li>
+			<li><strong>Option B — Direkte Zugangsdaten:</strong> Ideal für Entwicklung, Skripte und interne Dienste. Kein GRANT erforderlich, sofort einsatzbereit.</li>
+		</ul>
+		<p>Weitere Details finden Sie unter <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>.</p>
+	</div>
+
+	<h3>Option A: JWT-Token-Ablauf</h3>
+
+	<h4>A1. Proxy-Privileg erteilen</h4>
+	<p>Damit PgArachne die Rolle wechseln kann, ist ein zusätzliches GRANT erforderlich:</p>
+	<pre><code>-- PgArachne (Systembenutzer) darf zu demo_user wechseln
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h3>2. Login via API</h3>
-	<p>Verwenden Sie die JSON-RPC-Methode <code>login</code>, um ein JWT-Token zu erhalten:</p>
+	<h4>A2. JWT-Token abrufen</h4>
+	<p>Verwenden Sie die JSON-RPC-Methode <code>get_jwt</code>, um ein JWT-Token zu erhalten:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"login","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Antwort:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h3>3. Funktion aufrufen</h3>
+	<h4>A3. Funktion aufrufen</h4>
 	<p>Verwenden Sie das Token, um die Funktion <code>hello_world</code> aufzurufen:</p>
 	<pre><code>export TOKEN="IHR_JWT_TOKEN_HIER"
 
@@ -50,4 +63,15 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Antwort:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+
+	<h3>Option B: Direkte Zugangsdaten</h3>
+	<p>Kein GRANT und kein vorheriger Login-Schritt erforderlich. Übergeben Sie den Benutzernamen und das Passwort direkt mit dem <code>-u</code>-Flag von <code>curl</code>:</p>
+	<pre><code>curl -u demo_user:user_password \
+  -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+	<p>Antwort:</p>
+	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<p>PgArachne verbindet sich direkt als <code>demo_user</code> — es wird kein <code>SET LOCAL ROLE</code> ausgeführt und kein <code>GRANT demo_user TO pgarachne</code> benötigt.
+		Weitere Informationen finden Sie unter <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>.</p>
 </section>

@@ -43,8 +43,8 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=change_me_to_something_secure</code></pre>
-	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code>.</p>
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimum 32 bytes; generate with <code>openssl rand -hex 32</code>).</p>
 
 	<h3>Quick Validation Checklist</h3>
 	<ul>
@@ -88,7 +88,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>DB_SSLMODE</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>PostgreSQL SSL mode. Default: <code>disable</code>.</td>
+				<td>PostgreSQL SSL mode. Default: <code>require</code>. Set <code>disable</code> explicitly only for local development against a non-TLS PostgreSQL.</td>
 			</tr>
 			<tr>
 				<td><code>DB_SSLROOTCERT</code></td>
@@ -119,7 +119,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>First URL path segment for all database endpoints (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Default: <code>db</code>, giving routes like <code>/db/:database/jsonrpc</code>. Set to <code>api</code> to match legacy paths. Only letters, digits, hyphens and underscores are allowed.</td>
+				<td>First URL path segment for all database endpoints (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Default: <code>db</code>, giving routes like <code>/db/:database/jsonrpc</code>. Only letters, digits, hyphens and underscores are allowed.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -129,8 +129,8 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr>
 				<td><code>ALLOWED_ORIGINS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>CORS settings. Comma separated list of allowed domains (e.g. <code>https://myapp.com</code>).
-					Default: <code>*</code>.</td>
+				<td>CORS settings. Comma-separated list of allowed origins (e.g. <code>https://myapp.com</code>).
+					Default: unset — cross-origin browser requests are disabled. Set <code>*</code> explicitly to allow any origin.</td>
 			</tr>
 			<tr>
 				<td><code>STATIC_FILES_PATH</code></td>
@@ -146,7 +146,7 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 			<tr class="required-row">
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-yes" title="Required" aria-label="Required">✓</span></td>
-				<td>A long, random string used to sign session tokens.</td>
+				<td>A long, random string used to sign session tokens. Minimum 32 bytes; generate with <code>openssl rand -hex 32</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -154,9 +154,29 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td>Session validity in hours. Default: <code>8</code>.</td>
 			</tr>
 			<tr>
+				<td><code>JWT_ISSUER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>If set, written into the <code>iss</code> claim on issue and required to match exactly on validation. Leave empty to skip issuer checking.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_AUDIENCE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>If set, written into the <code>aud</code> claim on issue and required to match on validation. Leave empty to skip audience checking.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_LEEWAY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Clock-skew tolerance for <code>exp</code>/<code>nbf</code>/<code>iat</code> validation (e.g. <code>30s</code>). Default: <code>30s</code>.</td>
+			</tr>
+			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Max login attempts per window. Default: <code>5</code>. Set <code>0</code> to disable.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Max login attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Default: 5× <code>LOGIN_RATE_LIMIT</code>. Set <code>0</code> to disable.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>
@@ -175,6 +195,16 @@ JWT_SECRET=change_me_to_something_secure</code></pre>
 				<td><code>MAX_REQUEST_BYTES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Max request body size in bytes. Default: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Include the raw PostgreSQL error message in MCP tool errors. Detailed errors help LLM agents self-correct, but can expose schema details (table and constraint names) to authenticated callers. Default: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Max number of distinct Basic-Auth credential connection pools. Default: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>METRICS_ENABLED</code></td>
