@@ -10,6 +10,19 @@ Dates are the day the corresponding Git tag was created (UTC).
 ### Added
 
 - Split `make release` into `make release-local` (test, build, and verify all release artifacts — no git, no push) and `make release` (runs `release-local`, then tags, pushes, creates the GitHub release from `dist/RELEASE_NOTES.md` and the built archives, and updates the `heptau/tap` Homebrew formula/cask via the GitHub API). See `scripts/publish_release.sh`.
+- Docs site: manual light/dark/auto theme switcher (icon button, persisted in `localStorage`, overrides `prefers-color-scheme`) and an icon-only language switcher with per-language flags, replacing the old text "Language" button.
+- Docs site: heart (Support) and star (GitHub) icon links in the navbar, next to the theme/language switcher.
+- Docs site: `BreadcrumbList` JSON-LD and a visually-hidden `<h1>` on every documentation page.
+- Docs site: expanded `llms.txt` with a full, linked list of documentation pages (was a two-line summary).
+
+### Changed
+
+- Docs site: removed the top navbar text links (Features/Installation/MCP/Architecture/Support); the menu button (hamburger) is now always visible and gives access to the same pages via the existing category list. The freed space widens the search input, which also gained a magnifying-glass icon and shorter placeholders in all 7 languages.
+- Docs site: the QR-code script (`qrcodejs`) now only loads on the page that uses it (Support the Development), deferred, instead of on every page in every locale.
+
+### Fixed
+
+- Docs site: JSON-LD structured data (and the inline search index) was double-encoded because the templates used `safeHTML` instead of `safeJS` inside `<script>` tags, producing an escaped JSON string instead of a valid JSON object on every page, in every locale. Structured data now validates correctly.
 
 ## [2.0.0] - 2026-07-01
 

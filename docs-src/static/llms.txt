@@ -1,3 +1,28 @@
 # PgArachne
 
-A modern, lightweight JSON-RPC 2.0 API gateway built directly for PostgreSQL. It exposes stored procedures and functions as a secure, high-performance web API.
+> Turn PostgreSQL into a secure JSON-RPC API instantly — define a SQL function, get an API endpoint. No boilerplate, native MCP support, real-time SSE notifications, and database-native security.
+
+PgArachne is a production-grade, single-binary backend gateway written in Go. It introspects PostgreSQL functions and exposes them as JSON-RPC 2.0 endpoints, authenticating every request as a real PostgreSQL role so Row-Level Security works automatically. It also exposes a native Model Context Protocol (MCP) endpoint so AI clients such as Claude Desktop and Cursor can discover and call your database functions as tools.
+
+## Docs
+
+- [About & Architecture](https://www.pgarachne.com/en/about-architecture/): Project overview and how the JSON-RPC gateway is built.
+- [Architectural Decisions](https://www.pgarachne.com/en/architectural-decisions/): Why JSON-RPC, SSE, Go, and PostgreSQL functions were chosen over alternatives.
+- [Installation](https://www.pgarachne.com/en/installation/): Download prebuilt binaries or build from source.
+- [Configuration](https://www.pgarachne.com/en/configuration/): Environment variables and configuration reference.
+- [JSON-RPC & Hello World](https://www.pgarachne.com/en/hello-world-example/): Minimal end-to-end example of exposing a SQL function as an API endpoint.
+- [MCP (Model Context Protocol)](https://www.pgarachne.com/en/mcp/): Native MCP endpoint so AI clients can call PostgreSQL functions as tools.
+- [Real-time Notifications (SSE)](https://www.pgarachne.com/en/real-time-notifications/): Streaming PostgreSQL NOTIFY events to clients over Server-Sent Events.
+- [Security & Authentication](https://www.pgarachne.com/en/security-roles/): JWT authentication mapped to native PostgreSQL roles, and Row-Level Security.
+- [Deployment & HTTPS](https://www.pgarachne.com/en/deployment-https/): Running PgArachne behind a reverse proxy with TLS.
+- [Idempotency Key Cleanup](https://www.pgarachne.com/en/idempotency-cleanup/): Maintenance of the pgarachne.requests table.
+- [Metrics (Prometheus)](https://www.pgarachne.com/en/metrics/): Built-in Prometheus metrics endpoint.
+- [Error Codes](https://www.pgarachne.com/en/error-codes/): Reference of API error codes and their meaning.
+- [Comparison: PgArachne vs. PostgREST](https://www.pgarachne.com/en/comparison/): How PgArachne differs from PostgREST.
+- [Tools](https://www.pgarachne.com/en/tools/): API Explorer, SSE tester, JWT helper, and macOS toolbar app.
+
+## Optional
+
+- [What's New](https://www.pgarachne.com/en/whats-new/): Changelog and release notes.
+- [License & Trademark](https://www.pgarachne.com/en/license/): Licensing terms and trademark usage.
+- [Support the Development](https://www.pgarachne.com/en/support-donate/): Ways to support the project.

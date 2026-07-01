@@ -16,6 +16,8 @@
 		{{ $homeName := i18n "nav_home" }}
 		{{ $slug := strings.TrimSuffix ".html" (path.Base .File.Path) }}
 
+		<h1 class="sr-only">{{ .Title }}</h1>
+
 		<div class="doc-meta">
 			<nav class="breadcrumbs" aria-label="Breadcrumb">
 				<a href="{{ $homeURL }}">{{ $homeName }}</a>

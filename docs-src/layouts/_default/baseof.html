@@ -12,6 +12,12 @@
 	<meta name="theme-color" content="#0066cc">
 	<link rel="apple-touch-icon" href="{{ "assets/pgarachne-icon.png" | relURL }}">
 	<link rel="stylesheet" href="{{ "assets/style.css" | relURL }}?v={{ now.Unix }}">
+	<script>
+		(function(){try{
+			var t=localStorage.getItem('pgarachne_theme');
+			if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);
+		}catch(e){}})();
+	</script>
 
 	<link rel="canonical" href="{{ .Permalink }}">
 	<link rel="alternate" hreflang="x-default" href="{{ .Permalink }}">
@@ -38,43 +44,75 @@
 		"description" (.Params.description | default .Site.Params.description)
 		"isPartOf" (dict "@type" "WebSite" "name" "PgArachne" "url" (.Site.BaseURL | absURL))
 	}}
-	<script type="application/ld+json">{{ $jsonLD | jsonify | safeHTML }}</script>
+	<script type="application/ld+json">{{ $jsonLD | jsonify | safeJS }}</script>
+	{{ if not .IsHome }}
+	{{ $homeName := i18n "nav_home" }}
+	{{ $position := 1 }}
+	{{ $crumbs := slice (dict "@type" "ListItem" "position" $position "name" $homeName "item" .Site.Home.Permalink) }}
+	{{ if and .Parent (ne .Parent.Kind "home") }}
+		{{ $position = add $position 1 }}
+		{{ $crumbs = $crumbs | append (dict "@type" "ListItem" "position" $position "name" .Parent.Title "item" .Parent.Permalink) }}
+	{{ end }}
+	{{ $position = add $position 1 }}
+	{{ $crumbs = $crumbs | append (dict "@type" "ListItem" "position" $position "name" .Title "item" .Permalink) }}
+	{{ $breadcrumbLD := dict "@context" "https://schema.org" "@type" "BreadcrumbList" "itemListElement" $crumbs }}
+	<script type="application/ld+json">{{ $breadcrumbLD | jsonify | safeJS }}</script>
+	{{ end }}
 </head>
 
 <body>
 	<nav class="navbar">
 		<div class="container nav-container">
-			<button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="toc">
+			<button class="nav-toggle" aria-label="{{ i18n "nav_menu" }}" title="{{ i18n "nav_menu" }}" aria-expanded="false" aria-controls="toc">
 				<span class="nav-toggle-icon"><span></span></span>
 			</button>
 
-			<div class="nav-links" id="nav-links">
-				<a href="{{ "/" | relLangURL }}">{{ i18n "nav_features" }}</a>
-				<a href="{{ "/" | relLangURL }}installation/">{{ i18n "nav_installation" }}</a>
-				<a href="{{ "/" | relLangURL }}mcp/">{{ i18n "nav_mcp" }}</a>
-				<a href="{{ "/" | relLangURL }}about-architecture/">{{ i18n "nav_architecture" }}</a>
-				<a href="{{ "/" | relLangURL }}support-donate/" class="nav-btn-donate">{{ i18n "nav_support" }}</a>
-			</div>
-
 			<div class="search-box">
+				<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
 				<label for="site-search-input" class="search-label">{{ i18n "search_label" }}</label>
 				<input id="site-search-input" class="search-input" type="search" placeholder="{{ i18n "search_placeholder" }}" autocomplete="off">
 				<div id="site-search-results" class="search-results" hidden></div>
 			</div>
 
-			<div class="lang-dropdown">
-				<button class="lang-btn">{{ i18n "nav_language" }}</button>
-				<div class="lang-content">
-					{{ $langs := partial "get-languages.html" . }}
-					{{ range $langs }}
-					{{ $lang := .Lang }}
-					{{ $link := (printf "/%s/" $lang) }}
-					{{ range $.Translations }}
-						{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
-					{{ end }}
-					{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
-					<a href="{{ $link }}" class="{{ if eq $lang $.Site.Language.Lang }}active{{ end }}">{{ .Label }}</a>
-					{{ end }}
+			<div class="nav-icons">
+				<a class="nav-heart" href="{{ "/" | relLangURL }}support-donate/" aria-label="{{ i18n "nav_support" }}" title="{{ i18n "nav_support" }}">
+					<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-.87-.6-2.02-1.44C6.1 16.9 2 13.5 2 9.5 2 6.7 4.2 4.5 7 4.5c1.6 0 3.15.75 4.13 1.94l.87 1.06.87-1.06C13.85 5.25 15.4 4.5 17 4.5c2.8 0 5 2.2 5 5 0 4-4.1 7.4-7.98 10.06C12.87 20.4 12 21 12 21z"></path></svg>
+				</a>
+
+				<a class="nav-star" href="https://github.com/heptau/pgarachne" target="_blank" rel="noopener" aria-label="{{ i18n "nav_star" }}" title="{{ i18n "nav_star" }}">
+					<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"></path></svg>
+				</a>
+
+				<div class="theme-dropdown">
+					<button class="theme-trigger" aria-label="{{ i18n "nav_theme" }}" title="{{ i18n "nav_theme" }}" aria-haspopup="true" aria-expanded="false">
+						<svg class="icon-sw theme-icon-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+						<svg class="icon-sw theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+						<svg class="icon-sw theme-icon-dark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18V4c4.42 0 8 3.58 8 8s-3.58 8-8 8z"></path></svg>
+					</button>
+					<div class="theme-menu">
+						<button class="theme-option" data-theme-value="auto"><span class="theme-option-icon">🖥️</span><span>{{ i18n "theme_auto" }}</span></button>
+						<button class="theme-option" data-theme-value="light"><span class="theme-option-icon">☀️</span><span>{{ i18n "theme_light" }}</span></button>
+						<button class="theme-option" data-theme-value="dark"><span class="theme-option-icon">🌙</span><span>{{ i18n "theme_dark" }}</span></button>
+					</div>
+				</div>
+
+				<div class="lang-dropdown">
+					<button class="lang-trigger" aria-label="{{ i18n "nav_language" }}" title="{{ i18n "nav_language" }}" aria-haspopup="true" aria-expanded="false">
+						<svg class="icon-sw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+					</button>
+					<div class="lang-menu">
+						{{ $langs := partial "get-languages.html" . }}
+						{{ $flags := dict "en" "🇬🇧" "cs" "🇨🇿" "es" "🇪🇸" "de" "🇩🇪" "fr" "🇫🇷" "it" "🇮🇹" "pt" "🇵🇹" }}
+						{{ range $langs }}
+						{{ $lang := .Lang }}
+						{{ $link := (printf "/%s/" $lang) }}
+						{{ range $.Translations }}
+							{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
+						{{ end }}
+						{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
+						<a href="{{ $link }}" class="lang-option {{ if eq $lang $.Site.Language.Lang }}active{{ end }}"><span class="lang-option-icon">{{ index $flags $lang }}</span><span>{{ .Label }}</span></a>
+						{{ end }}
+					</div>
 				</div>
 			</div>
 		</div>
@@ -105,7 +143,9 @@
 		</div>
 	</footer>
 
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	{{ if strings.Contains .Content "qr-code" }}
+	<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" integrity="sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+	{{ end }}
 	{{ $searchScratch := newScratch }}
 	{{ $searchScratch.Set "items" (slice) }}
 	{{ range .Site.RegularPages }}
@@ -113,8 +153,8 @@
 		{{ $item := dict "title" .Title "url" .RelPermalink "desc" $desc }}
 		{{ $searchScratch.Add "items" (slice $item) }}
 	{{ end }}
-	<script id="site-search-data" type="application/json">{{ $searchScratch.Get "items" | jsonify | safeHTML }}</script>
-	<script id="site-search-texts" type="application/json">{{ dict "no_results" (i18n "search_no_results") "copy" (i18n "copy_label") "copied" (i18n "copied_label") | jsonify | safeHTML }}</script>
+	<script id="site-search-data" type="application/json">{{ $searchScratch.Get "items" | jsonify | safeJS }}</script>
+	<script id="site-search-texts" type="application/json">{{ dict "no_results" (i18n "search_no_results") "copy" (i18n "copy_label") "copied" (i18n "copied_label") | jsonify | safeJS }}</script>
 	<script src="{{ "assets/script.js" | relURL }}"></script>
 </body>
 </html>

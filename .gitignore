@@ -4,6 +4,7 @@
 dist/
 bin/
 .idea/
+.claude/
 
 # Secrets
 pgarachne.env

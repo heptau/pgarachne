@@ -8,22 +8,26 @@
   translation: "Nástroje & Demo"
 - id: nav_language
   translation: "Jazyk"
+- id: nav_theme
+  translation: "Motiv"
+- id: theme_auto
+  translation: "Auto"
+- id: theme_light
+  translation: "Světlý"
+- id: theme_dark
+  translation: "Tmavý"
 - id: nav_menu
   translation: "Menu"
-- id: nav_features
-  translation: "Funkce"
+- id: nav_support
+  translation: "Podpora"
+- id: nav_star
+  translation: "Hvězdička na GitHubu"
 - id: nav_installation
   translation: "Instalace"
 - id: nav_documentation
   translation: "Dokumentace"
-- id: nav_support
-  translation: "Podpora"
-- id: nav_architecture
-  translation: "Architektura"
 - id: nav_home
   translation: "Úvod"
-- id: nav_mcp
-  translation: "MCP"
 - id: link_mcp
   translation: "Model Context Protocol (MCP)"
 - id: site_subtitle
@@ -34,7 +38,7 @@
 - id: search_label
   translation: "Hledání"
 - id: search_placeholder
-  translation: "Hledat v dokumentaci..."
+  translation: "Hledat"
 - id: search_no_results
   translation: "Žádné výsledky."
 - id: copy_label

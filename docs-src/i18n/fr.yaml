@@ -8,22 +8,26 @@
   translation: "Outils et Démo"
 - id: nav_language
   translation: "Langue"
+- id: nav_theme
+  translation: "Thème"
+- id: theme_auto
+  translation: "Auto"
+- id: theme_light
+  translation: "Clair"
+- id: theme_dark
+  translation: "Sombre"
 - id: nav_menu
   translation: "Menu"
-- id: nav_features
-  translation: "Fonctionnalités"
+- id: nav_support
+  translation: "Support"
+- id: nav_star
+  translation: "Étoile sur GitHub"
 - id: nav_installation
   translation: "Installation"
 - id: nav_documentation
   translation: "Documentation"
-- id: nav_support
-  translation: "Support"
-- id: nav_architecture
-  translation: "Architecture"
 - id: nav_home
   translation: "Accueil"
-- id: nav_mcp
-  translation: "MCP"
 - id: link_mcp
   translation: "Model Context Protocol (MCP)"
 - id: site_subtitle
@@ -34,7 +38,7 @@
 - id: search_label
   translation: "Recherche"
 - id: search_placeholder
-  translation: "Rechercher dans la doc..."
+  translation: "Rechercher"
 - id: search_no_results
   translation: "Aucun résultat."
 - id: copy_label
