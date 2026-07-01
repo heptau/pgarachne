@@ -8,7 +8,10 @@
 # formula/cask files, and dist/RELEASE_NOTES.md), then this script.
 #
 # Environment variables:
-#   HOMEBREW_TAP_REPO   GitHub repo of the Homebrew tap (default: heptau/tap)
+#   HOMEBREW_TAP_REPO   GitHub repo of the Homebrew tap (default:
+#                        heptau/homebrew-tap — the "brew install
+#                        heptau/tap/..." syntax expands to this repo name
+#                        per Homebrew's tap-naming convention)
 # =============================================================================
 set -euo pipefail
 
@@ -16,7 +19,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 DIST_DIR="dist"
-HOMEBREW_TAP_REPO="${HOMEBREW_TAP_REPO:-heptau/tap}"
+HOMEBREW_TAP_REPO="${HOMEBREW_TAP_REPO:-heptau/homebrew-tap}"
 HOMEBREW_FORMULA_PATH="Formula/pgarachne.rb"
 HOMEBREW_CASK_PATH="Casks/pgarachne-app.rb"
 LOCAL_FORMULA="${DIST_DIR}/homebrew-tap/Formula/pgarachne.rb"
@@ -52,15 +55,31 @@ git push origin "$TAG"
 echo ""
 
 # ── GitHub release ────────────────────────────────────────────────────────────
-echo "==> Creating GitHub release ${TAG}..."
+# Idempotent: a previous run may have created the tag and release already
+# (e.g. this script failed on a later step, like the Homebrew tap update
+# below) — re-running must not blow up on "release already exists".
 ASSETS=("${DIST_DIR}"/checksums.txt "${DIST_DIR}"/*.zip "${DIST_DIR}"/*.tar.gz)
-gh release create "$TAG" \
-	--title "PgArachne ${TAG}" \
-	--notes-file "$NOTES_FILE" \
-	"${ASSETS[@]}"
+if gh release view "$TAG" >/dev/null 2>&1; then
+	echo "==> GitHub release ${TAG} already exists — skipping creation."
+else
+	echo "==> Creating GitHub release ${TAG}..."
+	gh release create "$TAG" \
+		--title "PgArachne ${TAG}" \
+		--notes-file "$NOTES_FILE" \
+		"${ASSETS[@]}"
+fi
 echo ""
 
 # ── Homebrew tap update via GitHub API (no local clone needed) ──────────────
+if ! gh api "repos/${HOMEBREW_TAP_REPO}" >/dev/null 2>&1; then
+	echo "Error: repo '${HOMEBREW_TAP_REPO}' not found or inaccessible to 'gh'."
+	echo "The GitHub release above was created successfully; only the Homebrew"
+	echo "tap update is affected. Create the repo, or set HOMEBREW_TAP_REPO to"
+	echo "the correct name, then re-run 'make release' (it will skip the"
+	echo "already-created tag/release and retry only this step)."
+	exit 1
+fi
+
 update_tap_file() {
 	local local_path="$1" tap_path="$2"
 	echo "==> Updating ${HOMEBREW_TAP_REPO}/${tap_path}..."
