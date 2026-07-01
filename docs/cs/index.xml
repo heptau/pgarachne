@@ -299,6 +299,12 @@ example.com {
 	&lt;h2&gt;Novinky&lt;/h2&gt;
 	&lt;p&gt;Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Bezpečnostní oprava&lt;/strong&gt;: Aktualizována tranzitivní HTTP/3 závislost &lt;code&gt;quic-go&lt;/code&gt; na v0.59.1, čímž se uzavírá zranitelnost v expanzi QPACK trailerů, která mohla útočníkovi umožnit vyčerpání paměti serveru nebo klienta.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Vylepšení webu s dokumentací&lt;/strong&gt;: Nový přepínač světlého/tmavého/automatického motivu a ikonový přepínač jazyků, ikonové odkazy GitHub/Podpora v navigaci, oprava duplicitně zakódovaných strukturovaných dat JSON-LD a rozšířený &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+	&lt;/ul&gt;
+
 	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;🔒 &lt;strong&gt;Bezpečné výchozí hodnoty (bez zpětné kompatibility)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; má nyní výchozí hodnotu &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; už nedefaultuje na &lt;code&gt;*&lt;/code&gt; a &lt;code&gt;JWT_SECRET&lt;/code&gt; musí mít alespoň 32 bajtů. Před upgradem je nutné zkontrolovat konfiguraci stávajících nasazení.&lt;/li&gt;

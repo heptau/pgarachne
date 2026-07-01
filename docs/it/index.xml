@@ -381,20 +381,13 @@ NOTIFY orders, '{"id":123,"status":"created"}';
  &lt;h2&gt;Novità&lt;/h2&gt;
  &lt;p&gt;Informazioni più dettagliate sulle modifiche in ogni versione sono disponibili direttamente su &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Valori predefiniti sicuri (con modifiche incompatibili)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; ora è &lt;code&gt;require&lt;/code&gt; di default, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; non è più &lt;code&gt;*&lt;/code&gt; di default e &lt;code&gt;JWT_SECRET&lt;/code&gt; deve avere almeno 32 byte. I deployment esistenti devono rivedere la configurazione prima dell'aggiornamento.&lt;/li&gt;
-		&lt;li&gt;🧹 &lt;strong&gt;Pulizia del codice legacy&lt;/strong&gt;: Rimossi i percorsi di reindirizzamento &lt;code&gt;/api/…&lt;/code&gt; e &lt;code&gt;/sse/…&lt;/code&gt; e l'alias JSON-RPC deprecato &lt;code&gt;login&lt;/code&gt;. Usa direttamente &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; e &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Autenticazione e gestione errori più rigorose&lt;/strong&gt;: Un nuovo limite di login per IP (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) chiude una falla di credential spraying, e gli errori degli strumenti MCP non espongono più il testo grezzo degli errori PostgreSQL per default (riattivabile con &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Limiti di connessione configurabili&lt;/strong&gt;: Il limite del pool di connessioni per l'autenticazione diretta è ora configurabile tramite &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🔑 &lt;strong&gt;Supporto per IdP esterni (BYO JWT)&lt;/strong&gt;: Le nuove impostazioni &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; e &lt;code&gt;JWT_LEEWAY&lt;/code&gt; associano i token emessi a un emittente/pubblico specifico e permettono di regolare la tolleranza di sfasamento orario.&lt;/li&gt;
-		&lt;li&gt;🧰 &lt;strong&gt;Nuovi strumenti&lt;/strong&gt;: Un &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) e un &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) autonomi si uniscono all'Explorer per test manuali rapidi.&lt;/li&gt;
-		&lt;li&gt;🐛 &lt;strong&gt;Correzioni di stabilità&lt;/strong&gt;: Risolto un blocco nello spegnimento SSE e un bug nel ripristino delle connessioni morte che poteva impedire al server di riconnettersi a PostgreSQL.&lt;/li&gt;
-		&lt;li&gt;🧪 &lt;strong&gt;Rafforzamento della CI&lt;/strong&gt;: Aggiunti &lt;code&gt;golangci-lint&lt;/code&gt;, il race detector di Go e &lt;code&gt;govulncheck&lt;/code&gt; a ogni build, oltre a una maggiore copertura dei test.&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;Processo di rilascio&lt;/strong&gt;: Aggiunto &lt;code&gt;CHANGELOG.md&lt;/code&gt; e suddiviso il flusso di rilascio in &lt;code&gt;make release-local&lt;/code&gt; (build e verifica) e &lt;code&gt;make release&lt;/code&gt; (tag, pubblicazione, aggiornamento del tap Homebrew).&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Correzione di sicurezza&lt;/strong&gt;: Aggiornata la dipendenza transitiva HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; alla v0.59.1, chiudendo una vulnerabilità di espansione dei trailer QPACK che poteva consentire a un peer malevolo di esaurire la memoria del server o del client.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Miglioramenti al sito della documentazione&lt;/strong&gt;: Nuovo selettore di tema chiaro/scuro/automatico e selettore di lingua solo a icone, link a icona GitHub/Supporto nella barra di navigazione, corretti i dati strutturati JSON-LD codificati due volte, e un &lt;code&gt;llms.txt&lt;/code&gt; ampliato.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/it/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/it/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
 &lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
 &lt;p&gt;L’&lt;strong&gt;Explorer&lt;/strong&gt; è una potente interfaccia web inclusa nella directory &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Non è solo
 		documentazione; è una &lt;strong&gt;applicazione demo&lt;/strong&gt; completamente funzionale costruita usando HTML/JS

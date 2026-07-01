@@ -11,6 +11,12 @@ menu:
 	        <h2>Novidades</h2>
         <p>Informações mais detalhadas sobre as alterações em cada versão podem ser encontradas diretamente em <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.1</p>
+	<ul>
+		<li>🔒 <strong>Correção de segurança</strong>: Atualizada a dependência transitiva de HTTP/3 <code>quic-go</code> para a v0.59.1, corrigindo uma vulnerabilidade de expansão de trailers QPACK que podia permitir que um peer malicioso esgotasse a memória do servidor ou do cliente.</li>
+		<li>🎨 <strong>Melhorias no site de documentação</strong>: Novo alternador de tema claro/escuro/automático e alternador de idioma apenas com ícones, links de ícone do GitHub/Apoio na barra de navegação, correção dos dados estruturados JSON-LD codificados em duplicidade, e um <code>llms.txt</code> ampliado.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.0</p>
 	<ul>
 		<li>🔒 <strong>Padrões seguros (com quebra de compatibilidade)</strong>: <code>DB_SSLMODE</code> agora tem como padrão <code>require</code>, <code>ALLOWED_ORIGINS</code> deixou de ter <code>*</code> como padrão, e <code>JWT_SECRET</code> deve ter no mínimo 32 bytes. Implantações existentes devem revisar a configuração antes de atualizar.</li>

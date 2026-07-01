@@ -506,17 +506,10 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	&lt;h2&gt;What's New&lt;/h2&gt;
 	&lt;p&gt;More detailed information about changes in each version can be found in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Secure defaults (breaking)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; now defaults to &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; no longer defaults to &lt;code&gt;*&lt;/code&gt;, and &lt;code&gt;JWT_SECRET&lt;/code&gt; must be at least 32 bytes. Existing deployments must review their configuration before upgrading.&lt;/li&gt;
-		&lt;li&gt;🧹 &lt;strong&gt;Legacy cleanup&lt;/strong&gt;: Removed the &lt;code&gt;/api/…&lt;/code&gt; and &lt;code&gt;/sse/…&lt;/code&gt; redirect routes and the deprecated JSON-RPC &lt;code&gt;login&lt;/code&gt; alias. Use &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; and &lt;code&gt;get_jwt&lt;/code&gt; directly.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Tighter auth &amp;amp; error handling&lt;/strong&gt;: New per-IP login rate limit (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) closes a credential-spraying gap, and MCP tool errors no longer leak raw PostgreSQL error text by default (opt back in with &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Configurable connection limits&lt;/strong&gt;: The direct-auth connection pool cap is now configurable via &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🔑 &lt;strong&gt;External IdP support (BYO JWT)&lt;/strong&gt;: New &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt;, and &lt;code&gt;JWT_LEEWAY&lt;/code&gt; settings bind issued tokens to a specific issuer/audience and tune clock-skew tolerance.&lt;/li&gt;
-		&lt;li&gt;🧰 &lt;strong&gt;New tools&lt;/strong&gt;: A standalone &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) and &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) join the Explorer for quick manual testing.&lt;/li&gt;
-		&lt;li&gt;🐛 &lt;strong&gt;Reliability fixes&lt;/strong&gt;: Fixed a stuck SSE shutdown and a dead-connection recovery bug that could leave the server unable to reconnect to PostgreSQL.&lt;/li&gt;
-		&lt;li&gt;🧪 &lt;strong&gt;CI hardening&lt;/strong&gt;: Added &lt;code&gt;golangci-lint&lt;/code&gt;, the Go race detector, and &lt;code&gt;govulncheck&lt;/code&gt; to every build, plus expanded test coverage.&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;Release process&lt;/strong&gt;: Added &lt;code&gt;CHANGELOG.md&lt;/code&gt; and split the release workflow into &lt;code&gt;make release-local&lt;/code&gt; (build &amp;amp; verify) and &lt;code&gt;make release&lt;/code&gt; (tag, publish, update the Homebrew tap).&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Security fix&lt;/strong&gt;: Upgraded the transitive HTTP/3 dependency &lt;code&gt;quic-go&lt;/code&gt; to v0.59.1, closing a QPACK trailer expansion vulnerability that could let a malicious peer exhaust memory on the server or client.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Docs site polish&lt;/strong&gt;: New light/dark/auto theme switcher and icon-only language switcher, GitHub/Support icon links in the navbar, fixed double-encoded JSON-LD structured data, and an expanded &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item></channel></rss>
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item></channel></rss>

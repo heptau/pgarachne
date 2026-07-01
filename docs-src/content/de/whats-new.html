@@ -11,6 +11,12 @@ menu:
 	        <h2>Neuigkeiten</h2>
         <p>Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.1</p>
+	<ul>
+		<li>🔒 <strong>Sicherheitskorrektur</strong>: Die transitive HTTP/3-Abhängigkeit <code>quic-go</code> wurde auf v0.59.1 aktualisiert und schließt damit eine QPACK-Trailer-Expansionslücke, die es einem böswilligen Peer ermöglichen konnte, den Speicher von Server oder Client zu erschöpfen.</li>
+		<li>🎨 <strong>Verbesserungen an der Doku-Website</strong>: Neuer Hell/Dunkel/Auto-Theme-Umschalter und ein reiner Icon-Sprachumschalter, GitHub/Support-Icon-Links in der Navigationsleiste, Behebung doppelt kodierter JSON-LD-Strukturdaten und ein erweitertes <code>llms.txt</code>.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.0</p>
 	<ul>
 		<li>🔒 <strong>Sichere Standardwerte (breaking)</strong>: <code>DB_SSLMODE</code> ist nun standardmäßig <code>require</code>, <code>ALLOWED_ORIGINS</code> ist nicht mehr standardmäßig <code>*</code>, und <code>JWT_SECRET</code> muss mindestens 32 Byte lang sein. Bestehende Deployments müssen ihre Konfiguration vor dem Upgrade prüfen.</li>

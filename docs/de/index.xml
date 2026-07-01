@@ -278,6 +278,12 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/
 	 &lt;h2&gt;Neuigkeiten&lt;/h2&gt;
  &lt;p&gt;Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Sicherheitskorrektur&lt;/strong&gt;: Die transitive HTTP/3-Abhängigkeit &lt;code&gt;quic-go&lt;/code&gt; wurde auf v0.59.1 aktualisiert und schließt damit eine QPACK-Trailer-Expansionslücke, die es einem böswilligen Peer ermöglichen konnte, den Speicher von Server oder Client zu erschöpfen.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Verbesserungen an der Doku-Website&lt;/strong&gt;: Neuer Hell/Dunkel/Auto-Theme-Umschalter und ein reiner Icon-Sprachumschalter, GitHub/Support-Icon-Links in der Navigationsleiste, Behebung doppelt kodierter JSON-LD-Strukturdaten und ein erweitertes &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+	&lt;/ul&gt;
+
 	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
 	&lt;ul&gt;
 		&lt;li&gt;🔒 &lt;strong&gt;Sichere Standardwerte (breaking)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; ist nun standardmäßig &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; ist nicht mehr standardmäßig &lt;code&gt;*&lt;/code&gt;, und &lt;code&gt;JWT_SECRET&lt;/code&gt; muss mindestens 32 Byte lang sein. Bestehende Deployments müssen ihre Konfiguration vor dem Upgrade prüfen.&lt;/li&gt;

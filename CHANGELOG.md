@@ -7,6 +7,12 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [2.0.1] - 2026-07-01
+
+### Security
+
+- Upgraded the transitive `github.com/quic-go/quic-go` dependency (pulled in via `gin-gonic/gin`) from v0.57.0 to v0.59.1, fixing an HTTP/3 QPACK trailer expansion memory-exhaustion vulnerability (GHSA advisory, similar to CVE-2025-64702) that could let a malicious peer trigger excessive memory allocation on both server and client.
+
 ### Added
 
 - Split `make release` into `make release-local` (test, build, and verify all release artifacts — no git, no push) and `make release` (runs `release-local`, then tags, pushes, creates the GitHub release from `dist/RELEASE_NOTES.md` and the built archives, and updates the `heptau/tap` Homebrew formula/cask via the GitHub API). See `scripts/publish_release.sh`.

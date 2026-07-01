@@ -11,6 +11,12 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.1</p>
+	<ul>
+		<li>🔒 <strong>Bezpečnostní oprava</strong>: Aktualizována tranzitivní HTTP/3 závislost <code>quic-go</code> na v0.59.1, čímž se uzavírá zranitelnost v expanzi QPACK trailerů, která mohla útočníkovi umožnit vyčerpání paměti serveru nebo klienta.</li>
+		<li>🎨 <strong>Vylepšení webu s dokumentací</strong>: Nový přepínač světlého/tmavého/automatického motivu a ikonový přepínač jazyků, ikonové odkazy GitHub/Podpora v navigaci, oprava duplicitně zakódovaných strukturovaných dat JSON-LD a rozšířený <code>llms.txt</code>.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.0</p>
 	<ul>
 		<li>🔒 <strong>Bezpečné výchozí hodnoty (bez zpětné kompatibility)</strong>: <code>DB_SSLMODE</code> má nyní výchozí hodnotu <code>require</code>, <code>ALLOWED_ORIGINS</code> už nedefaultuje na <code>*</code> a <code>JWT_SECRET</code> musí mít alespoň 32 bajtů. Před upgradem je nutné zkontrolovat konfiguraci stávajících nasazení.</li>
