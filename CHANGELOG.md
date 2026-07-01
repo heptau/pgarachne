@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Fixed
+
+- Docs site: `assets/script.js` was missing the cache-busting query parameter already used on `assets/style.css`, so browsers/CDNs could keep serving a stale cached copy of the script after a deploy (e.g. from before the theme/language switcher existed), making the navbar buttons appear broken until the cache expired.
+
 ## [2.0.1] - 2026-07-01
 
 ### Security

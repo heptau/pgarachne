@@ -155,6 +155,6 @@
 	{{ end }}
 	<script id="site-search-data" type="application/json">{{ $searchScratch.Get "items" | jsonify | safeJS }}</script>
 	<script id="site-search-texts" type="application/json">{{ dict "no_results" (i18n "search_no_results") "copy" (i18n "copy_label") "copied" (i18n "copied_label") | jsonify | safeJS }}</script>
-	<script src="{{ "assets/script.js" | relURL }}"></script>
+	<script src="{{ "assets/script.js" | relURL }}?v={{ now.Unix }}"></script>
 </body>
 </html>
