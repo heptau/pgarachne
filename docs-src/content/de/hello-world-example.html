@@ -1,15 +1,17 @@
 ---
-title: "Hello World Beispiel"
+title: "JSON-RPC & Hello World"
 description: "Hello World Beispiel - PgArachne"
 menu:
   main:
-    name: "Hello World Beispiel"
+    name: "JSON-RPC (Hello World)"
     weight: 60
 ---
 
 <section id="hello-world">
-	<h2>Hello World Beispiel</h2>
-	<p>Erstellen wir einen einfachen API-Endpunkt, der einem Benutzer zugeordnet ist.</p>
+	<h2>JSON-RPC &amp; Hello World</h2>
+	<p>Dieses Beispiel erstellt einen einfachen API-Endpunkt, der einem Datenbankbenutzer zugeordnet ist.
+		Zwei Authentifizierungsansätze werden gezeigt: der klassische JWT-Ablauf und der einfachere
+		Ablauf mit direkten Zugangsdaten.</p>
 
 	<h3>1. Benutzer und Funktion erstellen</h3>
 	<p>In Ihrer Datenbank (<code>my_database</code>):</p>
@@ -30,48 +32,54 @@ $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
 	<div class="tip">
-		<h3>Welche Authentifizierungsmethode soll ich wählen?</h3>
-		<ul>
-			<li><strong>Option A — JWT-Token:</strong> Empfohlen für Produktionsanwendungen und externe Clients. Erfordert einen zusätzlichen Login-Schritt sowie <code>GRANT demo_user TO pgarachne</code>.</li>
-			<li><strong>Option B — Direkte Zugangsdaten:</strong> Ideal für Entwicklung, Skripte und interne Dienste. Kein GRANT erforderlich, sofort einsatzbereit.</li>
-		</ul>
-		<p>Weitere Details finden Sie unter <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>.</p>
+		<strong>Welchen Authentifizierungsansatz sollten Sie verwenden?</strong><br>
+		Wählen Sie <strong>Option A (JWT)</strong> für browserbasierte Sitzungen oder Endnutzer-Sitzungen.
+		Wählen Sie <strong>Option B (direkte Zugangsdaten)</strong> für lokale Entwicklung, Skripte
+		oder interne Dienste — kein Token-Management erforderlich.
 	</div>
 
 	<h3>Option A: JWT-Token-Ablauf</h3>
 
-	<h4>A1. Proxy-Privileg erteilen</h4>
-	<p>Damit PgArachne die Rolle wechseln kann, ist ein zusätzliches GRANT erforderlich:</p>
-	<pre><code>-- PgArachne (Systembenutzer) darf zu demo_user wechseln
+	<p>Die JWT-Authentifizierung erfordert, dass der PgArachne-Systembenutzer (<code>pgarachne</code>) zu
+		<code>demo_user</code> wechseln kann:</p>
+	<pre><code>-- Required for JWT auth only: allow PgArachne to switch to demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h4>A2. JWT-Token abrufen</h4>
-	<p>Verwenden Sie die JSON-RPC-Methode <code>get_jwt</code>, um ein JWT-Token zu erhalten:</p>
+	<h4>Schritt 1 — JWT abrufen</h4>
+	<p>Rufen Sie die JSON-RPC-Methode <code>get_jwt</code> mit den Zugangsdaten des Benutzers auf:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Antwort:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h4>A3. Funktion aufrufen</h4>
-	<p>Verwenden Sie das Token, um die Funktion <code>hello_world</code> aufzurufen:</p>
-	<pre><code>export TOKEN="IHR_JWT_TOKEN_HIER"
+	<h4>Schritt 2 — Funktion aufrufen</h4>
+	<p>Verwenden Sie das JWT im <code>Authorization</code>-Header:</p>
+	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
 	<p>Antwort:</p>
-	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
 
-	<h3>Option B: Direkte Zugangsdaten</h3>
-	<p>Kein GRANT und kein vorheriger Login-Schritt erforderlich. Übergeben Sie den Benutzernamen und das Passwort direkt mit dem <code>-u</code>-Flag von <code>curl</code>:</p>
-	<pre><code>curl -u demo_user:user_password \
-  -X POST http://localhost:8080/db/my_database/jsonrpc \
+	<h3>Option B: Direkte Zugangsdaten (kein JWT erforderlich)</h3>
+
+	<p>Senden Sie den PostgreSQL-Benutzernamen und das Passwort direkt mit jedem Request über HTTP-Basic-Authentifizierung.
+		PgArachne öffnet einen Connection-Pool als dieser Benutzer — kein <code>GRANT … TO pgarachne</code>
+		erforderlich.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
 	<p>Antwort:</p>
-	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
-	<p>PgArachne verbindet sich direkt als <code>demo_user</code> — es wird kein <code>SET LOCAL ROLE</code> ausgeführt und kein <code>GRANT demo_user TO pgarachne</code> benötigt.
-		Weitere Informationen finden Sie unter <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>.</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>Das Flag <code>-u user:password</code> von curl setzt automatisch den
+		<code>Authorization: Basic …</code>-Header. Beide Optionen liefern identische Antworten.</p>
+
+	<p>Siehe <a href="../security-roles/#direct-credentials">Sicherheit &amp; Authentifizierung — Direkte Zugangsdaten</a>
+		für einen vollständigen Vergleich aller Authentifizierungsmethoden.</p>
 </section>

@@ -10,13 +10,15 @@ menu:
 <section id="security">
 	<h2>Segurança e Autenticação</h2>
 	<p>O PgArachne depende inteiramente do sistema de permissões do PostgreSQL. Ele não reinventa Listas
-		de Controle de Acesso (ACLs). Todas as consultas são executadas sob o papel de banco de dados específico
-		do usuário autenticado usando <code>SET LOCAL ROLE</code>.
+		de Controle de Acesso (ACLs). O PgArachne suporta <strong>quatro métodos de autenticação</strong>. Os métodos
+		1–3 usam <code>SET LOCAL ROLE</code> para trocar de identidade; o método 4 (credenciais diretas) conecta-se
+		<em>diretamente</em> como o usuário, portanto nenhuma troca de papel é necessária.
 	</p>
 
 	<h3>1. Login Interativo (JWT)</h3>
 	<p>Os usuários se autenticam usando seu <strong>nome de usuário e senha reais do PostgreSQL</strong> via
-		a função de login. Em caso de sucesso, recebem um JWT genérico. Quando este token é utilizado, o PgArachne
+		o método JSON-RPC <code>get_jwt</code>. Em caso de sucesso, recebem um JWT de curta duração. As requisições
+		subsequentes transportam esse token no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>, e o PgArachne
 		altera o papel ativo para esse usuário durante toda a duração da requisição.</p>
 
 	<h3>2. Contas de Serviço (Tokens de API)</h3>
@@ -50,7 +52,7 @@ menu:
 	<p><strong>Importante:</strong> algoritmos JWT assimétricos (por exemplo, <code>RS256</code>/<code>ES256</code>)
 		não são aceitos pela implementação atual do servidor.</p>
 
-	<h3>4. Credenciais diretas do banco de dados (Basic Auth)</h3>
+	<h3 id="direct-credentials">4. Credenciais diretas do banco de dados (Basic Auth)</h3>
 	<p>É possível enviar o nome de usuário e a senha do PostgreSQL diretamente via HTTP Basic Authentication,
 		sem necessidade de token JWT ou token de API.</p>
 	<ul>
@@ -75,6 +77,17 @@ menu:
 		</ul>
 		<p>Para ambientes de produção expostos à Internet ou integrações com clientes de IA em nuvem, os tokens de API (método 2) são preferíveis.</p>
 	</div>
+
+	<p><strong>Principais diferenças em relação aos métodos baseados em token:</strong></p>
+	<ul>
+		<li>Não é necessário nenhum <code>GRANT demo_user TO pgarachne</code> — o PgArachne não troca de papel.</li>
+		<li>A segurança em nível de linha (Row-Level Security) e as permissões via <code>GRANT</code> do PostgreSQL
+			são aplicadas normalmente, pois a conexão é executada como o próprio usuário.</li>
+		<li>Os pools de conexão são mantidos por usuário para maior eficiência, com um tempo de vida máximo de
+			5 minutos. Após uma alteração de senha, as conexões antigas expiram dentro dessa janela.</li>
+		<li>Para que as chaves de idempotência funcionem com credenciais diretas, conceda ao usuário
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+	</ul>
 
 	<h3>Comparação dos métodos de autenticação</h3>
 	<div class="table-wrapper">
@@ -134,4 +147,10 @@ menu:
 GRANT demo_user TO pgarachne;</code></pre>
 		<p><strong>Este passo não é necessário quando se utilizam credenciais diretas (método 4).</strong></p>
 	</div>
+
+	<h3>Veja também</h3>
+	<ul>
+		<li><a href="../configuration/">Configuração</a></li>
+		<li><a href="../error-codes/">Códigos de Erro</a></li>
+	</ul>
 </section>

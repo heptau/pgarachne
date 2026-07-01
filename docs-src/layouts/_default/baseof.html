@@ -102,7 +102,7 @@
 					</button>
 					<div class="lang-menu">
 						{{ $langs := partial "get-languages.html" . }}
-						{{ $flags := dict "en" "🇬🇧" "cs" "🇨🇿" "es" "🇪🇸" "de" "🇩🇪" "fr" "🇫🇷" "it" "🇮🇹" "pt" "🇵🇹" }}
+						{{ $flags := dict "en" "🇬🇧" "cs" "🇨🇿" "es" "🇪🇸" "de" "🇩🇪" "fr" "🇫🇷" "it" "🇮🇹" "pt" "🇵🇹" "pl" "🇵🇱" "uk" "🇺🇦" "el" "🇬🇷" }}
 						{{ range $langs }}
 						{{ $lang := .Lang }}
 						{{ $link := (printf "/%s/" $lang) }}

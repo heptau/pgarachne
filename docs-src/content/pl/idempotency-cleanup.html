@@ -1,0 +1,52 @@
+---
+title: "Czyszczenie kluczy idempotencji"
+description: "Konserwacja tabeli pgarachne.requests."
+menu:
+  main:
+    name: "Czyszczenie idempotencji"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Czyszczenie kluczy idempotencji</h1>
+
+<p>Każde żądanie JSON-RPC zawierające pole <code>idempotencyKey</code>
+jest zapisywane w tabeli <code>pgarachne.requests</code> przez funkcję
+<code>pgarachne.save_idempotency_key()</code>. Właśnie to sprawia, że
+wykrywanie duplikatów działa — ale oznacza to również, że tabela rośnie bez ograniczeń,
+jeśli operator nie uruchamia okresowo czyszczenia.</p>
+
+<p>PgArachne samo nie posiada wewnętrznego harmonogramu zadań w tle. Najczystsze
+opcje:</p>
+
+<h2>pg_cron (zalecane, jeśli możesz instalować rozszerzenia)</h2>
+<pre><code>-- Uruchamiaj co godzinę, usuń klucze starsze niż 24 godziny
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Zewnętrzny cron / timer systemd</h2>
+<p>Zaplanuj zadanie shell, które wywołuje funkcję przez <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Ręcznie / ad-hoc</h2>
+<p>Możesz wywołać tę funkcję w dowolnym momencie z psql, skryptu migracji
+lub jakiegokolwiek innego klienta. Zwraca liczbę usuniętych wierszy.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- domyślnie: 24 godziny
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Wybór okna retencji</h2>
+<p>Wybierz okno wygodnie dłuższe niż najdłuższy oczekiwany interwał ponownych
+prób twoich klientów. Jeśli błędnie działający klient powtórzy to samo
+klucz idempotencji 48 godzin po pierwotnym żądaniu, 24-godzinne
+okno retencji bezgłośnie przepuści duplikat.</p>
+
+<p>Dla większości wdrożeń 24 godziny to bezpieczna wartość domyślna.</p>
+
+</div>
+</section>

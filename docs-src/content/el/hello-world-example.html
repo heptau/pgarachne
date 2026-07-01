@@ -1,0 +1,84 @@
+---
+title: "JSON-RPC & Hello World"
+description: "Παράδειγμα Hello World - PgArachne"
+menu:
+  main:
+    name: "JSON-RPC (Hello World)"
+    weight: 60
+---
+
+<section id="hello-world">
+	<h2>JSON-RPC &amp; Hello World</h2>
+	<p>Αυτό το παράδειγμα δημιουργεί ένα απλό API endpoint που συνδέεται με έναν χρήστη της βάσης δεδομένων. Παρουσιάζονται δύο
+		προσεγγίσεις αυθεντικοποίησης: η κλασική ροή JWT και η απλούστερη ροή απευθείας διαπιστευτηρίων.</p>
+
+	<h3>1. Δημιουργία Χρήστη και Συνάρτησης</h3>
+	<p>Στη βάση δεδομένων σας (<code>my_database</code>):</p>
+	<pre><code>-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+
+	<div class="tip">
+		<strong>Ποια προσέγγιση αυθεντικοποίησης πρέπει να χρησιμοποιήσετε;</strong><br>
+		Επιλέξτε την <strong>Επιλογή Α (JWT)</strong> για συνεδρίες μέσω browser ή τελικού χρήστη.
+		Επιλέξτε την <strong>Επιλογή Β (απευθείας διαπιστευτήρια)</strong> για τοπική ανάπτυξη, scripts,
+		ή εσωτερικές υπηρεσίες — δεν απαιτείται διαχείριση token.
+	</div>
+
+	<h3>Επιλογή Α: Ροή JWT Token</h3>
+
+	<p>Η αυθεντικοποίηση JWT απαιτεί ο χρήστης συστήματος του PgArachne (<code>pgarachne</code>) να μπορεί να αλλάξει
+		στον <code>demo_user</code>:</p>
+	<pre><code>-- Required for JWT auth only: allow PgArachne to switch to demo_user
+GRANT demo_user TO pgarachne;</code></pre>
+
+	<h4>Βήμα 1 — Απόκτηση ενός JWT</h4>
+	<p>Καλέστε τη μέθοδο JSON-RPC <code>get_jwt</code> με τα διαπιστευτήρια του χρήστη:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+	<p>Απάντηση:</p>
+	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
+
+	<h4>Βήμα 2 — Κλήση της Συνάρτησης</h4>
+	<p>Χρησιμοποιήστε το JWT στην κεφαλίδα <code>Authorization</code>:</p>
+	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Απάντηση:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<h3>Επιλογή Β: Απευθείας Διαπιστευτήρια (Χωρίς JWT)</h3>
+
+	<p>Στείλτε το όνομα χρήστη και τον κωδικό πρόσβασης του PostgreSQL απευθείας με κάθε αίτημα χρησιμοποιώντας HTTP Basic
+		Authentication. Το PgArachne ανοίγει ένα connection pool ως αυτός ο χρήστης — δεν απαιτείται
+		<code>GRANT … TO pgarachne</code>.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Απάντηση:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>Η σημαία <code>-u user:password</code> στο curl ορίζει αυτόματα την κεφαλίδα
+		<code>Authorization: Basic …</code>. Και οι δύο επιλογές παράγουν ταυτόσημες απαντήσεις.</p>
+
+	<p>Δείτε <a href="../security-roles/#direct-credentials">Ασφάλεια &amp; Αυθεντικοποίηση — Απευθείας Διαπιστευτήρια</a>
+		για μια πλήρη σύγκριση όλων των μεθόδων αυθεντικοποίησης.</p>
+</section>

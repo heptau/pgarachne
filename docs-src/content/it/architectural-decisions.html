@@ -117,7 +117,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Routing tramite reverse proxy:</strong> Un'unica istanza PgArachne può servire più database. Un reverse proxy può instradare per prefisso o nome database senza ispezionare il corpo della richiesta, essenziale per il bilanciamento del carico.</li>
 			<li><strong>Scalabilità orizzontale:</strong> Con il nome del database nel percorso URL, è possibile eseguire più istanze PgArachne e instradare il traffico a istanze specifiche tramite regole di proxy standard, senza sessioni persistenti.</li>
-			<li><strong>Multiplexing di protocolli per database:</strong> Raggruppare <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sotto lo stesso namespace consente di applicare autenticazione, rate limiting e controllo accessi per database a livello di proxy.</li>
+			<li><strong>Multiplexing di protocolli per database:</strong> Raggruppare <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sotto lo stesso namespace <code>/{prefisso}/{database}/</code> consente di applicare autenticazione, rate limiting e controllo accessi per database a livello di proxy.</li>
 			<li><strong>Prefisso configurabile:</strong> I deployment che usano già <code>/api/</code> possono impostare <code>API_PREFIX=api</code>.</li>
 			<li><strong>Osservabilità:</strong> I sistemi di log e metriche possono raggruppare il traffico per nome database direttamente dall'URL senza analizzare i corpi JSON.</li>
 		</ul>
@@ -143,7 +143,7 @@ menu:
 			<li><strong>MCP è più che soli tool:</strong> Il protocollo include l'handshake di inizializzazione, ping, notifiche ed estensioni future — preoccupazioni a livello di protocollo che appartengono a Go.</li>
 			<li><strong>La sicurezza rimane in un unico posto:</strong> Autenticazione, cambio di ruolo e validazione sono già implementati in Go. L'endpoint MCP riutilizza questa logica invariata.</li>
 			<li><strong>Più protocolli, un backend:</strong> La stessa funzione PostgreSQL può essere chiamata via JSON-RPC, MCP o SSE. Il database è agnostico al protocollo.</li>
-			<li><strong>SQL più semplice:</strong> Elaborare gli envelope MCP in PostgreSQL richiederebbe il parsing di strutture JSON complesse in PL/pgSQL, rendendo le funzioni più difficili da scrivere e mantenere.</li>
+			<li><strong>SQL più semplice:</strong> Elaborare gli envelope MCP (<code>initialize</code>, <code>tools/list</code>, gestione delle notifiche) in PostgreSQL richiederebbe il parsing di strutture JSON complesse in PL/pgSQL, rendendo le funzioni più difficili da scrivere, testare e mantenere.</li>
 		</ul>
 
 		<h4>Perché non portare MCP nel database:</h4>

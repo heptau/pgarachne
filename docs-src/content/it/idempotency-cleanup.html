@@ -1,0 +1,56 @@
+---
+title: "Pulizia delle Chiavi di Idempotenza"
+description: "Manutenzione della tabella pgarachne.requests."
+menu:
+  main:
+    name: "Pulizia Idempotenza"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Pulizia delle Chiavi di Idempotenza</h1>
+
+<p>Ogni richiesta JSON-RPC che contiene un campo <code>idempotencyKey</code>
+viene registrata nella tabella <code>pgarachne.requests</code> dalla
+funzione <code>pgarachne.save_idempotency_key()</code>. &Egrave; questo
+meccanismo che rende possibile il rilevamento dei duplicati &mdash; ma
+significa anche che la tabella cresce senza limiti a meno che un operatore
+non esegua periodicamente una pulizia.</p>
+
+<p>PgArachne non esegue autonomamente uno scheduler in background. Le
+opzioni pi&ugrave; pulite sono:</p>
+
+<h2>pg_cron (consigliato se puoi installare estensioni)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Cron esterno / timer systemd</h2>
+<p>Pianifica un job shell che chiami la funzione tramite <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manuale / ad-hoc</h2>
+<p>Puoi chiamare la funzione in qualsiasi momento da psql, da uno script di
+migrazione o da qualsiasi altro client. Restituisce il numero di righe
+eliminate.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Scegliere una finestra di conservazione</h2>
+<p>Scegli una finestra comodamente pi&ugrave; lunga del pi&ugrave; lungo
+intervallo di ritentativo previsto per i tuoi client. Se un client
+malfunzionante ripete la stessa chiave di idempotenza 48 ore dopo la
+richiesta originale, una finestra di conservazione di 24 ore lascer&agrave;
+passare silenziosamente il duplicato.</p>
+
+<p>Per la maggior parte delle installazioni, 24 ore &egrave; un valore
+predefinito sicuro.</p>
+
+</div>
+</section>

@@ -1,0 +1,96 @@
+---
+title: "Σύγκριση: PgArachne έναντι PostgREST"
+description: "Comparison: PgArachne vs. PostgREST - PgArachne"
+menu:
+  main:
+    name: "Σύγκριση με το PostgREST"
+    weight: 30
+---
+
+<section id="comparison">
+	<h2>Σύγκριση: PgArachne έναντι PostgREST</h2>
+	<div class="comparison-table-wrapper">
+		<table>
+			<thead>
+				<tr>
+					<th>Χαρακτηριστικό</th>
+					<th>PgArachne (+ Universal Functions)</th>
+					<th>PostgREST</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><strong>Ταχύτητα Εγκατάστασης</strong></td>
+					<td>Υψηλή. Οι universal functions επιτρέπουν άμεσο CRUD, όμοιο με το PostgREST.</td>
+					<td>Υψηλή. Δημιουργεί αυτόματα endpoints για όλους τους πίνακες.</td>
+				</tr>
+				<tr>
+					<td><strong>Ευελιξία Λογικής</strong></td>
+					<td>Απεριόριστη. Δυνατότητα συνδυασμού universal CRUD με ειδικές RPC functions.</td>
+					<td>Περιορισμένη. Η περισσότερη λογική πρέπει να βρίσκεται σε URL filters ή Database Views.</td>
+				</tr>
+				<tr>
+					<td><strong>Χειρισμός Σχήματος</strong></td>
+					<td>Native. Πρόσβαση μέσω <code>schema.function</code>.</td>
+					<td>Flat/Global. Απαιτεί αλλαγή προφίλ σε HTTP headers για αλλαγή σχήματος.</td>
+				</tr>
+				<tr>
+					<td><strong>Abstraction</strong></td>
+					<td>Προαιρετικό. Μπορείτε είτε να εκθέσετε δεδομένα απευθείας (proxy) είτε να τα ενσωματώσετε με ασφάλεια.</td>
+					<td>Χαμηλό. Το API είναι ουσιαστικά ένας καθρέφτης του σχήματος της βάσης δεδομένων.</td>
+				</tr>
+				<tr>
+					<td><strong>Έτοιμο για AI &amp; LLM</strong></td>
+					<td>Εξαιρετικό. JSON-RPC και δυνατότητα ορισμού functions «Tool» ειδικά για AI agents.</td>
+					<td>Μέτριο. Το AI πρέπει να παλέψει με αυστηρή σύνταξη URL parameters.</td>
+				</tr>
+				<tr>
+					<td><strong>Στατικά Αρχεία</strong></td>
+					<td>Ναι. Εξυπηρετεί HTML/JS/CSS απευθείας από ένα μόνο binary.</td>
+					<td>Όχι. Πρέπει να ρυθμίσετε και να διαχειριστείτε ένα εξωτερικό Nginx μπροστά του.</td>
+				</tr>
+				<tr>
+					<td><strong>Πραγματικός Χρόνος (SSE)</strong></td>
+					<td>Ναι. Ενσωματωμένο endpoint SSE για streams <code>NOTIFY</code> της PostgreSQL.</td>
+					<td>Όχι. Απαιτεί προσαρμοσμένη διασύνδεση (π.χ. LISTEN/NOTIFY + ξεχωριστή υπηρεσία).</td>
+				</tr>
+				<tr>
+					<td><strong>Υποστήριξη Πολλαπλών Βάσεων Δεδομένων</strong></td>
+					<td><strong>Σε επίπεδο server (N:1).</strong> Ένα μόνο instance PgArachne συνδέεται στον server
+						(IP:Port) και μπορεί να εξυπηρετήσει όλες τις βάσεις δεδομένων που φιλοξενούνται εκεί.</td>
+					<td><strong>Ανά Βάση Δεδομένων (1:1).</strong> Ένα instance είναι δεσμευμένο σε μία συγκεκριμένη βάση δεδομένων. Η εξυπηρέτηση
+						πολλαπλών βάσεων δεδομένων απαιτεί την εκτέλεση πολλαπλών instances σε διαφορετικές θύρες.</td>
+				</tr>
+				<tr>
+					<td><strong>Authentication</strong></td>
+					<td>JWT / API Tokens. Υποστηρίζει native και τα δύο.</td>
+					<td>Κυρίως JWT.</td>
+				</tr>
+				<tr>
+					<td><strong>Rate Limiting</strong></td>
+					<td>Ναι. Ενσωματωμένο rate limiting για logins (ρυθμιζόμενο).</td>
+					<td>Όχι. Απαιτεί εξωτερικό proxy ή middleware.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<h3>Γιατί Νικά το «Υβριδικό PgArachne»</h3>
+	<p>Χάρη στις <strong>Universal Functions</strong> (που λειτουργούν ως emulator), αποκτάτε το καλύτερο από τους δύο
+		κόσμους:</p>
+	<ul>
+		<li><strong>Φάση Εκκίνησης (MVP):</strong> Αναπτύξτε το PgArachne με λίγες proxy functions (όπως αυτές στο
+			<code>universal_table_access.sql</code>) και μέσα σε λίγα λεπτά έχετε ένα λειτουργικό API για όλους τους πίνακες. Σε αυτό
+			το στάδιο, συμπεριφέρεται ακριβώς όπως το PostgREST.
+		</li>
+		<li><strong>Φάση Παραγωγής:</strong> Καθώς η εφαρμογή μεγαλώνει, ξεκινήστε να γράφετε αποκλειστικές functions για
+			ευαίσθητες λειτουργίες (π.χ. <code>process_payment</code>). Αυτό αυξάνει την ασφάλεια και την απόδοση
+			χωρίς να αλλάξει το υποκείμενο technology stack.</li>
+		<li><strong>Frontend &amp; AI:</strong> Ταυτόχρονα, η εφαρμογή σας τρέχει στην ίδια θύρα με το API
+			(χάρη στην εξυπηρέτηση static files), και οι AI agents μπορούν να καλέσουν τις functions σας απευθείας μέσω JSON-RPC.</li>
+	</ul>
+	<p>
+		<em>Σημείωση: Οι «Universal Functions» είναι ένα σύνολο τυπικών PL/pgSQL functions που μπορείτε να προσθέσετε στη βάση δεδομένων σας
+			για να ενεργοποιήσετε γενικές λειτουργίες Read, Create, Update και Delete σε οποιονδήποτε πίνακα.</em>
+	</p>
+</section>

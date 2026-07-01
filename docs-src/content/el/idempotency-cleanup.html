@@ -1,0 +1,52 @@
+---
+title: "Εκκαθάριση Κλειδιών Ιδεμποτεντίας"
+description: "Συντήρηση του πίνακα pgarachne.requests."
+menu:
+  main:
+    name: "Εκκαθάριση Ιδεμποτεντίας"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Εκκαθάριση Κλειδιών Ιδεμποτεντίας</h1>
+
+<p>Κάθε αίτημα JSON-RPC που φέρει ένα πεδίο <code>idempotencyKey</code>
+καταγράφεται στον πίνακα <code>pgarachne.requests</code> από τη
+συνάρτηση <code>pgarachne.save_idempotency_key()</code>. Αυτό είναι που
+κάνει την ανίχνευση διπλότυπων να λειτουργεί — αλλά σημαίνει επίσης ότι ο πίνακας
+μεγαλώνει χωρίς όριο εκτός αν ένας operator εκτελεί περιοδικά εκκαθάριση.</p>
+
+<p>Το PgArachne δεν εκτελεί δικό του background scheduler. Οι πιο καθαρές
+επιλογές:</p>
+
+<h2>pg_cron (συνιστάται αν μπορείτε να εγκαταστήσετε extensions)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Εξωτερικό cron / systemd timer</h2>
+<p>Προγραμματίστε μια εργασία shell που καλεί τη συνάρτηση μέσω <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Χειροκίνητη / περιστασιακή εκτέλεση</h2>
+<p>Μπορείτε να καλέσετε τη συνάρτηση οποιαδήποτε στιγμή από το psql, ένα script μετάπτωσης,
+ή οποιοδήποτε άλλο client. Επιστρέφει τον αριθμό των γραμμών που διαγράφηκαν.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Επιλογή παραθύρου διατήρησης</h2>
+<p>Επιλέξτε ένα παράθυρο αρκετά μεγαλύτερο από το μεγαλύτερο αναμενόμενο διάστημα
+επανάληψης για τους clients σας. Εάν ένας προβληματικός client επαναλάβει το ίδιο
+κλειδί ιδεμποτεντίας 48 ώρες μετά το αρχικό αίτημα, ένα παράθυρο διατήρησης
+24 ωρών θα αφήσει σιωπηλά το διπλότυπο να περάσει.</p>
+
+<p>Για τις περισσότερες εγκαταστάσεις, οι 24 ώρες είναι μια ασφαλής προεπιλογή.</p>
+
+</div>
+</section>

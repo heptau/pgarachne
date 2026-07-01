@@ -1,0 +1,22 @@
+---
+title: "Metryki (Prometheus)"
+description: "Metryki (Prometheus) - PgArachne"
+menu:
+  main:
+    name: "Metryki (Prometheus)"
+    weight: 90
+---
+
+<section id="metrics">
+	<h2>Metryki (Prometheus)</h2>
+	<p>PgArachne eksportuje metryki Prometheus na dedykowanym listenerze metryk (domyślnie <code>127.0.0.1:9090</code>) pod adresem <code>/metrics</code>, w tym standardowe metryki środowiska wykonawczego Go oraz:</p>
+	<ul>
+		<li><code>pgarachne_http_requests_total</code>, <code>pgarachne_http_request_duration_seconds</code></li>
+		<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>
+		<li><code>pgarachne_jsonrpc_requests_total</code></li>
+		<li><code>pgarachne_sse_clients</code>, <code>pgarachne_sse_channels</code>, <code>pgarachne_sse_client_drops_total</code></li>
+		<li><code>pgarachne_sse_events_forwarded_total</code> &mdash; zdarzenia PostgreSQL NOTIFY przekazane klientom SSE, z etykietą bazy danych</li>
+		<li><code>pgarachne_sse_bytes_sent_total</code> &mdash; bajty zapisane do strumieni odpowiedzi SSE (payloady, heartbeaty, preambuła), z etykietą bazy danych</li>
+		<li><code>pgarachne_sse_listen_errors_total</code> &mdash; błędy LISTEN/połączenia PostgreSQL oraz zdarzenia ponownego połączenia, z etykietą bazy danych i typu zdarzenia. Wartość różna od zera zasługuje na sprawdzenie &mdash; przy ponownym połączeniu hub odłącza wszystkich klientów, więc użytkownicy zauważą krótkotrwałą przerwę.</li>
+	</ul>
+</section>

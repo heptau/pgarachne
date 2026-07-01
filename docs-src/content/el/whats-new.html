@@ -1,0 +1,60 @@
+---
+title: "Τι Νέο Υπάρχει"
+description: "Τι Νέο Υπάρχει - PgArachne"
+menu:
+  main:
+    name: "Τι Νέο Υπάρχει"
+    weight: 20
+---
+
+<section id="whats-new" class="section-light">
+	<h2>Τι Νέο Υπάρχει</h2>
+	<p>Πιο αναλυτικές πληροφορίες σχετικά με τις αλλαγές σε κάθε έκδοση μπορείτε να βρείτε στα <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+
+	<p class="whats-new-subtitle">v2.0.1</p>
+	<ul>
+		<li>🔒 <strong>Διόρθωση ασφαλείας</strong>: Αναβαθμίστηκε η μεταβατική εξάρτηση HTTP/3 <code>quic-go</code> στην έκδοση v0.59.1, κλείνοντας μια ευπάθεια επέκτασης QPACK trailer που θα μπορούσε να επιτρέψει σε έναν κακόβουλο peer να εξαντλήσει τη μνήμη στον server ή στον client.</li>
+		<li>🎨 <strong>Βελτιώσεις στον ιστότοπο τεκμηρίωσης</strong>: Νέος εναλλάκτης θέματος light/dark/auto και εναλλάκτης γλώσσας μόνο με εικονίδιο, εικονίδια-συνδέσμους GitHub/Support στη γραμμή πλοήγησης, διόρθωση διπλά κωδικοποιημένων δομημένων δεδομένων JSON-LD, και επέκταση του <code>llms.txt</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Ασφαλείς προεπιλογές (breaking)</strong>: Το <code>DB_SSLMODE</code> έχει πλέον προεπιλογή <code>require</code>, το <code>ALLOWED_ORIGINS</code> δεν έχει πλέον προεπιλογή <code>*</code>, και το <code>JWT_SECRET</code> πρέπει να είναι τουλάχιστον 32 bytes. Οι υπάρχουσες εγκαταστάσεις πρέπει να ελέγξουν τη ρύθμισή τους πριν από την αναβάθμιση.</li>
+		<li>🧹 <strong>Καθαρισμός παλαιού κώδικα</strong>: Αφαιρέθηκαν οι διαδρομές ανακατεύθυνσης <code>/api/…</code> και <code>/sse/…</code> και το ξεπερασμένο JSON-RPC alias <code>login</code>. Χρησιμοποιήστε απευθείας τα <code>/{prefix}/:database/…</code> και <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Αυστηρότερη πιστοποίηση &amp; χειρισμός σφαλμάτων</strong>: Νέο όριο ρυθμού συνδέσεων ανά IP (<code>LOGIN_RATE_LIMIT_PER_IP</code>) κλείνει ένα κενό ασφαλείας απέναντι σε credential spraying, και τα σφάλματα εργαλείων MCP δεν διαρρέουν πλέον το ανεπεξέργαστο κείμενο σφάλματος της PostgreSQL από προεπιλογή (μπορείτε να το ενεργοποιήσετε ξανά με το <code>MCP_SQL_ERROR_DETAIL</code>).</li>
+		<li>⚙️ <strong>Ρυθμιζόμενα όρια συνδέσεων</strong>: Το ανώτατο όριο του connection pool για άμεση πιστοποίηση είναι πλέον ρυθμιζόμενο μέσω του <code>DIRECT_POOL_LIMIT</code>.</li>
+		<li>🔑 <strong>Υποστήριξη εξωτερικού IdP (BYO JWT)</strong>: Οι νέες ρυθμίσεις <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code>, και <code>JWT_LEEWAY</code> συνδέουν τα εκδοθέντα tokens με συγκεκριμένο εκδότη/audience και ρυθμίζουν την ανοχή απόκλισης ρολογιού.</li>
+		<li>🧰 <strong>Νέα εργαλεία</strong>: Ένα αυτόνομο <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) και <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) προστίθενται στο Explorer για ταχεία χειροκίνητη δοκιμή.</li>
+		<li>🐛 <strong>Διορθώσεις αξιοπιστίας</strong>: Διορθώθηκε ένα κολλημένο shutdown SSE και ένα σφάλμα ανάκτησης νεκρής σύνδεσης που μπορούσε να αφήσει τον server ανίκανο να επανασυνδεθεί στην PostgreSQL.</li>
+		<li>🧪 <strong>Ενίσχυση CI</strong>: Προστέθηκαν τα <code>golangci-lint</code>, ο Go race detector, και το <code>govulncheck</code> σε κάθε build, μαζί με διευρυμένη κάλυψη δοκιμών.</li>
+		<li>📦 <strong>Διαδικασία έκδοσης</strong>: Προστέθηκε το <code>CHANGELOG.md</code> και το release workflow χωρίστηκε σε <code>make release-local</code> (build &amp; επαλήθευση) και <code>make release</code> (tag, δημοσίευση, ενημέρωση του Homebrew tap).</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>PgArachne Explorer – μοντέρνο PWA</strong>: Πλήρης οπτική & λειτουργική ανανέωση – θέμα dark/light (αυτόματο), responsive διάταξη καρτών, επισήμανση σύνταξης JSON, κουμπί αντιγραφής στο clipboard, καλύτερη εμπειρία χρήστη πιστοποίησης (καρτέλες κωδικού/token), υποστήριξη εγκατάστασης PWA (manifest, εικονίδια, service worker), κοινοποιήσιμοι σύνδεσμοι μέσω της παραμέτρου <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Υποστήριξη Model Context Protocol (MCP)</strong>: Νέο endpoint <code>/{prefix}/{db}/mcp</code> με τυπικές μεθόδους <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – πλήρως υποστηριζόμενο από συναρτήσεις PostgreSQL και επαναχρησιμοποιώντας την υπάρχουσα πιστοποίηση & εναλλαγή ρόλων.</li>
+		<li>🔧 <strong>Ρυθμιζόμενο πρόθεμα API</strong>: Η προεπιλογή άλλαξε σε <code>/db/{database}/jsonrpc</code> και <code>/db/{database}/sse</code>, με τις παλαιές διαδρομές <code>/api/…</code> και <code>/sse/…</code> να διατηρούνται ως ανακατευθύνσεις 307 για συμβατότητα με το παρελθόν. Ελέγχεται μέσω της μεταβλητής περιβάλλοντος <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Προστασία idempotency</strong>: Προαιρετικό πεδίο <code>idempotencyKey</code> στα αιτήματα JSON-RPC – αυτόματη ανίχνευση διπλότυπων (HTTP 409 + κωδικός σφάλματος σε σύγκρουση) χρησιμοποιώντας το <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Βελτιώσεις τεκμηρίωσης</strong>: Νέα ενότητα <strong>/tools/</strong> με κάρτες (Explorer + επικείμενο macOS Toolbar), νέα σελίδα «Architectural Decisions», <strong>SECURITY.md</strong> με οδηγίες αναφοράς ευπαθειών, καλύτερη τυπογραφία σε όλες τις γλώσσες μέσω του TypoLima, βελτιωμένη υποστήριξη σελίδας 404 για το GitHub Pages.</li>
+		<li>📝 <strong>Μετονομασία μεθόδου σύνδεσης</strong>: Η μέθοδος JSON-RPC <code>login</code> μετονομάστηκε σε <code>get_jwt</code> (το παλιό όνομα διατηρείται ως ξεπερασμένο alias με προειδοποίηση στα logs).</li>
+		<li>📊 <strong>Καθαρισμός καταγραφής</strong>: Κατά την καταγραφή σε αρχείο, η κονσόλα εμφανίζει μόνο ελάχιστες πληροφορίες εκκίνησης → καθαρότερη έξοδος σε περιβάλλοντα παραγωγής / docker.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
+	<ul>
+		<li>🛡️ <strong>Ασφάλεια:</strong> Η επαλήθευση του access token πραγματοποιείται πλέον πριν από τη δημιουργία σύνδεσης με τη βάση δεδομένων. Βελτιωμένη προστασία έναντι IP spoofing (προστέθηκε η ρύθμιση <code>TRUSTED_PROXIES</code>) και απόκρυψη εσωτερικών σφαλμάτων βάσης δεδομένων από τους τελικούς χρήστες.</li>
+		<li>📊 <strong>Απομονωμένες μετρήσεις:</strong> Το endpoint Prometheus <code>/metrics</code> μετακινήθηκε από το δημόσιο API στη δική του ασφαλή θύρα (διαθέσιμο εξ ορισμού μόνο στο <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Νέα επιλογή εγκατάστασης:</strong> Το έργο διαθέτει πλέον επίσημο Homebrew tap για macOS και Linux. Τα builds είναι υπογεγραμμένα και δημιουργούνται μέσω του GoReleaser.</li>
+		<li>📚 <strong>Ανασχεδιασμένη τεκμηρίωση:</strong> Εντελώς νέα εμφάνιση βασισμένη στο framework Hugo. Προστέθηκε αστραπιαία αναζήτηση πλήρους κειμένου, δυνατότητα αντιγραφής κώδικα, και παραδείγματα ανάπτυξης σε παραγωγικό περιβάλλον (Nginx hardening, BYO JWT).</li>
+		<li>⚙️ <strong>Βελτιωμένη διαχείριση daemon:</strong> Προστέθηκε υποστήριξη για προσαρμοσμένη ρύθμιση διαδρομής <code>PID_FILE</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>Ενοποιημένο API:</strong> Όλες οι κλήσεις γίνονται μέσω <code>POST /api/&lt;db&gt;</code> (η καλούμενη μέθοδος καθορίζεται στο σώμα JSON-RPC).</li>
+		<li>⚡ <strong>Ειδοποιήσεις σε πραγματικό χρόνο:</strong> Νέο endpoint <code>GET /sse/&lt;db&gt;?channels=...</code> για ακρόαση συμβάντων βάσης δεδομένων με υποστήριξη πολλών καναλιών.</li>
+		<li>📈 <strong>Παρατηρησιμότητα:</strong> Λεπτομερείς μετρήσεις Prometheus για HTTP, auth, JSON-RPC, και SSE.</li>
+		<li>🏋️ <strong>Σημαντικές βελτιώσεις σταθερότητας:</strong> Προστασία έναντι αργών clients, αυστηρά timeouts, και αυτόματος καθαρισμός συνδέσεων.</li>
+	</ul>
+</section>

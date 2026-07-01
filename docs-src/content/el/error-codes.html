@@ -1,0 +1,67 @@
+---
+title: "Κωδικοί Σφαλμάτων"
+description: "Error Codes - PgArachne"
+menu:
+  main:
+    name: "Κωδικοί Σφαλμάτων"
+    weight: 120
+---
+
+<section id="errors">
+	<h2>Κωδικοί Σφαλμάτων</h2>
+	<p>Το PgArachne επιστρέφει τυπικά αντικείμενα σφαλμάτων JSON-RPC 2.0. Παρακάτω είναι οι συγκεκριμένοι κωδικοί που μπορεί να
+		συναντήσετε:</p>
+	<table>
+		<tr>
+			<th>Κωδικός</th>
+			<th>Μήνυμα</th>
+			<th>Σημασία</th>
+		</tr>
+		<tr>
+			<td><code>-32700</code></td>
+			<td>Parse error</td>
+			<td>Ελήφθη μη έγκυρη JSON από τον server.</td>
+		</tr>
+		<tr>
+			<td><code>-32601</code></td>
+			<td>Method not found</td>
+			<td>Η function δεν υπάρχει στο σχήμα.</td>
+		</tr>
+		<tr>
+			<td><code>-32602</code></td>
+			<td>Invalid params</td>
+			<td>Τα arguments δεν ταιριάζουν με το signature της function.</td>
+		</tr>
+		<tr>
+			<td><code>-32001</code></td>
+			<td>Permission denied</td>
+			<td>Ο τρέχων ρόλος χρήστη δεν έχει δικαιώματα εκτέλεσης της function (επίπεδο DB).</td>
+		</tr>
+		<tr>
+			<td><code>-32000</code></td>
+			<td>Internal Error</td>
+			<td>Γενικό σφάλμα server (ελέγξτε τα logs).</td>
+		</tr>
+	</table>
+<div class="tip">
+		<strong>Τρέχουσα συμπεριφορά:</strong> οι απαντήσεις runtime αντιστοιχίζονται κυρίως σε HTTP status codes με ένα JSON-RPC error <code>message</code>. Ο custom κωδικός JSON-RPC <code>-32001</code> χρησιμοποιείται για άρνηση ρόλου/δικαιώματος.
+	</div>
+
+	<h3>Αντιστοίχιση HTTP Status</h3>
+	<table>
+		<tr><th>HTTP</th><th>Τυπικό μήνυμα</th><th>Πότε συμβαίνει</th></tr>
+		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Κακοσχηματισμένο payload request ή μορφή method.</td></tr>
+		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Απούσα ή μη έγκυρη authentication.</td></tr>
+		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Το <code>SET LOCAL ROLE</code> απέτυχε (<code>-32001</code>).</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist</td><td>Η function-στόχος λείπει.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Υπέρβαση του rate limit σύνδεσης.</td></tr>
+		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Αποτυχία εκτέλεσης ή commit.</td></tr>
+		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Προσωρινή μη διαθεσιμότητα βάσης δεδομένων ή listener.</td></tr>
+	</table>
+
+	<h3>Δείτε επίσης</h3>
+	<ul>
+		<li><a href="../security-roles/">Ασφάλεια & Authentication</a></li>
+		<li><a href="../configuration/">Ρύθμιση</a></li>
+	</ul>
+</section>

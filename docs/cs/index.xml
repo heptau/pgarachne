@@ -194,7 +194,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/
 &lt;li&gt;Ověřujete, zda systémový uživatel &lt;code&gt;pgarachne&lt;/code&gt; může přepnout na danou roli (musí existovat &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;).&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div class="tip"&gt;
-&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
+&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;, protože PgArachne ověřuje heslo interně přes &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
 &lt;/div&gt;
 &lt;h3&gt;Funkce&lt;/h3&gt;
 &lt;ul&gt;
@@ -276,7 +276,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/
 
 	&lt;div class="card" style="margin-bottom: 2rem;"&gt;
 		&lt;h3&gt;🛠️ SQL Funkce jako Nástroje&lt;/h3&gt;
-		&lt;p&gt;Jakákoli SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem" v AI. Výchozí nastavení (volání &lt;code&gt;pgarachne.allowed_schemas()&lt;/code&gt;) vystavuje funkce uložené ve schématu &lt;code&gt;api&lt;/code&gt;, ke kterým má uživatel přístup (GRANT EXECUTE). LLM vidí název funkce, parametry a popis z SQL komentářů.&lt;/p&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+		&lt;p&gt;Jakákoli SQL funkce, která je dostupná přes JSON-RPC 2.0 endpoint PgArachne, se automaticky stane „nástrojem" v AI. Výchozí nastavení (volání &lt;code&gt;pgarachne.allowed_schemas()&lt;/code&gt;) vystavuje funkce uložené ve schématu &lt;code&gt;api&lt;/code&gt;, ke kterým má uživatel přístup (&lt;code&gt;GRANT EXECUTE&lt;/code&gt;). LLM vidí název funkce, parametry a popis z SQL komentářů.&lt;/p&gt;</description></item><item><title>Nasazení a HTTPS</title><link>https://www.pgarachne.com/cs/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Nasazení a HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne je navržen tak, aby dělal jednu věc dobře: API Gateway. Pro SSL/TLS (HTTPS), bezpečnost
 		hlaviček a veřejné směrování byste před něj měli umístit &lt;strong&gt;reverzní proxy&lt;/strong&gt;.&lt;/p&gt;
@@ -414,21 +414,19 @@ example.com {
 			&lt;p&gt;Přímá podpora s 0% poplatky.&lt;/p&gt;</description></item><item><title>Real-time notifikace (SSE)</title><link>https://www.pgarachne.com/cs/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
 	&lt;h2&gt;Real-time notifikace (SSE)&lt;/h2&gt;
 	&lt;p&gt;Přihlaste se k PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; kanálům přes Server-Sent Events:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
- -H "Authorization: Bearer $TOKEN"&lt;/code&gt;&lt;/pre&gt;
+	&lt;pre&gt;&lt;code&gt;# Bearer token (JWT nebo API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -H "Authorization: Bearer $TOKEN"
+
+# Přímé přihlašovací údaje (HTTP Basic Auth — není potřeba GRANT … TO pgarachne)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -u "alice:secret"&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Každá zpráva je JSON s názvem kanálu a payloadem:&lt;/p&gt;
 	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
 	&lt;p&gt;Pokud je payload text, zabalí se jako string do &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 
 	&lt;h3&gt;Odesílání notifikací z PostgreSQL&lt;/h3&gt;
-	&lt;p&gt;Z &lt;code&gt;psql&lt;/code&gt; nebo jakékoli databázové session:&lt;/p&gt;
-	&lt;pre&gt;&lt;code&gt;-- Jednoduchý textový payload
-NOTIFY orders, 'nova objednavka';
-
--- JSON payload
-NOTIFY orders, '{"id":123,"status":"created"}';
-&lt;/code&gt;&lt;/pre&gt;
-	&lt;p&gt;Z triggeru nebo uložené procedury:&lt;/p&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;p&gt;Z &lt;code&gt;psql&lt;/code&gt; nebo jakékoli databázové session:&lt;/p&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
 	&lt;h2&gt;Srovnání: PgArachne vs. PostgREST&lt;/h2&gt;
 	&lt;div class="comparison-table-wrapper"&gt;
 		&lt;table&gt;
@@ -505,19 +503,12 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Více kanálů najednou&lt;/strong&gt; — kanály přidáváte jako tagy před připojením. Všechny kanály jsou předány jako parametr &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Všechny způsoby autentizace&lt;/strong&gt; — záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth (přímé přihlášení, bez JWT); záložka &lt;em&gt;Bearer Token&lt;/em&gt; přijímá JWT nebo API token.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení. Řádky SSE jsou parsovány manuálně, takže pole &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; i heartbeat (&lt;code&gt;:&lt;/code&gt;) jsou zpracovány správně.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Zvýraznění JSON syntaxe&lt;/strong&gt; — datové payload ve formátu JSON jsou zobrazeny s barevným zvýrazněním.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Ukládání nastavení&lt;/strong&gt; — URL, prefix, databáze, přihlašovací jméno a seznam kanálů se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Autentizace&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Záložka Password&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Basic &amp;lt;base64(uživatel:heslo)&amp;gt;&lt;/code&gt;. Nevyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Záložka Bearer Token&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Vložte JWT (získaný přes &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) nebo dlouhodobý API token.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class="tip"&gt;
-&lt;strong&gt;Jak nástroj zprovoznit:&lt;/strong&gt; Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/test-sse&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;. Nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči — vše funguje bez lokálního serveru.
-&lt;/div&gt;
-&lt;/section&gt;</description></item><item><title>Údržba idempotency klíčů</title><link>https://www.pgarachne.com/cs/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
+&lt;p&gt;Nástroj ověří přihlašovací údaje ještě před zobrazením panelu pro odběr kanálů. Kliknutí na &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; zavolá &lt;code&gt;capabilities&lt;/code&gt; se zvolenou hlavičkou — pokud PgArachne vrátí úspěšnou odpověď, panel pro odběr se odemkne.&lt;/p&gt;</description></item><item><title>Údržba idempotency klíčů</title><link>https://www.pgarachne.com/cs/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
 &lt;div class="container"&gt;
 &lt;h1&gt;Údržba tabulky idempotency klíčů&lt;/h1&gt;
 

@@ -1,0 +1,145 @@
+---
+title: "Безпека та автентифікація"
+description: "Безпека та автентифікація - PgArachne"
+menu:
+  main:
+    name: "Безпека та автентифікація"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Безпека та автентифікація</h2>
+	<p>PgArachne повністю покладається на систему прав доступу PostgreSQL. Він не винаходить власні списки контролю доступу (ACL).
+		PgArachne підтримує <strong>чотири методи автентифікації</strong>. Методи 1–3 використовують
+		<code>SET LOCAL ROLE</code> для перемикання ідентичності; метод 4 (прямі облікові дані) підключається
+		<em>безпосередньо</em> як користувач, тож перемикання ролі не потрібне.
+	</p>
+
+	<h3>1. Інтерактивний вхід (JWT)</h3>
+	<p>Користувачі автентифікуються за допомогою свого <strong>справжнього імені користувача та пароля PostgreSQL</strong> через
+		метод JSON-RPC <code>get_jwt</code>. У разі успіху вони отримують короткостроковий JWT. Наступні запити
+		передають цей токен у заголовку <code>Authorization: Bearer &lt;token&gt;</code>, і PgArachne перемикає
+		активну роль на цього користувача на час виконання кожного запиту.</p>
+
+	<h3>2. Сервісні облікові записи (API-токени)</h3>
+	<p>Для автоматизованих систем або скриптів рекомендується використовувати довгострокові API-токени.</p>
+	<ul>
+		<li>Токени зберігаються в таблиці <code>pgarachne.api_tokens</code>.</li>
+		<li>Кожен токен зіставлений із конкретною роллю бази даних.</li>
+		<li>Надсилайте токен через заголовок <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>Створення API-токенів вимагає <code>pgarachne_admin</code>. Використовуйте <code>pgarachne.add_api_token(...)</code>
+		з роллю, яка є учасником <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Зовнішній постачальник ідентичності (власний JWT)</h3>
+	<p>Якщо користувачі автентифікуються поза PgArachne (наприклад, через зовнішній сервіс автентифікації), ви можете
+		видавати JWT там і надсилати їх безпосередньо до PgArachne.</p>
+	<ul>
+		<li>Формат заголовка: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Підписування: лише HMAC (<code>HS256</code> / <code>HS384</code> / <code>HS512</code>) із тим самим
+			<code>JWT_SECRET</code>, який налаштовано в PgArachne.</li>
+		<li>Обов'язкові claim-и: <code>db_role</code> (рядок, не порожній) та <code>db_name</code> (рядок, має
+			відповідати сегменту шляху <code>:database</code>).</li>
+		<li>Рекомендований claim: <code>exp</code> (Unix-часова метка) для терміну дії токена.</li>
+	</ul>
+	<p>Приклад мінімального payload:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Примітка:</strong> асиметричні алгоритми JWT (наприклад, <code>RS256</code> / <code>ES256</code>) не
+		підтримуються.</p>
+
+	<h3 id="direct-credentials">4. Прямі облікові дані бази даних (Basic Auth)</h3>
+	<p>Найпростіший варіант: надсилайте ім'я користувача та пароль PostgreSQL з <strong>кожним запитом</strong>,
+		використовуючи стандартну HTTP Basic Authentication. PgArachne відкриває окремий пул з'єднань, автентифікований безпосередньо
+		як цей користувач — <code>SET LOCAL ROLE</code> при цьому <em>не</em> виконується.</p>
+
+	<pre><code>Authorization: Basic &lt;base64(username:password)&gt;</code></pre>
+
+	<p>Приклад з curl:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+
+	<div class="tip">
+		<strong>Коли використовувати прямі облікові дані:</strong>
+		<ul>
+			<li>Швидке прототипування та локальна розробка — управління токенами не потрібне.</li>
+			<li>Внутрішні служби, які вже безпечно обробляють облікові дані.</li>
+			<li>Сценарії, де попереднє видання JWT додає непотрібну складність.</li>
+		</ul>
+	</div>
+
+	<p><strong>Ключові відмінності від методів на основі токенів:</strong></p>
+	<ul>
+		<li><code>GRANT demo_user TO pgarachne</code> не потрібен — PgArachne не перемикає ролі.</li>
+		<li>Row-Level Security PostgreSQL та права доступу <code>GRANT</code> застосовуються як зазвичай, оскільки
+			з'єднання виконується від імені фактичного користувача.</li>
+		<li>Пули з'єднань підтримуються окремо для кожного користувача для ефективності, з максимальним часом життя 5 хвилин. Після
+			зміни пароля старі з'єднання завершуються протягом цього вікна.</li>
+		<li>Щоб ключі ідемпотентності працювали з прямими обліковими даними, надайте користувачеві право
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+	</ul>
+
+	<div class="warning">
+		<h3>Права проксі: потрібні лише для методів 1–3</h3>
+		<p>Для автентифікації через JWT та API-токени PgArachne підключається як системний користувач, визначений у
+			<code>DB_USER</code> (наприклад, <code>pgarachne</code>), і перемикає ідентичність за допомогою
+			<code>SET LOCAL ROLE</code>. Системний користувач <strong>повинен бути учасником</strong> кожної цільової ролі.</p>
+		<pre><code>-- Потрібно лише для автентифікації через JWT / API-токен:
+GRANT demo_user TO pgarachne;</code></pre>
+		<p>Цей grant <strong>не потрібен</strong> при використанні прямих облікових даних (метод 4).</p>
+	</div>
+
+	<h3>Порівняння методів автентифікації</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Метод</th>
+				<th>Заголовок</th>
+				<th>SET LOCAL ROLE</th>
+				<th>GRANT … TO pgarachne</th>
+				<th>Найкраще для</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>JWT (get_jwt)</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Так</td>
+				<td>Потрібен</td>
+				<td>Сесії кінцевих користувачів</td>
+			</tr>
+			<tr>
+				<td>API-токен</td>
+				<td><code>Bearer &lt;token&gt;</code></td>
+				<td>✅ Так</td>
+				<td>Потрібен</td>
+				<td>Автоматизовані служби</td>
+			</tr>
+			<tr>
+				<td>Зовнішній JWT</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Так</td>
+				<td>Потрібен</td>
+				<td>Інтеграція із зовнішнім IdP</td>
+			</tr>
+			<tr>
+				<td><strong>Прямі облікові дані</strong></td>
+				<td><code>Basic &lt;b64&gt;</code></td>
+				<td>❌ Ні</td>
+				<td><strong>Не потрібен</strong></td>
+				<td>Розробка, внутрішні служби</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h3>Дивіться також</h3>
+	<ul>
+		<li><a href="../configuration/">Конфігурація</a></li>
+		<li><a href="../error-codes/">Коди помилок</a></li>
+	</ul>
+</section>

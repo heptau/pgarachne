@@ -1,0 +1,76 @@
+---
+title: "Розгортання та HTTPS"
+description: "Розгортання та HTTPS - PgArachne"
+menu:
+  main:
+    name: "Розгортання та HTTPS"
+    weight: 110
+---
+
+<section id="deployment">
+	<h2>Розгортання та HTTPS</h2>
+	<p>PgArachne створений, щоб добре виконувати одну роботу: API-шлюз. Для SSL/TLS (HTTPS), безпеки
+		заголовків та публічної маршрутизації вам слід розмістити перед ним <strong>зворотний проксі</strong>.</p>
+
+	<div class="deployment-option">
+		<h3>Варіант A: Caddy Server</h3>
+		<p><strong>Найкраще для:</strong> Сучасних продакшн-розгортань, простоти використання.</p>
+		<p><a href="https://caddyserver.com/" target="_blank">Caddy</a> — єдиний веб-сервер, який
+			отримує та автоматично оновлює SSL-сертифікати (Let's Encrypt) за умовчанням. Він потребує майже нульового
+			налаштування.</p>
+		<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Варіант B: Nginx</h3>
+		<p><strong>Найкраще для:</strong> Корпоративних середовищ, складної маршрутизації.</p>
+		<p><a href="https://nginx.org/" target="_blank">Nginx</a> — галузевий стандарт для
+			високопродуктивного балансування навантаження. Використовуйте це, якщо у вас уже є інфраструктура Nginx. Вам
+			доведеться керувати Certbot вручну.</p>
+		<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Варіант C: Ngrok</h3>
+		<p><strong>Найкраще для:</strong> Локальної розробки, демонстрацій, тестування вебхуків.</p>
+		<p><a href="https://ngrok.com/" target="_blank">Ngrok</a> створює безпечний тунель з публічного
+			інтернету безпосередньо до вашого ноутбука без налаштування фаєрволів. Ідеально підходить для миттєвої демонстрації роботи
+			колегам.</p>
+		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Контрольний список для продакшну</h3>
+		<ul>
+			<li>Завершуйте TLS на зворотному проксі та передавайте <code>X-Forwarded-Proto</code> і <code>X-Forwarded-For</code>.</li>
+			<li>Встановіть у PgArachne <code>TRUSTED_PROXIES</code> на діапазони IP/CIDR вашого проксі.</li>
+			<li>Вимкніть буферизацію для маршрутів SSE та зробіть тайм-аути читання достатньо довгими для потокової передачі.</li>
+			<li>Надавайте доступ до метрик лише внутрішньо (за умовчанням <code>127.0.0.1:9090</code>) і опитуйте (scrape) з вашої мережі моніторингу.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Приклад посилення захисту Nginx (SSE + forwarded-заголовки)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
+	</div>
+</section>

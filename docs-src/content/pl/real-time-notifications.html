@@ -1,0 +1,39 @@
+---
+title: "Powiadomienia w czasie rzeczywistym (SSE)"
+description: "Powiadomienia w czasie rzeczywistym (SSE) - PgArachne"
+menu:
+  main:
+    name: "Powiadomienia w czasie rzeczywistym (SSE)"
+    weight: 70
+---
+
+<section id="sse">
+	<h2>Powiadomienia w czasie rzeczywistym (SSE)</h2>
+	<p>Subskrybuj kanały PostgreSQL <code>NOTIFY</code> za pomocą Server-Sent Events:</p>
+	<pre><code># Token Bearer (JWT lub token API)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Bezpośrednie dane logowania (HTTP Basic Auth — GRANT … TO pgarachne nie jest wymagany)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -u "alice:secret"</code></pre>
+	<p>Każda wiadomość jest w formacie JSON i zawiera nazwę kanału oraz payload:</p>
+	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+	<p>Jeśli payload jest zwykłym tekstem, zostaje zapakowany jako string w polu <code>data</code>.</p>
+
+	<h3>Wysyłanie powiadomień z PostgreSQL</h3>
+	<p>Z <code>psql</code> lub innej sesji bazy danych:</p>
+	<pre><code>-- Prosty tekstowy payload
+NOTIFY orders, 'new order';
+
+-- Payload JSON
+NOTIFY orders, '{"id":123,"status":"created"}';
+</code></pre>
+	<p>Z triggera lub procedury składowanej:</p>
+	<pre><code>PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);</code></pre>
+	<div class="tip">
+		<strong>Uwaga:</strong> <code>NOTIFY</code> jest dostarczany do innych sesji tylko po zatwierdzeniu (commit)
+		transakcji wysyłającej. Jeśli wykonasz je w otwartej transakcji w <code>psql</code>, subskrybenci nie otrzymają
+		powiadomienia, dopóki nie wykonasz <code>COMMIT</code>.
+	</div>
+</section>

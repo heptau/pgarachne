@@ -1,0 +1,278 @@
+---
+title: "Konfiguracja"
+description: "Konfiguracja - PgArachne"
+menu:
+  main:
+    name: "Konfiguracja"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Konfiguracja</h2>
+	<p>PgArachne wczytuje konfigurację ze zmiennych środowiskowych lub z pliku.</p>
+	<div class="tip">
+		<strong>Uwaga:</strong> <code>schema.sql</code> próbuje utworzyć rolę <code>pgarachne_admin</code> i przypisać ją do <code>pgarachne</code>. Jeśli uruchomisz skrypt bez uprawnień superużytkownika, tworzenie roli zostanie pominięte. W takim przypadku utwórz rolę i przypisz uprawnienia ręcznie.
+	<br>
+		Użytkownik proxy (<code>DB_USER</code>) musi być członkiem <code>pgarachne</code> i <code>pgarachne_admin</code>, aby móc weryfikować i wydawać tokeny API.</div>
+	<div class="tip">
+		<strong>Uwaga dotycząca bezpieczeństwa:</strong> PgArachne nie przechowuje haseł do bazy danych w pliku konfiguracyjnym.
+		Do autoryzacji korzysta ze standardowego mechanizmu pliku PostgreSQL <code>.pgpass</code> (lub
+		zmiennej systemowej <code>PGPASSWORD</code>).
+	</div>
+	<div class="tip">
+		<strong>Wskazówka:</strong> Jeśli uruchamiasz PgArachne za reverse proxy, ustaw <code>TRUSTED_PROXIES</code>, aby IP klientów były rozpoznawane prawidłowo i nie można było oszukać rate limitingu.
+	</div>
+
+	<div class="tip">
+		<strong>Porządek wyszukiwania:</strong> Jeśli plik konfiguracyjny nie zostanie wskazany przez CLI, wyszukiwanie odbywa się w kolejności:
+		<ol>
+			<li>Katalog bieżący: <code>./pgarachne.env</code> (wszystkie systemy operacyjne)</li>
+			<li>Konfiguracja użytkownika:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>Konfiguracja systemowa: <code>/etc/pgarachne/pgarachne.env</code> (tylko Linux / macOS)</li>
+		</ol>
+	</div>
+
+	<h3>Przykład minimalnej konfiguracji</h3>
+	<p>To wszystko, czego potrzebujesz na początek:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Wymagane zmienne:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>).</p>
+
+	<h3>Szybka lista kontrolna walidacji</h3>
+	<ul>
+		<li><code>JWT_SECRET</code> jest długi, losowy i nie jest współdzielony między środowiskami.</li>
+		<li><code>DB_USER</code> może przełączać się tylko na oczekiwane role (zweryfikuj przypisania członkostwa w rolach).</li>
+		<li><code>TRUSTED_PROXIES</code> jest ustawione, gdy działasz za reverse proxy.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> jest włączony dla wdrożeń dostępnych z internetu.</li>
+		<li><code>METRICS_LISTEN_ADDR</code> jest prywatny (na przykład <code>127.0.0.1:9090</code>).</li>
+	</ul>
+
+	<h3>Pełny wykaz konfiguracji</h3>
+	<table class="config-table">
+		<thead>
+			<tr>
+				<th style="width: 30%;">Zmienna</th>
+				<th style="width: 15%;">Wymagane</th>
+				<th>Opis</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Database Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Połączenie
+					z bazą danych</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_HOST</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Wymagane" aria-label="Wymagane">✓</span></td>
+				<td>Adres serwera PostgreSQL (np. <code>localhost</code>).</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Wymagane" aria-label="Wymagane">✓</span></td>
+					<td>Port bazy danych.</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_USER</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Wymagane" aria-label="Wymagane">✓</span></td>
+				<td>Użytkownik bazy danych, z którym łączy się PgArachne.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Tryb SSL PostgreSQL. Domyślnie: <code>require</code>. Ustaw <code>disable</code> jawnie tylko dla lokalnego środowiska deweloperskiego bez TLS.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ścieżka do certyfikatu głównego CA (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ścieżka do certyfikatu klienta (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ścieżka do klucza prywatnego klienta (PEM).</td>
+			</tr>
+
+
+			<!-- Server Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Serwer HTTP</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Port do nasłuchiwania. Domyślnie: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Pierwszy segment ścieżki URL dla wszystkich endpointów bazodanowych (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Domyślnie: <code>db</code>, co daje ścieżki takie jak <code>/db/:database/jsonrpc</code>. Dozwolone są tylko litery, cyfry, myślniki i podkreślenia.</td>
+			</tr>
+			<tr>
+				<td><code>PID_FILE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ścieżka do pliku PID demona używanego przez <code>-start</code>/<code>-stop</code>. Domyślnie: katalog cache użytkownika systemu operacyjnego (fallback: katalog tymczasowy).</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ustawienia CORS. Lista dozwolonych źródeł rozdzielona przecinkami (np. <code>https://mojaaplikacja.com</code>).
+					Domyślnie: nieustawione — żądania cross-origin z przeglądarki są wyłączone. Ustaw jawnie <code>*</code>, aby zezwolić na dowolne źródło.</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ścieżka absolutna do serwowania plików statycznych (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Security Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Bezpieczeństwo (JWT)
+				</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>JWT_SECRET</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Wymagane" aria-label="Wymagane">✓</span></td>
+				<td>Długi, losowy ciąg używany do podpisywania tokenów sesji. Minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Ważność sesji w godzinach. Domyślnie: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_ISSUER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Jeśli ustawione, jest zapisywane w polu <code>iss</code> przy wydawaniu tokenu i musi się dokładnie zgadzać podczas walidacji. Pozostaw puste, aby wyłączyć sprawdzanie wydawcy.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_AUDIENCE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Jeśli ustawione, jest zapisywane w polu <code>aud</code> przy wydawaniu tokenu i musi się zgadzać podczas walidacji. Pozostaw puste, aby wyłączyć sprawdzanie odbiorcy.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_LEEWAY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Tolerancja przesunięcia zegara dla walidacji <code>exp</code>/<code>nbf</code>/<code>iat</code> (np. <code>30s</code>). Domyślnie: <code>30s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalna liczba prób logowania w oknie czasowym. Domyślnie: <code>5</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalna liczba prób logowania na IP klienta przy uwzględnieniu wszystkich nazw użytkowników, dzięki czemu zmiana nazwy użytkownika nie pozwala obejść limitu. Domyślnie: 5× <code>LOGIN_RATE_LIMIT</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Długość okna czasowego rate limitu. Domyślnie: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Rate limiting logowania jest liczony per instancja (w pamięci). We wdrożeniach z wieloma instancjami użyj współdzielonego limitera, jeśli potrzebujesz globalnego wymuszania.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Zaufane IP/CIDR proxy dla obsługi <code>X-Forwarded-For</code>. Rozdzielone przecinkami. Jeśli puste, przekazywane nagłówki są ignorowane, a IP klienta jest pobierane z bezpośredniego połączenia.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalny rozmiar ciała żądania w bajtach. Domyślnie: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Uwzględnij surowy komunikat błędu PostgreSQL w błędach narzędzi MCP. Szczegółowe błędy pomagają agentom LLM się samodzielnie skorygować, ale mogą ujawniać szczegóły schematu (nazwy tabel i ograniczeń) uwierzytelnionym wywołującym. Domyślnie: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalna liczba odrębnych poolów połączeń dla danych uwierzytelniających Basic Auth. Domyślnie: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_ENABLED</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Włącz dedykowany endpoint metryk. Domyślnie: <code>true</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_LISTEN_ADDR</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Adres nasłuchu metryk (<code>host:port</code>). Domyślnie: <code>127.0.0.1:9090</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalna liczba kanałów na połączenie SSE. Domyślnie: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalna liczba równoczesnych klientów SSE na bazę danych. Domyślnie: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Rozmiar bufora SSE na klienta (liczba wiadomości). Domyślnie: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Maksymalny czas oczekiwania przy wysyłce do wolnego klienta. Domyślnie: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Interwał heartbeat dla połączeń SSE. Domyślnie: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Limit czasu bezczynności bez powiadomień. Domyślnie: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Logging Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Logowanie</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Poziom szczegółowości: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Domyślnie: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Gdzie zapisywać logi: <code>stdout</code> lub ścieżka do pliku.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p class="config-legend"><span class="req-flag req-yes" aria-hidden="true">✓</span> Wymagane &nbsp; <span class="req-flag req-no" aria-hidden="true">○</span> Opcjonalne</p>
+	<p><strong>Zachowanie bezpieczeństwa:</strong> żądania bez prawidłowego nagłówka <code>Authorization</code> są odrzucane jeszcze przed otwarciem połączenia z bazą danych.</p>
+
+	<p>Uruchomienie serwera:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+
+	<h3>Zobacz również</h3>
+	<ul>
+		<li><a href="../security-roles/">Bezpieczeństwo i autoryzacja</a></li>
+		<li><a href="../error-codes/">Kody błędów</a></li>
+	</ul>
+</section>

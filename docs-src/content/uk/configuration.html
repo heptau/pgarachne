@@ -1,0 +1,278 @@
+---
+title: "Конфігурація"
+description: "Конфігурація - PgArachne"
+menu:
+  main:
+    name: "Конфігурація"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Конфігурація</h2>
+	<p>PgArachne завантажує конфігурацію зі змінних середовища або з файлу.</p>
+	<div class="tip">
+		<strong>Примітка:</strong> <code>schema.sql</code> намагається створити роль <code>pgarachne_admin</code> та надати її ролі <code>pgarachne</code>. Якщо ви запускаєте скрипт без прав суперкористувача, створення ролі буде пропущено. За потреби створіть роль та надайте права вручну.
+	<br>
+		Проксі-користувач (<code>DB_USER</code>) повинен бути членом <code>pgarachne</code> та <code>pgarachne_admin</code>, щоб перевіряти та видавати API-токени.</div>
+	<div class="tip">
+		<strong>Примітка щодо безпеки:</strong> PgArachne не обробляє паролі бази даних у конфігураційному файлі.
+		Для автентифікації покладайтеся на стандартний механізм файлу PostgreSQL <code>.pgpass</code> (або
+		системну змінну <code>PGPASSWORD</code>).
+	</div>
+	<div class="tip">
+		<strong>Порада:</strong> Якщо ви запускаєте PgArachne за зворотним проксі, встановіть <code>TRUSTED_PROXIES</code>, щоб IP-адреси клієнтів визначалися коректно і обмеження частоти запитів не можна було обійти.
+	</div>
+
+	<div class="tip">
+		<strong>Порядок пошуку:</strong> Якщо конфігураційний файл не вказано через CLI, пошук відбувається в такому порядку:
+		<ol>
+			<li>Поточний каталог: <code>./pgarachne.env</code> (усі ОС)</li>
+			<li>Конфігурація користувача:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>Системна конфігурація: <code>/etc/pgarachne/pgarachne.env</code> (лише Linux / macOS)</li>
+		</ol>
+	</div>
+
+	<h3>Приклад мінімальної конфігурації</h3>
+	<p>Це все, що потрібно для початку роботи:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Обов'язкові змінні:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>).</p>
+
+	<h3>Швидкий контрольний список перевірки</h3>
+	<ul>
+		<li><code>JWT_SECRET</code> довгий, випадковий і не використовується повторно в різних середовищах.</li>
+		<li><code>DB_USER</code> може перемикатися лише на очікувані ролі (перевірте права членства в ролях).</li>
+		<li><code>TRUSTED_PROXIES</code> встановлено, якщо ви працюєте за зворотним проксі.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> увімкнено для розгортань, доступних з інтернету.</li>
+		<li><code>METRICS_LISTEN_ADDR</code> є приватним (наприклад, <code>127.0.0.1:9090</code>).</li>
+	</ul>
+
+	<h3>Довідник конфігурації</h3>
+	<table class="config-table">
+		<thead>
+			<tr>
+				<th style="width: 30%;">Змінна</th>
+				<th style="width: 15%;">Обов'язкова</th>
+				<th>Опис</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Database Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Підключення
+					до бази даних</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_HOST</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Обов'язково" aria-label="Обов'язково">✓</span></td>
+				<td>Адреса сервера PostgreSQL (наприклад, <code>localhost</code>).</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Обов'язково" aria-label="Обов'язково">✓</span></td>
+					<td>Порт бази даних.</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_USER</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Обов'язково" aria-label="Обов'язково">✓</span></td>
+				<td>Користувач бази даних, під яким підключається PgArachne.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Режим SSL PostgreSQL. За умовчанням: <code>require</code>. Встановлюйте <code>disable</code> явно лише для локальної розробки з PostgreSQL без TLS.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Шлях до кореневого сертифіката CA (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Шлях до клієнтського сертифіката (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Шлях до приватного ключа клієнта (PEM).</td>
+			</tr>
+
+
+			<!-- Server Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">HTTP-сервер</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Порт для прослуховування. За умовчанням: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Перший сегмент шляху URL для всіх ендпоінтів бази даних (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). За умовчанням: <code>db</code>, що дає маршрути типу <code>/db/:database/jsonrpc</code>. Дозволені лише букви, цифри, дефіси та підкреслення.</td>
+			</tr>
+			<tr>
+				<td><code>PID_FILE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Шлях до PID-файлу демона, що використовується для <code>-start</code>/<code>-stop</code>. За умовчанням: кеш-каталог користувача ОС (запасний варіант: тимчасовий каталог).</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Налаштування CORS. Список дозволених джерел, розділених комами (наприклад, <code>https://myapp.com</code>).
+					За умовчанням: не встановлено — міждоменні запити з браузера вимкнено. Встановіть <code>*</code> явно, щоб дозволити будь-яке джерело.</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Абсолютний шлях для надання статичних файлів (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Security Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Безпека (JWT)
+				</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>JWT_SECRET</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Обов'язково" aria-label="Обов'язково">✓</span></td>
+				<td>Довгий випадковий рядок, що використовується для підписання токенів сесії. Мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Термін дії сесії в годинах. За умовчанням: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_ISSUER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Якщо встановлено, записується в claim <code>iss</code> під час видачі і повинно точно збігатися під час перевірки. Залиште порожнім, щоб пропустити перевірку видавця.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_AUDIENCE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Якщо встановлено, записується в claim <code>aud</code> під час видачі і повинно збігатися під час перевірки. Залиште порожнім, щоб пропустити перевірку аудиторії.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_LEEWAY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Допуск на розсинхронізацію годинників для перевірки <code>exp</code>/<code>nbf</code>/<code>iat</code> (наприклад, <code>30s</code>). За умовчанням: <code>30s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість спроб входу за одне вікно. За умовчанням: <code>5</code>. Встановіть <code>0</code>, щоб вимкнути.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість спроб входу на IP-адресу клієнта за всіма іменами користувачів, тож зміна імен користувачів не дозволяє обійти обмеження. За умовчанням: 5× <code>LOGIN_RATE_LIMIT</code>. Встановіть <code>0</code>, щоб вимкнути.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Тривалість вікна обмеження частоти. За умовчанням: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Обмеження частоти входу діє в межах одного екземпляра (у пам'яті). У розгортаннях з кількома екземплярами використовуйте спільний лімітер, якщо потрібне глобальне застосування.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Довірені IP-адреси/CIDR проксі для обробки <code>X-Forwarded-For</code>. Розділені комами. Якщо порожньо, forwarded-заголовки ігноруються, а IP клієнта береться з прямого з'єднання.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальний розмір тіла запиту в байтах. За умовчанням: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Включати необроблене повідомлення про помилку PostgreSQL у помилках інструментів MCP. Детальні помилки допомагають LLM-агентам самостійно виправлятися, але можуть розкрити деталі схеми (назви таблиць та обмежень) автентифікованим викликачам. За умовчанням: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість окремих пулів з'єднань облікових даних Basic Auth. За умовчанням: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_ENABLED</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Увімкнути виділений ендпоінт метрик. За умовчанням: <code>true</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_LISTEN_ADDR</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Адреса слухача метрик (<code>host:port</code>). За умовчанням: <code>127.0.0.1:9090</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість каналів на одне з'єднання SSE. За умовчанням: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість одночасних клієнтів SSE на базу даних. За умовчанням: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Розмір буфера SSE на одного клієнта (кількість повідомлень). За умовчанням: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальний час очікування під час надсилання повільному клієнту. За умовчанням: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Інтервал heartbeat для з'єднань SSE. За умовчанням: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Тайм-аут неактивності без сповіщень. За умовчанням: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Logging Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Журналювання</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Рівень деталізації: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					За умовчанням: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Куди записувати журнали: <code>stdout</code> або шлях до файлу.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p class="config-legend"><span class="req-flag req-yes" aria-hidden="true">✓</span> Обов'язково &nbsp; <span class="req-flag req-no" aria-hidden="true">○</span> Необов'язково</p>
+	<p><strong>Поведінка безпеки:</strong> запити без дійсного заголовка <code>Authorization</code> відхиляються ще до відкриття з'єднання з базою даних.</p>
+
+	<p>Запустіть сервер:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+
+	<h3>Дивіться також</h3>
+	<ul>
+		<li><a href="../security-roles/">Безпека та автентифікація</a></li>
+		<li><a href="../error-codes/">Коди помилок</a></li>
+	</ul>
+</section>

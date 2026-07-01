@@ -10,8 +10,13 @@ menu:
 <section id="sse">
 	<h2>Real-time notifikace (SSE)</h2>
 	<p>Přihlaste se k PostgreSQL <code>NOTIFY</code> kanálům přes Server-Sent Events:</p>
-	<pre><code>curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
-  -H "Authorization: Bearer $TOKEN"</code></pre>
+	<pre><code># Bearer token (JWT nebo API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Přímé přihlašovací údaje (HTTP Basic Auth — není potřeba GRANT … TO pgarachne)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -u "alice:secret"</code></pre>
 	<p>Každá zpráva je JSON s názvem kanálu a payloadem:</p>
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Pokud je payload text, zabalí se jako string do <code>data</code>.</p>

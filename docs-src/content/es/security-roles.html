@@ -16,9 +16,10 @@ menu:
 
 	<h3>1. Inicio de Sesión Interactivo (JWT)</h3>
 	<p>Los usuarios se autentican usando su <strong>nombre de usuario y contraseña reales de PostgreSQL</strong>
-		a través de la función de inicio de sesión.
-		Si tiene éxito, reciben un JWT genérico. Cuando se usa este token, PgArachne cambia el rol activo a ese
-		usuario durante la duración de la petición.</p>
+		a través del método JSON-RPC <code>get_jwt</code>.
+		Si tiene éxito, reciben un JWT de corta duración. Las peticiones posteriores incluyen este token en el
+		encabezado <code>Authorization: Bearer &lt;token&gt;</code>, y PgArachne cambia el rol activo a ese
+		usuario durante la duración de cada petición.</p>
 
 	<h3>2. Cuentas de Servicio (Tokens de API)</h3>
 	<p>Para sistemas automatizados o scripts, se pueden usar tokens de API de larga duración.</p>
@@ -51,7 +52,7 @@ menu:
 	<p><strong>Importante:</strong> los algoritmos JWT asimétricos (por ejemplo <code>RS256</code>/<code>ES256</code>)
 		no son aceptados por la implementación actual del servidor.</p>
 
-	<h3>4. Credenciales directas de base de datos (Basic Auth)</h3>
+	<h3 id="direct-credentials">4. Credenciales directas de base de datos (Basic Auth)</h3>
 	<p>PgArachne admite autenticación HTTP Basic, lo que permite enviar el nombre de usuario y la contraseña
 		de PostgreSQL directamente en cada petición. Al usar este método, PgArachne establece una conexión
 		directa a PostgreSQL con esas credenciales sin necesidad de JWT.</p>
@@ -79,6 +80,8 @@ menu:
 		<li><strong>Sin SET LOCAL ROLE:</strong> PgArachne se conecta directamente como el usuario indicado, sin cambio de rol.</li>
 		<li><strong>Pool de conexiones por usuario:</strong> cada usuario dispone de su propio pool con una vida útil de 5 minutos.</li>
 		<li><strong>JWT opcional:</strong> este método no requiere configurar <code>JWT_SECRET</code>.</li>
+		<li><strong>Claves de idempotencia:</strong> para que funcionen con credenciales directas, otorgue al usuario
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
 	</ul>
 
 	<h3>Comparativa de métodos de autenticación</h3>

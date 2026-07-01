@@ -1,0 +1,81 @@
+- id: hero_lead
+  translation: "Ваша база даних — це ваш бекенд.<br>Без шаблонного коду. Безпечно, миттєво, готово до AI."
+- id: hero_desc
+  translation: "Визначте SQL-функцію — і ваш API-ендпоінт готовий. JSON-RPC&nbsp;2.0 із вбудованою підтримкою MCP для Claude Desktop &amp; Cursor, сповіщення SSE в реальному часі та безпека на рівні бази даних. Промислова якість, єдиний бінарний файл."
+- id: hero_get_started
+  translation: "Розпочати"
+- id: hero_see_demo
+  translation: "Інструменти & Демо"
+- id: nav_language
+  translation: "Мова"
+- id: nav_theme
+  translation: "Тема"
+- id: theme_auto
+  translation: "Авто"
+- id: theme_light
+  translation: "Світла"
+- id: theme_dark
+  translation: "Темна"
+- id: nav_menu
+  translation: "Меню"
+- id: nav_support
+  translation: "Підтримка"
+- id: nav_star
+  translation: "Зірка на GitHub"
+- id: nav_installation
+  translation: "Встановлення"
+- id: nav_documentation
+  translation: "Документація"
+- id: nav_home
+  translation: "Головна"
+- id: link_mcp
+  translation: "Model Context Protocol (MCP)"
+- id: site_subtitle
+  translation: "Миттєвий PostgreSQL API"
+- id: whats_new_releases_link
+  translation: 'Детальнішу інформацію про зміни в окремих версіях можна знайти безпосередньо в <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'
+
+- id: search_label
+  translation: "Пошук"
+- id: search_placeholder
+  translation: "Пошук"
+- id: search_no_results
+  translation: "Нічого не знайдено."
+- id: copy_label
+  translation: "Копіювати"
+- id: copied_label
+  translation: "Скопійовано"
+- id: doc_min_read
+  translation: "хв читання"
+- id: quickstart_title
+  translation: "Швидкий старт"
+- id: quickstart_step_install
+  translation: "Встановіть PgArachne"
+- id: quickstart_step_configure
+  translation: "Налаштуйте середовище"
+- id: quickstart_step_auth
+  translation: "Налаштуйте безпеку та автентифікацію"
+- id: quickstart_step_deploy
+  translation: "Розгорніть за HTTPS-проксі"
+- id: related_docs_title
+  translation: "Пов'язана документація"
+- id: prev_label
+  translation: "Попередня"
+- id: next_label
+  translation: "Наступна"
+- id: not_found_title
+  translation: "Сторінку не знайдено"
+- id: not_found_desc
+  translation: "Сторінка, яку ви шукаєте, не існує або була переміщена."
+- id: not_found_home
+  translation: "На головну"
+- id: not_found_install
+  translation: "Відкрити встановлення"
+- id: link_configuration
+  translation: "Конфігурація"
+- id: link_security
+  translation: "Безпека"
+- id: link_deployment
+  translation: "Розгортання та HTTPS"
+- id: link_metrics
+  translation: "Метрики"

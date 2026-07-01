@@ -44,6 +44,16 @@ menu:
 DB_PORT=5432
 DB_USER=pgarachne
 JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Variabili obbligatorie:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimo 32 byte; generalo con <code>openssl rand -hex 32</code>).</p>
+
+	<h3>Checklist di Validazione Rapida</h3>
+	<ul>
+		<li><code>JWT_SECRET</code> è lungo, casuale e non riutilizzato tra ambienti diversi.</li>
+		<li><code>DB_USER</code> può passare solo ai ruoli previsti (verifica i grant di appartenenza ai ruoli).</li>
+		<li><code>TRUSTED_PROXIES</code> è impostato quando si esegue dietro un reverse proxy.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> è abilitato per i deployment esposti su internet.</li>
+		<li><code>METRICS_LISTEN_ADDR</code> è privato (per esempio <code>127.0.0.1:9090</code>).</li>
+	</ul>
 
 	<h3>Riferimento configurazione</h3>
 	<table class="config-table">
@@ -257,4 +267,10 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 	<p><strong>Comportamento di sicurezza:</strong> le richieste senza un header <code>Authorization</code> valido vengono rifiutate prima di aprire una connessione al database.</p>
 	<p>Avvia il server:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
+
+	<h3>Vedi anche</h3>
+	<ul>
+		<li><a href="../security-roles/">Sicurezza e Autenticazione</a></li>
+		<li><a href="../error-codes/">Codici di Errore</a></li>
+	</ul>
 </section>

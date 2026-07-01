@@ -1,0 +1,145 @@
+---
+title: "Bezpieczeństwo i uwierzytelnianie"
+description: "Bezpieczeństwo i uwierzytelnianie - PgArachne"
+menu:
+  main:
+    name: "Bezpieczeństwo i uwierzytelnianie"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Bezpieczeństwo i uwierzytelnianie</h2>
+	<p>PgArachne opiera się całkowicie na systemie uprawnień PostgreSQL. Nie tworzy własnych list kontroli dostępu (ACL).
+		PgArachne wspiera <strong>cztery metody uwierzytelniania</strong>. Metody 1–3 wykorzystują
+		<code>SET LOCAL ROLE</code> do przełączania tożsamości; metoda 4 (bezpośrednie dane logowania) łączy się
+		<em>bezpośrednio</em> jako dany użytkownik, więc przełączanie roli nie jest potrzebne.
+	</p>
+
+	<h3>1. Logowanie interaktywne (JWT)</h3>
+	<p>Użytkownicy uwierzytelniają się za pomocą swojej <strong>rzeczywistej nazwy użytkownika i hasła PostgreSQL</strong> poprzez
+		metodę JSON-RPC <code>get_jwt</code>. Jeśli logowanie powiedzie się, otrzymują krótkotrwały JWT. Kolejne żądania
+		przekazują ten token w nagłówku <code>Authorization: Bearer &lt;token&gt;</code>, a PgArachne przełącza
+		aktywną rolę na tego użytkownika na czas trwania każdego żądania.</p>
+
+	<h3>2. Konta serwisowe (tokeny API)</h3>
+	<p>Dla systemów automatycznych lub skryptów zalecane są długoterminowe tokeny API.</p>
+	<ul>
+		<li>Tokeny są przechowywane w tabeli <code>pgarachne.api_tokens</code>.</li>
+		<li>Każdy token jest przypisany do konkretnej roli w bazie danych.</li>
+		<li>Token wysyła się w nagłówku <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>Generowanie tokenów API wymaga roli <code>pgarachne_admin</code>. Użyj <code>pgarachne.add_api_token(...)</code>
+		z rolą, która jest członkiem <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Zewnętrzny dostawca identyfikacji (własny JWT)</h3>
+	<p>Jeśli użytkownicy są uwierzytelniani poza PgArachne (na przykład przez zewnętrzną usługę uwierzytelniania), możesz
+		generować tam JWT i wysyłać je bezpośrednio do PgArachne.</p>
+	<ul>
+		<li>Format nagłówka: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Podpisywanie: tylko HMAC (<code>HS256</code> / <code>HS384</code> / <code>HS512</code>) z użyciem tego samego
+			<code>JWT_SECRET</code> skonfigurowanego w PgArachne.</li>
+		<li>Wymagane claimy: <code>db_role</code> (ciąg znaków, niepusty) oraz <code>db_name</code> (ciąg znaków, musi
+			odpowiadać segmentowi ścieżki <code>:database</code>).</li>
+		<li>Zalecany claim: <code>exp</code> (znacznik czasu Unix) do określenia wygaśnięcia tokenu.</li>
+	</ul>
+	<p>Minimalny przykład payloadu:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Uwaga:</strong> asymetryczne algorytmy JWT (np. <code>RS256</code> / <code>ES256</code>) nie są
+		wspierane.</p>
+
+	<h3 id="direct-credentials">4. Bezpośrednie dane logowania do bazy danych (Basic Auth)</h3>
+	<p>Najprostsza opcja: wysyłaj nazwę użytkownika i hasło PostgreSQL z <strong>każdym żądaniem</strong>, używając
+		standardowego HTTP Basic Authentication. PgArachne otwiera dedykowany pool połączeń uwierzytelniony bezpośrednio
+		jako ten użytkownik — <code>SET LOCAL ROLE</code> <em>nie</em> jest wykonywane.</p>
+
+	<pre><code>Authorization: Basic &lt;base64(username:password)&gt;</code></pre>
+
+	<p>Przykład z curl:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+
+	<div class="tip">
+		<strong>Kiedy używać bezpośrednich danych logowania:</strong>
+		<ul>
+			<li>Szybkie prototypowanie i lokalny rozwój — zarządzanie tokenami nie jest wymagane.</li>
+			<li>Usługi wewnętrzne, które już bezpiecznie zarządzają danymi logowania.</li>
+			<li>Scenariusze, w których wcześniejsze wystawianie JWT dodaje niepotrzebną złożoność.</li>
+		</ul>
+	</div>
+
+	<p><strong>Kluczowe różnice względem metod opartych na tokenach:</strong></p>
+	<ul>
+		<li><code>GRANT demo_user TO pgarachne</code> nie jest wymagane — PgArachne nie przełącza ról.</li>
+		<li>Row-Level Security PostgreSQL oraz uprawnienia <code>GRANT</code> są wymuszane jak zwykle, ponieważ
+			połączenie działa jako rzeczywisty użytkownik.</li>
+		<li>Poole połączeń są utrzymywane osobno dla każdego użytkownika, z maksymalnym czasem życia 5 minut. Po
+			zmianie hasła stare połączenia wygasają w tym okresie.</li>
+		<li>Aby klucze idempotencji działały z bezpośrednimi danymi logowania, przyznaj użytkownikowi uprawnienie
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+	</ul>
+
+	<div class="warning">
+		<h3>Uprawnienia proxy: wymagane tylko dla metod 1–3</h3>
+		<p>Dla uwierzytelniania JWT i tokenem API, PgArachne łączy się jako użytkownik systemowy zdefiniowany w
+			<code>DB_USER</code> (np. <code>pgarachne</code>) i przełącza tożsamość za pomocą
+			<code>SET LOCAL ROLE</code>. Użytkownik systemowy <strong>musi być członkiem</strong> każdej docelowej roli.</p>
+		<pre><code>-- Wymagane tylko dla uwierzytelniania JWT / tokenem API:
+GRANT demo_user TO pgarachne;</code></pre>
+		<p>To uprawnienie <strong>nie jest potrzebne</strong> przy użyciu bezpośrednich danych logowania (metoda 4).</p>
+	</div>
+
+	<h3>Porównanie metod uwierzytelniania</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Metoda</th>
+				<th>Nagłówek</th>
+				<th>SET LOCAL ROLE</th>
+				<th>GRANT … TO pgarachne</th>
+				<th>Najlepsze dla</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>JWT (get_jwt)</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Tak</td>
+				<td>Wymagane</td>
+				<td>Sesje użytkowników końcowych</td>
+			</tr>
+			<tr>
+				<td>Token API</td>
+				<td><code>Bearer &lt;token&gt;</code></td>
+				<td>✅ Tak</td>
+				<td>Wymagane</td>
+				<td>Usługi automatyczne</td>
+			</tr>
+			<tr>
+				<td>Zewnętrzny JWT</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Tak</td>
+				<td>Wymagane</td>
+				<td>Integracja z zewnętrznym IdP</td>
+			</tr>
+			<tr>
+				<td><strong>Bezpośrednie dane logowania</strong></td>
+				<td><code>Basic &lt;b64&gt;</code></td>
+				<td>❌ Nie</td>
+				<td><strong>Niewymagane</strong></td>
+				<td>Rozwój, usługi wewnętrzne</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h3>Zobacz także</h3>
+	<ul>
+		<li><a href="../configuration/">Konfiguracja</a></li>
+		<li><a href="../error-codes/">Kody błędów</a></li>
+	</ul>
+</section>

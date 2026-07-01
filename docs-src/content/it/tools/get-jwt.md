@@ -8,6 +8,7 @@ description: "PgArachne JWT Getter - Documentazione"
 <p>Il <strong>JWT Getter</strong> è uno strumento minimalista per browser situato in <code>tools/get-jwt</code>. Scambia nome utente e password PostgreSQL con un JWT di breve durata chiamando il metodo JSON-RPC <code>get_jwt</code> — e mostra il payload decodificato e la scadenza.</p>
 
 <h3>Quando usarlo</h3>
+<p>Usa il JWT Getter quando hai bisogno di un token per uno di questi scopi:</p>
 <ul>
 <li>Per incollare un token nella scheda Bearer Token dell'<a href="../api-explorer/">Explorer</a> o dell'<a href="../sse-tester/">SSE Tester</a>.</li>
 <li>Per testare la scadenza di un JWT o i claim <code>db_role</code>/<code>db_name</code> nella propria applicazione.</li>
@@ -15,7 +16,7 @@ description: "PgArachne JWT Getter - Documentazione"
 </ul>
 
 <div class="tip">
-<strong>Nota:</strong> <code>get_jwt</code> richiede <code>GRANT &lt;ruolo&gt; TO pgarachne</code>. Per evitare quel grant, usa le credenziali dirette (HTTP Basic Auth) nell'<a href="../api-explorer/">Explorer</a> o nell'<a href="../sse-tester/">SSE Tester</a>.
+<strong>Nota:</strong> <code>get_jwt</code> richiede <code>GRANT &lt;ruolo&gt; TO pgarachne</code> nel database, perché PgArachne verifica internamente la password tramite <code>SET LOCAL ROLE</code>. Se preferisci evitare quel grant, usa le credenziali dirette (HTTP Basic Auth) nell'<a href="../api-explorer/">Explorer</a> o nell'<a href="../sse-tester/">SSE Tester</a>.
 </div>
 
 <h3>Funzionalità</h3>

@@ -1,0 +1,40 @@
+---
+title: "PgArachne"
+description: "PgArachne – миттєвий PostgreSQL API"
+---
+
+<section id="features" class="section-light bg-offset">
+	<div class="container">
+		<h2>Чи підходить PgArachne саме вам?</h2>
+		<p class="section-intro">
+			PgArachne™ — це промислового рівня backend-шлюз — від одноосібного MVP до високонавантаженої продакшн-системи. Визначте SQL-функцію, і ваш API-ендпоінт готовий. Без boilerplate, без додаткових сервісів.
+		</p>
+
+		<div class="grid-3">
+			<div class="card fade-in">
+				<h3>🚀 Нуль boilerplate</h3>
+				<p>Перестаньте писати повторювані CRUD-контролери. Визначте SQL-функцію, і ваш API-ендпоінт готовий миттєво. Ваша база даних <em>і є</em> вашим backend — PgArachne просто безпечно її надає.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏢 Готовий до продакшну</h3>
+				<p>Розроблений для обробки <strong>понад 90% стандартних backend-завдань</strong> (CRUD, валідація, авторизація). З пулінгом з'єднань, плавним завершенням роботи (graceful shutdown) та метриками Prometheus він надійно живить продакшн-системи.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🧠 Нативна підтримка MCP та AI</h3>
+				<p>PgArachne надає нативний ендпоінт <strong>Model Context Protocol (MCP)</strong>, тож AI-клієнти, такі як Claude Desktop або Cursor, можуть виявляти та викликати ваші функції PostgreSQL як інструменти — без жодного додаткового коду. API також самодокументується за допомогою SQL-коментарів для споживання LLM.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>⚡ Сповіщення в реальному часі (SSE)</h3>
+				<p>Транслюйте події в реальному часі через стандартний HTTP із вбудованою підтримкою в браузерах. Підписуйтеся на канали PostgreSQL <code>NOTIFY</code> безпосередньо з клієнта. Чудово підходить для дашбордів та живих оновлень без WebSocket.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🔒 Безпека на рівні бази даних</h3>
+				<p>Жодних окремих таблиць користувачів. Автентифікація використовує справжні ролі PostgreSQL та JWT. Кожен запит виконується як автентифікований користувач через <code>SET LOCAL ROLE</code>, тож Row-Level Security (RLS) працює автоматично.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏛️ Архітектурні рішення</h3>
+				<p>Чому JSON-RPC? Чому Go? Чому SSE? Чому MCP як рівень трансляції? Прочитайте наші <a href="architectural-decisions/">детальні архітектурні рішення</a>, щоб зрозуміти механізм під капотом.</p>
+			</div>
+		</div>
+	</div>
+</section>

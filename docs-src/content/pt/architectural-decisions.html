@@ -117,7 +117,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Roteamento por proxy reverso:</strong> Uma única instância do PgArachne pode servir múltiplos bancos de dados. Um proxy reverso pode rotear por prefixo ou nome do banco de dados sem inspecionar o corpo da requisição, o que é essencial para balanceamento de carga.</li>
 			<li><strong>Escalabilidade horizontal:</strong> Com o nome do banco de dados no caminho da URL, é possível executar múltiplas instâncias do PgArachne e direcionar o tráfego por banco de dados usando regras de proxy padrão, sem sessões persistentes.</li>
-			<li><strong>Multiplexação de protocolos por banco de dados:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sob o mesmo namespace permite aplicar autenticação, rate limiting e controle de acesso por banco de dados no nível do proxy.</li>
+			<li><strong>Multiplexação de protocolos por banco de dados:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sob o mesmo namespace <code>/{prefixo}/{banco_de_dados}/</code> permite aplicar autenticação, rate limiting e controle de acesso por banco de dados no nível do proxy.</li>
 			<li><strong>Prefixo configurável:</strong> Deployments que já usam <code>/api/</code> podem configurar <code>API_PREFIX=api</code>.</li>
 			<li><strong>Observabilidade:</strong> Sistemas de log e métricas podem agrupar o tráfego por nome de banco de dados diretamente da URL sem analisar corpos JSON.</li>
 		</ul>
@@ -143,7 +143,7 @@ menu:
 			<li><strong>MCP é mais do que apenas tools:</strong> O protocolo inclui o handshake de inicialização, ping, notificações e extensões futuras — preocupações de nível de protocolo que pertencem ao Go.</li>
 			<li><strong>A segurança permanece em um único lugar:</strong> Autenticação, troca de papel e validação já estão implementados em Go. O endpoint MCP reutiliza essa lógica sem alterações.</li>
 			<li><strong>Múltiplos protocolos, um backend:</strong> A mesma função PostgreSQL pode ser chamada via JSON-RPC, MCP ou SSE. O banco de dados é agnóstico ao protocolo.</li>
-			<li><strong>SQL mais simples:</strong> Processar envelopes MCP em PostgreSQL exigiria analisar estruturas JSON complexas em PL/pgSQL, tornando as funções mais difíceis de escrever e manter.</li>
+			<li><strong>SQL mais simples:</strong> Processar envelopes MCP (<code>initialize</code>, <code>tools/list</code>, tratamento de notificações) em PostgreSQL exigiria analisar estruturas JSON complexas em PL/pgSQL, tornando as funções mais difíceis de escrever, testar e manter.</li>
 		</ul>
 
 		<h4>Por que não levar MCP ao banco de dados:</h4>

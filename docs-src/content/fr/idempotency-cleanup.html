@@ -1,0 +1,54 @@
+---
+title: "Nettoyage des clés d'idempotence"
+description: "Maintenance de la table pgarachne.requests."
+menu:
+  main:
+    name: "Nettoyage d'idempotence"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Nettoyage des clés d'idempotence</h1>
+
+<p>Chaque requête JSON-RPC portant un champ <code>idempotencyKey</code>
+est enregistrée dans la table <code>pgarachne.requests</code> par la
+fonction <code>pgarachne.save_idempotency_key()</code>. C'est ce qui permet
+la détection des doublons — mais cela signifie aussi que la table grossit
+indéfiniment tant qu'un opérateur n'exécute pas un nettoyage périodique.</p>
+
+<p>PgArachne n'exécute pas lui-même de planificateur en arrière-plan. Les
+options les plus adaptées :</p>
+
+<h2>pg_cron (recommandé si vous pouvez installer des extensions)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Cron externe / timer systemd</h2>
+<p>Planifiez une tâche shell qui appelle la fonction via <code>psql</code> :</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manuel / ponctuel</h2>
+<p>Vous pouvez appeler la fonction à tout moment depuis psql, un script de
+migration, ou tout autre client. Elle retourne le nombre de lignes supprimées.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Choisir une fenêtre de rétention</h2>
+<p>Choisissez une fenêtre confortablement plus longue que le plus long
+intervalle de nouvelle tentative attendu pour vos clients. Si un client
+défectueux retente la même clé d'idempotence 48 heures après la requête
+d'origine, une fenêtre de rétention de 24 heures laissera silencieusement
+passer le doublon.</p>
+
+<p>Pour la plupart des déploiements, 24 heures constitue une valeur par
+défaut sûre.</p>
+
+</div>
+</section>

@@ -1,0 +1,70 @@
+---
+title: "Про проєкт та архітектура"
+description: "Про проєкт та архітектура - PgArachne"
+menu:
+  main:
+    name: "Про проєкт та архітектура"
+    weight: 10
+---
+
+<section id="about">
+	<h2>Про проєкт та архітектура</h2>
+	<p>
+		PgArachne™ виступає як легкий, високопродуктивний <strong>веб-сервер</strong>, що розташований між
+		вашими HTTP-клієнтами та базою даних PostgreSQL. Він усуває потребу в традиційних backend-мовах
+		(таких як Python, Node.js або PHP), відображаючи HTTP-запити безпосередньо на функції бази даних.
+	</p>
+
+	<div class="card feature-card">
+		<h3>Основні технічні можливості</h3>
+		<ul style="margin-left: 20px; list-style-type: disc;">
+			<li style="margin-bottom: 10px;">
+				<strong>Шлюз JSON-RPC 2.0:</strong> Усі взаємодії з API відповідають строгій специфікації JSON-RPC 2.0.
+				Немає потреби проєктувати жодних REST-ендпоінтів; ви просто викликаєте SQL-функції за назвою
+				через POST-запити.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Нативна автентифікація через БД:</strong> Жодних окремих таблиць користувачів. Користувачі входять зі своїми
+				справжніми облiковими даними PostgreSQL, щоб отримати <strong>JWT</strong>. Альтернативно сервісні облікові записи
+				можуть використовувати постійні <strong>API-токени</strong>.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Маскування ролі (Role Masquerading):</strong> PgArachne™ підключається як проксі-користувач, але виконує кожен
+				запит за допомогою <code>SET LOCAL ROLE</code>, перемикаючись на ідентичність автентифікованого користувача.
+				Row-Level Security (RLS) працює автоматично.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>MCP (Model Context Protocol):</strong> Нативний ендпоінт MCP дозволяє AI-клієнтам, таким
+				як Claude Desktop, Cursor та іншим MCP-сумісним інструментам, виявляти ваші функції PostgreSQL
+				як інструменти та викликати їх безпосередньо — без жодного додаткового сполучного коду. Застосовуються ті самі
+				механізми автентифікації та безпеки ролей. Ресурси (таблиці/представлення) та шаблони промптів також надаються через MCP.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Сповіщення в реальному часі (SSE):</strong> Підписуйтеся на канали PostgreSQL <code>NOTIFY</code>
+				через SSE для живих оновлень без опитування (polling).
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Сервер статичних файлів:</strong> PgArachne™ може надавати статичні ресурси (HTML, JS, CSS),
+				дозволяючи вам розміщувати односторінкові застосунки (SPA) або інструмент Explorer безпосередньо.
+			</li>
+		</ul>
+	</div>
+
+	<p>
+		Ця архітектура значно спрощує стек: <strong>База даних ↔ PgArachne ↔ Frontend / AI-агент</strong>.
+	</p>
+
+	<div class="tip">
+		<strong>Структура ендпоінтів:</strong> Усі ендпоінти бази даних мають спільний префікс (за умовчанням <code>db</code>, налаштовується через <code>API_PREFIX</code>):
+		<div
+			class="code-box">
+			<div>POST /{prefix}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— шлюз JSON-RPC 2.0</span></div>
+			<div>GET &nbsp;/{prefix}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— потік PostgreSQL NOTIFY</span></div>
+			<div>POST /{prefix}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
+		</div>
+	</div>
+
+	<p style="margin-top: 30px; text-align: center;">
+		<a href="../architectural-decisions/" class="btn">Переглянути детальні архітектурні рішення</a>
+	</p>
+</section>

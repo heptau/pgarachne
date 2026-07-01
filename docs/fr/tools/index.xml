@@ -19,13 +19,14 @@
 &lt;h2&gt;JWT Getter&lt;/h2&gt;
 &lt;p&gt;Le &lt;strong&gt;JWT Getter&lt;/strong&gt; est un outil minimaliste pour navigateur situé dans &lt;code&gt;tools/get-jwt&lt;/code&gt;. Il échange un nom d'utilisateur et un mot de passe PostgreSQL contre un JWT de courte durée en appelant la méthode JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — et affiche le payload décodé ainsi que la date d'expiration.&lt;/p&gt;
 &lt;h3&gt;Quand l'utiliser&lt;/h3&gt;
+&lt;p&gt;Utilisez le JWT Getter lorsque vous avez besoin d'un token pour l'une de ces raisons :&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Pour coller un token dans l'onglet Bearer Token de l'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ou du &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.&lt;/li&gt;
 &lt;li&gt;Pour tester l'expiration d'un JWT ou les claims &lt;code&gt;db_role&lt;/code&gt;/&lt;code&gt;db_name&lt;/code&gt; dans votre application.&lt;/li&gt;
 &lt;li&gt;Pour vérifier que l'utilisateur système &lt;code&gt;pgarachne&lt;/code&gt; peut se substituer à un rôle donné (&lt;code&gt;GRANT &amp;lt;rôle&amp;gt; TO pgarachne&lt;/code&gt; doit exister).&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div class="tip"&gt;
-&lt;strong&gt;Note :&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; nécessite &lt;code&gt;GRANT &amp;lt;rôle&amp;gt; TO pgarachne&lt;/code&gt;. Pour éviter ce grant, utilisez les identifiants directs (HTTP Basic Auth) dans l'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ou le &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;strong&gt;Note :&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; nécessite &lt;code&gt;GRANT &amp;lt;rôle&amp;gt; TO pgarachne&lt;/code&gt; dans la base de données, car PgArachne vérifie le mot de passe en interne via &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Pour éviter ce grant, utilisez les identifiants directs (HTTP Basic Auth) dans l'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ou le &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
 &lt;/div&gt;
 &lt;h3&gt;Fonctionnalités&lt;/h3&gt;
 &lt;ul&gt;
@@ -55,18 +56,11 @@
 &lt;p&gt;Le &lt;strong&gt;SSE Tester&lt;/strong&gt; est un outil pour navigateur en fichier unique situé dans &lt;code&gt;tools/test-sse&lt;/code&gt;. Il permet de s'abonner à un nombre quelconque de canaux PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; via une connexion &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; en direct et d'observer les événements en temps réel.&lt;/p&gt;
 &lt;h3&gt;Fonctionnalités&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Plusieurs canaux&lt;/strong&gt; — les canaux s'ajoutent sous forme de tags et sont passés en paramètre &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Toutes les méthodes d'authentification&lt;/strong&gt; — l'onglet &lt;em&gt;Password&lt;/em&gt; utilise HTTP Basic Auth (sans JWT) ; l'onglet &lt;em&gt;Bearer Token&lt;/em&gt; accepte un JWT ou un token d'API.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Flux en direct&lt;/strong&gt; — utilise la Fetch Streams API avec &lt;code&gt;AbortController&lt;/code&gt; pour une déconnexion propre.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Coloration syntaxique JSON&lt;/strong&gt; — les payloads JSON sont affichés avec coloration.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Paramètres persistants&lt;/strong&gt; — URL, préfixe, base de données, identifiant et liste de canaux sont sauvegardés dans &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Abonnements multi-canaux&lt;/strong&gt; — ajoutez ou retirez des canaux sous forme de tags avant de vous connecter. Tous les canaux sont transmis comme paramètre de requête &lt;code&gt;?channels=&lt;/code&gt; séparé par des virgules.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Toutes les méthodes d'authentification&lt;/strong&gt; — l'onglet &lt;em&gt;Password&lt;/em&gt; utilise HTTP Basic Auth (identifiants directs, sans JWT nécessaire) ; l'onglet &lt;em&gt;Bearer Token&lt;/em&gt; accepte un JWT ou un token d'API.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Flux en direct&lt;/strong&gt; — utilise la Fetch Streams API avec un &lt;code&gt;AbortController&lt;/code&gt; pour une déconnexion propre. Les lignes SSE sont analysées manuellement afin que les champs &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; et heartbeat (&lt;code&gt;:&lt;/code&gt;) soient tous correctement gérés.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Coloration syntaxique JSON&lt;/strong&gt; — les payloads de données qui sont du JSON valide sont formatés avec coloration syntaxique.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Paramètres persistants&lt;/strong&gt; — URL de l'API, préfixe, base de données, identifiant et liste de canaux sont sauvegardés dans &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Authentification&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Onglet Password&lt;/strong&gt; — envoie &lt;code&gt;Authorization: Basic &amp;lt;base64(utilisateur:mot_de_passe)&amp;gt;&lt;/code&gt;. Aucun &lt;code&gt;GRANT &amp;lt;rôle&amp;gt; TO pgarachne&lt;/code&gt; requis.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Onglet Bearer Token&lt;/strong&gt; — envoie &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Collez un JWT (obtenu via le &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) ou un token d'API longue durée.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class="tip"&gt;
-&lt;strong&gt;Activation :&lt;/strong&gt; Définissez &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; sur &lt;code&gt;tools/test-sse&lt;/code&gt; et visitez &lt;code&gt;http://localhost:8080&lt;/code&gt;. Vous pouvez aussi ouvrir &lt;code&gt;index.html&lt;/code&gt; directement dans le navigateur.
-&lt;/div&gt;
-&lt;/section&gt;</description></item></channel></rss>
+&lt;p&gt;L'outil vérifie les identifiants avant d'afficher le panneau d'abonnement. Cliquer sur &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; appelle &lt;code&gt;capabilities&lt;/code&gt; avec l'en-tête choisi — si PgArachne renvoie une réponse réussie, le panneau d'abonnement se déverrouille.&lt;/p&gt;</description></item></channel></rss>

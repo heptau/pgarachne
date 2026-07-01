@@ -1,0 +1,54 @@
+---
+title: "Idempotency Key Cleanup"
+description: "Wartung der Tabelle pgarachne.requests."
+menu:
+  main:
+    name: "Idempotency Cleanup"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Idempotency Key Cleanup</h1>
+
+<p>Jeder JSON-RPC-Request mit einem <code>idempotencyKey</code>-Feld wird
+von der Funktion <code>pgarachne.save_idempotency_key()</code> in der Tabelle
+<code>pgarachne.requests</code> gespeichert. Das ist die Grundlage für die
+Duplikaterkennung — es bedeutet aber auch, dass die Tabelle unbegrenzt wächst,
+wenn nicht regelmäßig ein Cleanup durchgeführt wird.</p>
+
+<p>PgArachne führt selbst keinen Hintergrund-Scheduler aus. Die saubersten
+Optionen:</p>
+
+<h2>pg_cron (empfohlen, falls Sie Extensions installieren können)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Externer Cron / systemd-Timer</h2>
+<p>Planen Sie einen Shell-Job, der die Funktion über <code>psql</code> aufruft:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manuell / ad-hoc</h2>
+<p>Sie können die Funktion jederzeit über psql, ein Migrationsskript
+oder einen anderen Client aufrufen. Sie gibt die Anzahl der gelöschten
+Zeilen zurück.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Retention-Fenster wählen</h2>
+<p>Wählen Sie ein Fenster, das deutlich länger ist als das längste zu
+erwartende Retry-Intervall Ihrer Clients. Wenn ein fehlerhafter Client
+denselben Idempotency Key 48 Stunden nach dem ursprünglichen Request
+erneut sendet, lässt ein 24-Stunden-Retention-Fenster das Duplikat
+unbemerkt durch.</p>
+
+<p>Für die meisten Deployments sind 24 Stunden ein sicherer Standardwert.</p>
+
+</div>
+</section>

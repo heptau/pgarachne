@@ -9,7 +9,8 @@ menu:
 
 <section id="hello-world">
 	<h2>Esempio Hello World</h2>
-	<p>Creiamo un semplice endpoint API associato a un utente.</p>
+	<p>Questo esempio crea un semplice endpoint API associato a un utente del database. Sono mostrati due
+		approcci di autenticazione: il classico flusso JWT e il più semplice flusso a credenziali dirette.</p>
 
 	<h3>1. Creazione Utente e Funzione</h3>
 	<p>Nel tuo database (<code>my_database</code>):</p>
@@ -30,34 +31,29 @@ $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 
 	<div class="tip">
-		<h3>Scelta del metodo di autenticazione</h3>
-		<p>Esistono due modi per chiamare la funzione creata:</p>
-		<ul>
-			<li><strong>Opzione A — Flusso JWT:</strong> l'utente effettua il login e ottiene un token Bearer.
-				Richiede un passo aggiuntivo di configurazione PostgreSQL (<code>GRANT demo_user TO pgarachne</code>).</li>
-			<li><strong>Opzione B — Credenziali dirette:</strong> le credenziali PostgreSQL vengono trasmesse
-				direttamente tramite HTTP Basic Auth. Nessun GRANT aggiuntivo richiesto. Ideale per sviluppo e servizi
-				interni.</li>
-		</ul>
+		<strong>Quale approccio di autenticazione dovresti usare?</strong><br>
+		Scegli <strong>l'Opzione A (JWT)</strong> per sessioni basate su browser o utente finale.
+		Scegli <strong>l'Opzione B (credenziali dirette)</strong> per lo sviluppo locale, gli script,
+		o i servizi interni — non è richiesta alcuna gestione dei token.
 	</div>
 
-	<h3>Opzione A: Flusso JWT</h3>
+	<h3>Opzione A: Flusso con Token JWT</h3>
 
-	<h4>A1. Configurazione aggiuntiva PostgreSQL</h4>
-	<p>Per il flusso JWT è necessario consentire a PgArachne di impersonare <code>demo_user</code>:</p>
-	<pre><code>-- Permetti a PgArachne (utente di sistema) di impersonare demo_user
+	<p>L'autenticazione JWT richiede che l'utente di sistema di PgArachne (<code>pgarachne</code>) possa passare
+		a <code>demo_user</code>:</p>
+	<pre><code>-- Richiesto solo per l'autenticazione JWT: permetti a PgArachne di passare a demo_user
 GRANT demo_user TO pgarachne;</code></pre>
 
-	<h4>A2. Ottenimento del token JWT</h4>
-	<p>Usa il metodo JSON-RPC <code>get_jwt</code> per ottenere un token JWT:</p>
+	<h4>Passo 1 — Ottenimento di un JWT</h4>
+	<p>Chiama il metodo JSON-RPC <code>get_jwt</code> con le credenziali dell'utente:</p>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
 	<p>Risposta:</p>
 	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
 
-	<h4>A3. Chiamata della Funzione con Bearer Token</h4>
-	<p>Usa il token per chiamare la funzione <code>hello_world</code>:</p>
+	<h4>Passo 2 — Chiamata della Funzione</h4>
+	<p>Usa il JWT nell'header <code>Authorization</code>:</p>
 	<pre><code>export TOKEN="IL_TUO_TOKEN_JWT_QUI"
 
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
@@ -67,14 +63,22 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
 	<p>Risposta:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
 
-	<h3>Opzione B: Credenziali dirette (Basic Auth)</h3>
-	<p>Con le credenziali dirette non è necessario alcun GRANT aggiuntivo né la gestione dei token. PgArachne si
-		connette direttamente a PostgreSQL come <code>demo_user</code>.</p>
-	<pre><code>curl -u demo_user:user_password -X POST http://localhost:8080/db/my_database/jsonrpc \
+	<h3>Opzione B: Credenziali dirette (nessun JWT richiesto)</h3>
+
+	<p>Invia direttamente il nome utente e la password PostgreSQL con ogni richiesta usando l'autenticazione HTTP
+		Basic. PgArachne apre un pool di connessioni come quell'utente — non è necessario alcun
+		<code>GRANT … TO pgarachne</code>.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
 	<p>Risposta:</p>
-	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
-	<p>Per ulteriori dettagli sul metodo delle credenziali dirette, consulta la pagina
-		<a href="../security-roles/">Sicurezza e Autenticazione</a>.</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>Il flag <code>-u utente:password</code> di curl imposta automaticamente l'header
+		<code>Authorization: Basic …</code>. Entrambe le opzioni producono risposte identiche.</p>
+
+	<p>Consulta <a href="../security-roles/#direct-credentials">Sicurezza e Autenticazione — Credenziali dirette</a>
+		per un confronto completo di tutti i metodi di autenticazione.</p>
 </section>

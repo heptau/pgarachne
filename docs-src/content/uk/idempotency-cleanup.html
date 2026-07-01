@@ -1,0 +1,52 @@
+---
+title: "Очищення ключів ідемпотентності"
+description: "Maintenance of the pgarachne.requests table."
+menu:
+  main:
+    name: "Очищення ідемпотентності"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Очищення ключів ідемпотентності</h1>
+
+<p>Кожен JSON-RPC запит, що містить поле <code>idempotencyKey</code>,
+записується в таблицю <code>pgarachne.requests</code> функцією
+<code>pgarachne.save_idempotency_key()</code>. Саме це забезпечує
+роботу виявлення дублікатів — але це також означає, що таблиця росте необмежено,
+якщо оператор не запускає очищення періодично.</p>
+
+<p>PgArachne сам не запускає планувальник фонових завдань. Найчистіші
+варіанти:</p>
+
+<h2>pg_cron (рекомендовано, якщо можете встановлювати розширення)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Зовнішній cron / systemd timer</h2>
+<p>Заплануйте shell-завдання, яке викликає функцію через <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Вручну / за потреби</h2>
+<p>Ви можете викликати цю функцію в будь-який момент з psql, скрипта міграції
+або будь-якого іншого клієнта. Вона повертає кількість видалених рядків.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Вибір вікна зберігання</h2>
+<p>Виберіть вікно з достатнім запасом понад найдовший очікуваний інтервал
+повторних спроб ваших клієнтів. Якщо клієнт з помилкою повторює той самий
+ключ ідемпотентності через 48 годин після первинного запиту, 24-годинне
+вікно зберігання непомітно пропустить дублікат.</p>
+
+<p>Для більшості розгортань 24 години є безпечним значенням за замовчуванням.</p>
+
+</div>
+</section>

@@ -1,0 +1,96 @@
+---
+title: "Porównanie: PgArachne vs. PostgREST"
+description: "Porównanie: PgArachne vs. PostgREST - PgArachne"
+menu:
+  main:
+    name: "Porównanie z PostgREST"
+    weight: 30
+---
+
+<section id="comparison">
+	<h2>Porównanie: PgArachne vs. PostgREST</h2>
+	<div class="comparison-table-wrapper">
+		<table>
+			<thead>
+				<tr>
+					<th>Funkcja</th>
+					<th>PgArachne (+ funkcje uniwersalne)</th>
+					<th>PostgREST</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr>
+					<td><strong>Szybkość wdrożenia</strong></td>
+					<td>Wysoka. Funkcje uniwersalne umożliwiają natychmiastowy CRUD podobnie jak PostgREST.</td>
+					<td>Wysoka. Automatycznie generuje endpointy dla wszystkich tabel.</td>
+				</tr>
+				<tr>
+					<td><strong>Elastyczność logiki</strong></td>
+					<td>Nieograniczona. Możliwość łączenia uniwersalnego CRUD z dedykowanymi funkcjami RPC.</td>
+					<td>Ograniczona. Większość logiki musi znajdować się w filtrach URL lub widokach bazy danych.</td>
+				</tr>
+				<tr>
+					<td><strong>Obsługa schematów</strong></td>
+					<td>Natywna. Dostęp przez <code>schema.function</code>.</td>
+					<td>Płaska/globalna. Wymaga przełączania profili w nagłówkach HTTP, aby zmienić schemat.</td>
+				</tr>
+				<tr>
+					<td><strong>Abstrakcja</strong></td>
+					<td>Opcjonalna. Można udostępniać dane bezpośrednio (proxy) albo bezpiecznie je zamknąć w enkapsulacji.</td>
+					<td>Niska. API jest zasadniczo odwzorowaniem schematu bazy danych.</td>
+				</tr>
+				<tr>
+					<td><strong>Gotowość na AI i LLM</strong></td>
+					<td>Ekstremalna. JSON-RPC i możliwość definiowania funkcji „Tool” specjalnie dla agentów AI.</td>
+					<td>Średnia. AI musi zmagać się ze ścisłą składnią parametrów URL.</td>
+				</tr>
+				<tr>
+					<td><strong>Pliki statyczne</strong></td>
+					<td>Tak. Serwuje HTML/JS/CSS bezpośrednio z jednego pliku binarnego.</td>
+					<td>Nie. Musisz skonfigurować i utrzymywać zewnętrzny Nginx przed nim.</td>
+				</tr>
+				<tr>
+					<td><strong>Czas rzeczywisty (SSE)</strong></td>
+					<td>Tak. Wbudowany endpoint SSE dla strumieni PostgreSQL <code>NOTIFY</code>.</td>
+					<td>Nie. Wymaga niestandardowego okablowania (np. LISTEN/NOTIFY + osobna usługa).</td>
+				</tr>
+				<tr>
+					<td><strong>Obsługa wielu baz danych</strong></td>
+					<td><strong>Na poziomie serwera (N:1).</strong> Jedna instancja PgArachne łączy się z serwerem
+						(IP:Port) i może obsłużyć wszystkie hostowane na nim bazy danych.</td>
+					<td><strong>Per baza danych (1:1).</strong> Jedna instancja jest przypisana do jednej konkretnej bazy danych. Obsługa
+						wielu baz danych wymaga uruchomienia wielu instancji na różnych portach.</td>
+				</tr>
+				<tr>
+					<td><strong>Autoryzacja</strong></td>
+					<td>JWT / tokeny API. Natywnie wspiera oba podejścia.</td>
+					<td>Głównie JWT.</td>
+				</tr>
+				<tr>
+					<td><strong>Rate limiting</strong></td>
+					<td>Tak. Wbudowane ograniczanie logowania (konfigurowalne).</td>
+					<td>Nie. Wymaga zewnętrznego proxy lub middleware.</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
+
+	<h3>Czemu wygrywa „hybrydowe PgArachne”</h3>
+	<p>Dzięki <strong>funkcjom uniwersalnym</strong> (działającym jako emulator) otrzymujesz to, co najlepsze z obu
+		światów:</p>
+	<ul>
+		<li><strong>Faza startowa (MVP):</strong> Wdróż PgArachne z kilkoma funkcjami proxy (takimi jak te w
+			<code>universal_table_access.sql</code>) i w ciągu kilku minut masz funkcjonalne API dla wszystkich tabel. Na
+			tym etapie zachowuje się dokładnie jak PostgREST.
+		</li>
+		<li><strong>Faza produkcyjna:</strong> W miarę rozwoju aplikacji zacznij pisać dedykowane funkcje dla
+			operacji wymagających szczególnej ochrony (np. <code>process_payment</code>). To zwiększa bezpieczeństwo i wydajność
+			bez zmiany bazowego stacku technologicznego.</li>
+		<li><strong>Frontend i AI:</strong> Jednocześnie Twoja aplikacja działa na tym samym porcie co API
+			(dzięki serwowaniu plików statycznych), a agenci AI mogą wywoływać Twoje funkcje bezpośrednio przez JSON-RPC.</li>
+	</ul>
+	<p>
+		<em>Uwaga: „Funkcje uniwersalne” to zestaw standardowych funkcji PL/pgSQL, które można dodać do swojej bazy
+			danych, aby umożliwić generyczne operacje odczytu, tworzenia, aktualizacji i usuwania na dowolnej tabeli.</em>
+	</p>
+</section>

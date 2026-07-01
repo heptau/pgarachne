@@ -1,0 +1,278 @@
+---
+title: "Ρύθμιση"
+description: "Configuration - PgArachne"
+menu:
+  main:
+    name: "Ρύθμιση"
+    weight: 50
+---
+
+<section id="config">
+	<h2>Ρύθμιση</h2>
+	<p>Το PgArachne φορτώνει τη ρύθμιση από μεταβλητές περιβάλλοντος ή από αρχείο.</p>
+	<div class="tip">
+		<strong>Σημείωση:</strong> Το <code>schema.sql</code> προσπαθεί να δημιουργήσει τον ρόλο <code>pgarachne_admin</code> και να τον χορηγήσει στον <code>pgarachne</code>. Αν εκτελέσετε το script χωρίς δικαιώματα superuser, η δημιουργία ρόλου παραλείπεται. Δημιουργήστε τον ρόλο και χορηγήστε τον χειροκίνητα εάν χρειάζεται.
+	<br>
+		Ο proxy χρήστης (<code>DB_USER</code>) πρέπει να είναι μέλος των <code>pgarachne</code> και <code>pgarachne_admin</code> για να επικυρώνει και να εκδίδει API tokens.</div>
+	<div class="tip">
+		<strong>Σημείωση Ασφαλείας:</strong> Το PgArachne δεν διαχειρίζεται κωδικούς πρόσβασης βάσης δεδομένων στο αρχείο ρύθμισης.
+		Βασίζεται στον τυπικό μηχανισμό αρχείου <code>.pgpass</code> της PostgreSQL (ή στη μεταβλητή συστήματος
+		<code>PGPASSWORD</code>) για authentication.
+	</div>
+	<div class="tip">
+		<strong>Συμβουλή:</strong> Εάν εκτελείτε το PgArachne πίσω από reverse proxy, ορίστε <code>TRUSTED_PROXIES</code> ώστε οι IP των clients να επιλύονται σωστά και το rate limiting να μην μπορεί να παρακαμφθεί.
+	</div>
+
+	<div class="tip">
+		<strong>Σειρά Αναζήτησης:</strong> Αν δεν έχει καθοριστεί αρχείο ρύθμισης μέσω CLI, γίνεται αναζήτηση σε:
+		<ol>
+			<li>Τρέχων κατάλογος: <code>./pgarachne.env</code> (Όλα τα OS)</li>
+			<li>Ρύθμιση χρήστη:
+				<ul>
+					<li><strong>Linux / macOS:</strong> <code>~/.config/pgarachne/pgarachne.env</code></li>
+					<li><strong>Windows:</strong> <code>%USERPROFILE%\.config\pgarachne\pgarachne.env</code>
+					</li>
+				</ul>
+			</li>
+			<li>Ρύθμιση συστήματος: <code>/etc/pgarachne/pgarachne.env</code> (μόνο Linux / macOS)</li>
+		</ol>
+	</div>
+
+	<h3>Παράδειγμα Ελάχιστης Ρύθμισης</h3>
+	<p>Αυτό είναι το μόνο που χρειάζεστε για να ξεκινήσετε:</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Απαιτούμενες μεταβλητές:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>).</p>
+
+	<h3>Λίστα Ελέγχου Ταχείας Επικύρωσης</h3>
+	<ul>
+		<li>Το <code>JWT_SECRET</code> είναι μεγάλο, τυχαίο, και δεν επαναχρησιμοποιείται σε διαφορετικά περιβάλλοντα.</li>
+		<li>Ο <code>DB_USER</code> μπορεί να μεταβεί μόνο στους αναμενόμενους ρόλους (επιβεβαιώστε τα role membership grants).</li>
+		<li>Το <code>TRUSTED_PROXIES</code> έχει ρυθμιστεί όταν εκτελείται πίσω από reverse proxy.</li>
+		<li>Το <code>LOGIN_RATE_LIMIT</code> είναι ενεργοποιημένο για deployments προσβάσιμα από το διαδίκτυο.</li>
+		<li>Το <code>METRICS_LISTEN_ADDR</code> είναι ιδιωτικό (για παράδειγμα <code>127.0.0.1:9090</code>).</li>
+	</ul>
+
+	<h3>Αναφορά Ρύθμισης</h3>
+	<table class="config-table">
+		<thead>
+			<tr>
+				<th style="width: 30%;">Μεταβλητή</th>
+				<th style="width: 15%;">Απαιτείται</th>
+				<th>Περιγραφή</th>
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Database Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Σύνδεση
+					με τη Βάση Δεδομένων</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_HOST</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Απαιτείται" aria-label="Απαιτείται">✓</span></td>
+				<td>Διεύθυνση του server PostgreSQL (π.χ. <code>localhost</code>).</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Απαιτείται" aria-label="Απαιτείται">✓</span></td>
+					<td>Θύρα της βάσης δεδομένων.</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>DB_USER</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Απαιτείται" aria-label="Απαιτείται">✓</span></td>
+				<td>Ο χρήστης βάσης δεδομένων με τον οποίο συνδέεται το PgArachne.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLMODE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Λειτουργία SSL της PostgreSQL. Προεπιλογή: <code>require</code>. Ορίστε ρητά <code>disable</code> μόνο για τοπική ανάπτυξη έναντι PostgreSQL χωρίς TLS.</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLROOTCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διαδρομή προς το CA root certificate (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLCERT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διαδρομή προς το client certificate (PEM).</td>
+			</tr>
+			<tr>
+				<td><code>DB_SSLKEY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διαδρομή προς το ιδιωτικό κλειδί client (PEM).</td>
+			</tr>
+
+
+			<!-- Server Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">HTTP Server</td>
+			</tr>
+			<tr>
+				<td><code>HTTP_PORT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Θύρα ακρόασης. Προεπιλογή: <code>8080</code>.</td>
+			</tr>
+			<tr>
+				<td><code>API_PREFIX</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Πρώτο τμήμα διαδρομής URL για όλα τα endpoints βάσης δεδομένων (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Προεπιλογή: <code>db</code>, δίνοντας διαδρομές όπως <code>/db/:database/jsonrpc</code>. Επιτρέπονται μόνο γράμματα, ψηφία, ενωτικά και κάτω παύλες.</td>
+			</tr>
+			<tr>
+				<td><code>PID_FILE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διαδρομή προς το αρχείο PID του daemon που χρησιμοποιείται από τα <code>-start</code>/<code>-stop</code>. Προεπιλογή: κατάλογος cache χρήστη OS (fallback: κατάλογος temp).</td>
+			</tr>
+			<tr>
+				<td><code>ALLOWED_ORIGINS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Ρυθμίσεις CORS. Λίστα επιτρεπόμενων origins χωρισμένων με κόμμα (π.χ. <code>https://myapp.com</code>).
+					Προεπιλογή: μη ορισμένο — τα cross-origin requests browser απενεργοποιούνται. Ορίστε ρητά <code>*</code> για να επιτρέψετε οποιοδήποτε origin.</td>
+			</tr>
+			<tr>
+				<td><code>STATIC_FILES_PATH</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Απόλυτη διαδρομή για την εξυπηρέτηση static files (Explorer/Frontend).</td>
+			</tr>
+
+			<!-- Security Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Ασφάλεια (JWT)
+				</td>
+			</tr>
+			<tr class="required-row">
+				<td><code>JWT_SECRET</code></td>
+				<td class="req-col"><span class="req-flag req-yes" title="Απαιτείται" aria-label="Απαιτείται">✓</span></td>
+				<td>Ένα μεγάλο, τυχαίο string που χρησιμοποιείται για την υπογραφή session tokens. Ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_EXPIRY_HOURS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διάρκεια ισχύος session σε ώρες. Προεπιλογή: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_ISSUER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Αν έχει οριστεί, γράφεται στο claim <code>iss</code> κατά την έκδοση και απαιτείται να ταιριάζει ακριβώς κατά την επικύρωση. Αφήστε το κενό για να παραλείψετε τον έλεγχο issuer.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_AUDIENCE</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Αν έχει οριστεί, γράφεται στο claim <code>aud</code> κατά την έκδοση και απαιτείται να ταιριάζει κατά την επικύρωση. Αφήστε το κενό για να παραλείψετε τον έλεγχο audience.</td>
+			</tr>
+			<tr>
+				<td><code>JWT_LEEWAY</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Ανοχή απόκλισης ώρας (clock-skew) για την επικύρωση <code>exp</code>/<code>nbf</code>/<code>iat</code> (π.χ. <code>30s</code>). Προεπιλογή: <code>30s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστες προσπάθειες σύνδεσης ανά χρονικό παράθυρο. Προεπιλογή: <code>5</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστες προσπάθειες σύνδεσης ανά IP client σε όλα τα usernames, ώστε η εναλλαγή usernames να μην παρακάμπτει το όριο. Προεπιλογή: 5× <code>LOGIN_RATE_LIMIT</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
+			</tr>
+			<tr>
+				<td><code>LOGIN_RATE_WINDOW</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διάρκεια χρονικού παραθύρου rate limit. Προεπιλογή: <code>1m</code>.</td>
+			</tr>
+			<tr>
+				<td colspan="3" style="color:#777;font-size:0.95em;">Το rate limiting σύνδεσης είναι ανά instance (in-memory). Σε deployments με πολλαπλά instances, χρησιμοποιήστε κοινό limiter αν χρειάζεστε καθολική εφαρμογή.</td>
+			</tr>
+			<tr>
+				<td><code>TRUSTED_PROXIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Έμπιστες IP/CIDR proxy για τον χειρισμό του <code>X-Forwarded-For</code>. Χωρισμένες με κόμμα. Αν είναι κενό, οι forwarded headers αγνοούνται και η IP client λαμβάνεται από την άμεση σύνδεση.</td>
+			</tr>
+			<tr>
+				<td><code>MAX_REQUEST_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστο μέγεθος σώματος request σε bytes. Προεπιλογή: <code>2097152</code>.</td>
+			</tr>
+			<tr>
+				<td><code>MCP_SQL_ERROR_DETAIL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Συμπερίληψη του ανεπεξέργαστου μηνύματος σφάλματος PostgreSQL στα σφάλματα εργαλείων MCP. Τα λεπτομερή σφάλματα βοηθούν τους LLM agents να αυτοδιορθωθούν, αλλά μπορούν να εκθέσουν λεπτομέρειες σχήματος (ονόματα πινάκων και constraints) σε αυθεντικοποιημένους καλούντες. Προεπιλογή: <code>false</code>.</td>
+			</tr>
+			<tr>
+				<td><code>DIRECT_POOL_LIMIT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστος αριθμός διακριτών connection pools διαπιστευτηρίων Basic-Auth. Προεπιλογή: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_ENABLED</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Ενεργοποίηση αποκλειστικού endpoint μετρικών. Προεπιλογή: <code>true</code>.</td>
+			</tr>
+			<tr>
+				<td><code>METRICS_LISTEN_ADDR</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διεύθυνση listener μετρικών (<code>host:port</code>). Προεπιλογή: <code>127.0.0.1:9090</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CHANNELS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστα κανάλια ανά σύνδεση SSE. Προεπιλογή: <code>8</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_MAX_CLIENTS</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστοι ταυτόχρονοι clients SSE ανά βάση δεδομένων. Προεπιλογή: <code>1000</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_CLIENT_BUFFER</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγεθος buffer ανά client SSE (μηνύματα). Προεπιλογή: <code>64</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_SEND_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστος χρόνος αναμονής κατά την αποστολή σε αργό client. Προεπιλογή: <code>2s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_HEARTBEAT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Διάστημα heartbeat για συνδέσεις SSE. Προεπιλογή: <code>20s</code>.</td>
+			</tr>
+			<tr>
+				<td><code>SSE_IDLE_TIMEOUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Timeout αδράνειας χωρίς notifications. Προεπιλογή: <code>90s</code>.</td>
+			</tr>
+
+			<!-- Logging Config -->
+			<tr>
+				<td colspan="3" class="config-table-section">Καταγραφή (Logging)</td>
+			</tr>
+			<tr>
+				<td><code>LOG_LEVEL</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Επίπεδο λεπτομέρειας: <code>DEBUG</code>, <code>INFO</code>, <code>WARN</code>, <code>ERROR</code>.
+					Προεπιλογή: <code>INFO</code>.</td>
+			</tr>
+			<tr>
+				<td><code>LOG_OUTPUT</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Πού θα γράφονται τα logs: <code>stdout</code> ή διαδρομή αρχείου.</td>
+			</tr>
+		</tbody>
+	</table>
+	<p class="config-legend"><span class="req-flag req-yes" aria-hidden="true">✓</span> Απαιτείται &nbsp; <span class="req-flag req-no" aria-hidden="true">○</span> Προαιρετικό</p>
+	<p><strong>Συμπεριφορά ασφαλείας:</strong> τα requests χωρίς έγκυρη κεφαλίδα <code>Authorization</code> απορρίπτονται πριν ανοίξει σύνδεση βάσης δεδομένων.</p>
+
+	<p>Εκκίνηση του server:</p>
+	<pre><code>./pgarachne -config .env</code></pre>
+
+	<h3>Δείτε επίσης</h3>
+	<ul>
+		<li><a href="../security-roles/">Ασφάλεια & Authentication</a></li>
+		<li><a href="../error-codes/">Κωδικοί Σφαλμάτων</a></li>
+	</ul>
+</section>

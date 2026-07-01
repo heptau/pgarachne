@@ -1,0 +1,52 @@
+---
+title: "Limpieza de Claves de Idempotencia"
+description: "Mantenimiento de la tabla pgarachne.requests."
+menu:
+  main:
+    name: "Limpieza de Idempotencia"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Limpieza de Claves de Idempotencia</h1>
+
+<p>Toda petición JSON-RPC que incluye un campo <code>idempotencyKey</code>
+se registra en la tabla <code>pgarachne.requests</code> mediante la función
+<code>pgarachne.save_idempotency_key()</code>. Esto es lo que permite la
+detección de duplicados — pero también implica que la tabla crece sin límite
+a menos que un operador ejecute una limpieza periódicamente.</p>
+
+<p>PgArachne no ejecuta un planificador en segundo plano por sí mismo. Las
+opciones más recomendables:</p>
+
+<h2>pg_cron (recomendado si puede instalar extensiones)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Cron externo / temporizador systemd</h2>
+<p>Programe una tarea de shell que llame a la función mediante <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manual / puntual</h2>
+<p>Puede llamar a la función en cualquier momento desde psql, un script de
+migración o cualquier otro cliente. Devuelve el número de filas eliminadas.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Elegir una ventana de retención</h2>
+<p>Elija una ventana claramente más larga que el intervalo de reintento más
+largo esperado en sus clientes. Si un cliente con errores reintenta la misma
+clave de idempotencia 48 horas después de la petición original, una ventana
+de retención de 24 horas dejará pasar el duplicado sin detectarlo.</p>
+
+<p>Para la mayoría de los despliegues, 24 horas es un valor predeterminado seguro.</p>
+
+</div>
+</section>

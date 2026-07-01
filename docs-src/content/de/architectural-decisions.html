@@ -140,10 +140,10 @@ menu:
 		<h4>Warum MCP auf dem Server übersetzen:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Keine Änderungen an bestehenden Funktionen:</strong> Jede bereits über JSON-RPC exponierte Funktion ist sofort als MCP-Tool verfügbar. Keine SQL-Änderungen, keine Neubereitstellung von Datenbankobjekten.</li>
-			<li><strong>MCP ist mehr als nur Tools:</strong> Das Protokoll umfasst einen Initialisierungs-Handshake, Ping, Benachrichtigungen und potenzielle zukünftige Erweiterungen. Das sind Protokoll-Belange, die in Go gehören, nicht in SQL-Funktionen.</li>
+			<li><strong>MCP ist mehr als nur Tools:</strong> Das Protokoll umfasst einen Initialisierungs-Handshake, Ping, Benachrichtigungen und potenzielle zukünftige Erweiterungen (Resources, Prompts, Sampling). Das sind Protokoll-Belange, die in Go gehören, nicht in SQL-Funktionen.</li>
 			<li><strong>Sicherheit bleibt an einem Ort:</strong> Authentifizierung, Rollenwechsel und Eingabevalidierung sind bereits in Go implementiert. Der MCP-Endpunkt nutzt diese Logik unverändert.</li>
-			<li><strong>Mehrere Protokolle, ein Backend:</strong> Dieselbe PostgreSQL-Funktion kann über JSON-RPC (von einem regulären Client), MCP (von Claude Desktop oder Cursor) oder SSE aufgerufen werden. Die Datenbank ist protokoll-agnostisch.</li>
-			<li><strong>Einfacheres SQL:</strong> Die Verarbeitung von MCP-Envelopes in PostgreSQL-Funktionen würde das Parsen komplexer JSON-Strukturen in PL/pgSQL erfordern, was Funktionen schwerer schreibbar, testbar und wartbar machen würde.</li>
+			<li><strong>Mehrere Protokolle, ein Backend:</strong> Dieselbe PostgreSQL-Funktion kann über JSON-RPC (von einem regulären Client), MCP (von Claude Desktop oder Cursor) oder SSE (für Event-Subscriptions) aufgerufen werden. Die Datenbank ist protokoll-agnostisch.</li>
+			<li><strong>Einfacheres SQL:</strong> Die Verarbeitung von MCP-Envelopes (<code>initialize</code>, <code>tools/list</code>, Benachrichtigungsbehandlung) in PostgreSQL-Funktionen würde das Parsen komplexer JSON-Strukturen in PL/pgSQL erfordern, was Funktionen schwerer schreibbar, testbar und wartbar machen würde.</li>
 		</ul>
 
 		<h4>Warum MCP nicht in die Datenbank verlagern:</h4>

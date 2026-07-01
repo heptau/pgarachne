@@ -1,0 +1,494 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/el/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>el</language><atom:link href="https://www.pgarachne.com/el/index.xml" rel="self" type="application/rss+xml"/><item><title>Deployment &amp; HTTPS</title><link>https://www.pgarachne.com/el/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+	&lt;h2&gt;Deployment &amp; HTTPS&lt;/h2&gt;
+	&lt;p&gt;Το PgArachne είναι σχεδιασμένο να κάνει καλά μία δουλειά: API Gateway. Για SSL/TLS (HTTPS), ασφάλεια headers, και
+		δημόσια δρομολόγηση, θα πρέπει να τοποθετήσετε ένα &lt;strong&gt;Reverse Proxy&lt;/strong&gt; μπροστά του.&lt;/p&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Επιλογή A: Caddy Server&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Καλύτερο για:&lt;/strong&gt; Μοντέρνα deployments παραγωγής, ευκολία χρήσης.&lt;/p&gt;
+		&lt;p&gt;Το &lt;a href="https://caddyserver.com/" target="_blank"&gt;Caddy&lt;/a&gt; είναι ο μοναδικός web server που αποκτά
+			και ανανεώνει αυτόματα SSL certificates (Let's Encrypt) εξ ορισμού. Απαιτεί σχεδόν καθόλου
+			ρύθμιση.&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;# Caddyfile
+example.com {
+ reverse_proxy localhost:8080
+}&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Επιλογή B: Nginx&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Καλύτερο για:&lt;/strong&gt; Εταιρικά περιβάλλοντα, σύνθετη δρομολόγηση.&lt;/p&gt;</description></item><item><title>JSON-RPC &amp; Hello World</title><link>https://www.pgarachne.com/el/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+	&lt;h2&gt;JSON-RPC &amp;amp; Hello World&lt;/h2&gt;
+	&lt;p&gt;Αυτό το παράδειγμα δημιουργεί ένα απλό API endpoint που συνδέεται με έναν χρήστη της βάσης δεδομένων. Παρουσιάζονται δύο
+		προσεγγίσεις αυθεντικοποίησης: η κλασική ροή JWT και η απλούστερη ροή απευθείας διαπιστευτηρίων.&lt;/p&gt;
+
+	&lt;h3&gt;1. Δημιουργία Χρήστη και Συνάρτησης&lt;/h3&gt;
+	&lt;p&gt;Στη βάση δεδομένων σας (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+ SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/pre&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Ποια προσέγγιση αυθεντικοποίησης πρέπει να χρησιμοποιήσετε;&lt;/strong&gt;&lt;br&gt;
+		Επιλέξτε την &lt;strong&gt;Επιλογή Α (JWT)&lt;/strong&gt; για συνεδρίες μέσω browser ή τελικού χρήστη.
+		Επιλέξτε την &lt;strong&gt;Επιλογή Β (απευθείας διαπιστευτήρια)&lt;/strong&gt; για τοπική ανάπτυξη, scripts,
+		ή εσωτερικές υπηρεσίες — δεν απαιτείται διαχείριση token.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Επιλογή Α: Ροή JWT Token&lt;/h3&gt;
+
+	&lt;p&gt;Η αυθεντικοποίηση JWT απαιτεί ο χρήστης συστήματος του PgArachne (&lt;code&gt;pgarachne&lt;/code&gt;) να μπορεί να αλλάξει
+		στον &lt;code&gt;demo_user&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/el/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;Το &lt;strong&gt;JWT Getter&lt;/strong&gt; είναι ένα ελάχιστο εργαλείο browser σε ένα αρχείο, που βρίσκεται στο &lt;code&gt;tools/get-jwt&lt;/code&gt;. Ανταλλάζει ένα όνομα χρήστη και κωδικό πρόσβασης PostgreSQL για ένα βραχύβιο JWT καλώντας τη μέθοδο JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — και σας δείχνει το αποκωδικοποιημένο payload και τον χρόνο λήξης.&lt;/p&gt;
+&lt;h3&gt;Πότε να το χρησιμοποιήσετε&lt;/h3&gt;
+&lt;p&gt;Χρησιμοποιήστε το JWT Getter όταν χρειάζεστε ένα token για έναν από τους ακόλουθους σκοπούς:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Επικόλληση ενός token στο &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ή στο &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; (καρτέλα Bearer Token).&lt;/li&gt;
+&lt;li&gt;Δοκιμή της λήξης JWT ή των claims &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; στην εφαρμογή σας.&lt;/li&gt;
+&lt;li&gt;Ταχεία επιβεβαίωση ότι ο χρήστης συστήματος &lt;code&gt;pgarachne&lt;/code&gt; μπορεί να εναλλάξει σε συγκεκριμένο ρόλο (το &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; πρέπει να υπάρχει).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Σημείωση:&lt;/strong&gt; Το &lt;code&gt;get_jwt&lt;/code&gt; απαιτεί &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; στη βάση δεδομένων επειδή το PgArachne επαληθεύει τον κωδικό πρόσβασης εσωτερικά μέσω &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Εάν θέλετε να παραλείψετε αυτό το grant, χρησιμοποιήστε άμεσα διαπιστευτήρια (HTTP Basic Auth) στο &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; ή στο &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; αντ' αυτού.
+&lt;/div&gt;
+&lt;h3&gt;Λειτουργίες&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Εισάγετε το API URL, το prefix, τη βάση δεδομένων, το όνομα χρήστη και τον κωδικό πρόσβασης — πατήστε &lt;kbd&gt;Enter&lt;/kbd&gt; ή κάντε κλικ στο &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Το ανεπεξέργαστο token εμφανίζεται και μπορεί να αντιγραφεί με ένα κλικ.&lt;/li&gt;
+&lt;li&gt;Το payload του JWT αποκωδικοποιείται με Base64 και εμφανίζεται με επισήμανση σύνταξης JSON.&lt;/li&gt;
+&lt;li&gt;Ένα badge λήξης εμφανίζει τον υπόλοιπο χρόνο ζωής (ή επισημαίνει το token ως ληγμένο).&lt;/li&gt;
+&lt;li&gt;Οι ρυθμίσεις σύνδεσης και η σύνδεση αποθηκεύονται στο &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Πώς να το ενεργοποιήσετε&lt;/h3&gt;
+&lt;p&gt;Ρυθμίστε το &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; σε &lt;code&gt;tools/get-jwt&lt;/code&gt; και επισκεφθείτε το &lt;code&gt;http://localhost:8080&lt;/code&gt;, ή ανοίξτε απευθείας το &lt;code&gt;index.html&lt;/code&gt; σε έναν browser.&lt;/p&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/el/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/mcp/</guid><description>&lt;section id="mcp"&gt;
+	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
+
+	&lt;p class="section-intro"&gt;
+		Το PgArachne υποστηρίζει εγγενώς το &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt;, ένα ανοιχτό πρότυπο που επιτρέπει σε μοντέλα AI (όπως το Claude ή το Cursor) να έχουν ασφαλή πρόσβαση στα δεδομένα και τις συναρτήσεις σας ως «εργαλεία» (tools).
+	&lt;/p&gt;
+
+	&lt;h3&gt;Πώς Λειτουργεί;&lt;/h3&gt;
+	&lt;p&gt;
+		Το PgArachne λειτουργεί απευθείας ως &lt;strong&gt;MCP Server&lt;/strong&gt;. Αντί να γράφετε έναν προσαρμοσμένο HTTP server για κάθε έργο, απλώς εκτελέστε το PgArachne πάνω από τη βάση δεδομένων σας. Το PgArachne αναλύει αυτόματα τις επιτρεπόμενες SQL συναρτήσεις σας και τις εκθέτει σε AI clients μέσω HTTP(S).
+	&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/el/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;Το &lt;strong&gt;Explorer&lt;/strong&gt; είναι ένα ισχυρό web GUI που περιλαμβάνεται στον κατάλογο &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Δεν είναι
+		απλά ένα εργαλείο τεκμηρίωσης — είναι μια πλήρως λειτουργική &lt;strong&gt;εφαρμογή επίδειξης&lt;/strong&gt; χτισμένη με HTML/JS
+		που επικοινωνεί με τη βάση δεδομένων αποκλειστικά μέσω του PgArachne. Μια φιλοξενούμενη έκδοση είναι επίσης διαθέσιμη στο
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Τι μπορεί να κάνει;&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Επιθεώρηση API:&lt;/strong&gt; Διαβάζει τη συνάρτηση &lt;code&gt;capabilities&lt;/code&gt; για να εμφανίσει όλα τα διαθέσιμα
+			endpoints και τις παραμέτρους τους.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Ζωντανή Δοκιμή:&lt;/strong&gt; Μπορείτε να εκτελέσετε συναρτήσεις απευθείας από τον browser.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Αυτόματη Τεκμηρίωση:&lt;/strong&gt; Αποδίδει τα σχόλια SQL (συμπεριλαμβανομένων των μεταδεδομένων
+			&lt;code&gt;--- PARAMS ---&lt;/code&gt;) σε ευανάγνωστη τεκμηρίωση.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Μοντέρνο UI:&lt;/strong&gt; Διαθέτει υποστήριξη λειτουργίας Dark/Light και μπορεί να εγκατασταθεί ως &lt;strong&gt;PWA&lt;/strong&gt; σε κινητές συσκευές.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Πιστοποίηση:&lt;/strong&gt; Η καρτέλα &lt;em&gt;Password&lt;/em&gt; χρησιμοποιεί HTTP Basic Auth για απευθείας σύνδεση ως ο χρήστης της βάσης δεδομένων — δεν απαιτείται &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt;. Η καρτέλα &lt;em&gt;API Token&lt;/em&gt; δέχεται ένα JWT ή μακρόβιο API token που αποστέλλεται ως &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Παράμετροι URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/el/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar για macOS&lt;/h2&gt;
+&lt;p&gt;Το &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; είναι μια επαγγελματική εγγενής εφαρμογή για macOS σχεδιασμένη να προσφέρει μια απρόσκοπτη εμπειρία διαχείρισης για τις εγκαταστάσεις της πύλης JSON-RPC σας.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Κατάσταση:&lt;/strong&gt; Υπό ανάπτυξη. Αναμενόμενη κυκλοφορία: &lt;strong&gt;Q2 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Βασικές Λειτουργίες&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Διαχείριση Πολλαπλών Servers:&lt;/strong&gt; Εκκίνηση, διακοπή, και επανεκκίνηση πολλαπλών εγκαταστάσεων PgArachne από ένα μόνο μενού.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Εναλλαγή Ρυθμίσεων:&lt;/strong&gt; Ταχεία εναλλαγή μεταξύ κοινών περιβαλλόντων ή τοπικών ρυθμίσεων βάσης δεδομένων.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Ζωντανή Παρακολούθηση:&lt;/strong&gt; Ενσωματωμένο παράθυρο για logs σε πραγματικό χρόνο και μετρήσεις απόδοσης.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Εγγενής Εμπειρία:&lt;/strong&gt; Χτισμένο ειδικά για macOS με υποστήριξη dark mode και Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Έρχεται στο Mac App Store&lt;/h3&gt;
+&lt;p&gt;Η εφαρμογή βελτιστοποιείται για το Mac App Store ώστε να διασφαλίζεται η μέγιστη ασφάλεια και απρόσκοπτες ενημερώσεις.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/el/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;Το &lt;strong&gt;SSE Tester&lt;/strong&gt; είναι ένα εργαλείο browser σε ένα αρχείο, που βρίσκεται στο &lt;code&gt;tools/test-sse&lt;/code&gt;. Σας επιτρέπει να εγγραφείτε σε οποιονδήποτε αριθμό καναλιών &lt;code&gt;NOTIFY&lt;/code&gt; της PostgreSQL μέσω μιας ζωντανής σύνδεσης &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; και να παρακολουθείτε τα εισερχόμενα συμβάντα σε πραγματικό χρόνο.&lt;/p&gt;
+&lt;h3&gt;Λειτουργίες&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Εγγραφές πολλαπλών καναλιών&lt;/strong&gt; — προσθέστε ή αφαιρέστε κανάλια ως ετικέτες πριν τη σύνδεση. Όλα τα κανάλια περνιούνται ως παράμετρος ερωτήματος &lt;code&gt;?channels=&lt;/code&gt; διαχωρισμένη με κόμμα.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Όλες οι μέθοδοι πιστοποίησης&lt;/strong&gt; — η καρτέλα &lt;em&gt;Password&lt;/em&gt; χρησιμοποιεί HTTP Basic Auth (άμεσα διαπιστευτήρια, χωρίς ανάγκη JWT)· η καρτέλα &lt;em&gt;Bearer Token&lt;/em&gt; δέχεται ένα JWT ή API token.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Ζωντανή ροή&lt;/strong&gt; — χρησιμοποιεί το Fetch Streams API με έναν &lt;code&gt;AbortController&lt;/code&gt; για καθαρή αποσύνδεση. Οι γραμμές SSE αναλύονται χειροκίνητα ώστε τα πεδία &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt;, και heartbeat (&lt;code&gt;:&lt;/code&gt;) να αντιμετωπίζονται σωστά.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Επισήμανση σύνταξης JSON&lt;/strong&gt; — τα payloads δεδομένων που είναι έγκυρο JSON εμφανίζονται μορφοποιημένα με έγχρωμη κωδικοποίηση.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Διατηρούμενες ρυθμίσεις&lt;/strong&gt; — το API URL, το prefix, η βάση δεδομένων, τα στοιχεία σύνδεσης, και η λίστα καναλιών αποθηκεύονται στο &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Πιστοποίηση&lt;/h3&gt;
+&lt;p&gt;Το εργαλείο επαληθεύει τα διαπιστευτήρια πριν αποκαλύψει τον πίνακα εγγραφής. Κάνοντας κλικ στο &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; καλείται η &lt;code&gt;capabilities&lt;/code&gt; με την επιλεγμένη κεφαλίδα — εάν το PgArachne επιστρέψει επιτυχή απόκριση, ο πίνακας εγγραφής ξεκλειδώνεται.&lt;/p&gt;</description></item><item><title>Άδεια Χρήσης &amp; Εμπορικό Σήμα</title><link>https://www.pgarachne.com/el/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/license/</guid><description>&lt;section id="license"&gt;
+	&lt;h2&gt;Άδεια Χρήσης &amp; Εμπορικό Σήμα&lt;/h2&gt;
+	&lt;div class="license-box"&gt;
+		&lt;p&gt;&lt;strong&gt;Ο Κώδικας (Άδεια MIT):&lt;/strong&gt;&lt;br&gt;
+			Μπορείτε να χρησιμοποιήσετε τον πηγαίο κώδικα δωρεάν για οποιοδήποτε προσωπικό ή εμπορικό έργο. Μπορείτε να τον τροποποιήσετε,
+			να τον κάνετε fork και να τον διανείμετε.&lt;/p&gt;
+
+		&lt;p style="margin-top: 15px;"&gt;&lt;strong&gt;Η Επωνυμία (Εμπορικό Σήμα):&lt;/strong&gt;&lt;br&gt;
+			Το όνομα «PgArachne» και το λογότυπο είναι εμπορικά σήματα του &lt;em&gt;Zbyněk Vanžura&lt;/em&gt;. Εάν κάνετε fork το
+			έργο ή προσφέρετε μια εμπορική υπηρεσία «Managed PgArachne», πρέπει να αφαιρέσετε την αρχική επωνυμία
+			και το λογότυπο, εκτός εάν έχετε αποκτήσει ειδική άδεια χρήσης.&lt;/p&gt;</description></item><item><title>Αρχιτεκτονικές Αποφάσεις</title><link>https://www.pgarachne.com/el/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Αποφάσεις Αρχιτεκτονικού Σχεδιασμού&lt;/h2&gt;
+	&lt;p&gt;
+		Αυτή η σελίδα εξηγεί τη λογική πίσω από τις βασικές αρχιτεκτονικές και τεχνολογικές επιλογές στο PgArachne.
+		Αυτές οι αποφάσεις ελήφθησαν με προτεραιότητα στην απόδοση, την ασφάλεια και την παραγωγικότητα των developers, εξασφαλίζοντας παράλληλα ότι το σύστημα παραμένει
+		πλήρως συμβατό με σύγχρονους AI και LLM agents.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 έναντι REST&lt;/h3&gt;
+		&lt;p&gt;Το PgArachne χρησιμοποιεί το JSON-RPC 2.0 ως το κύριο πρωτόκολλο επικοινωνίας του, αντί για το παραδοσιακό REST.&lt;/p&gt;</description></item><item><title>Ασφάλεια &amp; Πιστοποίηση</title><link>https://www.pgarachne.com/el/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/security-roles/</guid><description>&lt;section id="security"&gt;
+	&lt;h2&gt;Ασφάλεια &amp;amp; Πιστοποίηση&lt;/h2&gt;
+	&lt;p&gt;Το PgArachne βασίζεται εξ ολοκλήρου στο σύστημα δικαιωμάτων της PostgreSQL. Δεν εφευρίσκει εκ νέου Access Control Lists (ACLs).
+		Το PgArachne υποστηρίζει &lt;strong&gt;τέσσερις μεθόδους πιστοποίησης&lt;/strong&gt;. Οι μέθοδοι 1–3 χρησιμοποιούν
+		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; για εναλλαγή ταυτότητας· η μέθοδος 4 (άμεσα διαπιστευτήρια) συνδέεται
+		&lt;em&gt;απευθείας&lt;/em&gt; ως ο χρήστης, οπότε δεν απαιτείται εναλλαγή ρόλου.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Διαδραστική Σύνδεση (JWT)&lt;/h3&gt;
+	&lt;p&gt;Οι χρήστες πιστοποιούνται χρησιμοποιώντας το &lt;strong&gt;πραγματικό όνομα χρήστη και τον κωδικό πρόσβασης PostgreSQL&lt;/strong&gt; τους μέσω
+		της μεθόδου JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt;. Εάν είναι επιτυχής, λαμβάνουν ένα βραχύβιο JWT. Τα επόμενα αιτήματα
+		φέρουν αυτό το token στην κεφαλίδα &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;, και το PgArachne εναλλάσσει τον
+		ενεργό ρόλο σε αυτόν τον χρήστη για τη διάρκεια κάθε αιτήματος.&lt;/p&gt;</description></item><item><title>Εγκατάσταση</title><link>https://www.pgarachne.com/el/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/installation/</guid><description>&lt;section id="install"&gt;
+	&lt;h2&gt;Εγκατάσταση&lt;/h2&gt;
+
+	&lt;h3&gt;1. Εγκατάσταση&lt;/h3&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Επιλογή Α: Λήψη Δυαδικών Αρχείων&lt;/h4&gt;
+		&lt;p&gt;Κατεβάστε την τελευταία προ-μεταγλωττισμένη έκδοση για το λειτουργικό σας σύστημα:&lt;/p&gt;
+
+		&lt;div class="donation-grid" style="margin-top: 20px; margin-bottom: 20px;"&gt;
+			&lt;!-- Linux --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Linux&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-amd64.tar.gz"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-arm64.tar.gz"
+						class="btn-download"&gt;ARM64/Aarch64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- macOS --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;macOS&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-arm64-app.zip"
+						class="btn-download"&gt;ARM64/Apple Silicon&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-amd64-app.zip"
+						class="btn-download"&gt;x64/Intel&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- Windows --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Windows&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-amd64.zip"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-arm64.zip"
+						class="btn-download"&gt;ARM64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;p&gt;Περισσότερες εκδόσεις διαθέσιμες στα &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE)</title><link>https://www.pgarachne.com/el/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+	&lt;h2&gt;Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE)&lt;/h2&gt;
+	&lt;p&gt;Εγγραφείτε σε κανάλια &lt;code&gt;NOTIFY&lt;/code&gt; του PostgreSQL μέσω Server-Sent Events:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;# Bearer token (JWT or API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -H "Authorization: Bearer $TOKEN"
+
+# Direct credentials (HTTP Basic Auth — no GRANT … TO pgarachne required)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -u "alice:secret"&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Κάθε μήνυμα είναι σε μορφή JSON με το όνομα του καναλιού και το payload:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Εάν το payload είναι απλό κείμενο, περιτυλίγεται ως συμβολοσειρά στο &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;</description></item><item><title>Εκκαθάριση Κλειδιών Ιδεμποτεντίας</title><link>https://www.pgarachne.com/el/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
+&lt;div class="container"&gt;
+&lt;h1&gt;Εκκαθάριση Κλειδιών Ιδεμποτεντίας&lt;/h1&gt;
+
+&lt;p&gt;Κάθε αίτημα JSON-RPC που φέρει ένα πεδίο &lt;code&gt;idempotencyKey&lt;/code&gt;
+καταγράφεται στον πίνακα &lt;code&gt;pgarachne.requests&lt;/code&gt; από τη
+συνάρτηση &lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;. Αυτό είναι που
+κάνει την ανίχνευση διπλότυπων να λειτουργεί — αλλά σημαίνει επίσης ότι ο πίνακας
+μεγαλώνει χωρίς όριο εκτός αν ένας operator εκτελεί περιοδικά εκκαθάριση.&lt;/p&gt;
+
+&lt;p&gt;Το PgArachne δεν εκτελεί δικό του background scheduler. Οι πιο καθαρές
+επιλογές:&lt;/p&gt;
+
+&lt;h2&gt;pg_cron (συνιστάται αν μπορείτε να εγκαταστήσετε extensions)&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+ 'pgarachne-idempotency-cleanup',
+ '0 * * * *',
+ $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;Εξωτερικό cron / systemd timer&lt;/h2&gt;
+&lt;p&gt;Προγραμματίστε μια εργασία shell που καλεί τη συνάρτηση μέσω &lt;code&gt;psql&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>Κωδικοί Σφαλμάτων</title><link>https://www.pgarachne.com/el/error-codes/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/error-codes/</guid><description>&lt;section id="errors"&gt;
+	&lt;h2&gt;Κωδικοί Σφαλμάτων&lt;/h2&gt;
+	&lt;p&gt;Το PgArachne επιστρέφει τυπικά αντικείμενα σφαλμάτων JSON-RPC 2.0. Παρακάτω είναι οι συγκεκριμένοι κωδικοί που μπορεί να
+		συναντήσετε:&lt;/p&gt;
+	&lt;table&gt;
+		&lt;tr&gt;
+			&lt;th&gt;Κωδικός&lt;/th&gt;
+			&lt;th&gt;Μήνυμα&lt;/th&gt;
+			&lt;th&gt;Σημασία&lt;/th&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32700&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Parse error&lt;/td&gt;
+			&lt;td&gt;Ελήφθη μη έγκυρη JSON από τον server.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32601&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Method not found&lt;/td&gt;
+			&lt;td&gt;Η function δεν υπάρχει στο σχήμα.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32602&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Invalid params&lt;/td&gt;
+			&lt;td&gt;Τα arguments δεν ταιριάζουν με το signature της function.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32001&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Permission denied&lt;/td&gt;
+			&lt;td&gt;Ο τρέχων ρόλος χρήστη δεν έχει δικαιώματα εκτέλεσης της function (επίπεδο DB).&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32000&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Internal Error&lt;/td&gt;
+			&lt;td&gt;Γενικό σφάλμα server (ελέγξτε τα logs).&lt;/td&gt;
+		&lt;/tr&gt;
+	&lt;/table&gt;
+&lt;div class="tip"&gt;
+		&lt;strong&gt;Τρέχουσα συμπεριφορά:&lt;/strong&gt; οι απαντήσεις runtime αντιστοιχίζονται κυρίως σε HTTP status codes με ένα JSON-RPC error &lt;code&gt;message&lt;/code&gt;. Ο custom κωδικός JSON-RPC &lt;code&gt;-32001&lt;/code&gt; χρησιμοποιείται για άρνηση ρόλου/δικαιώματος.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Αντιστοίχιση HTTP Status&lt;/h3&gt;
+	&lt;table&gt;
+		&lt;tr&gt;&lt;th&gt;HTTP&lt;/th&gt;&lt;th&gt;Τυπικό μήνυμα&lt;/th&gt;&lt;th&gt;Πότε συμβαίνει&lt;/th&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;400&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Invalid JSON request / Invalid function name&lt;/td&gt;&lt;td&gt;Κακοσχηματισμένο payload request ή μορφή method.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;401&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Authorization header is missing / Invalid or expired token&lt;/td&gt;&lt;td&gt;Απούσα ή μη έγκυρη authentication.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;403&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Permission denied for the specified role&lt;/td&gt;&lt;td&gt;Το &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; απέτυχε (&lt;code&gt;-32001&lt;/code&gt;).&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;404&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function does not exist&lt;/td&gt;&lt;td&gt;Η function-στόχος λείπει.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;429&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Too many login attempts&lt;/td&gt;&lt;td&gt;Υπέρβαση του rate limit σύνδεσης.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;500&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function call failed / Transaction commit failed&lt;/td&gt;&lt;td&gt;Αποτυχία εκτέλεσης ή commit.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;503&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Database connection failed / Database unavailable&lt;/td&gt;&lt;td&gt;Προσωρινή μη διαθεσιμότητα βάσης δεδομένων ή listener.&lt;/td&gt;&lt;/tr&gt;
+	&lt;/table&gt;
+
+	&lt;h3&gt;Δείτε επίσης&lt;/h3&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;a href="../security-roles/"&gt;Ασφάλεια &amp; Authentication&lt;/a&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;a href="../configuration/"&gt;Ρύθμιση&lt;/a&gt;&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>Μετρήσεις (Prometheus)</title><link>https://www.pgarachne.com/el/metrics/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/metrics/</guid><description>&lt;section id="metrics"&gt;
+	&lt;h2&gt;Μετρήσεις (Prometheus)&lt;/h2&gt;
+	&lt;p&gt;Το PgArachne εξάγει μετρήσεις Prometheus σε έναν αποκλειστικό metrics listener (προεπιλογή &lt;code&gt;127.0.0.1:9090&lt;/code&gt;) στο &lt;code&gt;/metrics&lt;/code&gt;, συμπεριλαμβανομένων των τυπικών μετρήσεων Go runtime και:&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_http_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_http_request_duration_seconds&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_events_forwarded_total&lt;/code&gt; &amp;mdash; συμβάντα PostgreSQL NOTIFY που αποστέλλονται σε SSE clients, με ετικέτα ανά βάση δεδομένων&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_bytes_sent_total&lt;/code&gt; &amp;mdash; bytes που γράφτηκαν σε ροές απόκρισης SSE (payloads, heartbeats, preamble), με ετικέτα ανά βάση δεδομένων&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_listen_errors_total&lt;/code&gt; &amp;mdash; σφάλματα PostgreSQL LISTEN/σύνδεσης και συμβάντα επανασύνδεσης, με ετικέτα ανά βάση δεδομένων και τύπο συμβάντος. Μια τιμή διαφορετική από το μηδέν δικαιολογεί διερεύνηση &amp;mdash; το hub αποσυνδέει όλους τους clients κατά την επανασύνδεση, οπότε οι χρήστες βλέπουν μια σύντομη διακοπή.&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>Ρύθμιση</title><link>https://www.pgarachne.com/el/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/configuration/</guid><description>&lt;section id="config"&gt;
+	&lt;h2&gt;Ρύθμιση&lt;/h2&gt;
+	&lt;p&gt;Το PgArachne φορτώνει τη ρύθμιση από μεταβλητές περιβάλλοντος ή από αρχείο.&lt;/p&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Σημείωση:&lt;/strong&gt; Το &lt;code&gt;schema.sql&lt;/code&gt; προσπαθεί να δημιουργήσει τον ρόλο &lt;code&gt;pgarachne_admin&lt;/code&gt; και να τον χορηγήσει στον &lt;code&gt;pgarachne&lt;/code&gt;. Αν εκτελέσετε το script χωρίς δικαιώματα superuser, η δημιουργία ρόλου παραλείπεται. Δημιουργήστε τον ρόλο και χορηγήστε τον χειροκίνητα εάν χρειάζεται.
+	&lt;br&gt;
+		Ο proxy χρήστης (&lt;code&gt;DB_USER&lt;/code&gt;) πρέπει να είναι μέλος των &lt;code&gt;pgarachne&lt;/code&gt; και &lt;code&gt;pgarachne_admin&lt;/code&gt; για να επικυρώνει και να εκδίδει API tokens.&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Σημείωση Ασφαλείας:&lt;/strong&gt; Το PgArachne δεν διαχειρίζεται κωδικούς πρόσβασης βάσης δεδομένων στο αρχείο ρύθμισης.
+		Βασίζεται στον τυπικό μηχανισμό αρχείου &lt;code&gt;.pgpass&lt;/code&gt; της PostgreSQL (ή στη μεταβλητή συστήματος
+		&lt;code&gt;PGPASSWORD&lt;/code&gt;) για authentication.
+	&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Συμβουλή:&lt;/strong&gt; Εάν εκτελείτε το PgArachne πίσω από reverse proxy, ορίστε &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt; ώστε οι IP των clients να επιλύονται σωστά και το rate limiting να μην μπορεί να παρακαμφθεί.
+	&lt;/div&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Σειρά Αναζήτησης:&lt;/strong&gt; Αν δεν έχει καθοριστεί αρχείο ρύθμισης μέσω CLI, γίνεται αναζήτηση σε:
+		&lt;ol&gt;
+			&lt;li&gt;Τρέχων κατάλογος: &lt;code&gt;./pgarachne.env&lt;/code&gt; (Όλα τα OS)&lt;/li&gt;
+			&lt;li&gt;Ρύθμιση χρήστη:
+				&lt;ul&gt;
+					&lt;li&gt;&lt;strong&gt;Linux / macOS:&lt;/strong&gt; &lt;code&gt;~/.config/pgarachne/pgarachne.env&lt;/code&gt;&lt;/li&gt;
+					&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; &lt;code&gt;%USERPROFILE%\.config\pgarachne\pgarachne.env&lt;/code&gt;
+					&lt;/li&gt;
+				&lt;/ul&gt;
+			&lt;/li&gt;
+			&lt;li&gt;Ρύθμιση συστήματος: &lt;code&gt;/etc/pgarachne/pgarachne.env&lt;/code&gt; (μόνο Linux / macOS)&lt;/li&gt;
+		&lt;/ol&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Παράδειγμα Ελάχιστης Ρύθμισης&lt;/h3&gt;
+	&lt;p&gt;Αυτό είναι το μόνο που χρειάζεστε για να ξεκινήσετε:&lt;/p&gt;</description></item><item><title>Σύγκριση: PgArachne έναντι PostgREST</title><link>https://www.pgarachne.com/el/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;h2&gt;Σύγκριση: PgArachne έναντι PostgREST&lt;/h2&gt;
+	&lt;div class="comparison-table-wrapper"&gt;
+		&lt;table&gt;
+			&lt;thead&gt;
+				&lt;tr&gt;
+					&lt;th&gt;Χαρακτηριστικό&lt;/th&gt;
+					&lt;th&gt;PgArachne (+ Universal Functions)&lt;/th&gt;
+					&lt;th&gt;PostgREST&lt;/th&gt;
+				&lt;/tr&gt;
+			&lt;/thead&gt;
+			&lt;tbody&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Ταχύτητα Εγκατάστασης&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Υψηλή. Οι universal functions επιτρέπουν άμεσο CRUD, όμοιο με το PostgREST.&lt;/td&gt;
+					&lt;td&gt;Υψηλή. Δημιουργεί αυτόματα endpoints για όλους τους πίνακες.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Ευελιξία Λογικής&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Απεριόριστη. Δυνατότητα συνδυασμού universal CRUD με ειδικές RPC functions.&lt;/td&gt;
+					&lt;td&gt;Περιορισμένη. Η περισσότερη λογική πρέπει να βρίσκεται σε URL filters ή Database Views.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Χειρισμός Σχήματος&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Native. Πρόσβαση μέσω &lt;code&gt;schema.function&lt;/code&gt;.&lt;/td&gt;
+					&lt;td&gt;Flat/Global. Απαιτεί αλλαγή προφίλ σε HTTP headers για αλλαγή σχήματος.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Abstraction&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Προαιρετικό. Μπορείτε είτε να εκθέσετε δεδομένα απευθείας (proxy) είτε να τα ενσωματώσετε με ασφάλεια.&lt;/td&gt;
+					&lt;td&gt;Χαμηλό. Το API είναι ουσιαστικά ένας καθρέφτης του σχήματος της βάσης δεδομένων.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Έτοιμο για AI &amp;amp; LLM&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Εξαιρετικό. JSON-RPC και δυνατότητα ορισμού functions «Tool» ειδικά για AI agents.&lt;/td&gt;
+					&lt;td&gt;Μέτριο. Το AI πρέπει να παλέψει με αυστηρή σύνταξη URL parameters.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Στατικά Αρχεία&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ναι. Εξυπηρετεί HTML/JS/CSS απευθείας από ένα μόνο binary.&lt;/td&gt;
+					&lt;td&gt;Όχι. Πρέπει να ρυθμίσετε και να διαχειριστείτε ένα εξωτερικό Nginx μπροστά του.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Πραγματικός Χρόνος (SSE)&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ναι. Ενσωματωμένο endpoint SSE για streams &lt;code&gt;NOTIFY&lt;/code&gt; της PostgreSQL.&lt;/td&gt;
+					&lt;td&gt;Όχι. Απαιτεί προσαρμοσμένη διασύνδεση (π.χ. LISTEN/NOTIFY + ξεχωριστή υπηρεσία).&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Υποστήριξη Πολλαπλών Βάσεων Δεδομένων&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;Σε επίπεδο server (N:1).&lt;/strong&gt; Ένα μόνο instance PgArachne συνδέεται στον server
+						(IP:Port) και μπορεί να εξυπηρετήσει όλες τις βάσεις δεδομένων που φιλοξενούνται εκεί.&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;Ανά Βάση Δεδομένων (1:1).&lt;/strong&gt; Ένα instance είναι δεσμευμένο σε μία συγκεκριμένη βάση δεδομένων. Η εξυπηρέτηση
+						πολλαπλών βάσεων δεδομένων απαιτεί την εκτέλεση πολλαπλών instances σε διαφορετικές θύρες.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Authentication&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;JWT / API Tokens. Υποστηρίζει native και τα δύο.&lt;/td&gt;
+					&lt;td&gt;Κυρίως JWT.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Rate Limiting&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Ναι. Ενσωματωμένο rate limiting για logins (ρυθμιζόμενο).&lt;/td&gt;
+					&lt;td&gt;Όχι. Απαιτεί εξωτερικό proxy ή middleware.&lt;/td&gt;
+				&lt;/tr&gt;
+			&lt;/tbody&gt;
+		&lt;/table&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Γιατί Νικά το «Υβριδικό PgArachne»&lt;/h3&gt;
+	&lt;p&gt;Χάρη στις &lt;strong&gt;Universal Functions&lt;/strong&gt; (που λειτουργούν ως emulator), αποκτάτε το καλύτερο από τους δύο
+		κόσμους:&lt;/p&gt;</description></item><item><title>Σχετικά &amp; Αρχιτεκτονική</title><link>https://www.pgarachne.com/el/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;h2&gt;Σχετικά &amp; Αρχιτεκτονική&lt;/h2&gt;
+	&lt;p&gt;
+		Το PgArachne™ λειτουργεί ως ένας ελαφρύς, υψηλής απόδοσης &lt;strong&gt;web server&lt;/strong&gt; που τοποθετείται ανάμεσα
+		στους HTTP clients σας και τη βάση δεδομένων PostgreSQL. Εξαλείφει την ανάγκη για παραδοσιακές backend
+		γλώσσες (όπως Python, Node.js ή PHP) αντιστοιχίζοντας τα HTTP requests απευθείας σε functions της βάσης δεδομένων.
+	&lt;/p&gt;
+
+	&lt;div class="card feature-card"&gt;
+		&lt;h3&gt;Βασικές Τεχνικές Δυνατότητες&lt;/h3&gt;
+		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;JSON-RPC 2.0 Gateway:&lt;/strong&gt; Όλες οι αλληλεπιδράσεις του API ακολουθούν αυστηρά την
+				προδιαγραφή JSON-RPC 2.0. Δεν υπάρχουν REST endpoints να σχεδιάσετε· απλώς καλείτε SQL functions με το
+				όνομά τους μέσω POST requests.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Native DB Authentication:&lt;/strong&gt; Χωρίς ξεχωριστούς πίνακες χρηστών. Οι χρήστες συνδέονται με τα
+				πραγματικά τους διαπιστευτήρια PostgreSQL για να λάβουν ένα &lt;strong&gt;JWT&lt;/strong&gt;. Εναλλακτικά, οι
+				service accounts μπορούν να χρησιμοποιήσουν μόνιμα &lt;strong&gt;API Tokens&lt;/strong&gt;.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Role Masquerading:&lt;/strong&gt; Το PgArachne™ συνδέεται ως proxy user, αλλά εκτελεί κάθε
+				request χρησιμοποιώντας &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; για να μεταβεί στην ταυτότητα του αυθεντικοποιημένου
+				χρήστη. Το Row-Level Security (RLS) λειτουργεί αυτόματα.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Ένα native endpoint MCP επιτρέπει σε AI clients όπως
+				το Claude Desktop, το Cursor και άλλα εργαλεία συμβατά με MCP να ανακαλύπτουν τις PostgreSQL functions σας
+				ως εργαλεία και να τις καλούν απευθείας — χωρίς να απαιτείται προσαρμοσμένος κώδικας σύνδεσης. Η ίδια
+				authentication και ασφάλεια ρόλων εφαρμόζεται. Resources (πίνακες/views) και prompt templates εκθέτονται επίσης μέσω MCP.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Ειδοποιήσεις Πραγματικού Χρόνου (SSE):&lt;/strong&gt; Κάντε subscribe στα κανάλια &lt;code&gt;NOTIFY&lt;/code&gt;
+				της PostgreSQL μέσω SSE για live ενημερώσεις χωρίς polling.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Static File Server:&lt;/strong&gt; Το PgArachne™ μπορεί να εξυπηρετήσει static αρχεία (HTML, JS, CSS),
+				επιτρέποντάς σας να φιλοξενήσετε Single Page Applications (SPAs) ή το εργαλείο Explorer απευθείας.
+			&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;p&gt;
+		Αυτή η αρχιτεκτονική απλοποιεί δραματικά το stack: &lt;strong&gt;Βάση Δεδομένων ↔ PgArachne ↔ Frontend / AI Agent&lt;/strong&gt;.
+	&lt;/p&gt;</description></item><item><title>Τι Νέο Υπάρχει</title><link>https://www.pgarachne.com/el/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+	&lt;h2&gt;Τι Νέο Υπάρχει&lt;/h2&gt;
+	&lt;p&gt;Πιο αναλυτικές πληροφορίες σχετικά με τις αλλαγές σε κάθε έκδοση μπορείτε να βρείτε στα &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Διόρθωση ασφαλείας&lt;/strong&gt;: Αναβαθμίστηκε η μεταβατική εξάρτηση HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; στην έκδοση v0.59.1, κλείνοντας μια ευπάθεια επέκτασης QPACK trailer που θα μπορούσε να επιτρέψει σε έναν κακόβουλο peer να εξαντλήσει τη μνήμη στον server ή στον client.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Βελτιώσεις στον ιστότοπο τεκμηρίωσης&lt;/strong&gt;: Νέος εναλλάκτης θέματος light/dark/auto και εναλλάκτης γλώσσας μόνο με εικονίδιο, εικονίδια-συνδέσμους GitHub/Support στη γραμμή πλοήγησης, διόρθωση διπλά κωδικοποιημένων δομημένων δεδομένων JSON-LD, και επέκταση του &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+	&lt;/ul&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item><item><title>Υποστηρίξτε την Ανάπτυξη</title><link>https://www.pgarachne.com/el/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;h2&gt;Υποστηρίξτε την Ανάπτυξη&lt;/h2&gt;
+	&lt;p&gt;Η ανάπτυξη λογισμικού ανοιχτού κώδικα όπως το PgArachne απαιτεί σημαντικό χρόνο. Εάν αυτό το εργαλείο σας εξοικονομεί χρόνο,
+		παρακαλούμε σκεφτείτε να υποστηρίξετε τη συντήρησή του.&lt;/p&gt;
+
+	&lt;div class="donation-grid"&gt;
+
+		&lt;!-- 1. Buy Me a Coffee (Featured) --&gt;
+		&lt;div class="donation-card featured"&gt;
+			&lt;h4&gt;☕ Γίνετε Μέλος&lt;/h4&gt;
+			&lt;p&gt;Συμμετέχετε στην κοινότητα στο &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;. Αποκτήστε αποκλειστικές ενημερώσεις, πρόωρη πρόσβαση
+				σε νέες λειτουργίες, και άλλα.&lt;/p&gt;
+			&lt;a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured"&gt;Υποστηρίξτε
+				στο Buy Me a Coffee&lt;/a&gt;
+		&lt;/div&gt;
+
+		&lt;!-- 2. Bank Transfer --&gt;
+		&lt;div class="donation-card"&gt;
+			&lt;h4&gt;Τραπεζική Μεταφορά&lt;/h4&gt;
+			&lt;p&gt;Άμεση υποστήριξη με 0% προμήθειες.&lt;/p&gt;</description></item></channel></rss>

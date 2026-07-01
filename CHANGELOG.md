@@ -7,9 +7,15 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Added
+
+- Docs site: translated into Polish, Ukrainian, and Greek (10 languages total). The language switcher is now sorted alphabetically by English language name (Czech, English, French, German, Greek, Italian, Polish, Portuguese, Spanish, Ukrainian).
+
 ### Fixed
 
 - Docs site: `assets/script.js` was missing the cache-busting query parameter already used on `assets/style.css`, so browsers/CDNs could keep serving a stale cached copy of the script after a deploy (e.g. from before the theme/language switcher existed), making the navbar buttons appear broken until the cache expired.
+- Docs site: synced the Czech translation with content added to the English source since it was first translated — a second SSE authentication example (`real-time-notifications.html`), the `JWT_SECRET` minimum-length requirement (`configuration.html`), and missing detail in the JWT Getter and SSE Tester tool pages.
+- Docs site: synced Spanish, German, French, Italian, and Portuguese translations with the English source, which had drifted significantly out of date. Most notably, `idempotency-cleanup.html` was entirely missing (404) in all five languages; `metrics.html`, `configuration.html`, `architectural-decisions.html`, and `security-roles.html` were each missing whole sections (e.g. the "Quick Validation Checklist", "Key differences from token-based methods", and "See also" blocks, and three newer `pgarachne_sse_*` Prometheus metrics) in every one of the five. Also fixed a broken `#direct-credentials` anchor link from `hello-world-example.html` to `security-roles.html` in the Spanish and French translations.
 
 ## [2.0.1] - 2026-07-01
 

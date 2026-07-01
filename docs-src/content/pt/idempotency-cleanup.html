@@ -1,0 +1,54 @@
+---
+title: "Limpeza de Chaves de Idempotência"
+description: "Manutenção da tabela pgarachne.requests."
+menu:
+  main:
+    name: "Limpeza de Idempotência"
+    weight: 75
+---
+
+<section id="idempotency-cleanup" class="section-light">
+<div class="container">
+<h1>Limpeza de Chaves de Idempotência</h1>
+
+<p>Toda requisição JSON-RPC que carrega um campo <code>idempotencyKey</code>
+é registrada na tabela <code>pgarachne.requests</code> pela função
+<code>pgarachne.save_idempotency_key()</code>. É isso que torna a
+detecção de duplicatas possível — mas também significa que a tabela cresce
+sem limite, a menos que um operador execute a limpeza periodicamente.</p>
+
+<p>O PgArachne não executa um agendador em segundo plano por conta própria. As
+opções mais indicadas:</p>
+
+<h2>pg_cron (recomendado se você puder instalar extensões)</h2>
+<pre><code>-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);</code></pre>
+
+<h2>Cron externo / timer do systemd</h2>
+<p>Agende uma tarefa de shell que chama a função via <code>psql</code>:</p>
+<pre><code>0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  &gt;&gt; /var/log/pgarachne-cleanup.log 2&gt;&amp;1</code></pre>
+
+<h2>Manual / pontual</h2>
+<p>Você pode chamar a função a qualquer momento a partir do psql, de um
+script de migração ou de qualquer outro cliente. Ela retorna o número de
+linhas removidas.</p>
+<pre><code>SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);</code></pre>
+
+<h2>Escolhendo uma janela de retenção</h2>
+<p>Escolha uma janela confortavelmente maior que o maior intervalo de nova
+tentativa esperado para seus clientes. Se um cliente com defeito tentar
+novamente a mesma chave de idempotência 48 horas após a requisição
+original, uma janela de retenção de 24 horas deixará a duplicata passar
+silenciosamente.</p>
+
+<p>Para a maioria das implantações, 24 horas é um padrão seguro.</p>
+
+</div>
+</section>

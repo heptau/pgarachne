@@ -9,7 +9,8 @@ menu:
 
 <section id="hello-world">
 	<h2>Ejemplo Hello World</h2>
-	<p>A continuación se crea un endpoint simple de API asociado a un usuario.</p>
+	<p>Este ejemplo crea un endpoint simple de API asociado a un usuario de base de datos. Se muestran dos
+		enfoques de autenticación: el flujo clásico con JWT y el flujo más sencillo de credenciales directas.</p>
 
 	<h3>1. Crear usuario y función</h3>
 	<p>En la base de datos (<code>my_database</code>):</p>
@@ -72,6 +73,10 @@ curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -d '{"jsonrpc": "2.0", "method": "api.hello_world", "params": {}, "id": 1}'</code></pre>
 	<p>Respuesta:</p>
 	<pre><code>{"jsonrpc": "2.0", "result": "Hello World", "id": 1}</code></pre>
-	<p>Para más información sobre este método, consulte
-		<a href="../security-roles/#4-credenciales-directas">Seguridad y Autenticación — Credenciales directas</a>.</p>
+
+	<p>El indicador <code>-u usuario:contraseña</code> de curl configura automáticamente el encabezado
+		<code>Authorization: Basic …</code>. Ambas opciones producen respuestas idénticas.</p>
+
+	<p>Consulte <a href="../security-roles/#direct-credentials">Seguridad y Autenticación — Credenciales directas</a>
+		para una comparación completa de todos los métodos de autenticación.</p>
 </section>

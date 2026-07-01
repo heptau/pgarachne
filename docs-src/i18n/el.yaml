@@ -1,0 +1,81 @@
+- id: hero_lead
+  translation: "Η βάση δεδομένων σας είναι το backend σας.<br>Χωρίς boilerplate. Ασφαλές, άμεσο, έτοιμο για AI."
+- id: hero_desc
+  translation: "Ορίστε μια συνάρτηση SQL — το endpoint του API σας είναι έτοιμο. JSON-RPC&nbsp;2.0 με εγγενή υποστήριξη MCP για Claude Desktop &amp; Cursor, ειδοποιήσεις SSE σε πραγματικό χρόνο και ασφάλεια ενσωματωμένη στη βάση δεδομένων. Έτοιμο για παραγωγική χρήση, ένα μόνο εκτελέσιμο αρχείο."
+- id: hero_get_started
+  translation: "Ξεκινήστε"
+- id: hero_see_demo
+  translation: "Εργαλεία & Demo"
+- id: nav_language
+  translation: "Γλώσσα"
+- id: nav_theme
+  translation: "Θέμα"
+- id: theme_auto
+  translation: "Αυτόματο"
+- id: theme_light
+  translation: "Φωτεινό"
+- id: theme_dark
+  translation: "Σκοτεινό"
+- id: nav_menu
+  translation: "Μενού"
+- id: nav_support
+  translation: "Υποστήριξη"
+- id: nav_star
+  translation: "Star στο GitHub"
+- id: nav_installation
+  translation: "Εγκατάσταση"
+- id: nav_documentation
+  translation: "Τεκμηρίωση"
+- id: nav_home
+  translation: "Αρχική"
+- id: link_mcp
+  translation: "Model Context Protocol (MCP)"
+- id: site_subtitle
+  translation: "Άμεσο PostgreSQL API"
+- id: whats_new_releases_link
+  translation: 'Πιο αναλυτικές πληροφορίες σχετικά με τις αλλαγές σε κάθε έκδοση θα βρείτε απευθείας στο <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'
+
+- id: search_label
+  translation: "Αναζήτηση"
+- id: search_placeholder
+  translation: "Αναζήτηση"
+- id: search_no_results
+  translation: "Δεν βρέθηκαν αποτελέσματα."
+- id: copy_label
+  translation: "Αντιγραφή"
+- id: copied_label
+  translation: "Αντιγράφηκε"
+- id: doc_min_read
+  translation: "λεπτά ανάγνωσης"
+- id: quickstart_title
+  translation: "Γρήγορη έναρξη"
+- id: quickstart_step_install
+  translation: "Εγκαταστήστε το PgArachne"
+- id: quickstart_step_configure
+  translation: "Διαμορφώστε το περιβάλλον"
+- id: quickstart_step_auth
+  translation: "Ρυθμίστε ασφάλεια και έλεγχο ταυτότητας"
+- id: quickstart_step_deploy
+  translation: "Αναπτύξτε πίσω από HTTPS proxy"
+- id: related_docs_title
+  translation: "Σχετική τεκμηρίωση"
+- id: prev_label
+  translation: "Προηγούμενο"
+- id: next_label
+  translation: "Επόμενο"
+- id: not_found_title
+  translation: "Η σελίδα δεν βρέθηκε"
+- id: not_found_desc
+  translation: "Η σελίδα που αναζητάτε δεν υπάρχει ή έχει μετακινηθεί."
+- id: not_found_home
+  translation: "Μετάβαση στην αρχική"
+- id: not_found_install
+  translation: "Άνοιγμα εγκατάστασης"
+- id: link_configuration
+  translation: "Διαμόρφωση"
+- id: link_security
+  translation: "Ασφάλεια"
+- id: link_deployment
+  translation: "Ανάπτυξη & HTTPS"
+- id: link_metrics
+  translation: "Μετρικές"

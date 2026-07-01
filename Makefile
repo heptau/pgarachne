@@ -138,6 +138,9 @@ docs:
 		typolima docs/es/ --lang es --recursive --in-place; \
 		typolima docs/it/ --lang it --recursive --in-place; \
 		typolima docs/pt/ --lang pt --recursive --in-place; \
+		typolima docs/pl/ --lang pl --recursive --in-place; \
+		typolima docs/uk/ --lang uk --recursive --in-place; \
+		typolima docs/el/ --lang el --recursive --in-place; \
 	fi
 	@command -v minify >/dev/null 2>&1 || { echo "==> Skipping static asset minification (install 'minify' via brew)"; exit 0; }
 	@echo "==> Minifying static assets"

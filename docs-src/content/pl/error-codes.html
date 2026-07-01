@@ -1,0 +1,67 @@
+---
+title: "Kody błędów"
+description: "Kody błędów - PgArachne"
+menu:
+  main:
+    name: "Kody błędów"
+    weight: 120
+---
+
+<section id="errors">
+	<h2>Kody błędów</h2>
+	<p>PgArachne zwraca standardowe obiekty błędów JSON-RPC 2.0. Poniżej znajdują się konkretne kody, które możesz
+		napotkać:</p>
+	<table>
+		<tr>
+			<th>Kod</th>
+			<th>Komunikat</th>
+			<th>Znaczenie</th>
+		</tr>
+		<tr>
+			<td><code>-32700</code></td>
+			<td>Parse error</td>
+			<td>Serwer otrzymał nieprawidłowy JSON.</td>
+		</tr>
+		<tr>
+			<td><code>-32601</code></td>
+			<td>Method not found</td>
+			<td>Funkcja nie istnieje w schemacie.</td>
+		</tr>
+		<tr>
+			<td><code>-32602</code></td>
+			<td>Invalid params</td>
+			<td>Argumenty nie odpowiadają sygnaturze funkcji.</td>
+		</tr>
+		<tr>
+			<td><code>-32001</code></td>
+			<td>Permission denied</td>
+			<td>Aktualna rola użytkownika nie ma uprawnień do wykonania funkcji (na poziomie bazy danych).</td>
+		</tr>
+		<tr>
+			<td><code>-32000</code></td>
+			<td>Internal Error</td>
+			<td>Ogólny błąd serwera (sprawdź logi).</td>
+		</tr>
+	</table>
+<div class="tip">
+		<strong>Aktualne zachowanie:</strong> odpowiedzi w czasie działania są mapowane głównie na kody statusu HTTP wraz z polem <code>message</code> błędu JSON-RPC. Niestandardowy kod JSON-RPC <code>-32001</code> jest używany przy odmowie roli/uprawnień.
+	</div>
+
+	<h3>Mapowanie statusów HTTP</h3>
+	<table>
+		<tr><th>HTTP</th><th>Typowy komunikat</th><th>Kiedy się zdarza</th></tr>
+		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Nieprawidłowy payload żądania lub format metody.</td></tr>
+		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Brak lub nieprawidłowa autoryzacja.</td></tr>
+		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td><code>SET LOCAL ROLE</code> nie powiodło się (<code>-32001</code>).</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist</td><td>Docelowa metoda nie istnieje.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Przekroczony limit prób logowania.</td></tr>
+		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Wykonanie lub commit nie powiodły się.</td></tr>
+		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Baza danych lub listener tymczasowo niedostępne.</td></tr>
+	</table>
+
+	<h3>Zobacz również</h3>
+	<ul>
+		<li><a href="../security-roles/">Bezpieczeństwo i autentykacja</a></li>
+		<li><a href="../configuration/">Konfiguracja</a></li>
+	</ul>
+</section>

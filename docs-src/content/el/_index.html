@@ -1,0 +1,40 @@
+---
+title: "PgArachne"
+description: "PgArachne – Στιγμιαίο PostgreSQL API"
+---
+
+<section id="features" class="section-light bg-offset">
+	<div class="container">
+		<h2>Είναι το PgArachne κατάλληλο για εσάς;</h2>
+		<p class="section-intro">
+			Το PgArachne™ είναι μια production-grade backend gateway — από ένα μόνο MVP έως ένα σύστημα παραγωγής με υψηλή επισκεψιμότητα. Ορίστε μια SQL function και το API endpoint σας είναι έτοιμο. Χωρίς boilerplate, χωρίς επιπλέον υπηρεσίες.
+		</p>
+
+		<div class="grid-3">
+			<div class="card fade-in">
+				<h3>🚀 Μηδενικό Boilerplate</h3>
+				<p>Σταματήστε να γράφετε επαναλαμβανόμενους CRUD controllers. Ορίστε μια SQL function και το API endpoint σας είναι αμέσως έτοιμο. Η βάση δεδομένων σας <em>είναι</em> το backend σας — το PgArachne απλώς το εκθέτει με ασφάλεια.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏢 Έτοιμο για Παραγωγή</h3>
+				<p>Σχεδιασμένο να καλύπτει <strong>πάνω από το 90% των συνηθισμένων backend εργασιών</strong> (CRUD, validation, auth). Με connection pooling, graceful shutdowns και μετρικές Prometheus, τροφοδοτεί συστήματα παραγωγής με αξιοπιστία.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🧠 Native Υποστήριξη MCP &amp; AI</h3>
+				<p>Το PgArachne εκθέτει ένα native endpoint <strong>Model Context Protocol (MCP)</strong>, ώστε AI clients όπως το Claude Desktop ή το Cursor να μπορούν να ανακαλύψουν και να καλέσουν τις PostgreSQL functions σας ως εργαλεία — χωρίς επιπλέον κώδικα. Το API τεκμηριώνεται επίσης αυτόματα μέσω SQL comments για κατανάλωση από LLM.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>⚡ Ειδοποιήσεις Πραγματικού Χρόνου (SSE)</h3>
+				<p>Κάντε streaming events σε πραγματικό χρόνο μέσω τυπικού HTTP με ενσωματωμένη υποστήριξη browser. Κάντε subscribe στα κανάλια <code>NOTIFY</code> της PostgreSQL απευθείας από τον client. Ιδανικό για dashboards και live ενημερώσεις χωρίς WebSockets.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🔒 Ασφάλεια Ενσωματωμένη στη Βάση Δεδομένων</h3>
+				<p>Χωρίς ξεχωριστούς πίνακες χρηστών. Η authentication χρησιμοποιεί πραγματικούς ρόλους PostgreSQL και JWT. Κάθε request εκτελείται ως ο αυθεντικοποιημένος χρήστης μέσω <code>SET LOCAL ROLE</code>, οπότε το Row-Level Security (RLS) λειτουργεί αυτόματα.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏛️ Αποφάσεις Σχεδιασμού</h3>
+				<p>Γιατί JSON-RPC; Γιατί Go; Γιατί SSE; Γιατί MCP ως translation layer; Διαβάστε τις <a href="architectural-decisions/">Λεπτομερείς Αρχιτεκτονικές Αποφάσεις</a> μας για να κατανοήσετε τη μηχανή κάτω από το καπό.</p>
+			</div>
+		</div>
+	</div>
+</section>

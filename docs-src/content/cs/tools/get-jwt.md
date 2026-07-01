@@ -15,7 +15,7 @@ description: "PgArachne JWT Getter - Dokumentace"
 </ul>
 
 <div class="tip">
-<strong>Poznámka:</strong> <code>get_jwt</code> vyžaduje <code>GRANT &lt;role&gt; TO pgarachne</code>. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v <a href="../api-explorer/">Exploreru</a> nebo <a href="../sse-tester/">SSE Testeru</a>.
+<strong>Poznámka:</strong> <code>get_jwt</code> vyžaduje <code>GRANT &lt;role&gt; TO pgarachne</code>, protože PgArachne ověřuje heslo interně přes <code>SET LOCAL ROLE</code>. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v <a href="../api-explorer/">Exploreru</a> nebo <a href="../sse-tester/">SSE Testeru</a>.
 </div>
 
 <h3>Funkce</h3>

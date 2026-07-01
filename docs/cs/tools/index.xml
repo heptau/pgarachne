@@ -8,7 +8,7 @@
 &lt;li&gt;Ověřujete, zda systémový uživatel &lt;code&gt;pgarachne&lt;/code&gt; může přepnout na danou roli (musí existovat &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;).&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div class="tip"&gt;
-&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
+&lt;strong&gt;Poznámka:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; vyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;, protože PgArachne ověřuje heslo interně přes &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v &lt;a href="../api-explorer/"&gt;Exploreru&lt;/a&gt; nebo &lt;a href="../sse-tester/"&gt;SSE Testeru&lt;/a&gt;.
 &lt;/div&gt;
 &lt;h3&gt;Funkce&lt;/h3&gt;
 &lt;ul&gt;
@@ -56,16 +56,9 @@
 &lt;ul&gt;
 &lt;li&gt;&lt;strong&gt;Více kanálů najednou&lt;/strong&gt; — kanály přidáváte jako tagy před připojením. Všechny kanály jsou předány jako parametr &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Všechny způsoby autentizace&lt;/strong&gt; — záložka &lt;em&gt;Password&lt;/em&gt; používá HTTP Basic Auth (přímé přihlášení, bez JWT); záložka &lt;em&gt;Bearer Token&lt;/em&gt; přijímá JWT nebo API token.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Živé přijímání dat&lt;/strong&gt; — využívá Fetch Streams API s &lt;code&gt;AbortController&lt;/code&gt; pro čisté odpojení. Řádky SSE jsou parsovány manuálně, takže pole &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; i heartbeat (&lt;code&gt;:&lt;/code&gt;) jsou zpracovány správně.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Zvýraznění JSON syntaxe&lt;/strong&gt; — datové payload ve formátu JSON jsou zobrazeny s barevným zvýrazněním.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Ukládání nastavení&lt;/strong&gt; — URL, prefix, databáze, přihlašovací jméno a seznam kanálů se ukládají do &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Autentizace&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Záložka Password&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Basic &amp;lt;base64(uživatel:heslo)&amp;gt;&lt;/code&gt;. Nevyžaduje &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Záložka Bearer Token&lt;/strong&gt; — odesílá &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Vložte JWT (získaný přes &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) nebo dlouhodobý API token.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class="tip"&gt;
-&lt;strong&gt;Jak nástroj zprovoznit:&lt;/strong&gt; Nastavte &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; na &lt;code&gt;tools/test-sse&lt;/code&gt; a navštivte &lt;code&gt;http://localhost:8080&lt;/code&gt;. Nebo otevřete &lt;code&gt;index.html&lt;/code&gt; přímo v prohlížeči — vše funguje bez lokálního serveru.
-&lt;/div&gt;
-&lt;/section&gt;</description></item></channel></rss>
+&lt;p&gt;Nástroj ověří přihlašovací údaje ještě před zobrazením panelu pro odběr kanálů. Kliknutí na &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; zavolá &lt;code&gt;capabilities&lt;/code&gt; se zvolenou hlavičkou — pokud PgArachne vrátí úspěšnou odpověď, panel pro odběr se odemkne.&lt;/p&gt;</description></item></channel></rss>

@@ -1,0 +1,39 @@
+---
+title: "Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE)"
+description: "Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE) - PgArachne"
+menu:
+  main:
+    name: "Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE)"
+    weight: 70
+---
+
+<section id="sse">
+	<h2>Ειδοποιήσεις σε Πραγματικό Χρόνο (SSE)</h2>
+	<p>Εγγραφείτε σε κανάλια <code>NOTIFY</code> του PostgreSQL μέσω Server-Sent Events:</p>
+	<pre><code># Bearer token (JWT or API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Direct credentials (HTTP Basic Auth — no GRANT … TO pgarachne required)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -u "alice:secret"</code></pre>
+	<p>Κάθε μήνυμα είναι σε μορφή JSON με το όνομα του καναλιού και το payload:</p>
+	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
+	<p>Εάν το payload είναι απλό κείμενο, περιτυλίγεται ως συμβολοσειρά στο <code>data</code>.</p>
+
+	<h3>Αποστολή ειδοποιήσεων από το PostgreSQL</h3>
+	<p>Από το <code>psql</code> ή οποιαδήποτε συνεδρία βάσης δεδομένων:</p>
+	<pre><code>-- Simple text payload
+NOTIFY orders, 'new order';
+
+-- JSON payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+</code></pre>
+	<p>Από ένα trigger ή αποθηκευμένη διαδικασία:</p>
+	<pre><code>PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);</code></pre>
+	<div class="tip">
+		<strong>Σημείωση:</strong> Το <code>NOTIFY</code> παραδίδεται σε άλλες συνεδρίες μόνο μετά την ολοκλήρωση (commit)
+		της συναλλαγής αποστολής. Εάν το εκτελέσετε μέσα σε μια ανοιχτή συναλλαγή στο <code>psql</code>, οι συνδρομητές δεν θα το λάβουν μέχρι
+		να εκτελέσετε <code>COMMIT</code>.
+	</div>
+</section>

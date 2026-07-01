@@ -1,0 +1,155 @@
+---
+title: "Decyzje architektoniczne"
+description: "Decyzje architektoniczne: Czemu JSON-RPC, SSE, Go i funkcje PostgreSQL - PgArachne"
+menu:
+  main:
+    name: "Decyzje architektoniczne"
+    weight: 15
+---
+
+<section id="decisions">
+	<h2>Decyzje projektowe dotyczące architektury</h2>
+	<p>
+		Ta strona wyjaśnia motywy stojące za kluczowymi wyborami architektonicznymi i technologicznymi w PgArachne.
+		Te decyzje zostały podjęte z priorytetem wydajności, bezpieczeństwa i produktywności programistów, jednocześnie zapewniając wysoką
+		kompatybilność z nowoczesnymi agentami AI i modelami LLM.
+	</p>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>1. JSON-RPC 2.0 vs. REST</h3>
+		<p>PgArachne używa JSON-RPC 2.0 jako podstawowego protokołu komunikacji zamiast tradycyjnego REST.</p>
+
+		<h4>Czemu JSON-RPC 2.0:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Jeden endpoint:</strong> Cała komunikacja odbywa się przez <code>POST /{prefix}/{database}/jsonrpc</code>. Nie trzeba projektować złożonych struktur URL ani debatować o semantyce metod HTTP.</li>
+			<li><strong>Samodzielne wywołania:</strong> Każde żądanie to kompletny obiekt JSON (metoda + parametry + id). Ten format jest trywialny do wygenerowania i sparsowania przez LLM i agentów AI z wysoką wiarygodnością.</li>
+			<li><strong>Standaryzowana obsługa błędów:</strong> Kody błędów i komunikaty są częścią specyfikacji, co eliminuje potrzebę "wymyślania" konwencji kodów statusu HTTP dla błędów biznesowych.</li>
+			<li><strong>Batchowanie:</strong> Protokół natywnie wspiera żądania zbiorcze (batch), umożliwiając wykonanie wielu operacji (np. kilku wywołań funkcji) w jednym cyklu żądanie-odpowiedź HTTP bez dodatkowej pracy.</li>
+			<li><strong>Odkrywanie (discovery):</strong> Endpoint capabilities dostarcza pełny opis API w formacie, który agenci AI mogą wykorzystać, by zrozumieć dostępne narzędzia bez halucynacji.</li>
+		</ul>
+
+		<h4>Czemu nie REST:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Złożoność dla AI:</strong> Semantyka REST (GET/POST/PATCH/DELETE + parametry URL + body) jest rozproszona w wielu miejscach, co utrudnia agentom AI wiarygodne konstruowanie wywołań.</li>
+			<li><strong>Wyciek schematu:</strong> CRUD-nad-tabelami (jak w PostgREST) często ujawnia wewnętrzną strukturę bazy danych bezpośrednio w API. PgArachne celowo udostępnia funkcje, zachowując logikę biznesową zamkniętą w SQL.</li>
+			<li><strong>Brak standardów:</strong> REST nie oferuje żadnego uniwersalnego standardu dla operacji zbiorczych, uniwersalnych struktur błędów czy automatycznego odkrywania API.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>2. SSE (Server-Sent Events) vs. WebSockets</h3>
+		<p>Do powiadomień w czasie rzeczywistym PgArachne implementuje Server-Sent Events (SSE).</p>
+
+		<h4>Czemu SSE:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Zwykłe HTTP:</strong> SSE to standardowe HTTP. Działa przez proxy, load balancery i CDN bez specjalnej konfiguracji "protocol upgrade".</li>
+			<li><strong>Natywne wsparcie w przeglądarce:</strong> API <code>EventSource</code> jest wbudowane we wszystkie nowoczesne przeglądarki i obsługuje automatyczne ponowne łączenie bez żadnych bibliotek klienckich.</li>
+			<li><strong>Odpowiada semantyce NOTIFY:</strong> PostgreSQL <code>NOTIFY</code> jest jednokierunkowy (serwer do klienta), co idealnie odpowiada modelowi SSE.</li>
+			<li><strong>Multipleksowanie:</strong> Przez HTTP/2 setki strumieni SSE mogą współdzielić jedno połączenie TCP, co jest wyjątkowo efektywne.</li>
+			<li><strong>Prostota operacyjna:</strong> Połączenia SSE wyglądają jak normalne żądania HTTP w logach i narzędziach monitorujących, co ułatwia debugowanie i ograniczanie ruchu (rate limiting).</li>
+		</ul>
+
+		<h4>Czemu nie WebSockets:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Niepotrzebna dwukierunkowość:</strong> Skoro klient nigdy nie musi wysyłać danych z powrotem przez kanał powiadomień, złożoność WebSocketów nie daje żadnej korzyści.</li>
+			<li><strong>Problemy z łącznością:</strong> WebSockety są często blokowane lub przedwcześnie zamykane przez firewalle korporacyjne i niektóre chmurowe load balancery.</li>
+			<li><strong>Wyższy narzut:</strong> Dodaje złożoność protokołu (handshake, ramki ping/pong), która nie jest wymagana do prostego strumieniowania zdarzeń.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>3. Go vs. alternatywy</h3>
+		<p>PgArachne jest napisane w Go, aby zapewnić najlepszy balans między wydajnością a prostotą wdrożenia.</p>
+
+		<h4>Czemu Go:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Statyczne binarki:</strong> Kompiluje się do jednego pliku binarnego bez zewnętrznych zależności. Wdrożenie jest tak proste jak skopiowanie pliku na serwer.</li>
+			<li><strong>Współbieżność:</strong> Goroutines w Go pozwalają obsługiwać tysiące współbieżnych połączeń SSE i bazodanowych w sposób lekki i bezpośredni.</li>
+			<li><strong>Solidna biblioteka standardowa:</strong> Wbudowane biblioteki do HTTP, TLS i JSON są na poziomie produkcyjnym i nie wymagają żadnych "node_modules" ani zewnętrznych runtime'ów.</li>
+			<li><strong>Kompilacja krzyżowa:</strong> Łatwo celuje w Linux, macOS i Windows (amd64 i arm64) z każdej maszyny programistycznej.</li>
+		</ul>
+
+		<h4>Czemu nie Node.js, PHP czy Ruby:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Runtime'y:</strong> Te technologie wymagają instalacji konkretnego środowiska uruchomieniowego na każdej maszynie docelowej.</li>
+			<li><strong>Efektywność:</strong> Jednowątkowa pętla Node.js lub model process-per-request w PHP są mniej efektywne w utrzymywaniu tysięcy bezczynnych połączeń SSE.</li>
+			<li><strong>Zużycie pamięci:</strong> Go zużywa znacznie mniej pamięci na połączenie niż języki skryptowe.</li>
+		</ul>
+
+		<h4>Czemu nie Rust:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Tempo rozwoju:</strong> Choć Rust zapewnia ekstremalną wydajność, jego złożoność (borrow checker) zwalnia iterację dla narzędzia zdominowanego przez operacje I/O, gdzie wydajność Go jest już więcej niż wystarczająca.</li>
+		</ul>
+
+		<h4>Czemu nie C / C++:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Bezpieczeństwo:</strong> Ręczne zarządzanie pamięcią wprowadza znaczące ryzyka bezpieczeństwa (przepełnienia bufora) bez realnego zysku wydajności w aplikacji typu bramka (gateway).</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>4. Funkcje PostgreSQL jako powierzchnia API</h3>
+		<p>PgArachne celowo udostępnia funkcje bazy danych, a nie surowe tabele.</p>
+
+		<h4>Czemu funkcje:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Enkapsulacja:</strong> Logika biznesowa żyje razem z danymi w bazie — jedno miejsce do audytu, wersjonowania i zabezpieczenia.</li>
+			<li><strong>Wyraźne bezpieczeństwo:</strong> Przez API dostępne są tylko funkcje, którym jawnie przyznano uprawnienia <code>EXECUTE</code> dla konkretnej roli.</li>
+			<li><strong>Abstrakcja:</strong> Walidacja danych wejściowych, obliczone pola i złożone operacje na wielu tabelach są skryte przed klientem, co zapewnia czysty interfejs.</li>
+		</ul>
+
+		<h4>Czemu nie CRUD na poziomie tabel:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Ścisłe powiązanie:</strong> Udostępnianie tabel bezpośrednio wiąże Twoje API z wewnętrznym schematem bazy danych, co utrudnia refaktoryzację bazy bez psucia klientów.</li>
+			<li><strong>Fragmentacja reguł biznesowych:</strong> Logika biznesowa kończy podzielona między ograniczenia bazy danych i to, jaki middleware jest używany do filtrowania żądań HTTP.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>5. Struktura URL: <code>/{prefix}/{database}/{endpoint}</code></h3>
+		<p>
+			PgArachne kieruje wszystkie endpointy pod konfigurowalny segment prefiksu:
+			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
+			Prefiks domyślnie ma wartość <code>db</code> i można go zmienić za pomocą <code>API_PREFIX</code>.
+		</p>
+
+		<h4>Czemu taka struktura:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Routing przez reverse proxy:</strong> Jedna instancja PgArachne może obsługiwać wiele baz danych. Reverse proxy (Nginx, Caddy, Traefik) może kierować ruch na podstawie prefiksu lub nazwy bazy danych bez inspekcji ciała żądania, co jest kluczowe dla load balancingu i reguł routingu bazujących na ścieżce.</li>
+			<li><strong>Skalowalność horyzontalna:</strong> Mając nazwę bazy danych w ścieżce URL, można uruchomić wiele instancji PgArachne i kierować ruch do konkretnych instancji na podstawie bazy danych za pomocą standardowych reguł proxy — bez sticky sessions czy inspekcji ciała żądania.</li>
+			<li><strong>Multipleksowanie protokołów per baza danych:</strong> Grupowanie <code>/jsonrpc</code>, <code>/sse</code> i <code>/mcp</code> pod tą samą przestrzenią nazw <code>/{prefix}/{database}/</code> naturalnie umożliwia zastosowanie autoryzacji, rate limitingu i kontroli dostępu per baza danych na poziomie proxy.</li>
+			<li><strong>Konfigurowalny prefiks:</strong> Wdrożenia, które już używają <code>/api/</code> jako prefiksu w swojej infrastrukturze, mogą ustawić <code>API_PREFIX=api</code>, aby dopasować się do swoich konwencji.</li>
+			<li><strong>Obserwowalność:</strong> Agregatory logów i systemy metryk mogą grupować i filtrować ruch po nazwie bazy danych bezpośrednio z URL bez parsowania ciał JSON.</li>
+		</ul>
+
+		<h4>Czemu nie płaska struktura jak <code>/api/{database}</code>:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Niejednoznaczność protokołu:</strong> Jeden płaski endpoint nie może rozróżnić ruchu JSON-RPC, SSE i MCP na poziomie routingu — ta decyzja spada na logikę aplikacji lub inspekcję nagłówków.</li>
+			<li><strong>Trudniejsze rozszerzanie:</strong> Dodanie nowych protokołów (np. GraphQL, gRPC-gateway) i tak wymaga wprowadzenia nowych ścieżek najwyższego poziomu, więc strukturyzowana przestrzeń nazw zabezpiecza projekt na przyszłość.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. MCP jako warstwa translacji, nie protokół bazy danych</h3>
+		<p>
+			PgArachne implementuje <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
+			jako lekką warstwę translacji w serwerze Go. Funkcje PostgreSQL nigdy nie są świadome MCP — pozostają
+			prostymi funkcjami <code>jsonb → json</code>.
+		</p>
+
+		<h4>Czemu tłumaczyć MCP na serwerze:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Zero zmian w istniejących funkcjach:</strong> Każda funkcja już udostępniona przez JSON-RPC jest natychmiast dostępna jako narzędzie MCP. Żadnych zmian w SQL, żadnego ponownego wdrażania obiektów bazy danych.</li>
+			<li><strong>MCP to więcej niż tylko narzędzia:</strong> Protokół obejmuje uzgadnianie inicjalizacyjne (handshake), ping, powiadomienia i potencjalne przyszłe rozszerzenia (zasoby, prompty, sampling). To sprawy na poziomie protokołu, które należą do Go, nie do funkcji SQL.</li>
+			<li><strong>Bezpieczeństwo pozostaje w jednym miejscu:</strong> Autoryzacja, przełączanie ról i walidacja danych wejściowych są już zaimplementowane w Go. Endpoint MCP wykorzystuje tę logikę bez zmian.</li>
+			<li><strong>Wiele protokołów, jeden backend:</strong> Ta sama funkcja PostgreSQL może być wywoływana przez JSON-RPC (ze zwykłego klienta), MCP (z Claude Desktop lub Cursor) lub SSE (dla subskrypcji zdarzeń). Baza danych jest niezależna od protokołu.</li>
+			<li><strong>Prostszy SQL:</strong> Przetwarzanie obwiedni MCP (<code>initialize</code>, <code>tools/list</code>, obsługa powiadomień) wewnątrz funkcji PostgreSQL wymagałoby parsowania złożonych struktur JSON w PL/pgSQL, co uczyniłoby funkcje trudniejszymi do pisania, testowania i utrzymania.</li>
+		</ul>
+
+		<h4>Czemu nie przenieść MCP do bazy danych:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Handshake MCP nie potrzebuje bazy danych:</strong> <code>initialize</code> i <code>ping</code> to czyste komunikaty protokołu. Otwieranie połączenia z bazą danych dla nich marnuje zasoby i dodaje latencję.</li>
+			<li><strong>SQL to niewłaściwe narzędzie do logiki protokołu:</strong> Kody błędów JSON-RPC 2.0, routing powiadomień i zarządzanie kluczami idempotencji to zagadnienia middleware, nie zagadnienia danych.</li>
+		</ul>
+	</div>
+</section>

@@ -1,0 +1,67 @@
+---
+title: "Коди помилок"
+description: "Коди помилок - PgArachne"
+menu:
+  main:
+    name: "Коди помилок"
+    weight: 120
+---
+
+<section id="errors">
+	<h2>Коди помилок</h2>
+	<p>PgArachne повертає стандартні об'єкти помилок JSON-RPC 2.0. Нижче наведені специфічні коди, з якими ви можете
+		зіткнутися:</p>
+	<table>
+		<tr>
+			<th>Код</th>
+			<th>Повідомлення</th>
+			<th>Значення</th>
+		</tr>
+		<tr>
+			<td><code>-32700</code></td>
+			<td>Parse error</td>
+			<td>Сервер отримав недійсний JSON.</td>
+		</tr>
+		<tr>
+			<td><code>-32601</code></td>
+			<td>Method not found</td>
+			<td>Функція не існує у схемі.</td>
+		</tr>
+		<tr>
+			<td><code>-32602</code></td>
+			<td>Invalid params</td>
+			<td>Аргументи не відповідають сигнатурі функції.</td>
+		</tr>
+		<tr>
+			<td><code>-32001</code></td>
+			<td>Permission denied</td>
+			<td>Поточна роль користувача не має прав на виконання функції (на рівні БД).</td>
+		</tr>
+		<tr>
+			<td><code>-32000</code></td>
+			<td>Internal Error</td>
+			<td>Загальна помилка сервера (перевірте логи).</td>
+		</tr>
+	</table>
+<div class="tip">
+		<strong>Поточна поведінка:</strong> відповіді runtime здебільшого мапляться на HTTP статус-коди з полем JSON-RPC <code>message</code>. Власний код JSON-RPC <code>-32001</code> використовується для відмови через роль/права доступу.
+	</div>
+
+	<h3>Відповідність HTTP статусів</h3>
+	<table>
+		<tr><th>HTTP</th><th>Типове повідомлення</th><th>Коли виникає</th></tr>
+		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Некоректний payload запиту або формат методу.</td></tr>
+		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Відсутня або недійсна автентифікація.</td></tr>
+		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Не вдалося виконати <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist</td><td>Цільовий метод відсутній.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Перевищено ліміт спроб входу.</td></tr>
+		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Помилка виконання або commit.</td></tr>
+		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Тимчасова недоступність бази даних або listener.</td></tr>
+	</table>
+
+	<h3>Дивіться також</h3>
+	<ul>
+		<li><a href="../security-roles/">Безпека та автентифікація</a></li>
+		<li><a href="../configuration/">Конфігурація</a></li>
+	</ul>
+</section>

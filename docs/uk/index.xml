@@ -1,0 +1,533 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/uk/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>uk</language><atom:link href="https://www.pgarachne.com/uk/index.xml" rel="self" type="application/rss+xml"/><item><title>JSON-RPC та Hello World</title><link>https://www.pgarachne.com/uk/hello-world-example/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/hello-world-example/</guid><description>&lt;section id="hello-world"&gt;
+	&lt;h2&gt;JSON-RPC та Hello World&lt;/h2&gt;
+	&lt;p&gt;У цьому прикладі створюється простий API endpoint, пов'язаний з користувачем бази даних. Показано два
+		підходи до автентифікації: класичний потік JWT та простіший потік з прямими облiковими даними.&lt;/p&gt;
+
+	&lt;h3&gt;1. Створення користувача та функції&lt;/h3&gt;
+	&lt;p&gt;У вашій базі даних (&lt;code&gt;my_database&lt;/code&gt;):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+ SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/pre&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Який підхід до автентифікації обрати?&lt;/strong&gt;&lt;br&gt;
+		Оберіть &lt;strong&gt;Варіант A (JWT)&lt;/strong&gt; для сесій у браузері або для кінцевих користувачів.
+		Оберіть &lt;strong&gt;Варіант B (прямі облікові дані)&lt;/strong&gt; для локальної розробки, скриптів
+		або внутрішніх сервісів — керування токенами не потрібне.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Варіант A: потік з JWT-токеном&lt;/h3&gt;
+
+	&lt;p&gt;Автентифікація за допомогою JWT вимагає, щоб системний користувач PgArachne (&lt;code&gt;pgarachne&lt;/code&gt;) міг перемикатися
+		на &lt;code&gt;demo_user&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>JWT Getter</title><link>https://www.pgarachne.com/uk/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;JWT Getter&lt;/strong&gt; — це мінімалістичний однофайловий браузерний інструмент, розташований у &lt;code&gt;tools/get-jwt&lt;/code&gt;. Він обмінює ім'я користувача та пароль PostgreSQL на короткостроковий JWT, викликаючи метод JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — і показує вам декодований payload і час завершення дії.&lt;/p&gt;
+&lt;h3&gt;Коли використовувати&lt;/h3&gt;
+&lt;p&gt;Використовуйте JWT Getter, коли вам потрібен токен для однієї з таких цілей:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Вставлення токена в &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; або &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; (вкладка Bearer Token).&lt;/li&gt;
+&lt;li&gt;Перевірка терміну дії JWT або claim-ів &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; у вашому застосунку.&lt;/li&gt;
+&lt;li&gt;Швидка перевірка того, що системний користувач &lt;code&gt;pgarachne&lt;/code&gt; може перемкнутися на певну роль (&lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; має бути налаштований).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Примітка:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; вимагає &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; у базі даних, оскільки PgArachne перевіряє пароль внутрішньо через &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Якщо ви хочете уникнути цього grant-а, використовуйте прямі облікові дані (HTTP Basic Auth) у &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; або &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Введіть URL API, префікс, базу даних, ім'я користувача та пароль — натисніть &lt;kbd&gt;Enter&lt;/kbd&gt; або клацніть &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Відображається необроблений токен, який можна скопіювати одним клацанням.&lt;/li&gt;
+&lt;li&gt;Payload JWT декодується з Base64 і відображається з підсвічуванням синтаксису JSON.&lt;/li&gt;
+&lt;li&gt;Значок терміну дії показує залишковий час життя (або позначає токен як застарілий).&lt;/li&gt;
+&lt;li&gt;Налаштування з'єднання та вхід зберігаються в &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Як увімкнути&lt;/h3&gt;
+&lt;p&gt;Встановіть &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; на &lt;code&gt;tools/get-jwt&lt;/code&gt; і відвідайте &lt;code&gt;http://localhost:8080&lt;/code&gt;, або відкрийте &lt;code&gt;index.html&lt;/code&gt; безпосередньо в браузері.&lt;/p&gt;</description></item><item><title>Model Context Protocol (MCP)</title><link>https://www.pgarachne.com/uk/mcp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/mcp/</guid><description>&lt;section id="mcp"&gt;
+	&lt;h2&gt;Model Context Protocol (MCP)&lt;/h2&gt;
+
+	&lt;p class="section-intro"&gt;
+		PgArachne нативно підтримує &lt;strong&gt;Model Context Protocol (MCP)&lt;/strong&gt; — відкритий стандарт, який дозволяє AI-моделям (таким як Claude чи Cursor) безпечно отримувати доступ до ваших даних та функцій як до "інструментів" (tools).
+	&lt;/p&gt;
+
+	&lt;h3&gt;Як це працює?&lt;/h3&gt;
+	&lt;p&gt;
+		PgArachne працює безпосередньо як &lt;strong&gt;MCP-сервер&lt;/strong&gt;. Замість написання власного HTTP-сервера для кожного проєкту, просто запустіть PgArachne над вашою базою даних. PgArachne автоматично аналізує ваші дозволені SQL-функції та надає до них доступ AI-клієнтам через HTTP(S).
+	&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/uk/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; — це потужний веб-інтерфейс, що входить до каталогу &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Це не
+		просто інструмент документації — це повністю функціональний &lt;strong&gt;демонстраційний застосунок&lt;/strong&gt;, побудований на HTML/JS,
+		який спілкується з базою даних виключно через PgArachne. Хостована версія також доступна на
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Що він уміє?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Огляд API:&lt;/strong&gt; Він читає функцію &lt;code&gt;capabilities&lt;/code&gt;, щоб відобразити всі доступні
+			ендпоінти та їхні параметри.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живе тестування:&lt;/strong&gt; Ви можете виконувати функції безпосередньо з браузера.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Автоматична документація:&lt;/strong&gt; Він перетворює SQL-коментарі (включно з метаданими &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
+			на читабельну документацію.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Сучасний інтерфейс:&lt;/strong&gt; Підтримує темний/світлий режим і може бути встановлений як &lt;strong&gt;PWA&lt;/strong&gt; на мобільних пристроях.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Автентифікація:&lt;/strong&gt; Вкладка &lt;em&gt;Password&lt;/em&gt; використовує HTTP Basic Auth для прямого підключення як користувач бази даних — &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt; не потрібен. Вкладка &lt;em&gt;API Token&lt;/em&gt; приймає JWT або довгостроковий API-токен, надісланий як &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Параметри URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/uk/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar для macOS&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; — це професійний рідний застосунок для macOS, розроблений для забезпечення легкого керування вашими екземплярами JSON-RPC gateway.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Статус:&lt;/strong&gt; У розробці. Очікуваний реліз: &lt;strong&gt;2 квартал 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Основні можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Керування кількома серверами:&lt;/strong&gt; Запускайте, зупиняйте та перезапускайте кілька екземплярів PgArachne з одного меню.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Перемикання конфігурацій:&lt;/strong&gt; Швидко перемикайтеся між спільними середовищами або локальними конфігураціями бази даних.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живий моніторинг:&lt;/strong&gt; Вбудоване вікно для логів і метрик продуктивності в реальному часі.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Рідний досвід:&lt;/strong&gt; Створений спеціально для macOS з підтримкою темного режиму та Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Незабаром у Mac App Store&lt;/h3&gt;
+&lt;p&gt;Застосунок оптимізується для Mac App Store, щоб забезпечити найвищий рівень безпеки та безперебійні оновлення.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/uk/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;SSE Tester&lt;/strong&gt; — це однофайловий браузерний інструмент, розташований у &lt;code&gt;tools/test-sse&lt;/code&gt;. Він дозволяє підписатися на будь-яку кількість каналів PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; через живе з'єднання &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; і спостерігати за вхідними подіями в реальному часі.&lt;/p&gt;
+&lt;h3&gt;Можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Підписки на кілька каналів&lt;/strong&gt; — додавайте або видаляйте канали у вигляді тегів-«пігулок» перед підключенням. Усі канали передаються як параметр запиту &lt;code&gt;?channels=&lt;/code&gt;, розділені комами.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Усі методи автентифікації&lt;/strong&gt; — вкладка &lt;em&gt;Password&lt;/em&gt; використовує HTTP Basic Auth (прямі облікові дані, JWT не потрібен); вкладка &lt;em&gt;Bearer Token&lt;/em&gt; приймає JWT або API-токен.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живий потік&lt;/strong&gt; — використовує Fetch Streams API з &lt;code&gt;AbortController&lt;/code&gt; для коректного відключення. Рядки SSE розбираються вручну, тож поля &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; та heartbeat (&lt;code&gt;:&lt;/code&gt;) обробляються правильно.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Підсвічування синтаксису JSON&lt;/strong&gt; — вміст даних, що є валідним JSON, форматується з кольоровим виділенням.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Збереження налаштувань&lt;/strong&gt; — URL API, префікс, база даних, дані входу та список каналів зберігаються в &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Автентифікація&lt;/h3&gt;
+&lt;p&gt;Інструмент перевіряє облікові дані перед тим, як показати панель підписки. Натискання &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; викликає &lt;code&gt;capabilities&lt;/code&gt; з обраним заголовком — якщо PgArachne повертає успішну відповідь, панель підписки розблоковується.&lt;/p&gt;</description></item><item><title>Архітектурні рішення</title><link>https://www.pgarachne.com/uk/architectural-decisions/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/architectural-decisions/</guid><description>&lt;section id="decisions"&gt;
+	&lt;h2&gt;Архітектурні проєктні рішення&lt;/h2&gt;
+	&lt;p&gt;
+		Ця сторінка пояснює обґрунтування ключових архітектурних та технологічних рішень у PgArachne.
+		Ці рішення були прийняті, щоб надати пріоритет продуктивності, безпеці та продуктивності розробників, водночас забезпечуючи, що система залишається
+		високо сумісною з сучасними AI та LLM-агентами.
+	&lt;/p&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;1. JSON-RPC 2.0 проти REST&lt;/h3&gt;
+		&lt;p&gt;PgArachne використовує JSON-RPC 2.0 як основний протокол комунікації замість традиційного REST.&lt;/p&gt;
+
+		&lt;h4&gt;Чому JSON-RPC 2.0:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Єдина точка входу:&lt;/strong&gt; Уся комунікація відбувається через &lt;code&gt;POST /{prefix}/{database}/jsonrpc&lt;/code&gt;. Немає потреби проєктувати складні структури URL або сперечатися про семантику HTTP-методів.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Самодостатні виклики:&lt;/strong&gt; Кожен запит — це повний JSON-об'єкт (метод + параметри + id). Цей формат тривіально генерується та парситься LLM та AI-агентами з високою надійністю.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Стандартизована обробка помилок:&lt;/strong&gt; Коди та повідомлення про помилки є частиною специфікації, що усуває потребу "вигадувати" конвенції HTTP-кодів статусу для бізнес-помилок.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Пакетна обробка (batching):&lt;/strong&gt; Протокол нативно підтримує пакетні запити, дозволяючи виконати кілька операцій (наприклад, декілька викликів функцій) за один HTTP-раундтрип без додаткової роботи.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Виявлення (discovery):&lt;/strong&gt; Ендпоінт можливостей (capabilities) надає повний опис API у форматі, який AI-агенти можуть споживати, щоб зрозуміти доступні інструменти без галюцинацій.&lt;/li&gt;
+		&lt;/ul&gt;
+
+		&lt;h4&gt;Чому не REST:&lt;/h4&gt;
+		&lt;ul style="margin-left: 20px;"&gt;
+			&lt;li&gt;&lt;strong&gt;Складність для AI:&lt;/strong&gt; Семантика REST (GET/POST/PATCH/DELETE + параметри URL + тіло запиту) розкидана по кількох місцях, що ускладнює AI-агентам надійне формування викликів.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Витік схеми:&lt;/strong&gt; CRUD над таблицями (як у PostgREST) часто напряму розкриває внутрішню структуру бази даних в API. PgArachne свідомо надає доступ до функцій, зберігаючи бізнес-логіку інкапсульованою в SQL.&lt;/li&gt;
+			&lt;li&gt;&lt;strong&gt;Відсутність стандартів:&lt;/strong&gt; REST не пропонує універсального стандарту для пакетних операцій, уніфікованих обгорток помилок або автоматизованого виявлення API.&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;div class="card" style="margin: 20px 0; padding: 20px;"&gt;
+		&lt;h3&gt;2. SSE (Server-Sent Events) проти WebSocket&lt;/h3&gt;
+		&lt;p&gt;Для сповіщень у реальному часі PgArachne реалізує Server-Sent Events (SSE).&lt;/p&gt;</description></item><item><title>Безпека та автентифікація</title><link>https://www.pgarachne.com/uk/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/security-roles/</guid><description>&lt;section id="security"&gt;
+	&lt;h2&gt;Безпека та автентифікація&lt;/h2&gt;
+	&lt;p&gt;PgArachne повністю покладається на систему прав доступу PostgreSQL. Він не винаходить власні списки контролю доступу (ACL).
+		PgArachne підтримує &lt;strong&gt;чотири методи автентифікації&lt;/strong&gt;. Методи 1–3 використовують
+		&lt;code&gt;SET LOCAL ROLE&lt;/code&gt; для перемикання ідентичності; метод 4 (прямі облікові дані) підключається
+		&lt;em&gt;безпосередньо&lt;/em&gt; як користувач, тож перемикання ролі не потрібне.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Інтерактивний вхід (JWT)&lt;/h3&gt;
+	&lt;p&gt;Користувачі автентифікуються за допомогою свого &lt;strong&gt;справжнього імені користувача та пароля PostgreSQL&lt;/strong&gt; через
+		метод JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt;. У разі успіху вони отримують короткостроковий JWT. Наступні запити
+		передають цей токен у заголовку &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;, і PgArachne перемикає
+		активну роль на цього користувача на час виконання кожного запиту.&lt;/p&gt;</description></item><item><title>Встановлення</title><link>https://www.pgarachne.com/uk/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/installation/</guid><description>&lt;section id="install"&gt;
+	&lt;h2&gt;Встановлення&lt;/h2&gt;
+
+	&lt;h3&gt;1. Встановлення&lt;/h3&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Варіант A: Завантажити бінарні файли&lt;/h4&gt;
+		&lt;p&gt;Завантажте останню попередньо скомпільовану версію для вашої операційної системи:&lt;/p&gt;
+
+		&lt;div class="donation-grid" style="margin-top: 20px; margin-bottom: 20px;"&gt;
+			&lt;!-- Linux --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="m12.5 0-.48.02c-4.22.33-3.1 4.8-3.17 6.3A5.4 5.4 0 0 1 7.8 9.34a15 15 0 0 0-2.71 4.52 5.4 5.4 0 0 0-.29 2.49l-.1.13c-.27.27-.46.6-.67.84-.2.2-.49.27-.8.4-.31.14-.66.27-.86.68q-.15.3-.14.6 0 .31.06.54c.06.4.12.73.04.97q-.37 1-.1 1.48c.17.34.53.47.93.6.81.2 1.91.14 2.78.6.92.47 1.86.68 2.61.48a1.8 1.8 0 0 0 1.21-.95c.59 0 1.23-.27 2.26-.33.7-.06 1.58.26 2.58.2.02.13.06.2.11.33a1.9 1.9 0 0 0 1.89 1.07 3.5 3.5 0 0 0 2.26-1.3c.63-.77 1.68-1.09 2.38-1.5.34-.2.62-.48.64-.86.03-.4-.2-.81-.71-1.38v-.1c-.17-.2-.25-.53-.34-.92-.09-.4-.18-.79-.5-1.05-.05-.05-.12-.06-.18-.13a.4.4 0 0 0-.2-.07 5.4 5.4 0 0 0-.17-3.69 13 13 0 0 0-2.17-3.48c-.8-1-1.58-1.96-1.56-3.37.02-2.15.23-6.13-3.55-6.14m.53 3.4h.02q.3 0 .58.2.28.22.44.54c.1.26.16.46.16.72l.01-.06v.1-.04a2 2 0 0 1-.16.7 1 1 0 0 1-.21.34l-.09-.04c-.1-.05-.2-.06-.28-.13l-.22-.07c.05-.06.14-.13.18-.2q.07-.2.09-.4v-.02a1 1 0 0 0-.06-.4c-.05-.13-.1-.2-.19-.33q-.12-.12-.26-.13h-.02q-.14-.01-.26.13a1 1 0 0 0-.2.33 1 1 0 0 0-.1.4v.02l.02.27-.6-.2-.02-.2V4.9a2 2 0 0 1 .15-.77q.13-.33.43-.54a1 1 0 0 1 .6-.2m-2.96.06h.04a.7.7 0 0 1 .4.14q.21.2.34.46.13.28.15.67v.35l-.08.02-.4.2q.03-.14 0-.26v-.02c0-.13-.03-.2-.07-.33a1 1 0 0 0-.17-.27.3.3 0 0 0-.18-.06h-.02q-.11 0-.19.13a1 1 0 0 0-.12.27 1 1 0 0 0-.02.33v.02c0 .13.03.2.08.33q.06.18.16.27l.04.02c-.07.06-.12.07-.18.14l-.13.07-.28-.4a2 2 0 0 1-.15-.67 2 2 0 0 1 .08-.67 1.4 1.4 0 0 1 .28-.54q.19-.2.42-.2m1.37 1.71c.33 0 .73.07 1.22.4.29.2.52.27 1.05.47q.38.2.48.4V6.3a.6.6 0 0 1 .02.47c-.13.31-.52.65-1.07.85-.27.13-.5.33-.77.46-.28.14-.59.3-1.01.27a1 1 0 0 1-.45-.07l-.32-.2c-.2-.13-.37-.33-.62-.46-.4-.25-.62-.52-.69-.71q-.1-.4.2-.6c.22-.14.38-.28.48-.34l.17-.13c.18-.2.44-.47.85-.6q.2-.07.46-.07m2.8 2.14c.36 1.42 1.2 3.48 1.74 4.47.28.54.85 1.66 1.1 3.03q.23 0 .51.06c.65-1.67-.54-3.46-1.09-3.96-.22-.2-.23-.34-.12-.34a6 6 0 0 1 1.65 2.76q.21.8.02 1.67.1.05.2.07c1.03.53 1.41.93 1.23 1.53v-.04h-.19c.15-.47-.19-.82-1.07-1.22-.91-.4-1.65-.34-1.77.46l-.02.14-.2.06a1.8 1.8 0 0 0-.8 1.19 10 10 0 0 0-.2 1.87c-.02.33-.17.84-.32 1.35-1.5 1.07-3.58 1.54-5.35.33a3 3 0 0 0-.4-.53 2 2 0 0 0-.28-.33q.27 0 .47-.07a.6.6 0 0 0 .31-.33c.1-.27 0-.7-.34-1.17s-.94-1-1.8-1.52q-.92-.6-1.14-1.4a3 3 0 0 1-.02-1.64A10 10 0 0 1 7.64 11c.1-.07.03.13-.41.97-.4.75-1.14 2.5-.12 3.86a8 8 0 0 1 .64-2.88c.57-1.28 1.75-3.5 1.84-5.27l.29.2c.22.14.38.34.59.47q.3.31.87.33l.11.01c.42 0 .73-.13 1-.27.3-.13.52-.33.74-.4.47-.13.84-.4 1.05-.7m2.19 8.96c.03.6.34 1.25.88 1.38.59.13 1.43-.34 1.79-.77h.21c.32-.02.58 0 .85.26.2.2.3.53.4.88.08.4.15.78.4 1.06.49.53.65.91.64 1.14v.02-.02c-.02.27-.19.4-.5.6-.63.4-1.75.71-2.46 1.57a3 3 0 0 1-2.04 1.19 1.5 1.5 0 0 1-1.57-.9c-.21-.4-.12-1.03.05-1.7.18-.66.43-1.34.46-1.89q.04-1.08.2-1.81c.12-.47.3-.8.64-.99zm-10.82.05.16.01q.55.11 1.02.76l.91 1.66c.25.53.76 1.07 1.2 1.64.43.6.76 1.13.72 1.57-.05.75-.48 1.15-1.12 1.3a3.7 3.7 0 0 1-2.4-.47c-.97-.53-2.12-.46-2.85-.6q-.55-.1-.73-.4c-.1-.2-.11-.6.13-1.23.11-.34.03-.76-.03-1.12-.05-.4-.08-.71.04-.94.16-.34.4-.4.7-.53.29-.14.63-.2.9-.47h.01c.26-.27.45-.6.67-.84.19-.2.38-.34.66-.34m7.16-9.08c-.43.2-.94.54-1.49.54-.54 0-.97-.27-1.28-.47l-.37-.33c-.16-.14-.14-.33-.07-.33.1.01.12.13.2.2.1.06.21.2.35.33.3.2.68.47 1.17.47s1.05-.27 1.4-.47l.65-.47c.15-.13.15-.26.28-.26.12.01.03.13-.15.33a8 8 0 0 1-.69.47m-1.07-1.6v-.02q0-.03.03-.05.12-.05.26 0c.06 0 .16.07.15.14 0 .05-.09.06-.14.06q-.07-.01-.14-.06c-.05-.02-.14-.01-.16-.07m-.55 0c-.02.06-.12.05-.17.07s-.08.07-.14.07c-.05 0-.13-.02-.13-.07-.01-.07.08-.14.15-.14q.13-.05.25 0 .04.01.03.05z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Linux&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-amd64.tar.gz"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-arm64.tar.gz"
+						class="btn-download"&gt;ARM64/Aarch64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- macOS --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;macOS&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-arm64-app.zip"
+						class="btn-download"&gt;ARM64/Apple Silicon&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-amd64-app.zip"
+						class="btn-download"&gt;x64/Intel&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+
+			&lt;!-- Windows --&gt;
+			&lt;div class="os-card"&gt;
+				&lt;svg class="os-icon" viewbox="0 0 24 24"&gt;
+					&lt;path fill="currentColor"
+						d="M3,12V6.75L9,5.43v6.48L3,12M20,3v8.75L10,11.9V5.21L20,3M3,13l6,.09V19.9L3,18.75V13m17,.25V22L10,20.09v-7Z" /&gt;
+				&lt;/svg&gt;
+				&lt;h4&gt;Windows&lt;/h4&gt;
+				&lt;div class="os-btn-group"&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-amd64.zip"
+						class="btn-download"&gt;x64/Intel/AMD&lt;/a&gt;
+					&lt;a href="https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-arm64.zip"
+						class="btn-download"&gt;ARM64&lt;/a&gt;
+				&lt;/div&gt;
+			&lt;/div&gt;
+		&lt;/div&gt;
+
+		&lt;p&gt;Більше версій доступно на &lt;a href="https://github.com/heptau/pgarachne/releases"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;</description></item><item><title>Коди помилок</title><link>https://www.pgarachne.com/uk/error-codes/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/error-codes/</guid><description>&lt;section id="errors"&gt;
+	&lt;h2&gt;Коди помилок&lt;/h2&gt;
+	&lt;p&gt;PgArachne повертає стандартні об'єкти помилок JSON-RPC 2.0. Нижче наведені специфічні коди, з якими ви можете
+		зіткнутися:&lt;/p&gt;
+	&lt;table&gt;
+		&lt;tr&gt;
+			&lt;th&gt;Код&lt;/th&gt;
+			&lt;th&gt;Повідомлення&lt;/th&gt;
+			&lt;th&gt;Значення&lt;/th&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32700&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Parse error&lt;/td&gt;
+			&lt;td&gt;Сервер отримав недійсний JSON.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32601&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Method not found&lt;/td&gt;
+			&lt;td&gt;Функція не існує у схемі.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32602&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Invalid params&lt;/td&gt;
+			&lt;td&gt;Аргументи не відповідають сигнатурі функції.&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32001&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Permission denied&lt;/td&gt;
+			&lt;td&gt;Поточна роль користувача не має прав на виконання функції (на рівні БД).&lt;/td&gt;
+		&lt;/tr&gt;
+		&lt;tr&gt;
+			&lt;td&gt;&lt;code&gt;-32000&lt;/code&gt;&lt;/td&gt;
+			&lt;td&gt;Internal Error&lt;/td&gt;
+			&lt;td&gt;Загальна помилка сервера (перевірте логи).&lt;/td&gt;
+		&lt;/tr&gt;
+	&lt;/table&gt;
+&lt;div class="tip"&gt;
+		&lt;strong&gt;Поточна поведінка:&lt;/strong&gt; відповіді runtime здебільшого мапляться на HTTP статус-коди з полем JSON-RPC &lt;code&gt;message&lt;/code&gt;. Власний код JSON-RPC &lt;code&gt;-32001&lt;/code&gt; використовується для відмови через роль/права доступу.
+	&lt;/div&gt;
+
+	&lt;h3&gt;Відповідність HTTP статусів&lt;/h3&gt;
+	&lt;table&gt;
+		&lt;tr&gt;&lt;th&gt;HTTP&lt;/th&gt;&lt;th&gt;Типове повідомлення&lt;/th&gt;&lt;th&gt;Коли виникає&lt;/th&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;400&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Invalid JSON request / Invalid function name&lt;/td&gt;&lt;td&gt;Некоректний payload запиту або формат методу.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;401&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Authorization header is missing / Invalid or expired token&lt;/td&gt;&lt;td&gt;Відсутня або недійсна автентифікація.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;403&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Permission denied for the specified role&lt;/td&gt;&lt;td&gt;Не вдалося виконати &lt;code&gt;SET LOCAL ROLE&lt;/code&gt; (&lt;code&gt;-32001&lt;/code&gt;).&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;404&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function does not exist&lt;/td&gt;&lt;td&gt;Цільовий метод відсутній.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;429&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Too many login attempts&lt;/td&gt;&lt;td&gt;Перевищено ліміт спроб входу.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;500&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Function call failed / Transaction commit failed&lt;/td&gt;&lt;td&gt;Помилка виконання або commit.&lt;/td&gt;&lt;/tr&gt;
+		&lt;tr&gt;&lt;td&gt;&lt;code&gt;503&lt;/code&gt;&lt;/td&gt;&lt;td&gt;Database connection failed / Database unavailable&lt;/td&gt;&lt;td&gt;Тимчасова недоступність бази даних або listener.&lt;/td&gt;&lt;/tr&gt;
+	&lt;/table&gt;
+
+	&lt;h3&gt;Дивіться також&lt;/h3&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;a href="../security-roles/"&gt;Безпека та автентифікація&lt;/a&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;a href="../configuration/"&gt;Конфігурація&lt;/a&gt;&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>Конфігурація</title><link>https://www.pgarachne.com/uk/configuration/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/configuration/</guid><description>&lt;section id="config"&gt;
+	&lt;h2&gt;Конфігурація&lt;/h2&gt;
+	&lt;p&gt;PgArachne завантажує конфігурацію зі змінних середовища або з файлу.&lt;/p&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Примітка:&lt;/strong&gt; &lt;code&gt;schema.sql&lt;/code&gt; намагається створити роль &lt;code&gt;pgarachne_admin&lt;/code&gt; та надати її ролі &lt;code&gt;pgarachne&lt;/code&gt;. Якщо ви запускаєте скрипт без прав суперкористувача, створення ролі буде пропущено. За потреби створіть роль та надайте права вручну.
+	&lt;br&gt;
+		Проксі-користувач (&lt;code&gt;DB_USER&lt;/code&gt;) повинен бути членом &lt;code&gt;pgarachne&lt;/code&gt; та &lt;code&gt;pgarachne_admin&lt;/code&gt;, щоб перевіряти та видавати API-токени.&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Примітка щодо безпеки:&lt;/strong&gt; PgArachne не обробляє паролі бази даних у конфігураційному файлі.
+		Для автентифікації покладайтеся на стандартний механізм файлу PostgreSQL &lt;code&gt;.pgpass&lt;/code&gt; (або
+		системну змінну &lt;code&gt;PGPASSWORD&lt;/code&gt;).
+	&lt;/div&gt;
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Порада:&lt;/strong&gt; Якщо ви запускаєте PgArachne за зворотним проксі, встановіть &lt;code&gt;TRUSTED_PROXIES&lt;/code&gt;, щоб IP-адреси клієнтів визначалися коректно і обмеження частоти запитів не можна було обійти.
+	&lt;/div&gt;
+
+	&lt;div class="tip"&gt;
+		&lt;strong&gt;Порядок пошуку:&lt;/strong&gt; Якщо конфігураційний файл не вказано через CLI, пошук відбувається в такому порядку:
+		&lt;ol&gt;
+			&lt;li&gt;Поточний каталог: &lt;code&gt;./pgarachne.env&lt;/code&gt; (усі ОС)&lt;/li&gt;
+			&lt;li&gt;Конфігурація користувача:
+				&lt;ul&gt;
+					&lt;li&gt;&lt;strong&gt;Linux / macOS:&lt;/strong&gt; &lt;code&gt;~/.config/pgarachne/pgarachne.env&lt;/code&gt;&lt;/li&gt;
+					&lt;li&gt;&lt;strong&gt;Windows:&lt;/strong&gt; &lt;code&gt;%USERPROFILE%\.config\pgarachne\pgarachne.env&lt;/code&gt;
+					&lt;/li&gt;
+				&lt;/ul&gt;
+			&lt;/li&gt;
+			&lt;li&gt;Системна конфігурація: &lt;code&gt;/etc/pgarachne/pgarachne.env&lt;/code&gt; (лише Linux / macOS)&lt;/li&gt;
+		&lt;/ol&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Приклад мінімальної конфігурації&lt;/h3&gt;
+	&lt;p&gt;Це все, що потрібно для початку роботи:&lt;/p&gt;</description></item><item><title>Ліцензія та торгова марка</title><link>https://www.pgarachne.com/uk/license/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/license/</guid><description>&lt;section id="license"&gt;
+	&lt;h2&gt;Ліцензія та торгова марка&lt;/h2&gt;
+	&lt;div class="license-box"&gt;
+		&lt;p&gt;&lt;strong&gt;Код (Ліцензія MIT):&lt;/strong&gt;&lt;br&gt;
+			Ви можете безкоштовно використовувати вихідний код для будь-якого особистого чи комерційного проєкту. Ви можете модифікувати його,
+			форкати та поширювати.&lt;/p&gt;
+
+		&lt;p style="margin-top: 15px;"&gt;&lt;strong&gt;Бренд (Торгова марка):&lt;/strong&gt;&lt;br&gt;
+			Назва «PgArachne» та логотип є торговими марками &lt;em&gt;Zbyněk Vanžura&lt;/em&gt;. Якщо ви форкаєте
+			проєкт або пропонуєте комерційну послугу «Managed PgArachne», ви повинні видалити оригінальний брендинг
+			та логотип, якщо не отримали спеціальну ліцензію.&lt;/p&gt;
+	&lt;/div&gt;
+&lt;/section&gt;</description></item><item><title>Метрики (Prometheus)</title><link>https://www.pgarachne.com/uk/metrics/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/metrics/</guid><description>&lt;section id="metrics"&gt;
+	&lt;h2&gt;Метрики (Prometheus)&lt;/h2&gt;
+	&lt;p&gt;PgArachne експортує метрики Prometheus на окремому listener метрик (за замовчуванням &lt;code&gt;127.0.0.1:9090&lt;/code&gt;) за адресою &lt;code&gt;/metrics&lt;/code&gt;, включно зі стандартними метриками Go runtime та:&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_http_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_http_request_duration_seconds&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_auth_requests_total&lt;/code&gt;, &lt;code&gt;pgarachne_login_attempts_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_jsonrpc_requests_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_clients&lt;/code&gt;, &lt;code&gt;pgarachne_sse_channels&lt;/code&gt;, &lt;code&gt;pgarachne_sse_client_drops_total&lt;/code&gt;&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_events_forwarded_total&lt;/code&gt; &amp;mdash; події PostgreSQL NOTIFY, передані SSE-клієнтам, з міткою за базою даних&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_bytes_sent_total&lt;/code&gt; &amp;mdash; байти, записані в потоки відповідей SSE (payload, heartbeat, preamble), з міткою за базою даних&lt;/li&gt;
+		&lt;li&gt;&lt;code&gt;pgarachne_sse_listen_errors_total&lt;/code&gt; &amp;mdash; помилки PostgreSQL LISTEN/з'єднання та події повторного підключення, з міткою за базою даних і типом події. Ненульове значення варте розслідування &amp;mdash; при повторному підключенні hub відключає всіх клієнтів, тож користувачі помічають короткий збій.&lt;/li&gt;
+	&lt;/ul&gt;
+&lt;/section&gt;</description></item><item><title>Очищення ключів ідемпотентності</title><link>https://www.pgarachne.com/uk/idempotency-cleanup/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/idempotency-cleanup/</guid><description>&lt;section id="idempotency-cleanup" class="section-light"&gt;
+&lt;div class="container"&gt;
+&lt;h1&gt;Очищення ключів ідемпотентності&lt;/h1&gt;
+
+&lt;p&gt;Кожен JSON-RPC запит, що містить поле &lt;code&gt;idempotencyKey&lt;/code&gt;,
+записується в таблицю &lt;code&gt;pgarachne.requests&lt;/code&gt; функцією
+&lt;code&gt;pgarachne.save_idempotency_key()&lt;/code&gt;. Саме це забезпечує
+роботу виявлення дублікатів — але це також означає, що таблиця росте необмежено,
+якщо оператор не запускає очищення періодично.&lt;/p&gt;
+
+&lt;p&gt;PgArachne сам не запускає планувальник фонових завдань. Найчистіші
+варіанти:&lt;/p&gt;
+
+&lt;h2&gt;pg_cron (рекомендовано, якщо можете встановлювати розширення)&lt;/h2&gt;
+&lt;pre&gt;&lt;code&gt;-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+ 'pgarachne-idempotency-cleanup',
+ '0 * * * *',
+ $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);&lt;/code&gt;&lt;/pre&gt;
+
+&lt;h2&gt;Зовнішній cron / systemd timer&lt;/h2&gt;
+&lt;p&gt;Заплануйте shell-завдання, яке викликає функцію через &lt;code&gt;psql&lt;/code&gt;:&lt;/p&gt;</description></item><item><title>Підтримайте розробку</title><link>https://www.pgarachne.com/uk/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;h2&gt;Підтримайте розробку&lt;/h2&gt;
+	&lt;p&gt;Розробка програмного забезпечення з відкритим кодом, як PgArachne, забирає багато часу. Якщо цей інструмент заощаджує ваш час,
+		будь ласка, розгляньте можливість підтримати його підтримку.&lt;/p&gt;
+
+	&lt;div class="donation-grid"&gt;
+
+		&lt;!-- 1. Buy Me a Coffee (Featured) --&gt;
+		&lt;div class="donation-card featured"&gt;
+			&lt;h4&gt;☕ Стати учасником&lt;/h4&gt;
+			&lt;p&gt;Приєднайтеся до спільноти на &lt;strong&gt;Buy Me a Coffee&lt;/strong&gt;. Отримайте ексклюзивні оновлення, ранній доступ
+				до нових функцій та інше.&lt;/p&gt;
+			&lt;a href="https://buymeacoffee.com/pgarachne" target="_blank" class="btn-donate btn-featured"&gt;Підтримати
+				на Buy Me a Coffee&lt;/a&gt;
+		&lt;/div&gt;
+
+		&lt;!-- 2. Bank Transfer --&gt;
+		&lt;div class="donation-card"&gt;
+			&lt;h4&gt;Банківський переказ&lt;/h4&gt;
+			&lt;p&gt;Пряма підтримка з 0% комісії.&lt;/p&gt;</description></item><item><title>Порівняння: PgArachne проти PostgREST</title><link>https://www.pgarachne.com/uk/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;h2&gt;Порівняння: PgArachne проти PostgREST&lt;/h2&gt;
+	&lt;div class="comparison-table-wrapper"&gt;
+		&lt;table&gt;
+			&lt;thead&gt;
+				&lt;tr&gt;
+					&lt;th&gt;Характеристика&lt;/th&gt;
+					&lt;th&gt;PgArachne (+ універсальні функції)&lt;/th&gt;
+					&lt;th&gt;PostgREST&lt;/th&gt;
+				&lt;/tr&gt;
+			&lt;/thead&gt;
+			&lt;tbody&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Швидкість налаштування&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Висока. Універсальні функції забезпечують миттєвий CRUD, подібний до PostgREST.&lt;/td&gt;
+					&lt;td&gt;Висока. Автоматично генерує ендпоінти для всіх таблиць.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Гнучкість логіки&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Необмежена. Можливість комбінувати універсальний CRUD зі специфічними RPC-функціями.&lt;/td&gt;
+					&lt;td&gt;Обмежена. Більшість логіки має розміщуватися у фільтрах URL або представленнях бази даних (Views).&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Робота зі схемами&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Нативна. Доступ через &lt;code&gt;schema.function&lt;/code&gt;.&lt;/td&gt;
+					&lt;td&gt;Плоска/глобальна. Вимагає перемикання профілів у заголовках HTTP для зміни схем.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Абстракція&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Опціональна. Ви можете або надавати дані безпосередньо (проксі), або безпечно їх інкапсулювати.&lt;/td&gt;
+					&lt;td&gt;Низька. API — це, по суті, віддзеркалення схеми бази даних.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Готовність до AI та LLM&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Надзвичайна. JSON-RPC та можливість визначати функції-"інструменти" ("Tool") спеціально для AI-агентів.&lt;/td&gt;
+					&lt;td&gt;Середня. AI змушений долати сувору синтаксичну структуру параметрів URL.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Статичні файли&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Так. Надає HTML/JS/CSS безпосередньо з одного бінарного файлу.&lt;/td&gt;
+					&lt;td&gt;Ні. Потрібно налаштовувати та підтримувати зовнішній Nginx перед ним.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Реальний час (SSE)&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Так. Вбудований ендпоінт SSE для потоків PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;.&lt;/td&gt;
+					&lt;td&gt;Ні. Вимагає окремого налаштування (наприклад, LISTEN/NOTIFY + окремий сервіс).&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Підтримка декількох баз даних&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;На рівні сервера (N:1).&lt;/strong&gt; Один екземпляр PgArachne підключається до сервера
+						(IP:Port) і може обслуговувати всі бази даних, розміщені на ньому.&lt;/td&gt;
+					&lt;td&gt;&lt;strong&gt;На кожну базу даних (1:1).&lt;/strong&gt; Один екземпляр прив'язаний до однієї конкретної бази даних. Для обслуговування
+						декількох баз даних потрібно запускати кілька екземплярів на різних портах.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Автентифікація&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;JWT / API-токени. Нативно підтримує обидва підходи.&lt;/td&gt;
+					&lt;td&gt;Переважно JWT.&lt;/td&gt;
+				&lt;/tr&gt;
+				&lt;tr&gt;
+					&lt;td&gt;&lt;strong&gt;Обмеження частоти запитів (Rate Limiting)&lt;/strong&gt;&lt;/td&gt;
+					&lt;td&gt;Так. Вбудоване обмеження частоти спроб входу (налаштовується).&lt;/td&gt;
+					&lt;td&gt;Ні. Вимагає зовнішнього проксі або middleware.&lt;/td&gt;
+				&lt;/tr&gt;
+			&lt;/tbody&gt;
+		&lt;/table&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;Чому переможе "гібридний PgArachne"&lt;/h3&gt;
+	&lt;p&gt;Завдяки &lt;strong&gt;універсальним функціям&lt;/strong&gt; (що діють як емулятор) ви отримуєте найкраще з обох
+		світів:&lt;/p&gt;</description></item><item><title>Про проєкт та архітектура</title><link>https://www.pgarachne.com/uk/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;h2&gt;Про проєкт та архітектура&lt;/h2&gt;
+	&lt;p&gt;
+		PgArachne™ виступає як легкий, високопродуктивний &lt;strong&gt;веб-сервер&lt;/strong&gt;, що розташований між
+		вашими HTTP-клієнтами та базою даних PostgreSQL. Він усуває потребу в традиційних backend-мовах
+		(таких як Python, Node.js або PHP), відображаючи HTTP-запити безпосередньо на функції бази даних.
+	&lt;/p&gt;
+
+	&lt;div class="card feature-card"&gt;
+		&lt;h3&gt;Основні технічні можливості&lt;/h3&gt;
+		&lt;ul style="margin-left: 20px; list-style-type: disc;"&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Шлюз JSON-RPC 2.0:&lt;/strong&gt; Усі взаємодії з API відповідають строгій специфікації JSON-RPC 2.0.
+				Немає потреби проєктувати жодних REST-ендпоінтів; ви просто викликаєте SQL-функції за назвою
+				через POST-запити.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Нативна автентифікація через БД:&lt;/strong&gt; Жодних окремих таблиць користувачів. Користувачі входять зі своїми
+				справжніми облiковими даними PostgreSQL, щоб отримати &lt;strong&gt;JWT&lt;/strong&gt;. Альтернативно сервісні облікові записи
+				можуть використовувати постійні &lt;strong&gt;API-токени&lt;/strong&gt;.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Маскування ролі (Role Masquerading):&lt;/strong&gt; PgArachne™ підключається як проксі-користувач, але виконує кожен
+				запит за допомогою &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;, перемикаючись на ідентичність автентифікованого користувача.
+				Row-Level Security (RLS) працює автоматично.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;MCP (Model Context Protocol):&lt;/strong&gt; Нативний ендпоінт MCP дозволяє AI-клієнтам, таким
+				як Claude Desktop, Cursor та іншим MCP-сумісним інструментам, виявляти ваші функції PostgreSQL
+				як інструменти та викликати їх безпосередньо — без жодного додаткового сполучного коду. Застосовуються ті самі
+				механізми автентифікації та безпеки ролей. Ресурси (таблиці/представлення) та шаблони промптів також надаються через MCP.
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Сповіщення в реальному часі (SSE):&lt;/strong&gt; Підписуйтеся на канали PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt;
+				через SSE для живих оновлень без опитування (polling).
+			&lt;/li&gt;
+			&lt;li style="margin-bottom: 10px;"&gt;
+				&lt;strong&gt;Сервер статичних файлів:&lt;/strong&gt; PgArachne™ може надавати статичні ресурси (HTML, JS, CSS),
+				дозволяючи вам розміщувати односторінкові застосунки (SPA) або інструмент Explorer безпосередньо.
+			&lt;/li&gt;
+		&lt;/ul&gt;
+	&lt;/div&gt;
+
+	&lt;p&gt;
+		Ця архітектура значно спрощує стек: &lt;strong&gt;База даних ↔ PgArachne ↔ Frontend / AI-агент&lt;/strong&gt;.
+	&lt;/p&gt;</description></item><item><title>Розгортання та HTTPS</title><link>https://www.pgarachne.com/uk/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+	&lt;h2&gt;Розгортання та HTTPS&lt;/h2&gt;
+	&lt;p&gt;PgArachne створений, щоб добре виконувати одну роботу: API-шлюз. Для SSL/TLS (HTTPS), безпеки
+		заголовків та публічної маршрутизації вам слід розмістити перед ним &lt;strong&gt;зворотний проксі&lt;/strong&gt;.&lt;/p&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Варіант A: Caddy Server&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Найкраще для:&lt;/strong&gt; Сучасних продакшн-розгортань, простоти використання.&lt;/p&gt;
+		&lt;p&gt;&lt;a href="https://caddyserver.com/" target="_blank"&gt;Caddy&lt;/a&gt; — єдиний веб-сервер, який
+			отримує та автоматично оновлює SSL-сертифікати (Let's Encrypt) за умовчанням. Він потребує майже нульового
+			налаштування.&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;# Caddyfile
+example.com {
+ reverse_proxy localhost:8080
+}&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;div class="deployment-option"&gt;
+		&lt;h3&gt;Варіант B: Nginx&lt;/h3&gt;
+		&lt;p&gt;&lt;strong&gt;Найкраще для:&lt;/strong&gt; Корпоративних середовищ, складної маршрутизації.&lt;/p&gt;</description></item><item><title>Сповіщення в реальному часі (SSE)</title><link>https://www.pgarachne.com/uk/real-time-notifications/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/real-time-notifications/</guid><description>&lt;section id="sse"&gt;
+	&lt;h2&gt;Сповіщення в реальному часі (SSE)&lt;/h2&gt;
+	&lt;p&gt;Підпишіться на канали PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; через Server-Sent Events:&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;# Bearer-токен (JWT або API-токен)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -H "Authorization: Bearer $TOKEN"
+
+# Прямі облікові дані (HTTP Basic Auth — GRANT … TO pgarachne не потрібен)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+ -u "alice:secret"&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Кожне повідомлення — це JSON із назвою каналу та вмістом (payload):&lt;/p&gt;
+	&lt;pre&gt;&lt;code&gt;{"channel":"orders","data":{"id":123,"status":"created"}}&lt;/code&gt;&lt;/pre&gt;
+	&lt;p&gt;Якщо вміст є звичайним текстом, він обгортається як рядок у &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
+
+	&lt;h3&gt;Надсилання сповіщень з PostgreSQL&lt;/h3&gt;
+	&lt;p&gt;З &lt;code&gt;psql&lt;/code&gt; або будь-якої іншої сесії бази даних:&lt;/p&gt;</description></item><item><title>Що нового</title><link>https://www.pgarachne.com/uk/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+	&lt;h2&gt;Що нового&lt;/h2&gt;
+	&lt;p&gt;Детальнішу інформацію про зміни в кожній версії можна знайти на &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Виправлення безпеки&lt;/strong&gt;: Оновлено транзитивну залежність HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; до v0.59.1, що усуває вразливість у розширенні QPACK trailer, яка могла дозволити зловмиснику виснажити пам'ять сервера або клієнта.&lt;/li&gt;
+		&lt;li&gt;🎨 &lt;strong&gt;Покращення сайту документації&lt;/strong&gt;: Новий перемикач світлої/темної/автоматичної теми та перемикач мов лише з іконкою, іконки-посилання GitHub/Підтримка в навігаційній панелі, виправлені двічі закодовані структуровані дані JSON-LD та розширений &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+	&lt;/ul&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
+	&lt;ul&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Безпечні значення за замовчуванням (з порушенням сумісності)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; тепер за замовчуванням має значення &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; більше не встановлюється за замовчуванням у &lt;code&gt;*&lt;/code&gt;, а &lt;code&gt;JWT_SECRET&lt;/code&gt; має бути щонайменше 32 байти. Перед оновленням наявні розгортання повинні переглянути свою конфігурацію.&lt;/li&gt;
+		&lt;li&gt;🧹 &lt;strong&gt;Очищення застарілого коду&lt;/strong&gt;: Видалено маршрути перенаправлення &lt;code&gt;/api/…&lt;/code&gt; та &lt;code&gt;/sse/…&lt;/code&gt;, а також застарілий псевдонім JSON-RPC &lt;code&gt;login&lt;/code&gt;. Використовуйте безпосередньо &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; та &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🛡️ &lt;strong&gt;Суворіша автентифікація та обробка помилок&lt;/strong&gt;: Новий ліміт швидкості входу на IP-адресу (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) закриває прогалину для credential spraying, а помилки інструментів MCP більше не розкривають необроблений текст помилок PostgreSQL за замовчуванням (можна повернути через &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
+		&lt;li&gt;⚙️ &lt;strong&gt;Налаштовувані ліміти з'єднань&lt;/strong&gt;: Обмеження пулу з'єднань для прямої автентифікації тепер налаштовується через &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔑 &lt;strong&gt;Підтримка зовнішнього постачальника ідентичності (BYO JWT)&lt;/strong&gt;: Нові налаштування &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; та &lt;code&gt;JWT_LEEWAY&lt;/code&gt; прив'язують видані токени до конкретного видавця/аудиторії та налаштовують допуск розбіжності часу.&lt;/li&gt;
+		&lt;li&gt;🧰 &lt;strong&gt;Нові інструменти&lt;/strong&gt;: Окремі &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) та &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) доповнюють Explorer для швидкого ручного тестування.&lt;/li&gt;
+		&lt;li&gt;🐛 &lt;strong&gt;Виправлення надійності&lt;/strong&gt;: Виправлено зависання завершення роботи SSE та помилку відновлення мертвого з'єднання, яка могла призвести до неможливості сервера повторно підключитися до PostgreSQL.&lt;/li&gt;
+		&lt;li&gt;🧪 &lt;strong&gt;Посилення CI&lt;/strong&gt;: До кожної збірки додано &lt;code&gt;golangci-lint&lt;/code&gt;, детектор гонок даних Go та &lt;code&gt;govulncheck&lt;/code&gt;, а також розширено покриття тестами.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Процес релізу&lt;/strong&gt;: Додано &lt;code&gt;CHANGELOG.md&lt;/code&gt; і розділено робочий процес релізу на &lt;code&gt;make release-local&lt;/code&gt; (збірка та перевірка) та &lt;code&gt;make release&lt;/code&gt; (тег, публікація, оновлення Homebrew tap).&lt;/li&gt;
+	&lt;/ul&gt;
+
+	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item></channel></rss>

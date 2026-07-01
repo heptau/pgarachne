@@ -1,0 +1,145 @@
+---
+title: "Ασφάλεια & Πιστοποίηση"
+description: "Ασφάλεια & Πιστοποίηση - PgArachne"
+menu:
+  main:
+    name: "Ασφάλεια & Πιστοποίηση"
+    weight: 100
+---
+
+<section id="security">
+	<h2>Ασφάλεια &amp; Πιστοποίηση</h2>
+	<p>Το PgArachne βασίζεται εξ ολοκλήρου στο σύστημα δικαιωμάτων της PostgreSQL. Δεν εφευρίσκει εκ νέου Access Control Lists (ACLs).
+		Το PgArachne υποστηρίζει <strong>τέσσερις μεθόδους πιστοποίησης</strong>. Οι μέθοδοι 1–3 χρησιμοποιούν
+		<code>SET LOCAL ROLE</code> για εναλλαγή ταυτότητας· η μέθοδος 4 (άμεσα διαπιστευτήρια) συνδέεται
+		<em>απευθείας</em> ως ο χρήστης, οπότε δεν απαιτείται εναλλαγή ρόλου.
+	</p>
+
+	<h3>1. Διαδραστική Σύνδεση (JWT)</h3>
+	<p>Οι χρήστες πιστοποιούνται χρησιμοποιώντας το <strong>πραγματικό όνομα χρήστη και τον κωδικό πρόσβασης PostgreSQL</strong> τους μέσω
+		της μεθόδου JSON-RPC <code>get_jwt</code>. Εάν είναι επιτυχής, λαμβάνουν ένα βραχύβιο JWT. Τα επόμενα αιτήματα
+		φέρουν αυτό το token στην κεφαλίδα <code>Authorization: Bearer &lt;token&gt;</code>, και το PgArachne εναλλάσσει τον
+		ενεργό ρόλο σε αυτόν τον χρήστη για τη διάρκεια κάθε αιτήματος.</p>
+
+	<h3>2. Λογαριασμοί Υπηρεσιών (API Tokens)</h3>
+	<p>Για αυτοματοποιημένα συστήματα ή scripts, συνιστώνται τα μακρόβια API tokens.</p>
+	<ul>
+		<li>Τα tokens αποθηκεύονται στον πίνακα <code>pgarachne.api_tokens</code>.</li>
+		<li>Κάθε token αντιστοιχίζεται σε συγκεκριμένο ρόλο βάσης δεδομένων.</li>
+		<li>Στείλτε το token μέσω της κεφαλίδας <code>Authorization: Bearer &lt;token&gt;</code>.</li>
+	</ul>
+	<p><em>Η δημιουργία API tokens απαιτεί <code>pgarachne_admin</code>. Χρησιμοποιήστε το <code>pgarachne.add_api_token(...)</code>
+		με έναν ρόλο που είναι μέλος του <code>pgarachne_admin</code>.</em></p>
+
+	<h3>3. Εξωτερικός Πάροχος Ταυτότητας (Bring Your Own JWT)</h3>
+	<p>Εάν οι χρήστες πιστοποιούνται εκτός του PgArachne (για παράδειγμα, μέσω μιας εξωτερικής υπηρεσίας πιστοποίησης), μπορείτε
+		να εκδίδετε JWT εκεί και να τα στέλνετε απευθείας στο PgArachne.</p>
+	<ul>
+		<li>Μορφή κεφαλίδας: <code>Authorization: Bearer &lt;jwt&gt;</code>.</li>
+		<li>Υπογραφή: μόνο HMAC (<code>HS256</code> / <code>HS384</code> / <code>HS512</code>) χρησιμοποιώντας το ίδιο
+			<code>JWT_SECRET</code> που έχει ρυθμιστεί στο PgArachne.</li>
+		<li>Απαραίτητα claims: <code>db_role</code> (string, μη κενό) και <code>db_name</code> (string, πρέπει
+			να ταιριάζει με το τμήμα διαδρομής <code>:database</code>).</li>
+		<li>Προτεινόμενο claim: <code>exp</code> (Unix timestamp) για τη λήξη του token.</li>
+	</ul>
+	<p>Παράδειγμα ελάχιστου payload:</p>
+	<pre><code>{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}</code></pre>
+	<p><strong>Σημείωση:</strong> οι ασύμμετροι αλγόριθμοι JWT (π.χ. <code>RS256</code> / <code>ES256</code>) δεν
+		υποστηρίζονται.</p>
+
+	<h3 id="direct-credentials">4. Άμεσα Διαπιστευτήρια Βάσης Δεδομένων (Basic Auth)</h3>
+	<p>Η απλούστερη επιλογή: στείλτε το όνομα χρήστη και τον κωδικό πρόσβασης PostgreSQL με <strong>κάθε αίτημα</strong>
+		χρησιμοποιώντας την τυπική HTTP Basic Authentication. Το PgArachne ανοίγει ένα αποκλειστικό connection pool πιστοποιημένο απευθείας
+		ως αυτός ο χρήστης — το <code>SET LOCAL ROLE</code> <em>δεν</em> εκτελείται.</p>
+
+	<pre><code>Authorization: Basic &lt;base64(username:password)&gt;</code></pre>
+
+	<p>Παράδειγμα με curl:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+
+	<div class="tip">
+		<strong>Πότε να χρησιμοποιήσετε άμεσα διαπιστευτήρια:</strong>
+		<ul>
+			<li>Ταχεία δημιουργία πρωτοτύπων και τοπική ανάπτυξη — δεν απαιτείται διαχείριση tokens.</li>
+			<li>Εσωτερικές υπηρεσίες που ήδη διαχειρίζονται τα διαπιστευτήρια με ασφάλεια.</li>
+			<li>Σενάρια όπου η εκ των προτέρων έκδοση ενός JWT προσθέτει άσκοπη πολυπλοκότητα.</li>
+		</ul>
+	</div>
+
+	<p><strong>Βασικές διαφορές από τις μεθόδους που βασίζονται σε tokens:</strong></p>
+	<ul>
+		<li>Δεν απαιτείται <code>GRANT demo_user TO pgarachne</code> — το PgArachne δεν εναλλάσσει ρόλους.</li>
+		<li>Η Row-Level Security της PostgreSQL και τα δικαιώματα <code>GRANT</code> επιβάλλονται όπως συνήθως, επειδή η
+			σύνδεση εκτελείται ως ο πραγματικός χρήστης.</li>
+		<li>Τα connection pools διατηρούνται ανά χρήστη για αποδοτικότητα, με μέγιστη διάρκεια ζωής 5 λεπτών. Μετά από
+			αλλαγή κωδικού πρόσβασης, οι παλιές συνδέσεις λήγουν εντός αυτού του χρονικού παραθύρου.</li>
+		<li>Για να λειτουργήσουν τα idempotency keys με άμεσα διαπιστευτήρια, παραχωρήστε στον χρήστη το δικαίωμα
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+	</ul>
+
+	<div class="warning">
+		<h3>Δικαιώματα Proxy: Απαιτούνται Μόνο για τις Μεθόδους 1–3</h3>
+		<p>Για πιστοποίηση με JWT και API-token, το PgArachne συνδέεται ως ο χρήστης συστήματος που ορίζεται στο
+			<code>DB_USER</code> (π.χ. <code>pgarachne</code>) και εναλλάσσει ταυτότητα μέσω
+			<code>SET LOCAL ROLE</code>. Ο χρήστης συστήματος <strong>πρέπει να είναι μέλος</strong> κάθε ρόλου-στόχου.</p>
+		<pre><code>-- Απαιτείται μόνο για πιστοποίηση JWT / API-token:
+GRANT demo_user TO pgarachne;</code></pre>
+		<p>Αυτό το grant <strong>δεν απαιτείται</strong> κατά τη χρήση άμεσων διαπιστευτηρίων (μέθοδος 4).</p>
+	</div>
+
+	<h3>Σύγκριση Μεθόδων Πιστοποίησης</h3>
+	<table>
+		<thead>
+			<tr>
+				<th>Μέθοδος</th>
+				<th>Κεφαλίδα</th>
+				<th>SET LOCAL ROLE</th>
+				<th>GRANT … TO pgarachne</th>
+				<th>Καταλληλότερη για</th>
+			</tr>
+		</thead>
+		<tbody>
+			<tr>
+				<td>JWT (get_jwt)</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Ναι</td>
+				<td>Απαιτείται</td>
+				<td>Συνεδρίες τελικού χρήστη</td>
+			</tr>
+			<tr>
+				<td>API Token</td>
+				<td><code>Bearer &lt;token&gt;</code></td>
+				<td>✅ Ναι</td>
+				<td>Απαιτείται</td>
+				<td>Αυτοματοποιημένες υπηρεσίες</td>
+			</tr>
+			<tr>
+				<td>Εξωτερικό JWT</td>
+				<td><code>Bearer &lt;jwt&gt;</code></td>
+				<td>✅ Ναι</td>
+				<td>Απαιτείται</td>
+				<td>Ενσωμάτωση εξωτερικού IdP</td>
+			</tr>
+			<tr>
+				<td><strong>Άμεσα διαπιστευτήρια</strong></td>
+				<td><code>Basic &lt;b64&gt;</code></td>
+				<td>❌ Όχι</td>
+				<td><strong>Δεν απαιτείται</strong></td>
+				<td>Ανάπτυξη, εσωτερικές υπηρεσίες</td>
+			</tr>
+		</tbody>
+	</table>
+
+	<h3>Δείτε επίσης</h3>
+	<ul>
+		<li><a href="../configuration/">Ρυθμίσεις</a></li>
+		<li><a href="../error-codes/">Κωδικοί Σφαλμάτων</a></li>
+	</ul>
+</section>

@@ -2,13 +2,14 @@
 &lt;h2&gt;JWT Getter&lt;/h2&gt;
 &lt;p&gt;Il &lt;strong&gt;JWT Getter&lt;/strong&gt; è uno strumento minimalista per browser situato in &lt;code&gt;tools/get-jwt&lt;/code&gt;. Scambia nome utente e password PostgreSQL con un JWT di breve durata chiamando il metodo JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — e mostra il payload decodificato e la scadenza.&lt;/p&gt;
 &lt;h3&gt;Quando usarlo&lt;/h3&gt;
+&lt;p&gt;Usa il JWT Getter quando hai bisogno di un token per uno di questi scopi:&lt;/p&gt;
 &lt;ul&gt;
 &lt;li&gt;Per incollare un token nella scheda Bearer Token dell'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; o dell'&lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.&lt;/li&gt;
 &lt;li&gt;Per testare la scadenza di un JWT o i claim &lt;code&gt;db_role&lt;/code&gt;/&lt;code&gt;db_name&lt;/code&gt; nella propria applicazione.&lt;/li&gt;
 &lt;li&gt;Per verificare che l'utente di sistema &lt;code&gt;pgarachne&lt;/code&gt; possa cambiare a un determinato ruolo (&lt;code&gt;GRANT &amp;lt;ruolo&amp;gt; TO pgarachne&lt;/code&gt; deve essere presente).&lt;/li&gt;
 &lt;/ul&gt;
 &lt;div class="tip"&gt;
-&lt;strong&gt;Nota:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; richiede &lt;code&gt;GRANT &amp;lt;ruolo&amp;gt; TO pgarachne&lt;/code&gt;. Per evitare quel grant, usa le credenziali dirette (HTTP Basic Auth) nell'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; o nell'&lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;strong&gt;Nota:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; richiede &lt;code&gt;GRANT &amp;lt;ruolo&amp;gt; TO pgarachne&lt;/code&gt; nel database, perché PgArachne verifica internamente la password tramite &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Se preferisci evitare quel grant, usa le credenziali dirette (HTTP Basic Auth) nell'&lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; o nell'&lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
 &lt;/div&gt;
 &lt;h3&gt;Funzionalità&lt;/h3&gt;
 &lt;ul&gt;
@@ -54,18 +55,11 @@
 &lt;p&gt;L'&lt;strong&gt;SSE Tester&lt;/strong&gt; è uno strumento per browser a file singolo situato in &lt;code&gt;tools/test-sse&lt;/code&gt;. Permette di iscriversi a un numero qualsiasi di canali PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; tramite una connessione &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; in tempo reale e di osservare gli eventi in arrivo.&lt;/p&gt;
 &lt;h3&gt;Funzionalità&lt;/h3&gt;
 &lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Più canali&lt;/strong&gt; — i canali si aggiungono come tag e vengono passati come parametro &lt;code&gt;?channels=&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Tutti i metodi di autenticazione&lt;/strong&gt; — la scheda &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth (senza JWT); la scheda &lt;em&gt;Bearer Token&lt;/em&gt; accetta un JWT o un token API.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Stream in tempo reale&lt;/strong&gt; — utilizza la Fetch Streams API con &lt;code&gt;AbortController&lt;/code&gt; per una disconnessione pulita.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Più canali&lt;/strong&gt; — aggiungi o rimuovi canali come tag prima di connetterti. Tutti i canali vengono passati come parametro &lt;code&gt;?channels=&lt;/code&gt; separato da virgole.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Tutti i metodi di autenticazione&lt;/strong&gt; — la scheda &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth (credenziali dirette, senza bisogno di JWT); la scheda &lt;em&gt;Bearer Token&lt;/em&gt; accetta un JWT o un token API.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Stream in tempo reale&lt;/strong&gt; — utilizza la Fetch Streams API con &lt;code&gt;AbortController&lt;/code&gt; per una disconnessione pulita. Le righe SSE vengono analizzate manualmente, in modo che i campi &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; e heartbeat (&lt;code&gt;:&lt;/code&gt;) siano gestiti tutti correttamente.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Evidenziazione sintassi JSON&lt;/strong&gt; — i payload JSON vengono visualizzati con colori.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Impostazioni persistenti&lt;/strong&gt; — URL, prefisso, database, nome utente e lista canali vengono salvati in &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Autenticazione&lt;/h3&gt;
-&lt;ul&gt;
-&lt;li&gt;&lt;strong&gt;Scheda Password&lt;/strong&gt; — invia &lt;code&gt;Authorization: Basic &amp;lt;base64(utente:password)&amp;gt;&lt;/code&gt;. Non richiede &lt;code&gt;GRANT &amp;lt;ruolo&amp;gt; TO pgarachne&lt;/code&gt;.&lt;/li&gt;
-&lt;li&gt;&lt;strong&gt;Scheda Bearer Token&lt;/strong&gt; — invia &lt;code&gt;Authorization: Bearer &amp;lt;token&amp;gt;&lt;/code&gt;. Incolla un JWT (ottenuto tramite il &lt;a href="../get-jwt/"&gt;JWT Getter&lt;/a&gt;) o un token API longevo.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;div class="tip"&gt;
-&lt;strong&gt;Come abilitarlo:&lt;/strong&gt; Imposta &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; su &lt;code&gt;tools/test-sse&lt;/code&gt; e visita &lt;code&gt;http://localhost:8080&lt;/code&gt;. In alternativa, apri &lt;code&gt;index.html&lt;/code&gt; direttamente nel browser.
-&lt;/div&gt;
-&lt;/section&gt;</description></item></channel></rss>
+&lt;p&gt;Lo strumento verifica le credenziali prima di mostrare il pannello di iscrizione. Facendo clic su &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; si chiama &lt;code&gt;capabilities&lt;/code&gt; con l'header scelto — se PgArachne restituisce una risposta positiva, il pannello di iscrizione si sblocca.&lt;/p&gt;</description></item></channel></rss>

@@ -1,0 +1,70 @@
+---
+title: "Σχετικά & Αρχιτεκτονική"
+description: "About & Architecture - PgArachne"
+menu:
+  main:
+    name: "Σχετικά & Αρχιτεκτονική"
+    weight: 10
+---
+
+<section id="about">
+	<h2>Σχετικά & Αρχιτεκτονική</h2>
+	<p>
+		Το PgArachne™ λειτουργεί ως ένας ελαφρύς, υψηλής απόδοσης <strong>web server</strong> που τοποθετείται ανάμεσα
+		στους HTTP clients σας και τη βάση δεδομένων PostgreSQL. Εξαλείφει την ανάγκη για παραδοσιακές backend
+		γλώσσες (όπως Python, Node.js ή PHP) αντιστοιχίζοντας τα HTTP requests απευθείας σε functions της βάσης δεδομένων.
+	</p>
+
+	<div class="card feature-card">
+		<h3>Βασικές Τεχνικές Δυνατότητες</h3>
+		<ul style="margin-left: 20px; list-style-type: disc;">
+			<li style="margin-bottom: 10px;">
+				<strong>JSON-RPC 2.0 Gateway:</strong> Όλες οι αλληλεπιδράσεις του API ακολουθούν αυστηρά την
+				προδιαγραφή JSON-RPC 2.0. Δεν υπάρχουν REST endpoints να σχεδιάσετε· απλώς καλείτε SQL functions με το
+				όνομά τους μέσω POST requests.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Native DB Authentication:</strong> Χωρίς ξεχωριστούς πίνακες χρηστών. Οι χρήστες συνδέονται με τα
+				πραγματικά τους διαπιστευτήρια PostgreSQL για να λάβουν ένα <strong>JWT</strong>. Εναλλακτικά, οι
+				service accounts μπορούν να χρησιμοποιήσουν μόνιμα <strong>API Tokens</strong>.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Role Masquerading:</strong> Το PgArachne™ συνδέεται ως proxy user, αλλά εκτελεί κάθε
+				request χρησιμοποιώντας <code>SET LOCAL ROLE</code> για να μεταβεί στην ταυτότητα του αυθεντικοποιημένου
+				χρήστη. Το Row-Level Security (RLS) λειτουργεί αυτόματα.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>MCP (Model Context Protocol):</strong> Ένα native endpoint MCP επιτρέπει σε AI clients όπως
+				το Claude Desktop, το Cursor και άλλα εργαλεία συμβατά με MCP να ανακαλύπτουν τις PostgreSQL functions σας
+				ως εργαλεία και να τις καλούν απευθείας — χωρίς να απαιτείται προσαρμοσμένος κώδικας σύνδεσης. Η ίδια
+				authentication και ασφάλεια ρόλων εφαρμόζεται. Resources (πίνακες/views) και prompt templates εκθέτονται επίσης μέσω MCP.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Ειδοποιήσεις Πραγματικού Χρόνου (SSE):</strong> Κάντε subscribe στα κανάλια <code>NOTIFY</code>
+				της PostgreSQL μέσω SSE για live ενημερώσεις χωρίς polling.
+			</li>
+			<li style="margin-bottom: 10px;">
+				<strong>Static File Server:</strong> Το PgArachne™ μπορεί να εξυπηρετήσει static αρχεία (HTML, JS, CSS),
+				επιτρέποντάς σας να φιλοξενήσετε Single Page Applications (SPAs) ή το εργαλείο Explorer απευθείας.
+			</li>
+		</ul>
+	</div>
+
+	<p>
+		Αυτή η αρχιτεκτονική απλοποιεί δραματικά το stack: <strong>Βάση Δεδομένων ↔ PgArachne ↔ Frontend / AI Agent</strong>.
+	</p>
+
+	<div class="tip">
+		<strong>Δομή endpoint:</strong> Όλα τα endpoints της βάσης δεδομένων μοιράζονται ένα κοινό πρόθεμα (προεπιλογή <code>db</code>, ρυθμιζόμενο μέσω <code>API_PREFIX</code>):
+		<div
+			class="code-box">
+			<div>POST /{prefix}/{database}/jsonrpc <span style="color:#666;font-size:0.9em;">— JSON-RPC 2.0 gateway</span></div>
+			<div>GET &nbsp;/{prefix}/{database}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— PostgreSQL NOTIFY stream</span></div>
+			<div>POST /{prefix}/{database}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
+		</div>
+	</div>
+
+	<p style="margin-top: 30px; text-align: center;">
+		<a href="../architectural-decisions/" class="btn">Δείτε τις Λεπτομερείς Αρχιτεκτονικές Αποφάσεις</a>
+	</p>
+</section>

@@ -1,0 +1,81 @@
+- id: hero_lead
+  translation: "Twoja baza danych to twój backend.<br>Bez boilerplate'u. Bezpiecznie, natychmiast, gotowe na AI."
+- id: hero_desc
+  translation: "Zdefiniuj funkcję SQL — twój endpoint API jest gotowy. JSON-RPC&nbsp;2.0 z natywnym wsparciem MCP dla Claude Desktop &amp; Cursor, powiadomienia SSE w czasie rzeczywistym oraz bezpieczeństwo natywne dla bazy danych. Jakość produkcyjna, jeden plik binarny."
+- id: hero_get_started
+  translation: "Zaczynamy"
+- id: hero_see_demo
+  translation: "Narzędzia i Demo"
+- id: nav_language
+  translation: "Język"
+- id: nav_theme
+  translation: "Motyw"
+- id: theme_auto
+  translation: "Auto"
+- id: theme_light
+  translation: "Jasny"
+- id: theme_dark
+  translation: "Ciemny"
+- id: nav_menu
+  translation: "Menu"
+- id: nav_support
+  translation: "Wsparcie"
+- id: nav_star
+  translation: "Oceń na GitHubie"
+- id: nav_installation
+  translation: "Instalacja"
+- id: nav_documentation
+  translation: "Dokumentacja"
+- id: nav_home
+  translation: "Strona główna"
+- id: link_mcp
+  translation: "Model Context Protocol (MCP)"
+- id: site_subtitle
+  translation: "Natychmiastowe API dla PostgreSQL"
+- id: whats_new_releases_link
+  translation: 'Bardziej szczegółowe informacje o zmianach w poszczególnych wersjach znajdziesz bezpośrednio w <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.'
+
+- id: search_label
+  translation: "Szukaj"
+- id: search_placeholder
+  translation: "Szukaj"
+- id: search_no_results
+  translation: "Nie znaleziono wyników."
+- id: copy_label
+  translation: "Kopiuj"
+- id: copied_label
+  translation: "Skopiowano"
+- id: doc_min_read
+  translation: "min czytania"
+- id: quickstart_title
+  translation: "Szybki start"
+- id: quickstart_step_install
+  translation: "Zainstaluj PgArachne"
+- id: quickstart_step_configure
+  translation: "Skonfiguruj środowisko"
+- id: quickstart_step_auth
+  translation: "Skonfiguruj bezpieczeństwo i autoryzację"
+- id: quickstart_step_deploy
+  translation: "Wdróż za proxy HTTPS"
+- id: related_docs_title
+  translation: "Powiązana dokumentacja"
+- id: prev_label
+  translation: "Poprzedni"
+- id: next_label
+  translation: "Następny"
+- id: not_found_title
+  translation: "Strona nie znaleziona"
+- id: not_found_desc
+  translation: "Strona, którą szukasz, nie istnieje lub została przeniesiona."
+- id: not_found_home
+  translation: "Przejdź do strony głównej"
+- id: not_found_install
+  translation: "Otwórz instalację"
+- id: link_configuration
+  translation: "Konfiguracja"
+- id: link_security
+  translation: "Bezpieczeństwo"
+- id: link_deployment
+  translation: "Wdrożenie i HTTPS"
+- id: link_metrics
+  translation: "Metryki"

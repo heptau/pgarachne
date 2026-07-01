@@ -1,0 +1,40 @@
+---
+title: "PgArachne"
+description: "PgArachne – Natychmiastowe API dla PostgreSQL"
+---
+
+<section id="features" class="section-light bg-offset">
+	<div class="container">
+		<h2>Czy PgArachne jest dla Ciebie?</h2>
+		<p class="section-intro">
+			PgArachne™ to backendowa brama gotowa do produkcji — od solowego MVP po system produkcyjny o dużym natężeniu ruchu. Zdefiniuj funkcję SQL, a Twój endpoint API jest gotowy. Bez boilerplate'u, bez dodatkowych usług.
+		</p>
+
+		<div class="grid-3">
+			<div class="card fade-in">
+				<h3>🚀 Zero boilerplate'u</h3>
+				<p>Przestań pisać powtarzalne kontrolery CRUD. Zdefiniuj funkcję SQL i Twój endpoint API jest gotowy natychmiast. Twoja baza danych <em>jest</em> Twoim backendem — PgArachne tylko bezpiecznie ją udostępnia.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏢 Gotowe do produkcji</h3>
+				<p>Zaprojektowane tak, by obsłużyć <strong>ponad 90% standardowych zadań backendowych</strong> (CRUD, walidacja, autoryzacja). Dzięki poolowaniu połączeń, kontrolowanemu zamykaniu i metrykom Prometheus napędza produkcyjne systemy w sposób niezawodny.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🧠 Natywne wsparcie MCP i AI</h3>
+				<p>PgArachne udostępnia natywny endpoint <strong>Model Context Protocol (MCP)</strong>, dzięki czemu klienci AI, tacy jak Claude Desktop czy Cursor, mogą odkrywać i wywoływać Twoje funkcje PostgreSQL jako narzędzia — bez ani jednej linii dodatkowego kodu. API dokumentuje się również samo za pomocą komentarzy SQL przeznaczonych do odczytu przez LLM.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>⚡ Powiadomienia w czasie rzeczywistym (SSE)</h3>
+				<p>Strumieniuj zdarzenia w czasie rzeczywistym przez standardowe HTTP z natywnym wsparciem w przeglądarce. Subskrybuj kanały PostgreSQL <code>NOTIFY</code> bezpośrednio z klienta. Świetne rozwiązanie do dashboardów i aktualizacji na żywo bez WebSocketów.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🔒 Bezpieczeństwo natywne dla bazy danych</h3>
+				<p>Żadnych osobnych tabel użytkowników. Autoryzacja wykorzystuje rzeczywiste role PostgreSQL i JWT. Każde żądanie jest wykonywane jako uwierzytelniony użytkownik za pomocą <code>SET LOCAL ROLE</code>, dzięki czemu Row-Level Security (RLS) działa automatycznie.</p>
+			</div>
+			<div class="card fade-in">
+				<h3>🏛️ Decyzje projektowe</h3>
+				<p>Czemu JSON-RPC? Czemu Go? Czemu SSE? Czemu MCP jako warstwa translacji? Przeczytaj nasze <a href="architectural-decisions/">szczegółowe decyzje architektoniczne</a>, aby zrozumieć, co napędza silnik PgArachne.</p>
+			</div>
+		</div>
+	</div>
+</section>

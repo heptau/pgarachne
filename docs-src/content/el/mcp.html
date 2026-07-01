@@ -1,0 +1,101 @@
+---
+title: "Model Context Protocol (MCP)"
+description: "Model Context Protocol (MCP) - PgArachne"
+menu:
+  main:
+    name: "MCP"
+    weight: 65
+---
+
+<section id="mcp">
+	<h2>Model Context Protocol (MCP)</h2>
+
+	<p class="section-intro">
+		Το PgArachne υποστηρίζει εγγενώς το <strong>Model Context Protocol (MCP)</strong>, ένα ανοιχτό πρότυπο που επιτρέπει σε μοντέλα AI (όπως το Claude ή το Cursor) να έχουν ασφαλή πρόσβαση στα δεδομένα και τις συναρτήσεις σας ως «εργαλεία» (tools).
+	</p>
+
+	<h3>Πώς Λειτουργεί;</h3>
+	<p>
+		Το PgArachne λειτουργεί απευθείας ως <strong>MCP Server</strong>. Αντί να γράφετε έναν προσαρμοσμένο HTTP server για κάθε έργο, απλώς εκτελέστε το PgArachne πάνω από τη βάση δεδομένων σας. Το PgArachne αναλύει αυτόματα τις επιτρεπόμενες SQL συναρτήσεις σας και τις εκθέτει σε AI clients μέσω HTTP(S).
+	</p>
+
+	<div class="card" style="margin-bottom: 2rem;">
+		<h3>🛠️ SQL Συναρτήσεις ως Εργαλεία</h3>
+		<p>Κάθε SQL συνάρτηση προσβάσιμη μέσω του JSON-RPC 2.0 endpoint του PgArachne γίνεται αυτόματα ένα «εργαλείο» διαθέσιμο στο AI. Η προεπιλεγμένη συμπεριφορά (κλήση της <code>pgarachne.allowed_schemas()</code>) εκθέτει τις συναρτήσεις που είναι αποθηκευμένες στο schema <code>api</code> στις οποίες ο αυθεντικοποιημένος χρήστης έχει πρόσβαση (μέσω <code>GRANT EXECUTE</code>). Το LLM βλέπει το όνομα της συνάρτησης, τις παραμέτρους και την περιγραφή από τα σχόλια SQL.</p>
+	</div>
+
+	<h3>Οδηγός Σύνδεσης</h3>
+
+	<div class="deployment-option">
+		<h4>1α. Αυθεντικοποίηση — API Token (Συνιστάται για Παραγωγή)</h4>
+		<p>Για μόνιμη σύνδεση με AI, χρησιμοποιήστε ένα <strong>μακροχρόνιο API token</strong>. Το token πρέπει να δημιουργηθεί από έναν διαχειριστή (μέλος του ρόλου <code>pgarachne_admin</code>):</p>
+		<pre><code>-- Switch to the administrator role
+SET ROLE pgarachne_admin;
+
+-- Generate a new token for the target role (e.g., 'app_user')
+SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');</code></pre>
+		<p>Αποθηκεύστε τη συμβολοσειρά που επιστρέφεται. Χρησιμοποιήστε την ως <code>Authorization: Bearer YOUR_API_TOKEN</code> στη ρύθμιση του AI client.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>1β. Αυθεντικοποίηση — Απευθείας Διαπιστευτήρια (Ανάπτυξη &amp; Απλές Ρυθμίσεις)</h4>
+		<p>Εναλλακτικά, στείλτε το όνομα χρήστη και τον κωδικό πρόσβασης του PostgreSQL απευθείας χρησιμοποιώντας HTTP Basic Authentication.
+			Δεν απαιτείται διαχείριση API token, ούτε <code>GRANT … TO pgarachne</code> — το PgArachne
+			συνδέεται απευθείας ως ο συγκεκριμένος χρήστης.</p>
+		<pre><code>Authorization: Basic &lt;base64(username:password)&gt;</code></pre>
+		<p>Χρησιμοποιήστε αυτή την προσέγγιση για τοπικές δοκιμές ή εσωτερικά εργαλεία όπου τα διαπιστευτήρια διαχειρίζονται ήδη με ασφάλεια.
+			Για ενσωματώσεις AI παραγωγής με cloud clients, τα API tokens είναι προτιμότερα.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>2. Claude Desktop</h4>
+		<p>Προσθέστε το PgArachne στη ρύθμιση του Claude Desktop (<code>~/Library/Application Support/Claude/claude_desktop_config.json</code>):</p>
+		<pre><code>{
+  "mcpServers": {
+    "pgarachne": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-http",
+        "--url",
+        "https://your-api.com/db/my_database/mcp"
+      ],
+      "env": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}</code></pre>
+		<p><small>Σημείωση: Απαιτείται <strong>HTTP(S)</strong> για τη σύνδεση. Το παράδειγμα χρησιμοποιεί τη γέφυρα npx <code>server-http</code> από την Anthropic, η οποία λειτουργεί ως ενδιάμεσος μεταξύ του τυπικού MCP (stdio) και του PgArachne (HTTP).</small></p>
+	</div>
+
+	<div class="deployment-option">
+		<h4>3. Cursor</h4>
+		<p>Στις ρυθμίσεις του Cursor (Settings &gt; MCP), προσθέστε έναν νέο server που επικοινωνεί απευθείας μέσω HTTP (ή χρησιμοποιώντας τη γέφυρα που αναφέρθηκε παραπάνω αν η έκδοση του Cursor σας δεν υποστηρίζει εγγενείς HTTP MCP servers):</p>
+		<ul>
+			<li><strong>Type:</strong> <code>command</code> (με γέφυρα npx) ή <code>http</code></li>
+			<li><strong>Name:</strong> <code>PgArachne</code></li>
+			<li><strong>URL:</strong> <code>https://your-api.com/db/my_database/mcp</code></li>
+			<li><strong>Auth Header:</strong> <code>Authorization: Bearer YOUR_API_TOKEN</code></li>
+		</ul>
+	</div>
+
+	<div class="deployment-option highlight">
+		<h4>🌐 Δημόσια Προσβασιμότητα (Ngrok)</h4>
+		<p>Εάν δοκιμάζετε το PgArachne τοπικά και θέλετε να το συνδέσετε με έναν AI client που βασίζεται στο cloud (εκτός τοπικών εγκαταστάσεων), ο server σας <strong>πρέπει να είναι δημόσια προσβάσιμος μέσω μιας HTTP(S) URL</strong>.</p>
+		<pre><code># Run ngrok for the HTTP PgArachne port (e.g., 8080)
+ngrok http 8080</code></pre>
+		<p>Στη συνέχεια χρησιμοποιήστε τη διεύθυνση HTTPS που δημιουργήθηκε από το Ngrok στη ρύθμιση του AI.</p>
+	</div>
+
+	<h3>Ασφάλεια</h3>
+	<p>Το MCP endpoint σέβεται πλήρως το σύστημα δικαιωμάτων του PostgreSQL:</p>
+	<ul>
+		<li><strong>Αυθεντικοποίηση:</strong> Κάθε αίτημα απαιτεί ένα έγκυρο API token, JWT, ή διαπιστευτήρια HTTP Basic· τα μη αυθεντικοποιημένα αιτήματα απορρίπτονται αμέσως.</li>
+		<li><strong>Εξουσιοδότηση:</strong> Το AI μπορεί να δει και να καλέσει μόνο τις συναρτήσεις στα επιτρεπόμενα schemas για τις οποίες ο αυθεντικοποιημένος ρόλος έχει <code>GRANT EXECUTE</code>.</li>
+		<li><strong>RLS:</strong> Η Row-Level Security είναι πλήρως ενεργή — το AI βλέπει μόνο τις γραμμές στις οποίες έχει πρόσβαση ο συγκεκριμένος ρόλος.</li>
+	</ul>
+	<p>Δείτε <a href="../security-roles/">Ασφάλεια &amp; Αυθεντικοποίηση</a> για μια πλήρη σύγκριση όλων των υποστηριζόμενων μεθόδων αυθεντικοποίησης.</p>
+
+</section>
+

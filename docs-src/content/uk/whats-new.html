@@ -1,0 +1,60 @@
+---
+title: "Що нового"
+description: "Що нового - PgArachne"
+menu:
+  main:
+    name: "Що нового"
+    weight: 20
+---
+
+<section id="whats-new" class="section-light">
+	<h2>Що нового</h2>
+	<p>Детальнішу інформацію про зміни в кожній версії можна знайти на <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
+
+	<p class="whats-new-subtitle">v2.0.1</p>
+	<ul>
+		<li>🔒 <strong>Виправлення безпеки</strong>: Оновлено транзитивну залежність HTTP/3 <code>quic-go</code> до v0.59.1, що усуває вразливість у розширенні QPACK trailer, яка могла дозволити зловмиснику виснажити пам'ять сервера або клієнта.</li>
+		<li>🎨 <strong>Покращення сайту документації</strong>: Новий перемикач світлої/темної/автоматичної теми та перемикач мов лише з іконкою, іконки-посилання GitHub/Підтримка в навігаційній панелі, виправлені двічі закодовані структуровані дані JSON-LD та розширений <code>llms.txt</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.0</p>
+	<ul>
+		<li>🔒 <strong>Безпечні значення за замовчуванням (з порушенням сумісності)</strong>: <code>DB_SSLMODE</code> тепер за замовчуванням має значення <code>require</code>, <code>ALLOWED_ORIGINS</code> більше не встановлюється за замовчуванням у <code>*</code>, а <code>JWT_SECRET</code> має бути щонайменше 32 байти. Перед оновленням наявні розгортання повинні переглянути свою конфігурацію.</li>
+		<li>🧹 <strong>Очищення застарілого коду</strong>: Видалено маршрути перенаправлення <code>/api/…</code> та <code>/sse/…</code>, а також застарілий псевдонім JSON-RPC <code>login</code>. Використовуйте безпосередньо <code>/{prefix}/:database/…</code> та <code>get_jwt</code>.</li>
+		<li>🛡️ <strong>Суворіша автентифікація та обробка помилок</strong>: Новий ліміт швидкості входу на IP-адресу (<code>LOGIN_RATE_LIMIT_PER_IP</code>) закриває прогалину для credential spraying, а помилки інструментів MCP більше не розкривають необроблений текст помилок PostgreSQL за замовчуванням (можна повернути через <code>MCP_SQL_ERROR_DETAIL</code>).</li>
+		<li>⚙️ <strong>Налаштовувані ліміти з'єднань</strong>: Обмеження пулу з'єднань для прямої автентифікації тепер налаштовується через <code>DIRECT_POOL_LIMIT</code>.</li>
+		<li>🔑 <strong>Підтримка зовнішнього постачальника ідентичності (BYO JWT)</strong>: Нові налаштування <code>JWT_ISSUER</code>, <code>JWT_AUDIENCE</code> та <code>JWT_LEEWAY</code> прив'язують видані токени до конкретного видавця/аудиторії та налаштовують допуск розбіжності часу.</li>
+		<li>🧰 <strong>Нові інструменти</strong>: Окремі <strong>JWT Getter</strong> (<code>/tools/get-jwt</code>) та <strong>SSE Tester</strong> (<code>/tools/test-sse</code>) доповнюють Explorer для швидкого ручного тестування.</li>
+		<li>🐛 <strong>Виправлення надійності</strong>: Виправлено зависання завершення роботи SSE та помилку відновлення мертвого з'єднання, яка могла призвести до неможливості сервера повторно підключитися до PostgreSQL.</li>
+		<li>🧪 <strong>Посилення CI</strong>: До кожної збірки додано <code>golangci-lint</code>, детектор гонок даних Go та <code>govulncheck</code>, а також розширено покриття тестами.</li>
+		<li>📦 <strong>Процес релізу</strong>: Додано <code>CHANGELOG.md</code> і розділено робочий процес релізу на <code>make release-local</code> (збірка та перевірка) та <code>make release</code> (тег, публікація, оновлення Homebrew tap).</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.3.0</p>
+	<ul>
+		<li>🌐 <strong>PgArachne Explorer – сучасний PWA</strong>: Повне візуальне та функціональне оновлення – темна/світла тема (автоматично), адаптивна компонування карток, підсвічування синтаксису JSON, кнопка копіювання в буфер обміну, кращий UX автентифікації (вкладки пароль/токен), підтримка встановлення PWA (маніфест, іконки, service worker), посилання для спільного доступу через параметр <code>?url=…</code>.</li>
+		<li>🛠️ <strong>Підтримка Model Context Protocol (MCP)</strong>: Новий ендпоінт <code>/{prefix}/{db}/mcp</code> зі стандартними методами <code>resources/list</code>, <code>resources/read</code>, <code>prompts/list</code>, <code>prompts/get</code> – повністю підтримується функціями PostgreSQL і повторно використовує наявну автентифікацію та перемикання ролей.</li>
+		<li>🔧 <strong>Налаштовуваний префікс API</strong>: Значення за замовчуванням змінено на <code>/db/{database}/jsonrpc</code> та <code>/db/{database}/sse</code>, а застарілі шляхи <code>/api/…</code> та <code>/sse/…</code> залишені як перенаправлення 307 для зворотної сумісності. Керується через змінну середовища <code>API_PREFIX</code>.</li>
+		<li>🛡️ <strong>Захист ідемпотентності</strong>: Необов'язкове поле <code>idempotencyKey</code> у запитах JSON-RPC – автоматичне виявлення дублікатів (HTTP 409 + код помилки при колізії) за допомогою <code>pgarachne.save_idempotency_key()</code>.</li>
+		<li>📚 <strong>Покращення документації</strong>: Новий розділ <strong>/tools/</strong> із картками (Explorer + очікуваний macOS Toolbar), нова сторінка «Architectural Decisions», <strong>SECURITY.md</strong> з інструкціями щодо звітування про вразливості, краща типографіка в усіх мовах завдяки TypoLima, покращена підтримка сторінки 404 для GitHub Pages.</li>
+		<li>📝 <strong>Перейменування методу входу</strong>: Метод JSON-RPC <code>login</code> перейменовано на <code>get_jwt</code> (стара назва залишається як застарілий псевдонім із попередженням у логах).</li>
+		<li>📊 <strong>Очищення логування</strong>: При логуванні у файл консоль показує лише мінімальну інформацію про запуск → чистіший вивід у продакшн- / docker-середовищах.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.2.0</p>
+	<ul>
+		<li>🛡️ <strong>Безпека:</strong> Перевірка токена доступу тепер відбувається перед встановленням з'єднання з базою даних. Покращено захист від підробки IP-адрес (додано налаштування <code>TRUSTED_PROXIES</code>) та приховування внутрішніх помилок бази даних від кінцевих користувачів.</li>
+		<li>📊 <strong>Ізольовані метрики:</strong> Ендпоінт Prometheus <code>/metrics</code> переміщено з публічного API на власний захищений порт (за замовчуванням доступний лише на <code>127.0.0.1:9090</code>).</li>
+		<li>📦 <strong>Новий варіант встановлення:</strong> Проєкт тепер має офіційний Homebrew tap для macOS і Linux. Збірки підписані та створені за допомогою GoReleaser.</li>
+		<li>📚 <strong>Оновлена документація:</strong> Повністю новий вигляд на основі фреймворку Hugo. Додано блискавичний повнотекстовий пошук, можливість копіювання коду та приклади для продакшн-розгортання (посилення Nginx, BYO JWT).</li>
+		<li>⚙️ <strong>Покращене керування демоном:</strong> Додано підтримку налаштування власного шляху <code>PID_FILE</code>.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v1.1.0</p>
+	<ul>
+		<li>🔌 <strong>Уніфікований API:</strong> Усі викликаються через <code>POST /api/&lt;db&gt;</code> (метод, що викликається, вказується в тілі JSON-RPC).</li>
+		<li>⚡ <strong>Сповіщення в реальному часі:</strong> Новий ендпоінт <code>GET /sse/&lt;db&gt;?channels=...</code> для прослуховування подій бази даних з підтримкою кількох каналів.</li>
+		<li>📈 <strong>Спостережуваність:</strong> Детальні метрики Prometheus для HTTP, автентифікації, JSON-RPC та SSE.</li>
+		<li>🏋️ <strong>Значні покращення стабільності:</strong> Захист від повільних клієнтів, суворі таймаути та автоматичне очищення з'єднань.</li>
+	</ul>
+</section>

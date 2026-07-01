@@ -32,31 +32,43 @@ relativeURLs = true
       unsafe = true
 
 [languages]
-  [languages.en]
-    label = "English"
-    weight = 1
-    contentDir = "content/en"
   [languages.cs]
     label = "Čeština"
-    weight = 2
+    weight = 1
     contentDir = "content/cs"
-  [languages.es]
-    label = "Español"
+  [languages.en]
+    label = "English"
+    weight = 2
+    contentDir = "content/en"
+  [languages.fr]
+    label = "Français"
     weight = 3
-    contentDir = "content/es"
+    contentDir = "content/fr"
   [languages.de]
     label = "Deutsch"
     weight = 4
     contentDir = "content/de"
-  [languages.fr]
-    label = "Français"
+  [languages.el]
+    label = "Ελληνικά"
     weight = 5
-    contentDir = "content/fr"
+    contentDir = "content/el"
   [languages.it]
     label = "Italiano"
     weight = 6
     contentDir = "content/it"
+  [languages.pl]
+    label = "Polski"
+    weight = 7
+    contentDir = "content/pl"
   [languages.pt]
     label = "Português"
-    weight = 7
+    weight = 8
     contentDir = "content/pt"
+  [languages.es]
+    label = "Español"
+    weight = 9
+    contentDir = "content/es"
+  [languages.uk]
+    label = "Українська"
+    weight = 10
+    contentDir = "content/uk"

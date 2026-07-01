@@ -45,6 +45,16 @@ menu:
 DB_PORT=5432
 DB_USER=pgarachne
 JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Variáveis obrigatórias:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (mínimo de 32 bytes; gere com <code>openssl rand -hex 32</code>).</p>
+
+	<h3>Lista de Verificação Rápida</h3>
+	<ul>
+		<li><code>JWT_SECRET</code> é longo, aleatório e não reutilizado entre ambientes.</li>
+		<li><code>DB_USER</code> só pode alternar para os papéis esperados (verifique os grants de membership).</li>
+		<li><code>TRUSTED_PROXIES</code> está definido ao executar atrás de um reverse proxy.</li>
+		<li><code>LOGIN_RATE_LIMIT</code> está habilitado para implantações expostas à internet.</li>
+		<li><code>METRICS_LISTEN_ADDR</code> é privado (por exemplo <code>127.0.0.1:9090</code>).</li>
+	</ul>
 
 	<h3>Referência de Configuração</h3>
 	<table class="config-table">
@@ -58,7 +68,7 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 		<tbody>
 			<!-- Configuração do BD -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Conexão
+				<td colspan="3" class="config-table-section">Conexão
 					com Banco de Dados</td>
 			</tr>
 			<tr class="required-row">
@@ -99,7 +109,7 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Configuração do Servidor -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Servidor HTTP</td>
+				<td colspan="3" class="config-table-section">Servidor HTTP</td>
 			</tr>
 			<tr>
 				<td><code>HTTP_PORT</code></td>
@@ -132,7 +142,7 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Configuração de Segurança -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Segurança (JWT)
+				<td colspan="3" class="config-table-section">Segurança (JWT)
 				</td>
 			</tr>
 			<tr class="required-row">
@@ -148,12 +158,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 				<tr>
 					<td><code>JWT_ISSUER</code></td>
 					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-					<td>Se definido, é escrito no claim <code>iss</code> e deve corresponder exatamente na validação. Vazio = sem verificação.</td>
+					<td>Se definido, é escrito no claim <code>iss</code> ao emitir e deve corresponder exatamente na validação. Deixe vazio para não verificar o issuer.</td>
 				</tr>
 				<tr>
 					<td><code>JWT_AUDIENCE</code></td>
 					<td class="req-col"><span class="req-flag req-no" title="Opcional" aria-label="Opcional">○</span></td>
-					<td>Se definido, é escrito no claim <code>aud</code> e deve corresponder na validação. Vazio = sem verificação.</td>
+					<td>Se definido, é escrito no claim <code>aud</code> ao emitir e deve corresponder na validação. Deixe vazio para não verificar o audience.</td>
 				</tr>
 				<tr>
 					<td><code>JWT_LEEWAY</code></td>
@@ -241,7 +251,7 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Configuração de Logging -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Logging</td>
+				<td colspan="3" class="config-table-section">Logging</td>
 			</tr>
 			<tr>
 				<td><code>LOG_LEVEL</code></td>
@@ -260,4 +270,10 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 	<p><strong>Comportamento de segurança:</strong> requisições sem um header <code>Authorization</code> válido são rejeitadas antes de abrir conexão com o banco.</p>
 	<p>Inicie o servidor:</p>
 	<pre><code>./pgarachne -config .env</code></pre>
+
+	<h3>Veja também</h3>
+	<ul>
+		<li><a href="../security-roles/">Segurança e Autenticação</a></li>
+		<li><a href="../error-codes/">Códigos de Erro</a></li>
+	</ul>
 </section>

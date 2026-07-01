@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Інструменти on PgArachne</title><link>https://www.pgarachne.com/uk/tools/</link><description>Recent content in Інструменти on PgArachne</description><generator>Hugo</generator><language>uk</language><atom:link href="https://www.pgarachne.com/uk/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>JWT Getter</title><link>https://www.pgarachne.com/uk/tools/get-jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/get-jwt/</guid><description>&lt;section id="get-jwt"&gt;
+&lt;h2&gt;JWT Getter&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;JWT Getter&lt;/strong&gt; — це мінімалістичний однофайловий браузерний інструмент, розташований у &lt;code&gt;tools/get-jwt&lt;/code&gt;. Він обмінює ім'я користувача та пароль PostgreSQL на короткостроковий JWT, викликаючи метод JSON-RPC &lt;code&gt;get_jwt&lt;/code&gt; — і показує вам декодований payload і час завершення дії.&lt;/p&gt;
+&lt;h3&gt;Коли використовувати&lt;/h3&gt;
+&lt;p&gt;Використовуйте JWT Getter, коли вам потрібен токен для однієї з таких цілей:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Вставлення токена в &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; або &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt; (вкладка Bearer Token).&lt;/li&gt;
+&lt;li&gt;Перевірка терміну дії JWT або claim-ів &lt;code&gt;db_role&lt;/code&gt; / &lt;code&gt;db_name&lt;/code&gt; у вашому застосунку.&lt;/li&gt;
+&lt;li&gt;Швидка перевірка того, що системний користувач &lt;code&gt;pgarachne&lt;/code&gt; може перемкнутися на певну роль (&lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; має бути налаштований).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="tip"&gt;
+&lt;strong&gt;Примітка:&lt;/strong&gt; &lt;code&gt;get_jwt&lt;/code&gt; вимагає &lt;code&gt;GRANT &amp;lt;role&amp;gt; TO pgarachne&lt;/code&gt; у базі даних, оскільки PgArachne перевіряє пароль внутрішньо через &lt;code&gt;SET LOCAL ROLE&lt;/code&gt;. Якщо ви хочете уникнути цього grant-а, використовуйте прямі облікові дані (HTTP Basic Auth) у &lt;a href="../api-explorer/"&gt;Explorer&lt;/a&gt; або &lt;a href="../sse-tester/"&gt;SSE Tester&lt;/a&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;Введіть URL API, префікс, базу даних, ім'я користувача та пароль — натисніть &lt;kbd&gt;Enter&lt;/kbd&gt; або клацніть &lt;strong&gt;Get JWT&lt;/strong&gt;.&lt;/li&gt;
+&lt;li&gt;Відображається необроблений токен, який можна скопіювати одним клацанням.&lt;/li&gt;
+&lt;li&gt;Payload JWT декодується з Base64 і відображається з підсвічуванням синтаксису JSON.&lt;/li&gt;
+&lt;li&gt;Значок терміну дії показує залишковий час життя (або позначає токен як застарілий).&lt;/li&gt;
+&lt;li&gt;Налаштування з'єднання та вхід зберігаються в &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Як увімкнути&lt;/h3&gt;
+&lt;p&gt;Встановіть &lt;code&gt;STATIC_FILES_PATH&lt;/code&gt; на &lt;code&gt;tools/get-jwt&lt;/code&gt; і відвідайте &lt;code&gt;http://localhost:8080&lt;/code&gt;, або відкрийте &lt;code&gt;index.html&lt;/code&gt; безпосередньо в браузері.&lt;/p&gt;</description></item><item><title>PgArachne Explorer</title><link>https://www.pgarachne.com/uk/tools/api-explorer/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/api-explorer/</guid><description>&lt;section id="explorer"&gt;
+&lt;h2&gt;PgArachne Explorer&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;Explorer&lt;/strong&gt; — це потужний веб-інтерфейс, що входить до каталогу &lt;code&gt;tools/pgarachne-explorer&lt;/code&gt;. Це не
+		просто інструмент документації — це повністю функціональний &lt;strong&gt;демонстраційний застосунок&lt;/strong&gt;, побудований на HTML/JS,
+		який спілкується з базою даних виключно через PgArachne. Хостована версія також доступна на
+&lt;a href="https://explorer.pgarachne.com" target="_blank"&gt;explorer.pgarachne.com&lt;/a&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Що він уміє?&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Огляд API:&lt;/strong&gt; Він читає функцію &lt;code&gt;capabilities&lt;/code&gt;, щоб відобразити всі доступні
+			ендпоінти та їхні параметри.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живе тестування:&lt;/strong&gt; Ви можете виконувати функції безпосередньо з браузера.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Автоматична документація:&lt;/strong&gt; Він перетворює SQL-коментарі (включно з метаданими &lt;code&gt;--- PARAMS ---&lt;/code&gt;)
+			на читабельну документацію.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Сучасний інтерфейс:&lt;/strong&gt; Підтримує темний/світлий режим і може бути встановлений як &lt;strong&gt;PWA&lt;/strong&gt; на мобільних пристроях.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Автентифікація:&lt;/strong&gt; Вкладка &lt;em&gt;Password&lt;/em&gt; використовує HTTP Basic Auth для прямого підключення як користувач бази даних — &lt;code&gt;GRANT &amp;hellip; TO pgarachne&lt;/code&gt; не потрібен. Вкладка &lt;em&gt;API Token&lt;/em&gt; приймає JWT або довгостроковий API-токен, надісланий як &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;Параметри URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/uk/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+&lt;h2&gt;PgArachne Toolbar для macOS&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; — це професійний рідний застосунок для macOS, розроблений для забезпечення легкого керування вашими екземплярами JSON-RPC gateway.&lt;/p&gt;
+&lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;
+&lt;strong&gt;Статус:&lt;/strong&gt; У розробці. Очікуваний реліз: &lt;strong&gt;2 квартал 2026&lt;/strong&gt;.
+&lt;/div&gt;
+&lt;h3&gt;Основні можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Керування кількома серверами:&lt;/strong&gt; Запускайте, зупиняйте та перезапускайте кілька екземплярів PgArachne з одного меню.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Перемикання конфігурацій:&lt;/strong&gt; Швидко перемикайтеся між спільними середовищами або локальними конфігураціями бази даних.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живий моніторинг:&lt;/strong&gt; Вбудоване вікно для логів і метрик продуктивності в реальному часі.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Рідний досвід:&lt;/strong&gt; Створений спеціально для macOS з підтримкою темного режиму та Apple Silicon.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Незабаром у Mac App Store&lt;/h3&gt;
+&lt;p&gt;Застосунок оптимізується для Mac App Store, щоб забезпечити найвищий рівень безпеки та безперебійні оновлення.&lt;/p&gt;</description></item><item><title>SSE Tester</title><link>https://www.pgarachne.com/uk/tools/sse-tester/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/tools/sse-tester/</guid><description>&lt;section id="sse-tester"&gt;
+&lt;h2&gt;SSE Tester&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;SSE Tester&lt;/strong&gt; — це однофайловий браузерний інструмент, розташований у &lt;code&gt;tools/test-sse&lt;/code&gt;. Він дозволяє підписатися на будь-яку кількість каналів PostgreSQL &lt;code&gt;NOTIFY&lt;/code&gt; через живе з'єднання &lt;a href="../../real-time-notifications/"&gt;Server-Sent Events&lt;/a&gt; і спостерігати за вхідними подіями в реальному часі.&lt;/p&gt;
+&lt;h3&gt;Можливості&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Підписки на кілька каналів&lt;/strong&gt; — додавайте або видаляйте канали у вигляді тегів-«пігулок» перед підключенням. Усі канали передаються як параметр запиту &lt;code&gt;?channels=&lt;/code&gt;, розділені комами.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Усі методи автентифікації&lt;/strong&gt; — вкладка &lt;em&gt;Password&lt;/em&gt; використовує HTTP Basic Auth (прямі облікові дані, JWT не потрібен); вкладка &lt;em&gt;Bearer Token&lt;/em&gt; приймає JWT або API-токен.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Живий потік&lt;/strong&gt; — використовує Fetch Streams API з &lt;code&gt;AbortController&lt;/code&gt; для коректного відключення. Рядки SSE розбираються вручну, тож поля &lt;code&gt;event:&lt;/code&gt;, &lt;code&gt;data:&lt;/code&gt; та heartbeat (&lt;code&gt;:&lt;/code&gt;) обробляються правильно.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Підсвічування синтаксису JSON&lt;/strong&gt; — вміст даних, що є валідним JSON, форматується з кольоровим виділенням.&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Збереження налаштувань&lt;/strong&gt; — URL API, префікс, база даних, дані входу та список каналів зберігаються в &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;Автентифікація&lt;/h3&gt;
+&lt;p&gt;Інструмент перевіряє облікові дані перед тим, як показати панель підписки. Натискання &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; викликає &lt;code&gt;capabilities&lt;/code&gt; з обраним заголовком — якщо PgArachne повертає успішну відповідь, панель підписки розблоковується.&lt;/p&gt;</description></item></channel></rss>

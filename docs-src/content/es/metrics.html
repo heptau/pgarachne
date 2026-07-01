@@ -15,5 +15,8 @@ menu:
 		<li><code>pgarachne_auth_requests_total</code>, <code>pgarachne_login_attempts_total</code></li>
 		<li><code>pgarachne_jsonrpc_requests_total</code></li>
 		<li><code>pgarachne_sse_clients</code>, <code>pgarachne_sse_channels</code>, <code>pgarachne_sse_client_drops_total</code></li>
+		<li><code>pgarachne_sse_events_forwarded_total</code> &mdash; eventos NOTIFY de PostgreSQL despachados a los clientes SSE, etiquetados por base de datos</li>
+		<li><code>pgarachne_sse_bytes_sent_total</code> &mdash; bytes escritos en los flujos de respuesta SSE (payloads, heartbeats, preámbulo), etiquetados por base de datos</li>
+		<li><code>pgarachne_sse_listen_errors_total</code> &mdash; errores de conexión/LISTEN de PostgreSQL y eventos de reconexión, etiquetados por base de datos y tipo de evento. Un valor distinto de cero merece investigación &mdash; el hub descarta a todos los clientes al reconectar, por lo que los usuarios ven una breve interrupción.</li>
 	</ul>
 </section>

@@ -1,0 +1,84 @@
+---
+title: "JSON-RPC та Hello World"
+description: "Hello World Example - PgArachne"
+menu:
+  main:
+    name: "JSON-RPC (Hello World)"
+    weight: 60
+---
+
+<section id="hello-world">
+	<h2>JSON-RPC та Hello World</h2>
+	<p>У цьому прикладі створюється простий API endpoint, пов'язаний з користувачем бази даних. Показано два
+		підходи до автентифікації: класичний потік JWT та простіший потік з прямими облiковими даними.</p>
+
+	<h3>1. Створення користувача та функції</h3>
+	<p>У вашій базі даних (<code>my_database</code>):</p>
+	<pre><code>-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+
+	<div class="tip">
+		<strong>Який підхід до автентифікації обрати?</strong><br>
+		Оберіть <strong>Варіант A (JWT)</strong> для сесій у браузері або для кінцевих користувачів.
+		Оберіть <strong>Варіант B (прямі облікові дані)</strong> для локальної розробки, скриптів
+		або внутрішніх сервісів — керування токенами не потрібне.
+	</div>
+
+	<h3>Варіант A: потік з JWT-токеном</h3>
+
+	<p>Автентифікація за допомогою JWT вимагає, щоб системний користувач PgArachne (<code>pgarachne</code>) міг перемикатися
+		на <code>demo_user</code>:</p>
+	<pre><code>-- Required for JWT auth only: allow PgArachne to switch to demo_user
+GRANT demo_user TO pgarachne;</code></pre>
+
+	<h4>Крок 1 — отримання JWT</h4>
+	<p>Викличте метод JSON-RPC <code>get_jwt</code> з обліковими даними користувача:</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'</code></pre>
+	<p>Відповідь:</p>
+	<pre><code>{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}</code></pre>
+
+	<h4>Крок 2 — виклик функції</h4>
+	<p>Використайте JWT у заголовку <code>Authorization</code>:</p>
+	<pre><code>export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Відповідь:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<h3>Варіант B: прямі облікові дані (без JWT)</h3>
+
+	<p>Надсилайте ім'я користувача PostgreSQL та пароль безпосередньо з кожним запитом за допомогою HTTP Basic
+		Authentication. PgArachne відкриває пул з'єднань від імені цього користувача — команда <code>GRANT … TO pgarachne</code>
+		не потрібна.</p>
+
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'</code></pre>
+	<p>Відповідь:</p>
+	<pre><code>{"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+
+	<p>Прапорець <code>-u user:password</code> у curl автоматично встановлює заголовок
+		<code>Authorization: Basic …</code>. Обидва варіанти дають однакові відповіді.</p>
+
+	<p>Дивіться <a href="../security-roles/#direct-credentials">Безпека та автентифікація — Прямі облікові дані</a>
+		для повного порівняння всіх методів автентифікації.</p>
+</section>

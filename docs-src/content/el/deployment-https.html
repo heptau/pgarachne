@@ -1,0 +1,76 @@
+---
+title: "Deployment & HTTPS"
+description: "Deployment & HTTPS - PgArachne"
+menu:
+  main:
+    name: "Deployment & HTTPS"
+    weight: 110
+---
+
+<section id="deployment">
+	<h2>Deployment & HTTPS</h2>
+	<p>Το PgArachne είναι σχεδιασμένο να κάνει καλά μία δουλειά: API Gateway. Για SSL/TLS (HTTPS), ασφάλεια headers, και
+		δημόσια δρομολόγηση, θα πρέπει να τοποθετήσετε ένα <strong>Reverse Proxy</strong> μπροστά του.</p>
+
+	<div class="deployment-option">
+		<h3>Επιλογή A: Caddy Server</h3>
+		<p><strong>Καλύτερο για:</strong> Μοντέρνα deployments παραγωγής, ευκολία χρήσης.</p>
+		<p>Το <a href="https://caddyserver.com/" target="_blank">Caddy</a> είναι ο μοναδικός web server που αποκτά
+			και ανανεώνει αυτόματα SSL certificates (Let's Encrypt) εξ ορισμού. Απαιτεί σχεδόν καθόλου
+			ρύθμιση.</p>
+		<pre><code># Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Επιλογή B: Nginx</h3>
+		<p><strong>Καλύτερο για:</strong> Εταιρικά περιβάλλοντα, σύνθετη δρομολόγηση.</p>
+		<p>Το <a href="https://nginx.org/" target="_blank">Nginx</a> είναι το πρότυπο του κλάδου για
+			load balancing υψηλής απόδοσης. Χρησιμοποιήστε το αν έχετε ήδη υποδομή Nginx. Θα
+			χρειαστεί να διαχειριστείτε το Certbot χειροκίνητα.</p>
+		<pre><code>server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}</code></pre>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Επιλογή Γ: Ngrok</h3>
+		<p><strong>Καλύτερο για:</strong> Τοπική ανάπτυξη, demos, δοκιμές webhook.</p>
+		<p>Το <a href="https://ngrok.com/" target="_blank">Ngrok</a> δημιουργεί ένα ασφαλές tunnel από το δημόσιο
+			διαδίκτυο απευθείας στο laptop σας χωρίς να ρυθμίσετε firewalls. Ιδανικό για να δείξετε τη δουλειά σας
+			σε συνεργάτες άμεσα.</p>
+		<pre><code>./ngrok http 8080</code></pre>
+	</div>
+<div class="warning">
+		<h3>Λίστα ελέγχου παραγωγής</h3>
+		<ul>
+			<li>Τερματίστε το TLS στο reverse proxy και προωθήστε τα <code>X-Forwarded-Proto</code> και <code>X-Forwarded-For</code>.</li>
+			<li>Ορίστε <code>TRUSTED_PROXIES</code> στο PgArachne στα εύρη IP/CIDR του proxy σας.</li>
+			<li>Απενεργοποιήστε το buffering για routes SSE και διατηρήστε τα read timeouts αρκετά μεγάλα για streaming.</li>
+			<li>Εκθέστε τις μετρικές μόνο εσωτερικά (προεπιλογή <code>127.0.0.1:9090</code>) και κάντε scrape από το δίκτυο monitoring σας.</li>
+		</ul>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Παράδειγμα ενίσχυσης Nginx (SSE + forwarded headers)</h3>
+		<pre><code>location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}</code></pre>
+	</div>
+</section>
