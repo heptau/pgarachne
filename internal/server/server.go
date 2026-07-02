@@ -258,10 +258,25 @@ func (s *Server) buildRouter() *gin.Engine {
 
 	// Static files
 	if s.Cfg.StaticFilesPath != "" {
+		staticRoot, err := filepath.Abs(s.Cfg.StaticFilesPath)
+		if err != nil {
+			slog.Error("Failed to resolve static files path", "path", s.Cfg.StaticFilesPath, "error", err)
+			staticRoot = s.Cfg.StaticFilesPath
+		}
+
 		// Use NoRoute to serve static files when no other route matches.
 		// Fallback to root 404.html if file not found (useful for SPA or clean documentation).
 		router.NoRoute(func(c *gin.Context) {
-			path := filepath.Join(s.Cfg.StaticFilesPath, filepath.Clean(c.Request.URL.Path))
+			path := filepath.Join(staticRoot, filepath.Clean(c.Request.URL.Path))
+
+			// Belt-and-suspenders: filepath.Clean on an absolute URL path
+			// already collapses any ".." above the root, but verify
+			// containment explicitly so this can never serve a file outside
+			// staticRoot regardless of how path was built above.
+			if !isWithinDir(path, staticRoot) {
+				c.String(http.StatusNotFound, "404 page not found")
+				return
+			}
 
 			// 1. Try exact file
 			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
@@ -277,7 +292,7 @@ func (s *Server) buildRouter() *gin.Engine {
 			}
 
 			// 3. Fallback to 404.html in the root
-			errorPage := filepath.Join(s.Cfg.StaticFilesPath, "404.html")
+			errorPage := filepath.Join(staticRoot, "404.html")
 			if fi, err := os.Stat(errorPage); err == nil && !fi.IsDir() {
 				c.Status(http.StatusNotFound)
 				c.File(errorPage)
@@ -483,10 +498,14 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
+	// functionName is part of SQL syntax (it names the function to call), not
+	// a value, so it can't be passed as a bind parameter — isSafeFunctionName
+	// above is the mitigation instead, requiring a strict schema.function
+	// identifier shape before functionName ever reaches buildFunctionQuery.
 	query := buildFunctionQuery(functionName)
 
 	var resultJSON json.RawMessage
-	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON)
+	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON) // codeql[go/sql-injection] -- functionName is validated by isSafeFunctionName() before reaching here
 	if err != nil {
 		slog.Error("Function call failed", "function", functionName, "error", err)
 		recordJSONRPC(functionName, "error")
@@ -683,6 +702,16 @@ func buildFunctionQuery(functionName string) string {
 		return `SELECT pgarachne.capabilities($1::jsonb)::json`
 	}
 	return fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
+}
+
+// isWithinDir reports whether path is dir itself or a descendant of it.
+// Both must already be absolute, cleaned paths.
+func isWithinDir(path, dir string) bool {
+	rel, err := filepath.Rel(dir, path)
+	if err != nil {
+		return false
+	}
+	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
 func quoteRole(role string) string {

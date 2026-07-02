@@ -11,6 +11,13 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.0.2</p>
+	<ul>
+		<li>🔒 <strong>Zpevnění zabezpečení</strong>: Uzavřeno několik nálezů ze statické analýzy — cache klíče poolu přímé autentizace nyní používají HMAC (namísto pouhého SHA-256), přidána explicitní kontrola, že servírované statické soubory nemohou uniknout z nakonfigurované složky, HTML escapování stavového textu přihlášení v nástroji SSE Tester, whitelist URL schémat pro odkazy ve výsledcích vyhledávání na webu s dokumentací a oprávnění s nejmenšími právy pro CI workflow.</li>
+		<li>📦 <strong>Aktualizace závislostí</strong>: Aktualizovány všechny Go závislosti, včetně <code>gin-gonic/gin</code> na v1.12.0 a <code>lib/pq</code> na v1.12.3 (nyní vyžaduje Go 1.25).</li>
+		<li>🌐 <strong>3 nové jazyky</strong>: Web s dokumentací je nyní dostupný v polštině, ukrajinštině a řečtině — celkem 10 jazyků.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.1</p>
 	<ul>
 		<li>🔒 <strong>Bezpečnostní oprava</strong>: Aktualizována tranzitivní HTTP/3 závislost <code>quic-go</code> na v0.59.1, čímž se uzavírá zranitelnost v expanzi QPACK trailerů, která mohla útočníkovi umožnit vyčerpání paměti serveru nebo klienta.</li>

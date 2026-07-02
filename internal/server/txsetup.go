@@ -59,7 +59,11 @@ func (s *Server) setupRequestTx(ctx context.Context, tx *sql.Tx, dbRole, idempot
 	}
 
 	if dbRole != "" {
-		if _, err := tx.ExecContext(ctx, "SET LOCAL ROLE "+quoteRole(dbRole)); err != nil {
+		// SET ROLE's target is a SQL identifier, not a value, so it can't be
+		// passed as a bind parameter — quoteRole() is the mitigation instead,
+		// doubling embedded quotes per the standard SQL identifier-quoting
+		// rule (ISO/IEC 9075), the same technique pq.QuoteIdentifier uses.
+		if _, err := tx.ExecContext(ctx, "SET LOCAL ROLE "+quoteRole(dbRole)); err != nil { // codeql[go/sql-injection] -- dbRole is quoted via quoteRole() above
 			return fmt.Errorf("%w: %v", errSetRoleFailed, err)
 		}
 	}

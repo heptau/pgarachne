@@ -305,26 +305,14 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/
 	&lt;h2&gt;Nowości&lt;/h2&gt;
 	&lt;p&gt;Bardziej szczegółowe informacje o zmianach w każdej wersji znajdziesz w &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Poprawka bezpieczeństwa&lt;/strong&gt;: zaktualizowano tranzytywną zależność HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; do wersji v0.59.1, zamykając podatność w rozszerzaniu trailerów QPACK, która mogła pozwolić złośliwej stronie na wyczerpanie pamięci serwera lub klienta.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Usprawnienia strony z dokumentacją&lt;/strong&gt;: nowy przełącznik motywu jasny/ciemny/automatyczny oraz ikonowy przełącznik języka, ikonowe odnośniki GitHub/Wsparcie w pasku nawigacji, poprawiono podwójnie zakodowane dane strukturalne JSON-LD oraz rozszerzono &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Wzmocnienie bezpieczeństwa&lt;/strong&gt;: zamknięto kilka wyników analizy statycznej — klucze pamięci podręcznej poolu uwierzytelniania bezpośredniego używają teraz HMAC (a nie zwykłego SHA-256), dodano wyraźną weryfikację, że serwowane pliki statyczne nie mogą wyjść poza skonfigurowany katalog, ucieczkę HTML tekstu statusu logowania w narzędziu SSE Tester, listę dozwolonych schematów URL dla linków wyników wyszukiwania na stronie dokumentacji oraz uprawnienia o minimalnym zakresie w workflow CI.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Aktualizacja zależności&lt;/strong&gt;: zaktualizowano wszystkie zależności Go, w tym &lt;code&gt;gin-gonic/gin&lt;/code&gt; do v1.12.0 i &lt;code&gt;lib/pq&lt;/code&gt; do v1.12.3 (wymaga teraz Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 nowe języki&lt;/strong&gt;: strona z dokumentacją jest już dostępna w języku polskim, ukraińskim i greckim — łącznie 10 języków.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
-	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Bezpieczne wartości domyślne (zmiana niekompatybilna)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; ma teraz domyślną wartość &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; już nie domyślnie ustawia się na &lt;code&gt;*&lt;/code&gt;, a &lt;code&gt;JWT_SECRET&lt;/code&gt; musi mieć co najmniej 32 bajty. Istniejące wdrożenia muszą przed aktualizacją sprawdzić swoją konfigurację.&lt;/li&gt;
-		&lt;li&gt;🧹 &lt;strong&gt;Usunięcie przestarzałych elementów&lt;/strong&gt;: usunięto trasy przekierowań &lt;code&gt;/api/…&lt;/code&gt; i &lt;code&gt;/sse/…&lt;/code&gt; oraz przestarzały alias JSON-RPC &lt;code&gt;login&lt;/code&gt;. Używaj bezpośrednio &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; i &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Ściślejsze uwierzytelnianie i obsługa błędów&lt;/strong&gt;: nowy limit prób logowania na adres IP (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) zamyka lukę umożliwiającą credential spraying, a błędy narzędzi MCP domyślnie już nie ujawniają surowego tekstu błędów PostgreSQL (można to przywrócić za pomocą &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Konfigurowalne limity połączeń&lt;/strong&gt;: limit poolu połączeń dla uwierzytelniania bezpośredniego jest teraz konfigurowalny za pomocą &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🔑 &lt;strong&gt;Wsparcie zewnętrznych dostawców identyfikacji (BYO JWT)&lt;/strong&gt;: nowe ustawienia &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; i &lt;code&gt;JWT_LEEWAY&lt;/code&gt; wiążą wydane tokeny z konkretnym wydawcą/odbiorcą i pozwalają dostroić tolerancję przesunięcia czasowego.&lt;/li&gt;
-		&lt;li&gt;🧰 &lt;strong&gt;Nowe narzędzia&lt;/strong&gt;: samodzielny &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) i &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) dołączają do Explorer, umożliwiając szybkie testowanie manualne.&lt;/li&gt;
-		&lt;li&gt;🐛 &lt;strong&gt;Poprawki stabilności&lt;/strong&gt;: naprawiono zawieszające się zamykanie SSE oraz błąd odzyskiwania martwych połączeń, który mógł uniemożliwić serwerowi ponowne połączenie z PostgreSQL.&lt;/li&gt;
-		&lt;li&gt;🧪 &lt;strong&gt;Wzmocnienie CI&lt;/strong&gt;: do każdej kompilacji dodano &lt;code&gt;golangci-lint&lt;/code&gt;, Go race detector oraz &lt;code&gt;govulncheck&lt;/code&gt;, a także rozszerzono pokrycie testami.&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;Proces wydawania&lt;/strong&gt;: dodano &lt;code&gt;CHANGELOG.md&lt;/code&gt; i podzielono workflow wydawniczy na &lt;code&gt;make release-local&lt;/code&gt; (kompilacja i weryfikacja) oraz &lt;code&gt;make release&lt;/code&gt; (tagowanie, publikacja, aktualizacja Homebrew tap).&lt;/li&gt;
-	&lt;/ul&gt;
-
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item><item><title>O projekcie i architekturze</title><link>https://www.pgarachne.com/pl/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pl/about-architecture/</guid><description>&lt;section id="about"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item><item><title>O projekcie i architekturze</title><link>https://www.pgarachne.com/pl/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pl/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;O projekcie i architekturze&lt;/h2&gt;
 	&lt;p&gt;
 		PgArachne™ działa jako lekki, wysokowydajny &lt;strong&gt;serwer WWW&lt;/strong&gt;, który stoi między

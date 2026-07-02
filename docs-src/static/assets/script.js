@@ -29,6 +29,19 @@
 		}
 	}
 
+	// The search index is same-origin static JSON, but treat entries as
+	// untrusted before writing them into href — reject any URL scheme
+	// (javascript:, data:, ...) or protocol-relative URL, so a corrupted or
+	// tampered index can't smuggle script execution into the DOM.
+	function isSafeRelativeUrl(url) {
+		return (
+			typeof url === "string" &&
+			url !== "" &&
+			!url.startsWith("//") &&
+			!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)
+		);
+	}
+
 	function addCopyButtons(texts) {
 		var blocks = document.querySelectorAll("pre code");
 		blocks.forEach(function (code) {
@@ -114,7 +127,7 @@
 
 				var a = document.createElement("a");
 				a.className = "search-item";
-				a.href = item.url;
+				a.href = isSafeRelativeUrl(item.url) ? item.url : "#";
 
 				var titleDiv = document.createElement("div");
 				titleDiv.className = "search-item-title";

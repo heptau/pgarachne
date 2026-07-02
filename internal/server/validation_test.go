@@ -170,6 +170,26 @@ func TestQuoteRole(t *testing.T) {
 	}
 }
 
+func TestIsWithinDir(t *testing.T) {
+	cases := []struct {
+		path string
+		dir  string
+		want bool
+	}{
+		{"/var/www/static", "/var/www/static", true},
+		{"/var/www/static/index.html", "/var/www/static", true},
+		{"/var/www/static/sub/dir/file.html", "/var/www/static", true},
+		{"/var/www/etc/passwd", "/var/www/static", false},
+		{"/etc/passwd", "/var/www/static", false},
+		{"/var/www/staticEVIL/file.html", "/var/www/static", false},
+	}
+	for _, tc := range cases {
+		if got := isWithinDir(tc.path, tc.dir); got != tc.want {
+			t.Errorf("isWithinDir(%q, %q) = %v; want %v", tc.path, tc.dir, got, tc.want)
+		}
+	}
+}
+
 func TestParseNotifyPayload(t *testing.T) {
 	cases := []struct {
 		name    string

@@ -466,13 +466,14 @@ SELECT cron.schedule(
 	&lt;h2&gt;Τι Νέο Υπάρχει&lt;/h2&gt;
 	&lt;p&gt;Πιο αναλυτικές πληροφορίες σχετικά με τις αλλαγές σε κάθε έκδοση μπορείτε να βρείτε στα &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Διόρθωση ασφαλείας&lt;/strong&gt;: Αναβαθμίστηκε η μεταβατική εξάρτηση HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; στην έκδοση v0.59.1, κλείνοντας μια ευπάθεια επέκτασης QPACK trailer που θα μπορούσε να επιτρέψει σε έναν κακόβουλο peer να εξαντλήσει τη μνήμη στον server ή στον client.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Βελτιώσεις στον ιστότοπο τεκμηρίωσης&lt;/strong&gt;: Νέος εναλλάκτης θέματος light/dark/auto και εναλλάκτης γλώσσας μόνο με εικονίδιο, εικονίδια-συνδέσμους GitHub/Support στη γραμμή πλοήγησης, διόρθωση διπλά κωδικοποιημένων δομημένων δεδομένων JSON-LD, και επέκταση του &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Ενίσχυση ασφαλείας&lt;/strong&gt;: Διορθώθηκαν αρκετά ευρήματα στατικής ανάλυσης — τα κλειδιά cache της δεξαμενής άμεσης αυθεντικοποίησης χρησιμοποιούν πλέον HMAC (αντί για απλό SHA-256), προστέθηκε ρητός έλεγχος περιορισμού για την εξυπηρέτηση στατικών αρχείων, HTML-escaping του κειμένου κατάστασης σύνδεσης στο SSE Tester, μια λίστα επιτρεπόμενων σχημάτων URL για τους συνδέσμους αποτελεσμάτων αναζήτησης του ιστότοπου τεκμηρίωσης, και δικαιώματα ελάχιστου προνομίου στο workflow CI.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Ενημερώσεις εξαρτήσεων&lt;/strong&gt;: Αναβαθμίστηκαν όλες οι εξαρτήσεις Go, συμπεριλαμβανομένου του &lt;code&gt;gin-gonic/gin&lt;/code&gt; στην v1.12.0 και του &lt;code&gt;lib/pq&lt;/code&gt; στην v1.12.3 (απαιτεί πλέον Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 νέες γλώσσες&lt;/strong&gt;: Ο ιστότοπος τεκμηρίωσης είναι πλέον διαθέσιμος στα Πολωνικά, Ουκρανικά και Ελληνικά — 10 γλώσσες συνολικά.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item><item><title>Υποστηρίξτε την Ανάπτυξη</title><link>https://www.pgarachne.com/el/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item><item><title>Υποστηρίξτε την Ανάπτυξη</title><link>https://www.pgarachne.com/el/support-donate/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/el/support-donate/</guid><description>&lt;section id="support" class="support-section"&gt;
 	&lt;h2&gt;Υποστηρίξτε την Ανάπτυξη&lt;/h2&gt;
 	&lt;p&gt;Η ανάπτυξη λογισμικού ανοιχτού κώδικα όπως το PgArachne απαιτεί σημαντικό χρόνο. Εάν αυτό το εργαλείο σας εξοικονομεί χρόνο,
 		παρακαλούμε σκεφτείτε να υποστηρίξετε τη συντήρησή του.&lt;/p&gt;

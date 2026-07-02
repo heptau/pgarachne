@@ -468,13 +468,14 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 	 &lt;h2&gt;Novedades&lt;/h2&gt;
  &lt;p&gt;Puede encontrar información más detallada sobre los cambios en cada versión directamente en &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Corrección de seguridad&lt;/strong&gt;: Se actualizó la dependencia transitiva de HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; a v0.59.1, cerrando una vulnerabilidad de expansión de trailers QPACK que podía permitir a un peer malicioso agotar la memoria del servidor o del cliente.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Mejoras en el sitio de documentación&lt;/strong&gt;: Nuevo selector de tema claro/oscuro/automático y selector de idioma solo con iconos, enlaces de icono a GitHub/Apoyo en la barra de navegación, corrección de los datos estructurados JSON-LD codificados por duplicado, y un &lt;code&gt;llms.txt&lt;/code&gt; ampliado.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Refuerzo de seguridad&lt;/strong&gt;: Se cerraron varios hallazgos de análisis estático — las claves de caché del pool de autenticación directa ahora usan HMAC (en lugar de un SHA-256 simple), una comprobación explícita de contención para el servicio de archivos estáticos, escape HTML del texto de estado de inicio de sesión del SSE Tester, una lista blanca de esquemas de URL para los enlaces de resultados de búsqueda del sitio de documentación, y permisos de mínimo privilegio en el workflow de CI.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Actualización de dependencias&lt;/strong&gt;: Se actualizaron todas las dependencias de Go, incluyendo &lt;code&gt;gin-gonic/gin&lt;/code&gt; a v1.12.0 y &lt;code&gt;lib/pq&lt;/code&gt; a v1.12.3 (ahora requiere Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 idiomas nuevos&lt;/strong&gt;: El sitio de documentación ya está disponible en polaco, ucraniano y griego — 10 idiomas en total.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/es/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/es/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/es/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
 &lt;p&gt;El &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; es una aplicación nativa profesional para macOS diseñada para ofrecer una experiencia de gestión sin esfuerzo para sus instancias de gateway JSON-RPC.&lt;/p&gt;
 &lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;

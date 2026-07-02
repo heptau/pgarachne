@@ -620,7 +620,7 @@
 			document.getElementById('auth-card').classList.add('authenticated');
 			var s = document.getElementById('user-status');
 			s.className = 'status-ok';
-			s.innerHTML = '<span class="dot"></span>&nbsp;Verified (' + identifier + ')';
+			s.innerHTML = '<span class="dot"></span>&nbsp;Verified (' + escapeHtml(identifier) + ')';
 			document.getElementById('logout-button').classList.remove('hidden');
 			document.getElementById('sse-card').classList.remove('hidden');
 			AUTH_INPUTS.forEach(function (id) {

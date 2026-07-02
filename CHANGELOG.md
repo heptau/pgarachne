@@ -7,9 +7,23 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [2.0.2] - 2026-07-02
+
+### Security
+
+- `internal/database`: the in-memory direct-auth connection-pool cache key was derived from a plain `sha256(password)`; switched to HMAC-SHA256 with a process-lifetime random key so the digest can no longer be attacked offline (e.g. via a rainbow table) if it ever leaked through a log or crash dump.
+- `internal/server`: hardened static file serving (used when `STATIC_FILES_PATH` is set) with an explicit containment check verifying the resolved path can never escape the configured static root, on top of the existing `filepath.Clean`-based traversal defense.
+- `tools/test-sse`: the "Verified (…)" status text was built from the login username without HTML-escaping it first, letting a user inject markup into their own browser session (self-XSS) via a crafted username. Now escaped like the rest of the page's user-supplied text.
+- Docs site: the search result link `href` is now checked against a URL-scheme allowlist before being written into the DOM, so a compromised or corrupted search index can no longer smuggle a `javascript:`/`data:` URL into a clickable link.
+- `.github/workflows/ci.yml`: added an explicit `permissions: contents: read` block, following the principle of least privilege for the workflow's `GITHUB_TOKEN`.
+
 ### Added
 
 - Docs site: translated into Polish, Ukrainian, and Greek (10 languages total). The language switcher is now sorted alphabetically by English language name (Czech, English, French, German, Greek, Italian, Polish, Portuguese, Spanish, Ukrainian).
+
+### Changed
+
+- Upgraded all Go dependencies to their latest versions, most notably `gin-gonic/gin` v1.11.0 → v1.12.0, `lib/pq` v1.10.9 → v1.12.3, `gin-contrib/cors` v1.7.6 → v1.7.7, and the transitive `quic-go` v0.59.1 → v0.60.0. `gin` v1.12.0 requires Go 1.25, so the module's `go` directive and the CI `setup-go` version were both bumped from 1.24.6 to 1.25.0 to match. No functional changes; full test suite (including integration tests) and `govulncheck` pass unchanged.
 
 ### Fixed
 

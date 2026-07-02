@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
@@ -23,7 +25,21 @@ var (
 	// change always triggers fresh authentication against PostgreSQL.
 	directPools   = make(map[string]*sql.DB)
 	directPoolsMu sync.RWMutex
+
+	// poolKeyMACKey is a process-lifetime random key used to derive
+	// directPoolKey's password digest via HMAC rather than a bare hash, so
+	// the digest can't be fed into an offline dictionary/rainbow-table attack
+	// even if it ever ended up in a log or crash dump.
+	poolKeyMACKey = randomKey()
 )
+
+func randomKey() []byte {
+	key := make([]byte, 32)
+	if _, err := rand.Read(key); err != nil {
+		panic(fmt.Sprintf("failed to generate pool key MAC secret: %v", err))
+	}
+	return key
+}
 
 // defaultMaxDirectPools caps the number of distinct (user, password, dbname)
 // pools to prevent unbounded memory growth under a credential-spray attack.
@@ -211,10 +227,12 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 }
 
 // directPoolKey builds the map key for a direct-auth pool.
-// sha256(password) ensures a changed password creates a new pool entry.
+// HMAC-SHA256(password) ensures a changed password creates a new pool entry
+// without storing anything password-derived that could be attacked offline.
 func directPoolKey(dbName, username, password string) string {
-	h := sha256.Sum256([]byte(password))
-	return username + "@" + dbName + ":" + hex.EncodeToString(h[:])
+	mac := hmac.New(sha256.New, poolKeyMACKey)
+	mac.Write([]byte(password))
+	return username + "@" + dbName + ":" + hex.EncodeToString(mac.Sum(nil))
 }
 
 // CloseAll closes every cached connection pool. Intended for graceful

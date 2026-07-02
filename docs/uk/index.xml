@@ -511,23 +511,11 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	&lt;h2&gt;Що нового&lt;/h2&gt;
 	&lt;p&gt;Детальнішу інформацію про зміни в кожній версії можна знайти на &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Виправлення безпеки&lt;/strong&gt;: Оновлено транзитивну залежність HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; до v0.59.1, що усуває вразливість у розширенні QPACK trailer, яка могла дозволити зловмиснику виснажити пам'ять сервера або клієнта.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Покращення сайту документації&lt;/strong&gt;: Новий перемикач світлої/темної/автоматичної теми та перемикач мов лише з іконкою, іконки-посилання GitHub/Підтримка в навігаційній панелі, виправлені двічі закодовані структуровані дані JSON-LD та розширений &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Посилення безпеки&lt;/strong&gt;: усунено кілька результатів статичного аналізу — ключі кешу пулу прямої автентифікації тепер використовують HMAC (замість звичайного SHA-256), додано явну перевірку, що файли, які роздаються статично, не можуть вийти за межі налаштованого каталогу, HTML-екранування тексту статусу входу в SSE Tester, білий список URL-схем для посилань результатів пошуку на сайті документації, а також права з найменшими привілеями для CI workflow.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Оновлення залежностей&lt;/strong&gt;: оновлено всі залежності Go, зокрема &lt;code&gt;gin-gonic/gin&lt;/code&gt; до v1.12.0 та &lt;code&gt;lib/pq&lt;/code&gt; до v1.12.3 (тепер вимагає Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 нові мови&lt;/strong&gt;: сайт документації тепер доступний польською, українською та грецькою — загалом 10 мов.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;
-	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Безпечні значення за замовчуванням (з порушенням сумісності)&lt;/strong&gt;: &lt;code&gt;DB_SSLMODE&lt;/code&gt; тепер за замовчуванням має значення &lt;code&gt;require&lt;/code&gt;, &lt;code&gt;ALLOWED_ORIGINS&lt;/code&gt; більше не встановлюється за замовчуванням у &lt;code&gt;*&lt;/code&gt;, а &lt;code&gt;JWT_SECRET&lt;/code&gt; має бути щонайменше 32 байти. Перед оновленням наявні розгортання повинні переглянути свою конфігурацію.&lt;/li&gt;
-		&lt;li&gt;🧹 &lt;strong&gt;Очищення застарілого коду&lt;/strong&gt;: Видалено маршрути перенаправлення &lt;code&gt;/api/…&lt;/code&gt; та &lt;code&gt;/sse/…&lt;/code&gt;, а також застарілий псевдонім JSON-RPC &lt;code&gt;login&lt;/code&gt;. Використовуйте безпосередньо &lt;code&gt;/{prefix}/:database/…&lt;/code&gt; та &lt;code&gt;get_jwt&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🛡️ &lt;strong&gt;Суворіша автентифікація та обробка помилок&lt;/strong&gt;: Новий ліміт швидкості входу на IP-адресу (&lt;code&gt;LOGIN_RATE_LIMIT_PER_IP&lt;/code&gt;) закриває прогалину для credential spraying, а помилки інструментів MCP більше не розкривають необроблений текст помилок PostgreSQL за замовчуванням (можна повернути через &lt;code&gt;MCP_SQL_ERROR_DETAIL&lt;/code&gt;).&lt;/li&gt;
-		&lt;li&gt;⚙️ &lt;strong&gt;Налаштовувані ліміти з'єднань&lt;/strong&gt;: Обмеження пулу з'єднань для прямої автентифікації тепер налаштовується через &lt;code&gt;DIRECT_POOL_LIMIT&lt;/code&gt;.&lt;/li&gt;
-		&lt;li&gt;🔑 &lt;strong&gt;Підтримка зовнішнього постачальника ідентичності (BYO JWT)&lt;/strong&gt;: Нові налаштування &lt;code&gt;JWT_ISSUER&lt;/code&gt;, &lt;code&gt;JWT_AUDIENCE&lt;/code&gt; та &lt;code&gt;JWT_LEEWAY&lt;/code&gt; прив'язують видані токени до конкретного видавця/аудиторії та налаштовують допуск розбіжності часу.&lt;/li&gt;
-		&lt;li&gt;🧰 &lt;strong&gt;Нові інструменти&lt;/strong&gt;: Окремі &lt;strong&gt;JWT Getter&lt;/strong&gt; (&lt;code&gt;/tools/get-jwt&lt;/code&gt;) та &lt;strong&gt;SSE Tester&lt;/strong&gt; (&lt;code&gt;/tools/test-sse&lt;/code&gt;) доповнюють Explorer для швидкого ручного тестування.&lt;/li&gt;
-		&lt;li&gt;🐛 &lt;strong&gt;Виправлення надійності&lt;/strong&gt;: Виправлено зависання завершення роботи SSE та помилку відновлення мертвого з'єднання, яка могла призвести до неможливості сервера повторно підключитися до PostgreSQL.&lt;/li&gt;
-		&lt;li&gt;🧪 &lt;strong&gt;Посилення CI&lt;/strong&gt;: До кожної збірки додано &lt;code&gt;golangci-lint&lt;/code&gt;, детектор гонок даних Go та &lt;code&gt;govulncheck&lt;/code&gt;, а також розширено покриття тестами.&lt;/li&gt;
-		&lt;li&gt;📦 &lt;strong&gt;Процес релізу&lt;/strong&gt;: Додано &lt;code&gt;CHANGELOG.md&lt;/code&gt; і розділено робочий процес релізу на &lt;code&gt;make release-local&lt;/code&gt; (збірка та перевірка) та &lt;code&gt;make release&lt;/code&gt; (тег, публікація, оновлення Homebrew tap).&lt;/li&gt;
-	&lt;/ul&gt;
-
-	&lt;p class="whats-new-subtitle"&gt;v1.3.0&lt;/p&gt;</description></item></channel></rss>
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item></channel></rss>

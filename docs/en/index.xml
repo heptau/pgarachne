@@ -506,10 +506,11 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	&lt;h2&gt;What's New&lt;/h2&gt;
 	&lt;p&gt;More detailed information about changes in each version can be found in &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Security fix&lt;/strong&gt;: Upgraded the transitive HTTP/3 dependency &lt;code&gt;quic-go&lt;/code&gt; to v0.59.1, closing a QPACK trailer expansion vulnerability that could let a malicious peer exhaust memory on the server or client.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Docs site polish&lt;/strong&gt;: New light/dark/auto theme switcher and icon-only language switcher, GitHub/Support icon links in the navbar, fixed double-encoded JSON-LD structured data, and an expanded &lt;code&gt;llms.txt&lt;/code&gt;.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Security hardening&lt;/strong&gt;: Closed several static-analysis findings — HMAC-based (instead of plain SHA-256) direct-auth pool cache keys, an explicit containment check for static file serving, HTML-escaping of the SSE Tester's login status text, a URL-scheme allowlist for docs-site search result links, and least-privilege permissions on the CI workflow.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Dependency updates&lt;/strong&gt;: Upgraded all Go dependencies, including &lt;code&gt;gin-gonic/gin&lt;/code&gt; to v1.12.0 and &lt;code&gt;lib/pq&lt;/code&gt; to v1.12.3 (now requires Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 new languages&lt;/strong&gt;: The documentation site is now available in Polish, Ukrainian, and Greek — 10 languages total.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item></channel></rss>
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item></channel></rss>

@@ -414,13 +414,14 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 	 &lt;h2&gt;Novidades&lt;/h2&gt;
  &lt;p&gt;Informações mais detalhadas sobre as alterações em cada versão podem ser encontradas diretamente em &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.2&lt;/p&gt;
 	&lt;ul&gt;
-		&lt;li&gt;🔒 &lt;strong&gt;Correção de segurança&lt;/strong&gt;: Atualizada a dependência transitiva de HTTP/3 &lt;code&gt;quic-go&lt;/code&gt; para a v0.59.1, corrigindo uma vulnerabilidade de expansão de trailers QPACK que podia permitir que um peer malicioso esgotasse a memória do servidor ou do cliente.&lt;/li&gt;
-		&lt;li&gt;🎨 &lt;strong&gt;Melhorias no site de documentação&lt;/strong&gt;: Novo alternador de tema claro/escuro/automático e alternador de idioma apenas com ícones, links de ícone do GitHub/Apoio na barra de navegação, correção dos dados estruturados JSON-LD codificados em duplicidade, e um &lt;code&gt;llms.txt&lt;/code&gt; ampliado.&lt;/li&gt;
+		&lt;li&gt;🔒 &lt;strong&gt;Reforço de segurança&lt;/strong&gt;: Corrigidos vários achados de análise estática — as chaves de cache do pool de autenticação direta agora usam HMAC (em vez de um SHA-256 simples), uma verificação explícita de contenção para o serviço de ficheiros estáticos, escaping de HTML do texto de estado de login do SSE Tester, uma lista de permissões de esquemas de URL para os links de resultados de pesquisa do site de documentação, e permissões de privilégio mínimo no workflow de CI.&lt;/li&gt;
+		&lt;li&gt;📦 &lt;strong&gt;Atualização de dependências&lt;/strong&gt;: Atualizadas todas as dependências Go, incluindo &lt;code&gt;gin-gonic/gin&lt;/code&gt; para a v1.12.0 e &lt;code&gt;lib/pq&lt;/code&gt; para a v1.12.3 (agora requer Go 1.25).&lt;/li&gt;
+		&lt;li&gt;🌐 &lt;strong&gt;3 novos idiomas&lt;/strong&gt;: O site de documentação já está disponível em polaco, ucraniano e grego — 10 idiomas no total.&lt;/li&gt;
 	&lt;/ul&gt;
 
-	&lt;p class="whats-new-subtitle"&gt;v2.0.0&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
+	&lt;p class="whats-new-subtitle"&gt;v2.0.1&lt;/p&gt;</description></item><item><title>PgArachne Toolbar (macOS)</title><link>https://www.pgarachne.com/pt/tools/macos-toolbar/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/tools/macos-toolbar/</guid><description>&lt;section id="macos-toolbar"&gt;
 &lt;h2&gt;PgArachne Toolbar para macOS&lt;/h2&gt;
 &lt;p&gt;O &lt;strong&gt;PgArachne Toolbar&lt;/strong&gt; é um aplicativo nativo profissional para macOS projetado para oferecer uma experiência de gerenciamento sem esforço para suas instâncias de gateway JSON-RPC.&lt;/p&gt;
 &lt;div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;"&gt;

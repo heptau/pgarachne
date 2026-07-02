@@ -439,10 +439,14 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		return
 	}
 
+	// functionName is part of SQL syntax (it names the function to call), not
+	// a value, so it can't be passed as a bind parameter — isSafeFunctionName
+	// above is the mitigation instead, requiring a strict schema.function
+	// identifier shape before functionName ever reaches buildFunctionQuery.
 	query := buildFunctionQuery(functionName)
 
 	var resultJSON json.RawMessage
-	if err := tx.QueryRowContext(c.Request.Context(), query, []byte(argsJSON)).Scan(&resultJSON); err != nil {
+	if err := tx.QueryRowContext(c.Request.Context(), query, []byte(argsJSON)).Scan(&resultJSON); err != nil { // codeql[go/sql-injection] -- functionName is validated by isSafeFunctionName() before reaching here
 		slog.Error("MCP tools/call: function execution failed", "function", functionName, "error", err)
 		recordJSONRPC(functionName, "error")
 
