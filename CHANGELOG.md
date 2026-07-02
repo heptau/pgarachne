@@ -9,6 +9,7 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Security
 
+- CI: `actions/setup-go` was pinned to the exact patch `1.25.0`, so `govulncheck` was permanently checking the module's own code against a Go standard library build with 23 known, since-patched CVEs (`crypto/tls`, `crypto/x509`, `net`, `net/url`, `net/mail`, `net/textproto`, `os`, `html/template`, `encoding/asn1`, `encoding/pem`) instead of the latest 1.25.x release that actually fixes them. Changed to the floating minor `'1.25'`, which `setup-go` always resolves to the newest available patch.
 - `cmd/pgarachne`: the log file was opened with `0644` permissions (world-readable); changed to `0600` (gosec G302).
 - `internal/daemon`: the PID directory was created with `0755` permissions (world-readable/executable); changed to `0750` (gosec G301).
 - `.golangci.yml`: removed the `legacy` exclusion preset, which was silently suppressing gosec's file/directory permission checks (G301/G302/G307) project-wide — the two issues above had been masked by it. Remaining gosec suppressions are now explicit `//nolint` comments with a stated reason (e.g. `internal/daemon/daemon_unix.go`, for PID-file paths that are operator-, not attacker-, controlled).
