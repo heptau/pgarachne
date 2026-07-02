@@ -4,12 +4,35 @@
 	var overlay = document.getElementById("toc-overlay");
 
 	if (toggle) {
+		var wideQuery = window.matchMedia("(min-width: 900px)");
+
 		function closeToc() {
 			body.classList.remove("toc-open");
 			toggle.setAttribute("aria-expanded", "false");
 		}
 
+		function syncToggleMode() {
+			var isWide = wideQuery.matches;
+			var label = isWide ? toggle.dataset.labelHome : toggle.dataset.labelMenu;
+			if (label) {
+				toggle.setAttribute("aria-label", label);
+				toggle.setAttribute("title", label);
+			}
+			if (isWide) {
+				toggle.removeAttribute("aria-expanded");
+				toggle.removeAttribute("aria-controls");
+			} else {
+				toggle.setAttribute("aria-controls", "toc");
+				toggle.setAttribute("aria-expanded", body.classList.contains("toc-open") ? "true" : "false");
+			}
+		}
+
 		toggle.addEventListener("click", function () {
+			if (wideQuery.matches) {
+				var homeUrl = toggle.dataset.homeUrl;
+				if (homeUrl) window.location.href = homeUrl;
+				return;
+			}
 			var isOpen = body.classList.toggle("toc-open");
 			toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
 		});
@@ -17,6 +40,13 @@
 		if (overlay) {
 			overlay.addEventListener("click", closeToc);
 		}
+
+		if (typeof wideQuery.addEventListener === "function") {
+			wideQuery.addEventListener("change", syncToggleMode);
+		} else if (typeof wideQuery.addListener === "function") {
+			wideQuery.addListener(syncToggleMode);
+		}
+		syncToggleMode();
 	}
 
 	function parseJSONScript(id, fallback) {

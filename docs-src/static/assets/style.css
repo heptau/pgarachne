@@ -154,6 +154,10 @@ body {
 	bottom: 0;
 }
 
+.nav-toggle-home-icon.icon-sw {
+	display: none;
+}
+
 .nav-icons {
 	display: flex;
 	align-items: center;
@@ -629,8 +633,12 @@ html[data-theme="dark"] .code-box {
 		display: block;
 	}
 
-	.nav-toggle {
+	.nav-toggle-icon {
 		display: none;
+	}
+
+	.nav-toggle-home-icon.icon-sw {
+		display: inline-flex;
 	}
 }
 

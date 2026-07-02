@@ -1,0 +1,8 @@
+<ul>
+	<li><a href="{{ "/" | relLangURL }}" class="{{ if .IsHome }}active{{ end }}">{{ i18n "nav_home" }}</a></li>
+	{{ range .Site.Menus.main }}
+	{{ $classes := slice }}
+	{{ if eq .URL $.RelPermalink }}{{ $classes = $classes | append "active" }}{{ end }}
+	<li><a href="{{ .URL }}" class="{{ delimit $classes " " }}">{{ .Name }}</a></li>
+	{{ end }}
+</ul>

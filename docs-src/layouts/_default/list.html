@@ -2,13 +2,7 @@
 <div id="docs" class="main-wrapper">
 	<div class="toc-overlay" id="toc-overlay"></div>
 	<aside class="toc" id="toc">
-		<ul>
-			{{ range .Site.Menus.main }}
-			{{ $classes := slice }}
-			{{ if eq .URL $.RelPermalink }}{{ $classes = $classes | append "active" }}{{ end }}
-			<li><a href="{{ .URL }}" class="{{ delimit $classes " " }}">{{ .Name }}</a></li>
-			{{ end }}
-		</ul>
+		{{ partial "toc.html" . }}
 	</aside>
 
 	<div class="doc-content">

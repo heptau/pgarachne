@@ -71,8 +71,9 @@
 <body>
 	<nav class="navbar">
 		<div class="container nav-container">
-			<button class="nav-toggle" aria-label="{{ i18n "nav_menu" }}" title="{{ i18n "nav_menu" }}" aria-expanded="false" aria-controls="toc">
+			<button class="nav-toggle" aria-label="{{ i18n "nav_menu" }}" title="{{ i18n "nav_menu" }}" aria-expanded="false" aria-controls="toc" data-home-url="{{ if $is404 }}{{ "/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}{{ end }}" data-label-menu="{{ i18n "nav_menu" }}" data-label-home="{{ i18n "nav_home" }}">
 				<span class="nav-toggle-icon"><span></span></span>
+				<span class="nav-toggle-home-icon icon-sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg></span>
 			</button>
 
 			<div class="search-box">
