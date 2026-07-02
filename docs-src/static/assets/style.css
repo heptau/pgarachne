@@ -628,6 +628,10 @@ html[data-theme="dark"] .code-box {
 	.toc {
 		display: block;
 	}
+
+	.nav-toggle {
+		display: none;
+	}
 }
 
 .toc h3 {

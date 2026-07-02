@@ -7,11 +7,19 @@
 	{{ $siteSubtitle := T "site_subtitle" | default "Instant PostgreSQL API" }}
 	{{ $pageTitle := cond .IsHome (printf "PgArachne – %s" $siteSubtitle) (printf "%s – PgArachne" .Title) }}
 	<title>{{ $pageTitle }}</title>
-	<link rel="icon" type="image/png" href="{{ "assets/pgarachne-icon.png" | relURL }}">
-	<link rel="manifest" href="{{ "manifest.json" | relURL }}">
+	{{/* The 404 page is relocated to the site root and served by GitHub Pages for
+	     arbitrary, unpredictable URL depths, so it cannot use relativeURLs-style
+	     "../" paths (those are only correct for the page's own build location).
+	     Root-relative "/..." paths don't survive either: relativeURLs=true makes
+	     Hugo rewrite ANY root-relative href/src in the output back into a
+	     page-relative "../" form. Only fully-qualified absURL/absLangURL survive
+	     that rewrite, so the 404 branch below uses those. */}}
+	{{ $is404 := eq .Kind "404" }}
+	<link rel="icon" type="image/png" href="{{ if $is404 }}{{ "assets/pgarachne-icon.png" | absURL }}{{ else }}{{ "assets/pgarachne-icon.png" | relURL }}{{ end }}">
+	<link rel="manifest" href="{{ if $is404 }}{{ "manifest.json" | absURL }}{{ else }}{{ "manifest.json" | relURL }}{{ end }}">
 	<meta name="theme-color" content="#0066cc">
-	<link rel="apple-touch-icon" href="{{ "assets/pgarachne-icon.png" | relURL }}">
-	<link rel="stylesheet" href="{{ "assets/style.css" | relURL }}?v={{ now.Unix }}">
+	<link rel="apple-touch-icon" href="{{ if $is404 }}{{ "assets/pgarachne-icon.png" | absURL }}{{ else }}{{ "assets/pgarachne-icon.png" | relURL }}{{ end }}">
+	<link rel="stylesheet" href="{{ if $is404 }}{{ "assets/style.css" | absURL }}{{ else }}{{ "assets/style.css" | relURL }}{{ end }}?v={{ now.Unix }}">
 	<script>
 		(function(){try{
 			var t=localStorage.getItem('pgarachne_theme');
@@ -75,7 +83,7 @@
 			</div>
 
 			<div class="nav-icons">
-				<a class="nav-heart" href="{{ "/" | relLangURL }}support-donate/" aria-label="{{ i18n "nav_support" }}" title="{{ i18n "nav_support" }}">
+				<a class="nav-heart" href="{{ if $is404 }}{{ "support-donate/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}support-donate/{{ end }}" aria-label="{{ i18n "nav_support" }}" title="{{ i18n "nav_support" }}">
 					<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-.87-.6-2.02-1.44C6.1 16.9 2 13.5 2 9.5 2 6.7 4.2 4.5 7 4.5c1.6 0 3.15.75 4.13 1.94l.87 1.06.87-1.06C13.85 5.25 15.4 4.5 17 4.5c2.8 0 5 2.2 5 5 0 4-4.1 7.4-7.98 10.06C12.87 20.4 12 21 12 21z"></path></svg>
 				</a>
 
@@ -106,10 +114,19 @@
 						{{ range $langs }}
 						{{ $lang := .Lang }}
 						{{ $link := (printf "/%s/" $lang) }}
-						{{ range $.Translations }}
-							{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
+						{{ if $is404 }}
+							{{/* Per-language 404.html files are deleted after build (see Makefile);
+							     only the site-root 404.html survives, so send visitors to that
+							     language's home page instead of a dead link. A root-relative
+							     link would get rewritten back into a "../" page-relative one by
+							     relativeURLs, so this needs a fully-qualified absURL. */}}
+							{{ $link = absURL (printf "/%s/" $lang) }}
+						{{ else }}
+							{{ range $.Translations }}
+								{{ if eq .Lang $lang }}{{ $link = .RelPermalink }}{{ end }}
+							{{ end }}
+							{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
 						{{ end }}
-						{{ if and (not $.Translations) (eq $lang $.Site.Language.Lang) }}{{ $link = $.RelPermalink }}{{ end }}
 						<a href="{{ $link }}" class="lang-option {{ if eq $lang $.Site.Language.Lang }}active{{ end }}"><span class="lang-option-icon">{{ index $flags $lang }}</span><span>{{ .Label }}</span></a>
 						{{ end }}
 					</div>
@@ -155,6 +172,6 @@
 	{{ end }}
 	<script id="site-search-data" type="application/json">{{ $searchScratch.Get "items" | jsonify | safeJS }}</script>
 	<script id="site-search-texts" type="application/json">{{ dict "no_results" (i18n "search_no_results") "copy" (i18n "copy_label") "copied" (i18n "copied_label") | jsonify | safeJS }}</script>
-	<script src="{{ "assets/script.js" | relURL }}?v={{ now.Unix }}"></script>
+	<script src="{{ if $is404 }}{{ "assets/script.js" | absURL }}{{ else }}{{ "assets/script.js" | relURL }}{{ end }}?v={{ now.Unix }}"></script>
 </body>
 </html>

@@ -125,9 +125,9 @@ docs:
 	@echo "==> Building documentation (Hugo)"
 	@cd docs-src && hugo --cleanDestinationDir --minify
 	@cp docs-src/static/index.html docs/index.html
-	@echo "==> Customizing root 404.html for GitHub Pages"
+	@echo "==> Promoting root 404.html for GitHub Pages"
 	@if [ -f docs/en/404.html ]; then \
-		sed 's|href=../|href=|g; s|src=../|src=|g; s|/404\.html||g' docs/en/404.html > docs/404.html; \
+		cp docs/en/404.html docs/404.html; \
 		rm -f docs/*/404.html; \
 	fi
 	@echo "==> Fixing typography (TypoLima)"
