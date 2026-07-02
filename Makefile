@@ -1,8 +1,10 @@
 # --- START OF FILE Makefile ---
 
 # --- Configuration ---
-# 1. Ensure make can find Go (Homebrew / standard paths)
-export PATH := /opt/homebrew/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin:$(PATH)
+# 1. Ensure make can find Go (Homebrew / standard paths) and Go-installed
+# tools (golangci-lint, govulncheck, etc.), which live in GOPATH/bin and
+# are not always on PATH outside of shells that source a Go-aware rc file.
+export PATH := /opt/homebrew/bin:/usr/local/go/bin:/usr/local/bin:/usr/bin:/bin:$(HOME)/go/bin:$(PATH)
 
 BINARY_NAME=pgarachne
 APP_NAME=PgArachne
@@ -322,8 +324,8 @@ bench:
 lint:
 	@echo "==> Running golangci-lint"
 	@command -v golangci-lint >/dev/null 2>&1 || { \
-	    echo "golangci-lint not found; install from https://golangci-lint.run/usage/install/"; exit 1; }
-	@golangci-lint run ./...
+	    echo "golangci-lint not found; install from https://golangci-lint.run/usage/install/"; exit 1; }; \
+	golangci-lint run ./...
 
 vulncheck:
 	@echo "==> Running govulncheck"

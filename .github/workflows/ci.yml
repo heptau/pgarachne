@@ -46,7 +46,10 @@ jobs:
         uses: golangci/golangci-lint-action@v7
         with:
           # golangci-lint v2 (config format is v2 — see .golangci.yml).
-          version: v2.2
+          # Must be built with a Go version >= the go.mod `go` directive (1.25.0),
+          # otherwise golangci-lint refuses to run ("Go language version ... is
+          # lower than the targeted Go version").
+          version: v2.12.2
 
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...

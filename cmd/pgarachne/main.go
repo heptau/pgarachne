@@ -75,7 +75,7 @@ func main() {
 	if fileLogging {
 		// All structured logging goes to the log file.
 		// Only brief human-readable messages are printed to the console.
-		file, err := os.OpenFile(cfg.LogOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(cfg.LogOutput, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open log file %q: %v\n", cfg.LogOutput, err)
 			os.Exit(1)

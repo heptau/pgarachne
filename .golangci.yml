@@ -11,9 +11,12 @@ linters:
   exclusions:
     generated: lax
     presets:
+      # "legacy" is deliberately excluded: it silently drops gosec G301/G302/
+      # G307 (world-readable file/dir permission) findings, which conflicts
+      # with this project's secure-by-default posture. Fix the permissions
+      # instead of relying on the preset to hide the finding.
       - comments
       - common-false-positives
-      - legacy
       - std-error-handling
     rules:
       - linters:

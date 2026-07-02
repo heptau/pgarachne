@@ -7,6 +7,17 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Security
+
+- `cmd/pgarachne`: the log file was opened with `0644` permissions (world-readable); changed to `0600` (gosec G302).
+- `internal/daemon`: the PID directory was created with `0755` permissions (world-readable/executable); changed to `0750` (gosec G301).
+- `.golangci.yml`: removed the `legacy` exclusion preset, which was silently suppressing gosec's file/directory permission checks (G301/G302/G307) project-wide — the two issues above had been masked by it. Remaining gosec suppressions are now explicit `//nolint` comments with a stated reason (e.g. `internal/daemon/daemon_unix.go`, for PID-file paths that are operator-, not attacker-, controlled).
+
+### Fixed
+
+- CI: `golangci-lint-action` was pinned to `v2.2`, whose binary is built with Go 1.24 — golangci-lint refuses to run against this module's `go 1.25.0` directive ("the Go language version ... is lower than the targeted Go version"). Bumped to `v2.12.2`.
+- `Makefile`: `make lint` could fail with "golangci-lint: No such file or directory" even though `golangci-lint` was installed and on `PATH`, because GNU Make direct-execs simple recipe lines using a PATH snapshot taken before the Makefile's own `export PATH := ...` line takes effect. Joined the lookup check and the actual invocation into one shell invocation so the runtime PATH is used; also added `$(HOME)/go/bin` to the exported `PATH` for `go install`-ed tools.
+
 ## [2.0.2] - 2026-07-02
 
 ### Security

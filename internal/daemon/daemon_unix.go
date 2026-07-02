@@ -69,7 +69,7 @@ func Start() {
 	}
 
 	// Write PID file
-	if err := os.MkdirAll(filepath.Dir(pidFile), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(pidFile), 0750); err != nil {
 		fmt.Printf("Process started (PID %d), but failed to create PID directory: %v\n", cmd.Process.Pid, err)
 		os.Exit(0)
 	}
@@ -89,7 +89,10 @@ func Start() {
 // Stop terminates the background process using the PID file.
 func Stop() {
 	pidFile := pidFilePath()
-	pidData, err := os.ReadFile(pidFile)
+	// pidFile comes from pidFilePath(), which is either the operator's own
+	// PID_FILE env var or an OS-provided cache/temp directory — not
+	// attacker-controlled input.
+	pidData, err := os.ReadFile(pidFile) //nolint:gosec // G304: operator-controlled path
 	if err != nil {
 		if os.IsNotExist(err) {
 			fmt.Println("PgArachne is not running (PID file not found).")
@@ -108,8 +111,9 @@ func Stop() {
 	process, err := os.FindProcess(pid)
 	if err != nil {
 		fmt.Printf("Failed to find process: %v\n", err)
-		// Try to remove PID file anyway?
-		os.Remove(pidFile)
+		// Best-effort cleanup on an already-failing path; nothing further
+		// to do if this also fails.
+		os.Remove(pidFile) //nolint:gosec,errcheck // G104: best-effort cleanup
 		os.Exit(1)
 	}
 
