@@ -126,13 +126,22 @@ COMMENT ON FUNCTION api.universal_read(jsonb) IS 'Generic Read function.
 -- =============================================================================
 -- 2. CREATE (POST)
 -- =============================================================================
+-- Returns a single object. If strict PostgREST emulation is desired, should return array.
+--
+-- Columns are derived from the JSON object's keys; types come from the catalog
+-- so that columns omitted from the payload (serial PK, created_at, ...) get
+-- their DEFAULT values instead of being overwritten with NULL. The CTE is
+-- required because INSERT ... SELECT cannot name the target table in RETURNING
+-- to build a whole-row value (missing FROM-clause entry).
 CREATE OR REPLACE FUNCTION api.universal_create(_params jsonb)
 RETURNS json AS $$
 DECLARE
 	_schema text;
 	_table  text;
 	_data   jsonb;
-	_result json;
+	_columns text;
+	_typed   text;
+	_result  json;
 BEGIN
 	_schema := COALESCE(_params->>'schema', 'api');
 	_table  := _params->>'table';
@@ -144,11 +153,28 @@ BEGIN
 	PERFORM api._validate_identifier(_schema, 'schema');
 	PERFORM api._validate_identifier(_table, 'table');
 
-	-- Note: Returns a single object. If strict PostgREST emulation is desired, should return array.
-	-- Keeping as single object for now as input is single object.
+	SELECT
+		string_agg(quote_ident(a.attname), ', '),
+		string_agg(format('%I %s', a.attname, format_type(a.atttypid, a.atttypmod)), ', ')
+	INTO _columns, _typed
+	FROM pg_attribute a
+	JOIN pg_class c   ON c.oid = a.attrelid
+	JOIN pg_namespace n ON n.oid = c.relnamespace
+	WHERE n.nspname = _schema AND c.relname = _table
+	  AND a.attnum > 0 AND NOT a.attisdropped
+	  AND a.attname IN (SELECT jsonb_object_keys(_data));
+
+	IF _columns IS NULL THEN
+		RAISE EXCEPTION 'No matching columns for insert';
+	END IF;
+
 	EXECUTE format(
-		'INSERT INTO %I.%I SELECT * FROM json_populate_record(NULL::%I.%I, $1) RETURNING row_to_json(*)',
-		_schema, _table, _schema, _table
+		'WITH ins AS (
+			INSERT INTO %I.%I (%s)
+			SELECT %s FROM jsonb_to_record($1) AS t(%s)
+			RETURNING *
+		) SELECT row_to_json(ins)::json FROM ins',
+		_schema, _table, _columns, _columns, _typed
 	) USING _data INTO _result;
 
 	RETURN _result;
