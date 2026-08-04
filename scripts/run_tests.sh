@@ -5,7 +5,6 @@ PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 COMPOSE_FILE="$PROJECT_ROOT/docker-compose.test.yml"
 
 DB_HOST="localhost"
-DB_PORT="54329"
 DB_ADMIN_USER="postgres"
 DB_ADMIN_PASSWORD="postgres"
 
@@ -22,6 +21,16 @@ trap cleanup EXIT
 
 echo "==> Starting Postgres (test container)"
 docker compose -f "$COMPOSE_FILE" up -d
+
+# The container publishes to a random host port (see docker-compose.test.yml)
+# so this never collides with another project's Postgres container on the
+# same machine. Read back whatever Docker actually assigned.
+DB_PORT="$(docker compose -f "$COMPOSE_FILE" port postgres 5432 | cut -d: -f2)"
+if [ -z "$DB_PORT" ]; then
+  echo "Could not determine the host port Docker assigned to Postgres." >&2
+  exit 1
+fi
+echo "==> Postgres listening on $DB_HOST:$DB_PORT"
 
 echo "==> Waiting for Postgres to be ready"
 for i in {1..30}; do

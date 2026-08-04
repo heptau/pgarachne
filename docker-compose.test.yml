@@ -6,7 +6,11 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: postgres
     ports:
-      - "54329:5432"
+      # Empty host port -> Docker picks a random free one, so this never
+      # collides with another project's Postgres container (e.g. one bound
+      # to a fixed port on the same machine). run_tests.sh reads back the
+      # assigned port via `docker compose port`.
+      - "127.0.0.1::5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 2s

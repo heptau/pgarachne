@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Fixed
+
+- `docker-compose.test.yml`/`scripts/run_tests.sh`: the test Postgres container was bound to a fixed host port (`54329`), so `make tests`/`make release` failed outright whenever another local Docker project happened to already hold that port. The container now publishes to a random free port on `127.0.0.1`, and `run_tests.sh` reads back whatever port Docker actually assigned via `docker compose port`.
+
 ## [2.0.3] - 2026-08-04
 
 ### Security
