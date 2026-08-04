@@ -7,9 +7,15 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Security
+
+- CI (`.github/workflows/ci.yml`): three `go/sql-injection` / `js/xss-through-dom` CodeQL alerts (`internal/server/mcp.go`, `internal/server/server.go`, `docs-src/static/assets/script.js`) were dismissed as false positives via the code scanning API — each sink is already guarded by an allowlist validator (`isSafeFunctionName`, `safeSiteUrl`) that CodeQL's taint tracking doesn't model as a barrier.
+
 ### Fixed
 
 - `docker-compose.test.yml`/`scripts/run_tests.sh`: the test Postgres container was bound to a fixed host port (`54329`), so `make tests`/`make release` failed outright whenever another local Docker project happened to already hold that port. The container now publishes to a random free port on `127.0.0.1`, and `run_tests.sh` reads back whatever port Docker actually assigned via `docker compose port`.
+- `scripts/run_tests.sh`: the Postgres readiness check polled `pg_isready` in a loop and then re-checked it once more standalone; the official `postgres` image restarts once during first-time `initdb`, so that standalone re-check could land in the brief window between the transient setup instance and the real server, failing CI (`Postgres did not become ready in time.`) within ~1.4s. Replaced with `docker compose up -d --wait`, which relies on the existing healthcheck's own interval-based polling instead.
+- CI (`.github/workflows/ci.yml`): `actions/checkout@v4`, `actions/setup-go@v5`, and `golangci-lint-action@v7` all still ship a Node.js 20 runtime, which GitHub Actions now runs under a forced Node 24 compatibility shim (deprecation warning on every run). Bumped to `@v7`, `@v7`, and `@v9` respectively, all of which declare `node24` natively.
 
 ## [2.0.3] - 2026-08-04
 

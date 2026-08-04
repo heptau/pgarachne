@@ -20,7 +20,13 @@ cleanup() {
 trap cleanup EXIT
 
 echo "==> Starting Postgres (test container)"
-docker compose -f "$COMPOSE_FILE" up -d
+# --wait blocks until the healthcheck below reports "healthy" (or the
+# timeout elapses), instead of us polling pg_isready ourselves. The official
+# postgres image restarts once during first-time initdb, so a same-process
+# pg_isready loop can catch that transient setup instance as "ready" and
+# then race into the restart on the very next check; Compose's own
+# healthcheck-driven wait doesn't have that failure mode.
+docker compose -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60
 
 # The container publishes to a random host port (see docker-compose.test.yml)
 # so this never collides with another project's Postgres container on the
@@ -31,19 +37,6 @@ if [ -z "$DB_PORT" ]; then
   exit 1
 fi
 echo "==> Postgres listening on $DB_HOST:$DB_PORT"
-
-echo "==> Waiting for Postgres to be ready"
-for i in {1..30}; do
-  if docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
-    break
-  fi
-  sleep 1
-done
-
-if ! docker compose -f "$COMPOSE_FILE" exec -T postgres pg_isready -U postgres >/dev/null 2>&1; then
-  echo "Postgres did not become ready in time."
-  exit 1
-fi
 
 echo "==> Preparing test database"
 chmod +x "$PROJECT_ROOT/scripts/setup_test_db.sh"

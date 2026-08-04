@@ -15,10 +15,10 @@ jobs:
 
     steps:
       - name: Check out source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v7
         with:
           # Floating minor version (not an exact patch pin): setup-go always
           # resolves this to the latest 1.25.x release, so we automatically
@@ -47,7 +47,7 @@ jobs:
           fi
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v7
+        uses: golangci/golangci-lint-action@v9
         with:
           # golangci-lint v2 (config format is v2 — see .golangci.yml).
           # Must be built with a Go version >= the go.mod `go` directive (1.25.0),
