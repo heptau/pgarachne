@@ -55,7 +55,7 @@ GOARCH := $(shell $(GO) env GOARCH)
 
 .PHONY: help deps build run clean prepare-dist docs tests \
         coverage cover-html bench lint vulncheck \
-        release release-local release-notes macos-apps \
+        prepare-release release release-local release-notes macos-apps \
         macos-app-amd64 macos-app-arm64 macos-app-universal
 
 # ------------------------------------------------------------------------------
@@ -78,7 +78,10 @@ help:
 	@echo "  clean                 Remove artifacts."
 	@echo "  docs                  Build documentation with Hugo."
 	@echo "  release-local         Test, build release artifacts + Homebrew files — no git, no push."
-	@echo "  release               Full release: release-local, then tag, push, GitHub, Homebrew tap."
+	@echo "  release               Full release: bump VERSION+CHANGELOG, build, tag, push, GitHub,"
+	@echo "                        Homebrew tap. Usage: make release VERSION=X.Y.Z"
+	@echo "  prepare-release       Just the VERSION/CHANGELOG bump + commit + push."
+	@echo "                        Usage: make prepare-release VERSION=X.Y.Z"
 	@echo "  release-notes         Extract the current VERSION's section from CHANGELOG.md."
 	@echo ""
 
@@ -99,11 +102,24 @@ release-local: tests
 	@./scripts/generate_homebrew_cask.sh
 	@$(MAKE) release-notes
 
-# Full release: runs release-local, then tags v$(APP_VERSION), pushes the tag,
-# creates the GitHub release (title + dist/RELEASE_NOTES.md + all dist/
-# archives and checksums.txt), and pushes the Homebrew formula/cask to the
-# tap repo. Requires a clean working tree and the `gh` CLI, authenticated.
-release: release-local
+# Bumps the VERSION file and rolls CHANGELOG.md's [Unreleased] section into
+# a dated [X.Y.Z] entry, then commits and pushes that commit. Requires
+# VERSION=X.Y.Z on the command line and a clean working tree.
+prepare-release:
+	@VERSION=$(VERSION) bash scripts/prepare_release.sh
+
+# Full release, from a version bump to a published GitHub release: runs
+# prepare-release (bump VERSION+CHANGELOG.md, commit, push), then a fresh
+# `$(MAKE) release-local` (which re-reads the just-bumped VERSION file: tests,
+# cross-platform archives, macOS .app bundles, Homebrew formula/cask,
+# dist/RELEASE_NOTES.md), then tags v<version>, pushes the tag, creates the
+# GitHub release (title + dist/RELEASE_NOTES.md + all dist/ archives and
+# checksums.txt), and pushes the Homebrew formula/cask to the tap repo.
+# Requires a clean working tree and the `gh` CLI, authenticated.
+#
+# Usage: make release VERSION=2.0.3
+release: prepare-release
+	@$(MAKE) release-local
 	@bash scripts/publish_release.sh
 
 # Extracts the CHANGELOG.md section for the version in the VERSION file, so

@@ -23,6 +23,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 - Docs site: `llms.txt` is now discoverable rather than just present — linked from the homepage feature grid, the MCP page, the README, and advertised in every page's `<head>` via `<link rel="alternate" type="text/markdown">`, so LLM crawlers find the machine-readable index without being told where to look. The Quick Start page was added to the `llms.txt` index itself.
 - Docs site: the MCP security section now documents `MCP_SQL_ERROR_DETAIL`, including the trade-off — raw PostgreSQL error text helps LLM agents self-correct, but exposes schema details to authenticated callers.
 
+### Changed
+
+- `Makefile`/`scripts/prepare_release.sh`: `make release` now does the whole release in one command — `make release VERSION=X.Y.Z` bumps `VERSION`, rolls `CHANGELOG.md`'s `[Unreleased]` section into a dated `[X.Y.Z]` entry, commits and pushes that commit, then builds, tags, and publishes as before. The version bump was previously a manual step before running `make release`. The bump-only step is also available on its own via `make prepare-release VERSION=X.Y.Z`.
+
 ### Fixed
 
 - CI: `golangci-lint-action` was pinned to `v2.2`, whose binary is built with Go 1.24 — golangci-lint refuses to run against this module's `go 1.25.0` directive ("the Go language version ... is lower than the targeted Go version"). Bumped to `v2.12.2`.
