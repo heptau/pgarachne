@@ -7,6 +7,8 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [2.0.3] - 2026-08-04
+
 ### Security
 
 - `internal/server`: role switching no longer builds SQL text at all. `SET LOCAL ROLE "<role>"` (string-concatenated, with the role name quoted as an identifier) was replaced by `SELECT set_config('role', $1, true)`, the function form of `SET LOCAL`, so the role name travels as a bind parameter. Same transaction-local scope, same server-side privilege check on the target role, no identifier-quoting layer to get wrong. The `SET LOCAL app.api_prefix` statement was converted the same way.
