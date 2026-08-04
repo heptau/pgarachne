@@ -1,4 +1,30 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/it/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>it</language><atom:link href="https://www.pgarachne.com/it/index.xml" rel="self" type="application/rss+xml"/><item><title>Chi siamo e Architettura</title><link>https://www.pgarachne.com/it/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/about-architecture/</guid><description>&lt;section id="about"&gt;
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>PgArachne</title><link>https://www.pgarachne.com/it/</link><description>Recent content on PgArachne</description><generator>Hugo</generator><language>it</language><atom:link href="https://www.pgarachne.com/it/index.xml" rel="self" type="application/rss+xml"/><item><title>Avvio rapido</title><link>https://www.pgarachne.com/it/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Avvio rapido&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Ottieni un'API JSON-RPC funzionante dal tuo database PostgreSQL in meno di un minuto.
+		Il tuo database è il tuo backend — senza framework, senza boilerplate.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Installazione&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Scarica un binario&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# oppure scarica l'ultima release per il tuo OS:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Prepara il tuo database&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Crea un database e carica lo schema PgArachne:&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;createdb my_database
+psql -d my_database -f sql/schema.sql&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;3. Configura e avvia&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Crea un file &lt;code&gt;pgarachne.env&lt;/code&gt; (il server lo trova nella directory corrente):&lt;/p&gt;</description></item><item><title>Chi siamo e Architettura</title><link>https://www.pgarachne.com/it/about-architecture/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/it/about-architecture/</guid><description>&lt;section id="about"&gt;
 	&lt;h2&gt;Chi siamo e Architettura&lt;/h2&gt;
 	&lt;p&gt;
 		PgArachne™ funge da &lt;strong&gt;server web&lt;/strong&gt; leggero e ad alte prestazioni che si interpone tra i tuoi

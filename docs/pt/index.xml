@@ -257,7 +257,26 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;&lt;/code&gt;&lt;/
 &lt;li&gt;&lt;strong&gt;Interface moderna:&lt;/strong&gt; Oferece suporte para os modos Escuro/Claro e pode ser instalada como um &lt;strong&gt;PWA&lt;/strong&gt; em dispositivos móveis.&lt;/li&gt;
 &lt;li&gt;&lt;strong&gt;Autenticação:&lt;/strong&gt; A aba &lt;em&gt;Password&lt;/em&gt; usa HTTP Basic Auth para conectar diretamente como o usuário do banco de dados — sem &lt;code&gt;GRANT … TO pgarachne&lt;/code&gt;. A aba &lt;em&gt;API Token&lt;/em&gt; aceita um JWT ou token de API de longa duração como &lt;code&gt;Bearer&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
-&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>Instalação</title><link>https://www.pgarachne.com/pt/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/installation/</guid><description>&lt;section id="install"&gt;
+&lt;p&gt;&lt;strong&gt;Parâmetros URL:&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>Início rápido</title><link>https://www.pgarachne.com/pt/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Início rápido&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Obtenha uma API JSON-RPC funcionando a partir do seu banco PostgreSQL em menos de um minuto.
+		Seu banco de dados é seu backend — sem framework, sem boilerplate.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Instalação&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Baixe um binário&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# ou baixe o lançamento mais recente para seu sistema:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Prepare seu banco de dados&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Crie um banco de dados e carregue o schema do PgArachne:&lt;/p&gt;</description></item><item><title>Instalação</title><link>https://www.pgarachne.com/pt/installation/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pt/installation/</guid><description>&lt;section id="install"&gt;
 	&lt;h2&gt;Instalação&lt;/h2&gt;
 
 	&lt;h3&gt;1. Instalação&lt;/h3&gt;

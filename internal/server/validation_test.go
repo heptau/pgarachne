@@ -153,43 +153,6 @@ func TestNullParamsNormalization(t *testing.T) {
 	}
 }
 
-func TestQuoteRole(t *testing.T) {
-	cases := []struct {
-		in   string
-		want string
-	}{
-		{"app_user", `"app_user"`},
-		{"", `""`},
-		{`has"quote`, `"has""quote"`},
-		{`a""b`, `"a""""b"`},
-	}
-	for _, tc := range cases {
-		if got := quoteRole(tc.in); got != tc.want {
-			t.Errorf("quoteRole(%q) = %q; want %q", tc.in, got, tc.want)
-		}
-	}
-}
-
-func TestIsWithinDir(t *testing.T) {
-	cases := []struct {
-		path string
-		dir  string
-		want bool
-	}{
-		{"/var/www/static", "/var/www/static", true},
-		{"/var/www/static/index.html", "/var/www/static", true},
-		{"/var/www/static/sub/dir/file.html", "/var/www/static", true},
-		{"/var/www/etc/passwd", "/var/www/static", false},
-		{"/etc/passwd", "/var/www/static", false},
-		{"/var/www/staticEVIL/file.html", "/var/www/static", false},
-	}
-	for _, tc := range cases {
-		if got := isWithinDir(tc.path, tc.dir); got != tc.want {
-			t.Errorf("isWithinDir(%q, %q) = %v; want %v", tc.path, tc.dir, got, tc.want)
-		}
-	}
-}
-
 func TestParseNotifyPayload(t *testing.T) {
 	cases := []struct {
 		name    string
@@ -312,6 +275,128 @@ func TestJSONRPCResponseAlwaysHasVersion(t *testing.T) {
 			}
 		})
 	}
+}
+
+// identifierIsInert reports whether s, spliced verbatim into a SQL statement,
+// can only ever be read as one (optionally schema-qualified) PostgreSQL
+// identifier: every character outside a double-quoted span is one PostgreSQL
+// allows in a bare identifier, and every quoted span is closed with its inner
+// quotes doubled. Anything that could terminate the identifier and start new
+// SQL — a stray quote, a semicolon, a comment marker, whitespace — fails.
+func identifierIsInert(s string) bool {
+	for i := 0; i < len(s); {
+		c := s[i]
+		if c == '"' {
+			i++
+			for {
+				if i >= len(s) {
+					return false // unterminated quoted identifier
+				}
+				if s[i] != '"' {
+					i++
+					continue
+				}
+				if i+1 < len(s) && s[i+1] == '"' {
+					i += 2 // doubled quote: an escaped quote inside the span
+					continue
+				}
+				i++ // closing quote
+				break
+			}
+			continue
+		}
+		switch {
+		case c >= 'A' && c <= 'Z', c >= 'a' && c <= 'z', c >= '0' && c <= '9':
+		case c == '_', c == '$', c == '.':
+		default:
+			return false
+		}
+		i++
+	}
+	return true
+}
+
+// TestFunctionNameValidationIsInert pins the property the JSON-RPC and MCP
+// handlers rely on: the method name is part of SQL *syntax* (it names the
+// function to call), so it cannot be bound as a parameter, and
+// isSafeFunctionName is the sole barrier standing between the request body and
+// buildFunctionQuery. Every name that barrier accepts must be inert as an
+// identifier — otherwise the interpolation in buildFunctionQuery is injectable.
+func TestFunctionNameValidationIsInert(t *testing.T) {
+	// Names crafted to slip a second statement, a comment, or an unbalanced
+	// quote past the regex. Each must be either rejected or inert.
+	hostile := []string{
+		`api.fn; DROP TABLE pgarachne.requests; --`,
+		`api.fn(); SELECT pg_sleep(10); --`,
+		`api."fn"; DROP TABLE x; --`,
+		`api."fn""; DROP TABLE x; --"`,
+		`api."fn"" ; DROP TABLE x; --"`,
+		`api."fn`,
+		`api.fn"`,
+		`"api"."fn"`,
+		`"api;drop"."fn"`,
+		`api.fn'`,
+		`api.fn/*x*/`,
+		`api.fn--`,
+		"api.fn\n; DROP TABLE x",
+		"api.fn\t",
+		` api.fn`,
+		`api.fn `,
+		`pg_sleep`,
+		`api.fn, pg_sleep(10)`,
+		`api.fn($1);SELECT 1`,
+		`capabilities; DROP TABLE x`,
+	}
+
+	for _, name := range hostile {
+		if !isSafeFunctionName(name) {
+			continue // rejected before it ever reaches buildFunctionQuery
+		}
+		if !identifierIsInert(name) {
+			t.Errorf("isSafeFunctionName(%q) = true, but the name is not an inert identifier", name)
+			continue
+		}
+		query := buildFunctionQuery(name)
+		if want := "SELECT " + name + "($1::jsonb)::json"; query != want {
+			t.Errorf("buildFunctionQuery(%q) = %q; want %q", name, query, want)
+		}
+	}
+}
+
+// FuzzFunctionNameValidation looks for any input isSafeFunctionName accepts
+// that is not inert when interpolated. Run longer with:
+//
+//	go test ./internal/server -run=Fuzz -fuzz=FuzzFunctionNameValidation
+func FuzzFunctionNameValidation(f *testing.F) {
+	for _, seed := range []string{
+		"api.hello_world", "capabilities", "get_jwt", "pgarachne.capabilities",
+		`api."Mixed Case"`, `"api"."fn$1"`, `api.fn; DROP TABLE x; --`,
+		`api."fn""; DROP TABLE x; --"`, `api."`, `api.fn"`, `a.b.c`, ".", "", "..",
+		`""."" `, `a."b"c"`, "api.fn\x00", "ápi.fn",
+	} {
+		f.Add(seed)
+	}
+
+	f.Fuzz(func(t *testing.T, name string) {
+		if !isSafeFunctionName(name) {
+			return
+		}
+		if !identifierIsInert(name) {
+			t.Fatalf("isSafeFunctionName(%q) = true, but the name is not an inert identifier", name)
+		}
+		query := buildFunctionQuery(name)
+		// capabilities is rewritten to a constant query; everything else is
+		// interpolated and must land in exactly this shape.
+		if name == "capabilities" || name == "pgarachne.capabilities" {
+			if query != `SELECT pgarachne.capabilities($1::jsonb)::json` {
+				t.Fatalf("buildFunctionQuery(%q) = %q; want the constant capabilities query", name, query)
+			}
+			return
+		}
+		if want := "SELECT " + name + "($1::jsonb)::json"; query != want {
+			t.Fatalf("buildFunctionQuery(%q) = %q; want %q", name, query, want)
+		}
+	})
 }
 
 // BenchmarkIsSafeFunctionName measures the per-request cost of the

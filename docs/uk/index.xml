@@ -507,7 +507,33 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	&lt;p&gt;Якщо вміст є звичайним текстом, він обгортається як рядок у &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 
 	&lt;h3&gt;Надсилання сповіщень з PostgreSQL&lt;/h3&gt;
-	&lt;p&gt;З &lt;code&gt;psql&lt;/code&gt; або будь-якої іншої сесії бази даних:&lt;/p&gt;</description></item><item><title>Що нового</title><link>https://www.pgarachne.com/uk/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
+	&lt;p&gt;З &lt;code&gt;psql&lt;/code&gt; або будь-якої іншої сесії бази даних:&lt;/p&gt;</description></item><item><title>Швидкий старт</title><link>https://www.pgarachne.com/uk/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Швидкий старт&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Запустіть робоче JSON-RPC API з вашої бази PostgreSQL менш ніж за хвилину.
+		Ваша база даних — це ваш бекенд: без фреймворку, без шаблонного коду.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Встановлення&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Завантажте бінарний файл&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# або завантажте останній реліз для вашої ОС:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Підготуйте базу даних&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Створіть базу та завантажте схему PgArachne:&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;createdb my_database
+psql -d my_database -f sql/schema.sql&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;3. Налаштуйте та запустіть&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Створіть файл &lt;code&gt;pgarachne.env&lt;/code&gt; (сервер знайде його в поточному каталозі):&lt;/p&gt;</description></item><item><title>Що нового</title><link>https://www.pgarachne.com/uk/whats-new/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/uk/whats-new/</guid><description>&lt;section id="whats-new" class="section-light"&gt;
 	&lt;h2&gt;Що нового&lt;/h2&gt;
 	&lt;p&gt;Детальнішу інформацію про зміни в кожній версії можна знайти на &lt;a href="https://github.com/heptau/pgarachne/releases" target="_blank"&gt;GitHub Releases&lt;/a&gt;.&lt;/p&gt;
 

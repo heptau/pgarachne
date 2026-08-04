@@ -9,10 +9,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"mime"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -264,45 +266,18 @@ func (s *Server) buildRouter() *gin.Engine {
 			staticRoot = s.Cfg.StaticFilesPath
 		}
 
-		// Use NoRoute to serve static files when no other route matches.
-		// Fallback to root 404.html if file not found (useful for SPA or clean documentation).
-		router.NoRoute(func(c *gin.Context) {
-			path := filepath.Join(staticRoot, filepath.Clean(c.Request.URL.Path))
-
-			// Belt-and-suspenders: filepath.Clean on an absolute URL path
-			// already collapses any ".." above the root, but verify
-			// containment explicitly so this can never serve a file outside
-			// staticRoot regardless of how path was built above.
-			if !isWithinDir(path, staticRoot) {
-				c.String(http.StatusNotFound, "404 page not found")
-				return
-			}
-
-			// 1. Try exact file
-			if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
-				c.File(path)
-				return
-			}
-
-			// 2. Try index.html in directory
-			indexPath := filepath.Join(path, "index.html")
-			if fi, err := os.Stat(indexPath); err == nil && !fi.IsDir() {
-				c.File(indexPath)
-				return
-			}
-
-			// 3. Fallback to 404.html in the root
-			errorPage := filepath.Join(staticRoot, "404.html")
-			if fi, err := os.Stat(errorPage); err == nil && !fi.IsDir() {
-				c.Status(http.StatusNotFound)
-				c.File(errorPage)
-				return
-			}
-
-			// 4. Final default
-			c.String(http.StatusNotFound, "404 page not found")
-		})
-		slog.Info("Serving static files with 404 fallback", "path", s.Cfg.StaticFilesPath)
+		// os.OpenRoot pins the directory once, at startup. Every later
+		// Open on the returned *os.Root is resolved by the OS relative to
+		// that directory, so no request path can reach outside it.
+		root, err := os.OpenRoot(staticRoot)
+		if err != nil {
+			slog.Error("Failed to open static files directory", "path", staticRoot, "error", err)
+		} else {
+			// Use NoRoute to serve static files when no other route matches.
+			// Fallback to root 404.html if file not found (useful for SPA or clean documentation).
+			router.NoRoute(staticFileHandler(root))
+			slog.Info("Serving static files with 404 fallback", "path", s.Cfg.StaticFilesPath)
+		}
 	}
 
 	return router
@@ -502,10 +477,16 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	// a value, so it can't be passed as a bind parameter — isSafeFunctionName
 	// above is the mitigation instead, requiring a strict schema.function
 	// identifier shape before functionName ever reaches buildFunctionQuery.
+	// TestFunctionNameValidationIsInert and FuzzFunctionNameValidation pin the
+	// property that makes this safe: nothing that barrier accepts can be read
+	// as anything but a single identifier. CodeQL's go/sql-injection flags this
+	// line regardless — it does not model the regex as a barrier, and code
+	// scanning ignores in-source suppression comments — so the alert is
+	// dismissed as a false positive in the repository's Security tab.
 	query := buildFunctionQuery(functionName)
 
 	var resultJSON json.RawMessage
-	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON) // codeql[go/sql-injection] -- functionName is validated by isSafeFunctionName() before reaching here
+	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON)
 	if err != nil {
 		slog.Error("Function call failed", "function", functionName, "error", err)
 		recordJSONRPC(functionName, "error")
@@ -691,9 +672,6 @@ func isSafeDatabaseName(name string) bool {
 	return pgIdentRe.MatchString(name) || pgQuotedIdentRe.MatchString(name)
 }
 
-// quoteRole returns a double-quoted PostgreSQL identifier safe for use in
-// SET LOCAL ROLE. Inner double-quotes are escaped by doubling them, which
-// is the standard SQL identifier quoting rule (ISO/IEC 9075).
 // buildFunctionQuery returns the SQL query string for calling a JSON-RPC
 // function. The capabilities method is always routed to pgarachne.capabilities
 // regardless of how the caller spelled it (with or without schema prefix).
@@ -704,18 +682,88 @@ func buildFunctionQuery(functionName string) string {
 	return fmt.Sprintf("SELECT %s($1::jsonb)::json", functionName)
 }
 
-// isWithinDir reports whether path is dir itself or a descendant of it.
-// Both must already be absolute, cleaned paths.
-func isWithinDir(path, dir string) bool {
-	rel, err := filepath.Rel(dir, path)
-	if err != nil {
-		return false
+// staticFileHandler serves files out of root, in this order: the exact file,
+// index.html inside the requested directory, then the root 404.html.
+//
+// Containment is delegated to *os.Root: it resolves every path component
+// against the pinned directory in the kernel, so neither a "../" segment nor a
+// symlink pointing elsewhere on disk can escape it. That is stronger than a
+// lexical prefix check, which only ever inspects the path string and is blind
+// to symlinks planted inside the served tree.
+func staticFileHandler(root *os.Root) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// URL paths are slash-separated and rooted; strip the leading slash so
+		// the result is the root-relative name os.Root expects.
+		name := strings.TrimPrefix(path.Clean("/"+c.Request.URL.Path), "/")
+
+		// 1. Try exact file
+		if name != "" && serveRootFile(c, root, name) {
+			return
+		}
+
+		// 2. Try index.html in directory
+		if serveRootFile(c, root, path.Join(name, "index.html")) {
+			return
+		}
+
+		// 3. Fallback to 404.html in the root
+		if serveRootFileWithStatus(c, root, "404.html", http.StatusNotFound) {
+			return
+		}
+
+		// 4. Final default
+		c.String(http.StatusNotFound, "404 page not found")
 	}
-	return rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(filepath.Separator)))
 }
 
-func quoteRole(role string) string {
-	return `"` + strings.ReplaceAll(role, `"`, `""`) + `"`
+// serveRootFile writes the named file from root to the response with HTTP 200
+// and reports whether it did. Missing names and directories are not served.
+func serveRootFile(c *gin.Context, root *os.Root, name string) bool {
+	f, fi, ok := openRootFile(root, name)
+	if !ok {
+		return false
+	}
+	defer func() { _ = f.Close() }()
+
+	// ServeContent adds Content-Type, Last-Modified and Range support.
+	http.ServeContent(c.Writer, c.Request, fi.Name(), fi.ModTime(), f)
+	return true
+}
+
+// serveRootFileWithStatus is serveRootFile for responses that must keep a
+// non-200 status. http.ServeContent always writes 200, so the body is copied
+// directly after the status has been committed.
+func serveRootFileWithStatus(c *gin.Context, root *os.Root, name string, status int) bool {
+	f, fi, ok := openRootFile(root, name)
+	if !ok {
+		return false
+	}
+	defer func() { _ = f.Close() }()
+
+	if ctype := mime.TypeByExtension(filepath.Ext(fi.Name())); ctype != "" {
+		c.Header("Content-Type", ctype)
+	}
+	c.Status(status)
+	c.Writer.WriteHeaderNow()
+	if _, err := io.Copy(c.Writer, f); err != nil {
+		slog.Debug("Failed to write static file", "name", name, "error", err)
+	}
+	return true
+}
+
+// openRootFile opens name inside root, rejecting anything that is not a
+// regular readable file. The caller closes the returned file.
+func openRootFile(root *os.Root, name string) (*os.File, os.FileInfo, bool) {
+	f, err := root.Open(name)
+	if err != nil {
+		return nil, nil, false
+	}
+	fi, err := f.Stat()
+	if err != nil || fi.IsDir() {
+		_ = f.Close()
+		return nil, nil, false
+	}
+	return f, fi, true
 }
 
 func isSafeFunctionName(name string) bool {

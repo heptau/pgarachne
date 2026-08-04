@@ -94,8 +94,14 @@ ngrok http 8080</code></pre>
 		<li><strong>Authentication:</strong> Every request requires a valid API token, JWT, or HTTP Basic credentials; unauthenticated requests are rejected immediately.</li>
 		<li><strong>Authorization:</strong> The AI can see and call only those functions in allowed schemas for which the authenticated role has <code>GRANT EXECUTE</code>.</li>
 		<li><strong>RLS:</strong> Row-Level Security is fully active — the AI sees only the rows the specific role has access to.</li>
+		<li><strong>Error detail:</strong> By default MCP tool errors do not leak raw PostgreSQL error text. To let LLM agents self-correct against your own database, set <code>MCP_SQL_ERROR_DETAIL=true</code> (see <a href="../configuration/">Configuration</a>).</li>
 	</ul>
 	<p>See <a href="../security-roles/">Security &amp; Authentication</a> for a full comparison of all supported authentication methods.</p>
+
+	<h3>AI/LLM Discovery</h3>
+	<p>For AI agents and LLM crawlers, the project exposes a machine-readable index at
+		<a href="llms.txt">llms.txt</a> (see <a href="https://llmstxt.org/" target="_blank">llmstxt.org</a> for the format).
+		Add it as a context source so models can discover PgArachne and its MCP endpoint.</p>
 
 </section>
 

@@ -414,7 +414,33 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	&lt;p&gt;Pokud je payload text, zabalí se jako string do &lt;code&gt;data&lt;/code&gt;.&lt;/p&gt;
 
 	&lt;h3&gt;Odesílání notifikací z PostgreSQL&lt;/h3&gt;
-	&lt;p&gt;Z &lt;code&gt;psql&lt;/code&gt; nebo jakékoli databázové session:&lt;/p&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
+	&lt;p&gt;Z &lt;code&gt;psql&lt;/code&gt; nebo jakékoli databázové session:&lt;/p&gt;</description></item><item><title>Rychlý start</title><link>https://www.pgarachne.com/cs/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Rychlý start&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Rozběhněte JSON-RPC API z vaší PostgreSQL databáze za méně než minutu.
+		Vaše databáze je váš backend — žádný framework, žádný boilerplate.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Instalace&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Stáhněte si binárku&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# nebo stáhněte nejnovější vydání pro váš OS:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Příprava databáze&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Vytvořte databázi a načtěte schéma PgArachne:&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;createdb my_database
+psql -d my_database -f sql/schema.sql&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;3. Konfigurace a spuštění&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Vytvořte soubor &lt;code&gt;pgarachne.env&lt;/code&gt; (server ho najde v aktuálním adresáři):&lt;/p&gt;</description></item><item><title>Srovnání: PgArachne vs. PostgREST</title><link>https://www.pgarachne.com/cs/comparison/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/cs/comparison/</guid><description>&lt;section id="comparison"&gt;
 	&lt;h2&gt;Srovnání: PgArachne vs. PostgREST&lt;/h2&gt;
 	&lt;div class="comparison-table-wrapper"&gt;
 		&lt;table&gt;

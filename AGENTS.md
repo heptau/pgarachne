@@ -20,6 +20,7 @@ PgArachne is a Go-based HTTP gateway that exposes PostgreSQL functions as JSON-R
   - JSON-RPC request body is parsed and `method` is required.
   - DB role is determined via JWT or API token middleware.
   - A transaction is opened, `SET LOCAL ROLE` is applied, and `schema.function(jsonb)` is called.
+  - The role switch is issued as `SELECT set_config('role', $1, true)` (the function form of `SET LOCAL`), not as concatenated SQL text — keep it that way, the role name must stay a bind parameter.
   - `capabilities` is handled specially and maps to `pgarachne.capabilities`.
 
 ## Authentication
@@ -79,7 +80,7 @@ Common optional:
 - `API_PREFIX` (default `db`) — first URL path segment for all database endpoints; gives routes like `/db/:database/jsonrpc`. Only letters, digits, hyphens and underscores allowed.
 - `JWT_EXPIRY_HOURS` (default `8`)
 - `ALLOWED_ORIGINS` (comma-separated; unset = cross-origin browser requests disabled, set `*` explicitly to allow any origin)
-- `STATIC_FILES_PATH` (serves files via `NoRoute` fallback)
+- `STATIC_FILES_PATH` (serves files via `NoRoute` fallback; the directory is pinned with `os.OpenRoot` at startup and every request is resolved through that `*os.Root`, so traversal and symlink escapes are refused by the OS — do not reintroduce `filepath.Join` + string containment checks here)
 - `LOG_LEVEL` (`INFO` default), `LOG_OUTPUT` (`stdout` default)
 - `DB_SSLMODE` (default `require`; set `disable` explicitly for local non-TLS PostgreSQL)
 - `LOGIN_RATE_LIMIT_PER_IP` (default 5× `LOGIN_RATE_LIMIT`; per-IP login limit across all usernames, `0` disables)

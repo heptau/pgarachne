@@ -1,0 +1,76 @@
+---
+title: "Inicio rápido"
+description: "Inicio rápido - PgArachne en 60 segundos - PgArachne"
+menu:
+  main:
+    name: "Inicio rápido"
+    weight: 35
+---
+
+<section id="quickstart">
+	<h2>Inicio rápido</h2>
+	<p class="section-intro">
+		Ten una API JSON-RPC funcionando desde tu base de datos PostgreSQL en menos de un minuto.
+		Tu base de datos es tu backend — sin framework, sin código repetitivo.
+	</p>
+
+	<h3>1. Instalación</h3>
+	<div class="deployment-option">
+		<h4>Descarga un binario</h4>
+		<pre><code># macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# o descarga la última versión para tu sistema:
+#   https://github.com/heptau/pgarachne/releases/latest</code></pre>
+	</div>
+
+	<h3>2. Prepara tu base de datos</h3>
+	<div class="deployment-option">
+		<p>Crea una base de datos y carga el esquema de PgArachne:</p>
+		<pre><code>createdb my_database
+psql -d my_database -f sql/schema.sql</code></pre>
+	</div>
+
+	<h3>3. Configura y ejecuta</h3>
+	<div class="deployment-option">
+		<p>Crea un archivo <code>pgarachne.env</code> (el servidor lo encuentra en el directorio actual):</p>
+		<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=$(openssl rand -hex 32)</code></pre>
+		<p>Inicia el servidor:</p>
+		<pre><code>./pgarachne</code></pre>
+	</div>
+
+	<h3>4. Define una función</h3>
+	<div class="deployment-option">
+		<p>En tu base de datos, crea un rol y una función. El comentario SQL de la función la documenta para los LLM.</p>
+		<pre><code>CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json LANGUAGE sql AS $$
+    SELECT '"Hello World"'::json;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3>5. Llamada</h3>
+	<div class="deployment-option">
+		<p>Tu endpoint de API está en vivo:</p>
+		<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+# → {"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+	</div>
+
+	<h3>6. Conecta un agente de IA (MCP)</h3>
+	<div class="deployment-option">
+		<p>Expón las mismas funciones a Claude Desktop o Cursor como herramientas mediante el endpoint MCP:</p>
+		<pre><code>POST http://localhost:8080/db/my_database/mcp</code></pre>
+		<p>Ver <a href="../mcp/">MCP (Model Context Protocol)</a> para instrucciones completas de conexión.</p>
+	</div>
+
+	<p>Eso es todo. Lee la guía <a href="../hello-world-example/">Hello World</a> para el flujo de autenticación JWT, o la <a href="../comparison/">comparación con PostgREST</a> para entender dónde encaja PgArachne.</p>
+</section>

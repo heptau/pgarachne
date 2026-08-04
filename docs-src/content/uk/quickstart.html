@@ -1,0 +1,76 @@
+---
+title: "Швидкий старт"
+description: "Швидкий старт - PgArachne за 60 секунд - PgArachne"
+menu:
+  main:
+    name: "Швидкий старт"
+    weight: 35
+---
+
+<section id="quickstart">
+	<h2>Швидкий старт</h2>
+	<p class="section-intro">
+		Запустіть робоче JSON-RPC API з вашої бази PostgreSQL менш ніж за хвилину.
+		Ваша база даних — це ваш бекенд: без фреймворку, без шаблонного коду.
+	</p>
+
+	<h3>1. Встановлення</h3>
+	<div class="deployment-option">
+		<h4>Завантажте бінарний файл</h4>
+		<pre><code># macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# або завантажте останній реліз для вашої ОС:
+#   https://github.com/heptau/pgarachne/releases/latest</code></pre>
+	</div>
+
+	<h3>2. Підготуйте базу даних</h3>
+	<div class="deployment-option">
+		<p>Створіть базу та завантажте схему PgArachne:</p>
+		<pre><code>createdb my_database
+psql -d my_database -f sql/schema.sql</code></pre>
+	</div>
+
+	<h3>3. Налаштуйте та запустіть</h3>
+	<div class="deployment-option">
+		<p>Створіть файл <code>pgarachne.env</code> (сервер знайде його в поточному каталозі):</p>
+		<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=$(openssl rand -hex 32)</code></pre>
+		<p>Запустіть сервер:</p>
+		<pre><code>./pgarachne</code></pre>
+	</div>
+
+	<h3>4. Визначте функцію</h3>
+	<div class="deployment-option">
+		<p>У вашій базі створіть роль і функцію. SQL-коментар функції документує її для LLM.</p>
+		<pre><code>CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json LANGUAGE sql AS $$
+    SELECT '"Hello World"'::json;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3>5. Викличте її</h3>
+	<div class="deployment-option">
+		<p>Ваш API endpoint працює:</p>
+		<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+# → {"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+	</div>
+
+	<h3>6. Підключіть AI-агента (MCP)</h3>
+	<div class="deployment-option">
+		<p>Надайте ті самі функції Claude Desktop або Cursor як інструменти через MCP endpoint:</p>
+		<pre><code>POST http://localhost:8080/db/my_database/mcp</code></pre>
+		<p>Повні інструкції з підключення: <a href="../mcp/">MCP (Model Context Protocol)</a>.</p>
+	</div>
+
+	<p>Ось і все. Прочитайте посібник <a href="../hello-world-example/">Hello World</a> для JWT-автентифікації або <a href="../comparison/">порівняння з PostgREST</a>, щоб зрозуміти, куди вписується PgArachne.</p>
+</section>

@@ -28,6 +28,7 @@
 	</script>
 
 	<link rel="canonical" href="{{ .Permalink }}">
+	<link rel="alternate" type="text/markdown" title="llms.txt" href="{{ if $is404 }}{{ "llms.txt" | absURL }}{{ else }}{{ "llms.txt" | relURL }}{{ end }}">
 	<link rel="alternate" hreflang="x-default" href="{{ .Permalink }}">
 	<link rel="alternate" hreflang="{{ .Site.Language.Lang }}" href="{{ .Permalink }}">
 	{{ range .Translations }}

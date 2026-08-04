@@ -6,8 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-
-	"github.com/heptau/pgarachne/internal/config"
 )
 
 // Sentinel errors returned by setupRequestTx. The JSON-RPC and MCP handlers
@@ -40,8 +38,11 @@ var (
 //     Skipped for direct auth (dbRole == ""), where the connection is already
 //     authenticated as the user.
 func (s *Server) setupRequestTx(ctx context.Context, tx *sql.Tx, dbRole, idempotencyKey string) error {
+	// set_config(name, value, is_local => true) is the function form of
+	// SET LOCAL, so the value travels as a bind parameter instead of being
+	// spliced into SQL text.
 	if _, err := tx.ExecContext(ctx,
-		fmt.Sprintf("SET LOCAL app.api_prefix = %s", config.QuoteConninfoValue(s.Cfg.APIPrefix)),
+		`SELECT set_config('app.api_prefix', $1, true)`, s.Cfg.APIPrefix,
 	); err != nil {
 		slog.Warn("Failed to SET LOCAL app.api_prefix", "value", s.Cfg.APIPrefix, "error", err)
 	}
@@ -59,11 +60,12 @@ func (s *Server) setupRequestTx(ctx context.Context, tx *sql.Tx, dbRole, idempot
 	}
 
 	if dbRole != "" {
-		// SET ROLE's target is a SQL identifier, not a value, so it can't be
-		// passed as a bind parameter — quoteRole() is the mitigation instead,
-		// doubling embedded quotes per the standard SQL identifier-quoting
-		// rule (ISO/IEC 9075), the same technique pq.QuoteIdentifier uses.
-		if _, err := tx.ExecContext(ctx, "SET LOCAL ROLE "+quoteRole(dbRole)); err != nil { // codeql[go/sql-injection] -- dbRole is quoted via quoteRole() above
+		// SET ROLE x is defined as SET role = 'x', so set_config('role', …,
+		// true) switches the role for the rest of this transaction exactly as
+		// SET LOCAL ROLE would — but with the role name bound as a parameter,
+		// which removes identifier quoting from the picture entirely. The
+		// server-side privilege check on the target role is unchanged.
+		if _, err := tx.ExecContext(ctx, `SELECT set_config('role', $1, true)`, dbRole); err != nil {
 			return fmt.Errorf("%w: %v", errSetRoleFailed, err)
 		}
 	}

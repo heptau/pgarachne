@@ -9,10 +9,19 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Security
 
+- `internal/server`: role switching no longer builds SQL text at all. `SET LOCAL ROLE "<role>"` (string-concatenated, with the role name quoted as an identifier) was replaced by `SELECT set_config('role', $1, true)`, the function form of `SET LOCAL`, so the role name travels as a bind parameter. Same transaction-local scope, same server-side privilege check on the target role, no identifier-quoting layer to get wrong. The `SET LOCAL app.api_prefix` statement was converted the same way.
+- `internal/server`: static file serving (`STATIC_FILES_PATH`) now resolves every request through an `os.Root` pinned to the configured directory at startup, instead of joining the request path and then checking the result lexically. `os.Root` resolves each path component against the root in the kernel, so a symlink inside the served tree that points elsewhere on disk is refused too — the previous string-based containment check could not see symlinks. Missing 404.html handling also returns a real HTTP 404 now; it was answering 200 because `http.ServeContent` overwrote the status gin had staged.
+- Docs site: search result links are rebuilt as `"/" + <path>` from index entries that must start with exactly one slash, replacing the URL-scheme denylist added in 2.0.2. Entries of any other shape are dropped rather than rendered with a neutered `href`, so a corrupted or tampered search index can introduce neither a scheme (`javascript:`, `data:`) nor an authority (`//evil.example`).
 - CI: `actions/setup-go` was pinned to the exact patch `1.25.0`, so `govulncheck` was permanently checking the module's own code against a Go standard library build with 23 known, since-patched CVEs (`crypto/tls`, `crypto/x509`, `net`, `net/url`, `net/mail`, `net/textproto`, `os`, `html/template`, `encoding/asn1`, `encoding/pem`) instead of the latest 1.25.x release that actually fixes them. Changed to the floating minor `'1.25'`, which `setup-go` always resolves to the newest available patch.
 - `cmd/pgarachne`: the log file was opened with `0644` permissions (world-readable); changed to `0600` (gosec G302).
 - `internal/daemon`: the PID directory was created with `0755` permissions (world-readable/executable); changed to `0750` (gosec G301).
 - `.golangci.yml`: removed the `legacy` exclusion preset, which was silently suppressing gosec's file/directory permission checks (G301/G302/G307) project-wide — the two issues above had been masked by it. Remaining gosec suppressions are now explicit `//nolint` comments with a stated reason (e.g. `internal/daemon/daemon_unix.go`, for PID-file paths that are operator-, not attacker-, controlled).
+
+### Added
+
+- Docs site: a **Quick Start** page (all 10 languages) that takes a reader from install to a working JSON-RPC endpoint in one pass, without detouring through the full Installation and Configuration references. The homepage's primary call-to-action now points there instead of at Installation.
+- Docs site: `llms.txt` is now discoverable rather than just present — linked from the homepage feature grid, the MCP page, the README, and advertised in every page's `<head>` via `<link rel="alternate" type="text/markdown">`, so LLM crawlers find the machine-readable index without being told where to look. The Quick Start page was added to the `llms.txt` index itself.
+- Docs site: the MCP security section now documents `MCP_SQL_ERROR_DETAIL`, including the trade-off — raw PostgreSQL error text helps LLM agents self-correct, but exposes schema details to authenticated callers.
 
 ### Fixed
 

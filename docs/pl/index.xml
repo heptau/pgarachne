@@ -481,7 +481,33 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 &lt;li&gt;&lt;strong&gt;Trwałe ustawienia&lt;/strong&gt; — URL API, prefiks, baza danych, dane logowania oraz lista kanałów są zapisywane w &lt;code&gt;localStorage&lt;/code&gt;.&lt;/li&gt;
 &lt;/ul&gt;
 &lt;h3&gt;Uwierzytelnianie&lt;/h3&gt;
-&lt;p&gt;Narzędzie weryfikuje dane logowania przed odblokowaniem panelu subskrypcji. Kliknięcie &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; wywołuje &lt;code&gt;capabilities&lt;/code&gt; z wybranym nagłówkiem — jeśli PgArachne zwróci poprawną odpowiedź, panel subskrypcji zostaje odblokowany.&lt;/p&gt;</description></item><item><title>Wdrożenie i HTTPS</title><link>https://www.pgarachne.com/pl/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pl/deployment-https/</guid><description>&lt;section id="deployment"&gt;
+&lt;p&gt;Narzędzie weryfikuje dane logowania przed odblokowaniem panelu subskrypcji. Kliknięcie &lt;strong&gt;Verify &amp;amp; Continue&lt;/strong&gt; wywołuje &lt;code&gt;capabilities&lt;/code&gt; z wybranym nagłówkiem — jeśli PgArachne zwróci poprawną odpowiedź, panel subskrypcji zostaje odblokowany.&lt;/p&gt;</description></item><item><title>Szybki start</title><link>https://www.pgarachne.com/pl/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pl/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Szybki start&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Uruchom działające API JSON-RPC z bazy PostgreSQL w mniej niż minutę.
+		Twoja baza danych jest twoim backendem — bez frameworka, bez boilerplate.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Instalacja&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Pobierz binarkę&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# lub pobierz najnowsze wydanie dla swojego systemu:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Przygotuj bazę danych&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Utwórz bazę i załaduj schemat PgArachne:&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;createdb my_database
+psql -d my_database -f sql/schema.sql&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;3. Skonfiguruj i uruchom&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Utwórz plik &lt;code&gt;pgarachne.env&lt;/code&gt; (serwer znajdzie go w bieżącym katalogu):&lt;/p&gt;</description></item><item><title>Wdrożenie i HTTPS</title><link>https://www.pgarachne.com/pl/deployment-https/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/pl/deployment-https/</guid><description>&lt;section id="deployment"&gt;
 	&lt;h2&gt;Wdrożenie i HTTPS&lt;/h2&gt;
 	&lt;p&gt;PgArachne jest zaprojektowany tak, aby dobrze wykonywać jedno zadanie: API Gateway. Dla SSL/TLS (HTTPS), bezpieczeństwa
 		nagłówków i publicznego routingu, powinieneś umieścić przed nim &lt;strong&gt;Reverse Proxy&lt;/strong&gt;.&lt;/p&gt;

@@ -371,7 +371,33 @@ NOTIFY orders, '{"id":123,"status":"created"}';
 		Sessions zugestellt. Wenn Sie es innerhalb einer offenen Transaktion in &lt;code&gt;psql&lt;/code&gt; ausführen,
 		erhalten Abonnenten die Nachricht erst nach &lt;code&gt;COMMIT&lt;/code&gt;.
 	&lt;/div&gt;
-&lt;/section&gt;</description></item><item><title>Sicherheit &amp; Authentifizierung</title><link>https://www.pgarachne.com/de/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/security-roles/</guid><description>&lt;section id="security"&gt;
+&lt;/section&gt;</description></item><item><title>Schnellstart</title><link>https://www.pgarachne.com/de/quickstart/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/quickstart/</guid><description>&lt;section id="quickstart"&gt;
+	&lt;h2&gt;Schnellstart&lt;/h2&gt;
+	&lt;p class="section-intro"&gt;
+		Erhalten Sie in weniger als einer Minute eine laufende JSON-RPC-API aus Ihrer PostgreSQL-Datenbank.
+		Ihre Datenbank ist Ihr Backend — ohne Framework, ohne Boilerplate.
+	&lt;/p&gt;
+
+	&lt;h3&gt;1. Installieren&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;h4&gt;Binärdatei herunterladen&lt;/h4&gt;
+		&lt;pre&gt;&lt;code&gt;# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# oder laden Sie das neueste Release für Ihr OS herunter:
+# https://github.com/heptau/pgarachne/releases/latest&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;2. Datenbank einrichten&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Erstellen Sie eine Datenbank und laden Sie das PgArachne-Schema:&lt;/p&gt;
+		&lt;pre&gt;&lt;code&gt;createdb my_database
+psql -d my_database -f sql/schema.sql&lt;/code&gt;&lt;/pre&gt;
+	&lt;/div&gt;
+
+	&lt;h3&gt;3. Konfigurieren und starten&lt;/h3&gt;
+	&lt;div class="deployment-option"&gt;
+		&lt;p&gt;Erstellen Sie eine &lt;code&gt;pgarachne.env&lt;/code&gt;-Datei (der Server findet sie im aktuellen Verzeichnis):&lt;/p&gt;</description></item><item><title>Sicherheit &amp; Authentifizierung</title><link>https://www.pgarachne.com/de/security-roles/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://www.pgarachne.com/de/security-roles/</guid><description>&lt;section id="security"&gt;
 	&lt;h2&gt;Sicherheit &amp; Authentifizierung&lt;/h2&gt;
 	&lt;p&gt;PgArachne verlässt sich vollständig auf das PostgreSQL-Berechtigungssystem. Es erfindet keine Access Control Lists (ACLs) neu.
 		PgArachne unterstützt &lt;strong&gt;vier Authentifizierungsmethoden&lt;/strong&gt;. Die Methoden 1–3 verwenden

@@ -60,16 +60,16 @@
 	}
 
 	// The search index is same-origin static JSON, but treat entries as
-	// untrusted before writing them into href — reject any URL scheme
-	// (javascript:, data:, ...) or protocol-relative URL, so a corrupted or
-	// tampered index can't smuggle script execution into the DOM.
-	function isSafeRelativeUrl(url) {
-		return (
-			typeof url === "string" &&
-			url !== "" &&
-			!url.startsWith("//") &&
-			!/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(url)
-		);
+	// untrusted before writing them into href. Index URLs are Hugo
+	// RelPermalinks, i.e. always a single leading slash followed by a path on
+	// this origin. Entries of any other shape are dropped, and the href is
+	// rebuilt from a literal "/" plus the remainder — which cannot itself start
+	// with a slash. So a corrupted or tampered index can introduce neither a
+	// scheme ("javascript:", "data:") nor an authority ("//evil.example").
+	// Returns null when the entry is unusable.
+	function safeSiteUrl(url) {
+		if (typeof url !== "string" || !/^\/[^/]/.test(url)) return null;
+		return "/" + url.slice(1);
 	}
 
 	function addCopyButtons(texts) {
@@ -154,10 +154,12 @@
 			matches.forEach(function (m) {
 				var item = m.item;
 				var desc = item.desc || "";
+				var href = safeSiteUrl(item.url);
+				if (!href) return;
 
 				var a = document.createElement("a");
 				a.className = "search-item";
-				a.href = isSafeRelativeUrl(item.url) ? item.url : "#";
+				a.href = href;
 
 				var titleDiv = document.createElement("div");
 				titleDiv.className = "search-item-title";

@@ -6,6 +6,7 @@ PgArachne is a production-grade, single-binary backend gateway written in Go. It
 
 ## Docs
 
+- [Quick Start](https://www.pgarachne.com/en/quickstart/): Get a running JSON-RPC API in under a minute.
 - [About & Architecture](https://www.pgarachne.com/en/about-architecture/): Project overview and how the JSON-RPC gateway is built.
 - [Architectural Decisions](https://www.pgarachne.com/en/architectural-decisions/): Why JSON-RPC, SSE, Go, and PostgreSQL functions were chosen over alternatives.
 - [Installation](https://www.pgarachne.com/en/installation/): Download prebuilt binaries or build from source.
