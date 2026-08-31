@@ -21,10 +21,10 @@ jobs:
         uses: actions/setup-go@v7
         with:
           # Floating minor version (not an exact patch pin): setup-go always
-          # resolves this to the latest 1.25.x release, so we automatically
+          # resolves this to the latest 1.26.x release, so we automatically
           # pick up upstream stdlib security fixes instead of being stuck on
           # whatever patch was current when this line was last edited.
-          go-version: '1.25'
+          go-version: '1.26'
           cache: true
 
       - name: Show Go toolchain info
@@ -50,10 +50,10 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           # golangci-lint v2 (config format is v2 — see .golangci.yml).
-          # Must be built with a Go version >= the go.mod `go` directive (1.25.0),
+          # Must be built with a Go version >= the go.mod `go` directive (1.26.0),
           # otherwise golangci-lint refuses to run ("Go language version ... is
           # lower than the targeted Go version").
-          version: v2.12.2
+          version: v2.13.2
 
       - name: Run govulncheck
         run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
@@ -76,7 +76,7 @@ jobs:
         # CODECOV_TOKEN is configured in repository secrets. If the secret
         # is missing, the step is skipped so the workflow still passes.
         continue-on-error: true
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           files: ./coverage.out
           flags: unittests
