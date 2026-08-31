@@ -140,15 +140,15 @@ menu:
 		<h4>Por que traduzir MCP no servidor:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Sem alterações nas funções existentes:</strong> Qualquer função já exposta via JSON-RPC fica instantaneamente disponível como tool MCP. Sem alterações SQL.</li>
-			<li><strong>MCP é mais do que apenas tools:</strong> O protocolo inclui o handshake de inicialização, ping, notificações e extensões futuras — preocupações de nível de protocolo que pertencem ao Go.</li>
+			<li><strong>MCP é mais do que apenas tools:</strong> O protocolo inclui um método de descoberta (<code>server/discover</code>), metadados de versão do protocolo e de capacidades em cada requisição, notificações e extensões (resources, prompts) além de simples chamadas de tools — preocupações de nível de protocolo que pertencem ao Go.</li>
 			<li><strong>A segurança permanece em um único lugar:</strong> Autenticação, troca de papel e validação já estão implementados em Go. O endpoint MCP reutiliza essa lógica sem alterações.</li>
 			<li><strong>Múltiplos protocolos, um backend:</strong> A mesma função PostgreSQL pode ser chamada via JSON-RPC, MCP ou SSE. O banco de dados é agnóstico ao protocolo.</li>
-			<li><strong>SQL mais simples:</strong> Processar envelopes MCP (<code>initialize</code>, <code>tools/list</code>, tratamento de notificações) em PostgreSQL exigiria analisar estruturas JSON complexas em PL/pgSQL, tornando as funções mais difíceis de escrever, testar e manter.</li>
+			<li><strong>SQL mais simples:</strong> Processar envelopes MCP (<code>server/discover</code>, <code>tools/list</code>, tratamento de notificações) em PostgreSQL exigiria analisar estruturas JSON complexas em PL/pgSQL, tornando as funções mais difíceis de escrever, testar e manter.</li>
 		</ul>
 
 		<h4>Por que não levar MCP ao banco de dados:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>O handshake MCP não requer o banco de dados:</strong> <code>initialize</code> e <code>ping</code> são mensagens de protocolo puras. Abrir uma conexão para elas desperdiça recursos.</li>
+			<li><strong>A validação de transporte MCP não requer o banco de dados:</strong> <code>server/discover</code> e as verificações de versão de protocolo/cabeçalhos em cada requisição são mensagens de protocolo puras. Abrir uma conexão para elas desperdiça recursos.</li>
 			<li><strong>SQL é a ferramenta inadequada para lógica de protocolo:</strong> Códigos de erro JSON-RPC, roteamento de notificações e gerenciamento de chaves de idempotência são preocupações de middleware, não de dados.</li>
 		</ul>
 	</div>

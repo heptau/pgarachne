@@ -25,10 +25,64 @@ func (e *testEnv) mcpURL() string {
 	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/mcp"
 }
 
+// mcpInjectMeta fills in the params._meta fields protocol version 2026-07-28
+// requires on every non-notification request (protocolVersion and
+// clientCapabilities), unless the test already set them. This keeps
+// individual test bodies focused on the method-specific params they care
+// about instead of repeating transport boilerplate everywhere.
+func mcpInjectMeta(rpcReq map[string]interface{}) {
+	method, ok := rpcReq["method"].(string)
+	if !ok || strings.HasPrefix(method, "notifications/") {
+		return
+	}
+	params, ok := rpcReq["params"].(map[string]interface{})
+	if !ok {
+		params = map[string]interface{}{}
+		rpcReq["params"] = params
+	}
+	meta, ok := params["_meta"].(map[string]interface{})
+	if !ok {
+		meta = map[string]interface{}{}
+		params["_meta"] = meta
+	}
+	if _, ok := meta[mcpMetaProtocolVersion]; !ok {
+		meta[mcpMetaProtocolVersion] = mcpProtocolVersion
+	}
+	if _, ok := meta[mcpMetaClientCapabilities]; !ok {
+		meta[mcpMetaClientCapabilities] = map[string]interface{}{}
+	}
+}
+
+// mcpNameHeaderValue returns the value the Mcp-Name header must carry for
+// name/uri-addressed methods, or "" if the method does not require one.
+func mcpNameHeaderValue(rpcReq map[string]interface{}) string {
+	method, _ := rpcReq["method"].(string)
+	if !requiresNameHeader(method) {
+		return ""
+	}
+	params, ok := rpcReq["params"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	key := "name"
+	if method == "resources/read" {
+		key = "uri"
+	}
+	v, _ := params[key].(string)
+	return v
+}
+
 // mcpDo sends a JSON-RPC 2.0 request to the MCP endpoint and returns the
 // raw HTTP response. The caller is responsible for closing resp.Body.
+//
+// It fills in the params._meta protocol fields and the standard
+// MCP-Protocol-Version / Mcp-Method / Mcp-Name headers a compliant
+// 2026-07-28 client must send, so individual tests only need to supply the
+// method-specific parts of the request. Tests that specifically exercise
+// malformed envelopes or missing headers build the request by hand instead.
 func mcpDo(t *testing.T, serverURL, token string, rpcReq map[string]interface{}) *http.Response {
 	t.Helper()
+	mcpInjectMeta(rpcReq)
 	body, err := json.Marshal(rpcReq)
 	if err != nil {
 		t.Fatalf("mcpDo: marshal: %v", err)
@@ -38,6 +92,13 @@ func mcpDo(t *testing.T, serverURL, token string, rpcReq map[string]interface{})
 		t.Fatalf("mcpDo: new request: %v", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	if method, ok := rpcReq["method"].(string); ok && !strings.HasPrefix(method, "notifications/") {
+		req.Header.Set("MCP-Protocol-Version", mcpProtocolVersion)
+		req.Header.Set("Mcp-Method", method)
+		if name := mcpNameHeaderValue(rpcReq); name != "" {
+			req.Header.Set("Mcp-Name", name)
+		}
+	}
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
 	}
@@ -94,19 +155,14 @@ func newProtocolTestServer(t *testing.T) *httptest.Server {
 // set PGARACHNE_TEST_DB=1 and therefore do not skip.
 // ---------------------------------------------------------------------------
 
-func TestMCPInitializeReturnsCapabilities(t *testing.T) {
+func TestMCPServerDiscoverReturnsCapabilities(t *testing.T) {
 	ts := newProtocolTestServer(t)
 	defer ts.Close()
 
 	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      1,
-		"method":  "initialize",
-		"params": map[string]interface{}{
-			"protocolVersion": "2024-11-05",
-			"capabilities":    map[string]interface{}{},
-			"clientInfo":      map[string]interface{}{"name": "test", "version": "0"},
-		},
+		"method":  "server/discover",
 	})
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
@@ -123,15 +179,29 @@ func TestMCPInitializeReturnsCapabilities(t *testing.T) {
 		t.Fatalf("result missing or not an object: %v", out["result"])
 	}
 
-	// Protocol version must be advertised.
-	if result["protocolVersion"] != mcpProtocolVersion {
-		t.Fatalf("protocolVersion = %v, want %v", result["protocolVersion"], mcpProtocolVersion)
+	if result["resultType"] != "complete" {
+		t.Fatalf("resultType = %v, want complete", result["resultType"])
 	}
 
-	// Server info must be present.
-	si, ok := result["serverInfo"].(map[string]interface{})
+	// Supported protocol versions must be advertised.
+	versions, ok := result["supportedVersions"].([]interface{})
+	if !ok || len(versions) == 0 || versions[0] != mcpProtocolVersion {
+		t.Fatalf("supportedVersions = %v, want [%v]", result["supportedVersions"], mcpProtocolVersion)
+	}
+
+	// Server info must be present under _meta.
+	meta, ok := result["_meta"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("_meta missing: %v", result["_meta"])
+	}
+	si, ok := meta[mcpMetaServerInfo].(map[string]interface{})
 	if !ok || si["name"] == nil {
-		t.Fatalf("serverInfo missing or incomplete: %v", result["serverInfo"])
+		t.Fatalf("serverInfo missing or incomplete: %v", meta[mcpMetaServerInfo])
+	}
+
+	// This is a CacheableResult.
+	if result["ttlMs"] == nil || result["cacheScope"] == nil {
+		t.Fatalf("cache hints missing: ttlMs=%v cacheScope=%v", result["ttlMs"], result["cacheScope"])
 	}
 
 	// Capabilities must advertise tools, resources, and prompts.
@@ -146,8 +216,8 @@ func TestMCPInitializeReturnsCapabilities(t *testing.T) {
 	}
 }
 
-func TestMCPInitializeNoAuthRequired(t *testing.T) {
-	// initialize must work without an Authorization header.
+func TestMCPServerDiscoverNoAuthRequired(t *testing.T) {
+	// server/discover must work without an Authorization header.
 	ts := newProtocolTestServer(t)
 	defer ts.Close()
 
@@ -155,36 +225,12 @@ func TestMCPInitializeNoAuthRequired(t *testing.T) {
 	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      2,
-		"method":  "initialize",
-		"params":  map[string]interface{}{},
+		"method":  "server/discover",
 	})
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, want 200", resp.StatusCode)
-	}
-}
-
-func TestMCPPingReturnsEmptyResult(t *testing.T) {
-	ts := newProtocolTestServer(t)
-	defer ts.Close()
-
-	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
-		"jsonrpc": "2.0",
-		"id":      3,
-		"method":  "ping",
-	})
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want 200", resp.StatusCode)
-	}
-
-	out := decodeMCPResponse(t, resp)
-	if out["error"] != nil {
-		t.Fatalf("unexpected error: %v", out["error"])
-	}
-	// result must be present (empty object is fine).
-	if _, ok := out["result"]; !ok {
-		t.Fatalf("result key missing from ping response")
 	}
 }
 
@@ -228,7 +274,7 @@ func TestMCPRequestWithNullIDGetsResponse(t *testing.T) {
 	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      nil,
-		"method":  "ping",
+		"method":  "server/discover",
 	})
 	defer resp.Body.Close()
 
@@ -301,18 +347,14 @@ func TestMCPParseError(t *testing.T) {
 }
 
 func TestMCPUnknownMethodReturnsMethodNotFound(t *testing.T) {
-	// An unknown method that needs auth will fail at auth before reaching the
-	// method-not-found check. We test with a database-name that won't connect,
-	// but first we need to hit the auth rejection. Instead, we can check the
-	// method-not-found error by bypassing auth via a method that goes past the
-	// unauthenticated block — but in the protocol server there's no real DB.
-	// So we test initialize first to confirm method-not-found is returned for
-	// unknown *unauthenticated* methods (they still reach the dispatch after
-	// failing auth, producing mcpErrAuth, not mcpErrMethod). We test the
-	// method-not-found path via the DB integration tests below.
-	//
-	// This test confirms that a totally unknown unauthenticated method hits the
-	// auth gate and returns mcpErrAuth (not a panic or 500).
+	// An unknown method still needs auth: it isn't "server/discover", so it
+	// falls through to the auth gate before method dispatch ever runs. With no
+	// real database behind this protocol-only test server, that gate fails
+	// either while connecting (503) or, if a connection is somehow obtained,
+	// on the missing Authorization header (401) — either way this confirms an
+	// unrecognized method doesn't panic or 500 before reaching it. The actual
+	// method-not-found path (mcpErrMethod, HTTP 404) is exercised against a
+	// real authenticated connection in TestMCPUnknownMethodAfterAuth.
 	ts := newProtocolTestServer(t)
 	defer ts.Close()
 
@@ -321,9 +363,10 @@ func TestMCPUnknownMethodReturnsMethodNotFound(t *testing.T) {
 		"id":      6,
 		"method":  "nonexistent/method",
 	})
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusServiceUnavailable {
-		resp.Body.Close()
-		t.Fatalf("status = %d, want 200 or 503", resp.StatusCode)
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusServiceUnavailable && resp.StatusCode != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want 503 or 401", resp.StatusCode)
 	}
 
 	out := decodeMCPResponse(t, resp)
@@ -340,12 +383,237 @@ func TestMCPIDPreservedInErrorResponse(t *testing.T) {
 	resp := mcpDo(t, ts.URL+"/db/mydb/mcp", "", map[string]interface{}{
 		"jsonrpc": "1.0", // invalid version — will error
 		"id":      requestID,
-		"method":  "initialize",
+		"method":  "server/discover",
 	})
 
 	out := decodeMCPResponse(t, resp)
 	if out["id"] != requestID {
 		t.Fatalf("id = %v, want %v", out["id"], requestID)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Transport validation tests (protocol version 2026-07-28) — no database
+// required. These exercise the per-request _meta and Mcp-* header checks
+// introduced by the stateless, handshake-free protocol revision.
+// ---------------------------------------------------------------------------
+
+func TestMCPMissingMetaReturnsInvalidParams(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	// Bypass mcpDo's auto-injection to send a request with no params._meta at all.
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "server/discover",
+	})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("MCP-Protocol-Version", mcpProtocolVersion)
+	req.Header.Set("Mcp-Method", "server/discover")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	mcpErr, ok := out["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error, got: %v", out)
+	}
+	if code := mcpErr["code"].(float64); code != mcpErrParams {
+		t.Fatalf("error.code = %v, want %v (Invalid params)", code, mcpErrParams)
+	}
+}
+
+func TestMCPMissingProtocolVersionHeaderReturnsHeaderMismatch(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "server/discover",
+		"params": map[string]interface{}{
+			"_meta": map[string]interface{}{
+				mcpMetaProtocolVersion:    mcpProtocolVersion,
+				mcpMetaClientCapabilities: map[string]interface{}{},
+			},
+		},
+	})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Mcp-Method", "server/discover")
+	// MCP-Protocol-Version header intentionally omitted.
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	mcpErr, ok := out["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error, got: %v", out)
+	}
+	if code := mcpErr["code"].(float64); code != mcpErrHeaderMismatch {
+		t.Fatalf("error.code = %v, want %v (HeaderMismatch)", code, mcpErrHeaderMismatch)
+	}
+}
+
+func TestMCPProtocolVersionHeaderBodyMismatchReturnsHeaderMismatch(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "server/discover",
+		"params": map[string]interface{}{
+			"_meta": map[string]interface{}{
+				mcpMetaProtocolVersion:    mcpProtocolVersion,
+				mcpMetaClientCapabilities: map[string]interface{}{},
+			},
+		},
+	})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("MCP-Protocol-Version", "2025-11-25") // disagrees with the body
+	req.Header.Set("Mcp-Method", "server/discover")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	mcpErr, ok := out["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error, got: %v", out)
+	}
+	if code := mcpErr["code"].(float64); code != mcpErrHeaderMismatch {
+		t.Fatalf("error.code = %v, want %v (HeaderMismatch)", code, mcpErrHeaderMismatch)
+	}
+}
+
+func TestMCPUnsupportedProtocolVersionReturnsError(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "server/discover",
+		"params": map[string]interface{}{
+			"_meta": map[string]interface{}{
+				mcpMetaProtocolVersion:    "1900-01-01",
+				mcpMetaClientCapabilities: map[string]interface{}{},
+			},
+		},
+	})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("MCP-Protocol-Version", "1900-01-01")
+	req.Header.Set("Mcp-Method", "server/discover")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	mcpErr, ok := out["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error, got: %v", out)
+	}
+	if code := mcpErr["code"].(float64); code != mcpErrUnsupportedVersion {
+		t.Fatalf("error.code = %v, want %v (UnsupportedProtocolVersion)", code, mcpErrUnsupportedVersion)
+	}
+	data, ok := mcpErr["data"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error.data with supported versions, got: %v", mcpErr["data"])
+	}
+	if data["requested"] != "1900-01-01" {
+		t.Fatalf("data.requested = %v, want 1900-01-01", data["requested"])
+	}
+}
+
+func TestMCPMissingMcpMethodHeaderReturnsHeaderMismatch(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	body, _ := json.Marshal(map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "server/discover",
+		"params": map[string]interface{}{
+			"_meta": map[string]interface{}{
+				mcpMetaProtocolVersion:    mcpProtocolVersion,
+				mcpMetaClientCapabilities: map[string]interface{}{},
+			},
+		},
+	})
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/db/mydb/mcp", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("MCP-Protocol-Version", mcpProtocolVersion)
+	// Mcp-Method header intentionally omitted.
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
+
+	out := decodeMCPResponse(t, resp)
+	mcpErr, ok := out["error"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected error, got: %v", out)
+	}
+	if code := mcpErr["code"].(float64); code != mcpErrHeaderMismatch {
+		t.Fatalf("error.code = %v, want %v (HeaderMismatch)", code, mcpErrHeaderMismatch)
+	}
+}
+
+func TestMCPGetAndDeleteReturn405(t *testing.T) {
+	ts := newProtocolTestServer(t)
+	defer ts.Close()
+
+	for _, method := range []string{http.MethodGet, http.MethodDelete} {
+		req, _ := http.NewRequest(method, ts.URL+"/db/mydb/mcp", nil)
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatalf("%s request failed: %v", method, err)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusMethodNotAllowed {
+			t.Fatalf("%s status = %d, want 405", method, resp.StatusCode)
+		}
 	}
 }
 
@@ -575,7 +843,9 @@ func TestMCPToolsCallInvalidToolName(t *testing.T) {
 }
 
 // TestMCPToolsCallMissingParamsReturnsError verifies that tools/call without
-// params returns a params error.
+// a tool name is rejected. Since a name is required to fill the Mcp-Name
+// header, this is now caught by header validation (HeaderMismatch) before
+// the request ever reaches the tools/call handler's own params check.
 func TestMCPToolsCallMissingParamsReturnsError(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
@@ -589,16 +859,21 @@ func TestMCPToolsCallMissingParamsReturnsError(t *testing.T) {
 		"jsonrpc": "2.0",
 		"id":      1,
 		"method":  "tools/call",
-		// no params
+		// no params, so no tool name to send in Mcp-Name.
 	})
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", resp.StatusCode)
+	}
 
 	out := decodeMCPResponse(t, resp)
 	mcpErr, ok := out["error"].(map[string]interface{})
 	if !ok {
 		t.Fatalf("expected error, got: %v", out)
 	}
-	if code := mcpErr["code"].(float64); code != mcpErrParams {
-		t.Fatalf("error.code = %v, want %v (Invalid params)", code, mcpErrParams)
+	if code := mcpErr["code"].(float64); code != mcpErrHeaderMismatch {
+		t.Fatalf("error.code = %v, want %v (HeaderMismatch)", code, mcpErrHeaderMismatch)
 	}
 }
 
@@ -665,6 +940,11 @@ func TestMCPUnknownMethodAfterAuth(t *testing.T) {
 		"method":  "totally/unknown",
 		"params":  map[string]interface{}{},
 	})
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", resp.StatusCode)
+	}
 
 	out := decodeMCPResponse(t, resp)
 	mcpErr, ok := out["error"].(map[string]interface{})

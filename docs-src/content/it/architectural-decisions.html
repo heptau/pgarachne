@@ -140,15 +140,15 @@ menu:
 		<h4>Perché tradurre MCP sul server:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Nessuna modifica alle funzioni esistenti:</strong> Qualsiasi funzione già esposta via JSON-RPC è immediatamente disponibile come tool MCP. Nessuna modifica SQL.</li>
-			<li><strong>MCP è più che soli tool:</strong> Il protocollo include l'handshake di inizializzazione, ping, notifiche ed estensioni future — preoccupazioni a livello di protocollo che appartengono a Go.</li>
+			<li><strong>MCP è più che soli tool:</strong> Il protocollo include un metodo di discovery (<code>server/discover</code>), metadati di versione del protocollo e delle capability su ogni richiesta, notifiche ed estensioni (resources, prompts) oltre alle semplici chiamate ai tool — preoccupazioni a livello di protocollo che appartengono a Go.</li>
 			<li><strong>La sicurezza rimane in un unico posto:</strong> Autenticazione, cambio di ruolo e validazione sono già implementati in Go. L'endpoint MCP riutilizza questa logica invariata.</li>
 			<li><strong>Più protocolli, un backend:</strong> La stessa funzione PostgreSQL può essere chiamata via JSON-RPC, MCP o SSE. Il database è agnostico al protocollo.</li>
-			<li><strong>SQL più semplice:</strong> Elaborare gli envelope MCP (<code>initialize</code>, <code>tools/list</code>, gestione delle notifiche) in PostgreSQL richiederebbe il parsing di strutture JSON complesse in PL/pgSQL, rendendo le funzioni più difficili da scrivere, testare e mantenere.</li>
+			<li><strong>SQL più semplice:</strong> Elaborare gli envelope MCP (<code>server/discover</code>, <code>tools/list</code>, gestione delle notifiche) in PostgreSQL richiederebbe il parsing di strutture JSON complesse in PL/pgSQL, rendendo le funzioni più difficili da scrivere, testare e mantenere.</li>
 		</ul>
 
 		<h4>Perché non portare MCP nel database:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>L'handshake MCP non necessita del database:</strong> <code>initialize</code> e <code>ping</code> sono messaggi di protocollo puri. Aprire una connessione per essi spreca risorse.</li>
+			<li><strong>La validazione del transport MCP non necessita del database:</strong> <code>server/discover</code> e i controlli di versione del protocollo/header su ogni richiesta sono messaggi di protocollo puri. Aprire una connessione per essi spreca risorse.</li>
 			<li><strong>SQL è lo strumento sbagliato per la logica di protocollo:</strong> Codici di errore JSON-RPC, routing delle notifiche e gestione delle chiavi di idempotenza sono preoccupazioni di tipo middleware, non dati.</li>
 		</ul>
 	</div>

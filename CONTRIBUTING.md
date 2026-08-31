@@ -30,7 +30,8 @@ Thanks for contributing.
 - The SSE endpoint is `GET /{prefix}/:database/sse` with required
   `channels=...` query.
 - The MCP endpoint is `POST /{prefix}/:database/mcp` (Streamable HTTP
-  transport, protocol version `2024-11-05`).
+  transport, protocol version `2026-07-28` — stateless, no `initialize`
+  handshake).
 - Authentication is the same Bearer token model across all three endpoints
   (JWT issued by `get_jwt`, or long-lived API token).
 - `make release-local` builds and verifies release artifacts locally (no git, no push). `make release` runs that, then tags, pushes, creates the GitHub release, and updates the Homebrew tap — see `scripts/publish_release.sh`.

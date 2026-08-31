@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,9 +16,45 @@ import (
 	"github.com/heptau/pgarachne/internal/version"
 )
 
-// mcpProtocolVersion is the MCP protocol version this server advertises.
-// 2024-11-05 is the most widely supported version across clients.
-const mcpProtocolVersion = "2024-11-05"
+// mcpProtocolVersion is the MCP protocol version this server implements.
+// PgArachne targets the stateless, per-request protocol introduced in
+// 2026-07-28 exclusively — there is no dual-era support for the older
+// initialize-handshake versions (2025-11-25 and earlier).
+const mcpProtocolVersion = "2026-07-28"
+
+const mcpServerName = "PgArachne"
+
+// Well-known _meta keys defined by the MCP specification. Every request
+// carries protocolVersion + clientCapabilities; every result should carry
+// serverInfo.
+const (
+	mcpMetaProtocolVersion    = "io.modelcontextprotocol/protocolVersion"
+	mcpMetaClientCapabilities = "io.modelcontextprotocol/clientCapabilities"
+	mcpMetaClientInfo         = "io.modelcontextprotocol/clientInfo"
+	mcpMetaServerInfo         = "io.modelcontextprotocol/serverInfo"
+)
+
+// resultType values. PgArachne never needs additional client input mid-call
+// (no sampling/elicitation/roots), so every result it returns is "complete".
+const mcpResultTypeComplete = "complete"
+
+// cacheScope values for CacheableResult fields.
+const (
+	mcpCacheScopePublic  = "public"
+	mcpCacheScopePrivate = "private"
+)
+
+// Freshness hints (ttlMs) for cacheable results. resources/read returns live
+// table data, so it is not cacheable at all. The others vary by the
+// authenticated role's grants, so they are scoped "private" rather than
+// "public" even though they are given a TTL.
+const (
+	mcpDiscoverTTLMs      = 3_600_000 // 1 hour — static server identity/capabilities
+	mcpToolsListTTLMs     = 60_000    // 1 minute
+	mcpResourcesListTTLMs = 60_000    // 1 minute
+	mcpResourcesReadTTLMs = 0         // live data, do not cache
+	mcpPromptsListTTLMs   = 300_000   // 5 minutes
+)
 
 // JSON-RPC 2.0 error codes mandated by the MCP specification.
 const (
@@ -26,21 +63,39 @@ const (
 	mcpErrMethod   = -32601 // Method not found
 	mcpErrParams   = -32602 // Invalid method parameters
 	mcpErrInternal = -32603 // Internal JSON-RPC error
-	mcpErrAuth     = -32001 // Authentication / authorisation failure (server-defined)
+
+	// mcpErrAuth is allocated from the legacy implementation-defined range
+	// (-32000 to -32019), which the 2026-07-28 spec grandfathers for
+	// implementations that allocated codes before the range was formalised.
+	mcpErrAuth = -32001 // Authentication / authorisation failure (server-defined)
+
+	// Codes below are allocated by the MCP specification itself, from the
+	// range it reserves (-32020 to -32099).
+	mcpErrHeaderMismatch     = -32020 // Mcp-* headers disagree with the request body
+	mcpErrUnsupportedVersion = -32022 // Requested protocolVersion is not supported
 )
 
 // mcpDatabaseMethods maps MCP protocol method names to their pgarachne SQL
-// backing functions. Each function accepts a jsonb params argument and returns
-// json shaped according to the MCP specification for that method.
+// backing functions, plus the CacheableResult hints each method's result
+// should carry (2026-07-28 requires ttlMs/cacheScope on tools/list,
+// prompts/list, resources/list and resources/read, but not on prompts/get).
 //
 // Adding a new MCP method backed by a SQL function only requires:
 //  1. Implementing the function in sql/mcp_functions.sql.
 //  2. Adding an entry here — no other Go changes are needed.
-var mcpDatabaseMethods = map[string]string{
-	"resources/list": "pgarachne.mcp_list_resources",
-	"resources/read": "pgarachne.mcp_read_resource",
-	"prompts/list":   "pgarachne.mcp_list_prompts",
-	"prompts/get":    "pgarachne.mcp_get_prompt",
+var mcpDatabaseMethods = map[string]mcpDatabaseMethod{
+	"resources/list": {sqlFunc: "pgarachne.mcp_list_resources", cacheable: true, ttlMs: mcpResourcesListTTLMs, cacheScope: mcpCacheScopePrivate},
+	"resources/read": {sqlFunc: "pgarachne.mcp_read_resource", cacheable: true, ttlMs: mcpResourcesReadTTLMs, cacheScope: mcpCacheScopePrivate},
+	"prompts/list":   {sqlFunc: "pgarachne.mcp_list_prompts", cacheable: true, ttlMs: mcpPromptsListTTLMs, cacheScope: mcpCacheScopePrivate},
+	"prompts/get":    {sqlFunc: "pgarachne.mcp_get_prompt", cacheable: false},
+}
+
+// mcpDatabaseMethod describes one entry in mcpDatabaseMethods.
+type mcpDatabaseMethod struct {
+	sqlFunc    string
+	cacheable  bool
+	ttlMs      int64
+	cacheScope string
 }
 
 // ---------------------------------------------------------------------------
@@ -65,18 +120,39 @@ type mcpResponse struct {
 }
 
 type mcpError struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int             `json:"code"`
+	Message string          `json:"message"`
+	Data    json.RawMessage `json:"data,omitempty"`
+}
+
+// mcpMeta holds the standard MCP _meta extension block. It combines the
+// protocol's own per-request fields with PgArachne's idempotency extension —
+// both live under the same "_meta" key in the wire format.
+type mcpMeta struct {
+	IdempotencyKey     string          `json:"idempotencyKey,omitempty"`
+	ProtocolVersion    string          `json:"io.modelcontextprotocol/protocolVersion,omitempty"`
+	ClientCapabilities json.RawMessage `json:"io.modelcontextprotocol/clientCapabilities,omitempty"`
+	ClientInfo         json.RawMessage `json:"io.modelcontextprotocol/clientInfo,omitempty"`
+}
+
+// mcpParamsBase captures the fields common to every MCP request's params
+// object. It is used for transport-level validation (protocol version,
+// header agreement) before method-specific dispatch; individual methods
+// still declare their own stricter params types for the fields they use.
+type mcpParamsBase struct {
+	Meta *mcpMeta `json:"_meta"`
+	Name string   `json:"name"`
+	URI  string   `json:"uri"`
 }
 
 // ---------------------------------------------------------------------------
 // MCP method-specific types
 // ---------------------------------------------------------------------------
 
-type mcpInitializeResult struct {
-	ProtocolVersion string                `json:"protocolVersion"`
-	Capabilities    mcpServerCapabilities `json:"capabilities"`
-	ServerInfo      mcpImplementation     `json:"serverInfo"`
+type mcpDiscoverResult struct {
+	SupportedVersions []string              `json:"supportedVersions"`
+	Capabilities      mcpServerCapabilities `json:"capabilities"`
+	Instructions      string                `json:"instructions,omitempty"`
 }
 
 type mcpServerCapabilities struct {
@@ -89,20 +165,20 @@ type mcpServerCapabilities struct {
 }
 
 type mcpToolsCapability struct {
-	// ListChanged — we do not emit tools/listChanged notifications (stateless).
+	// ListChanged — we do not emit tools/list_changed notifications (stateless).
 	ListChanged bool `json:"listChanged"`
 }
 
 // mcpResourcesCapability describes the server's resources support.
-// Subscribe: we do not implement live resource subscriptions (no SSE per resource).
-// ListChanged: we do not emit resources/listChanged notifications.
+// Subscribe: we do not implement subscriptions/listen.
+// ListChanged: we do not emit resources/list_changed notifications.
 type mcpResourcesCapability struct {
 	Subscribe   bool `json:"subscribe"`
 	ListChanged bool `json:"listChanged"`
 }
 
 // mcpPromptsCapability describes the server's prompts support.
-// ListChanged: we do not emit prompts/listChanged notifications.
+// ListChanged: we do not emit prompts/list_changed notifications.
 type mcpPromptsCapability struct {
 	ListChanged bool `json:"listChanged"`
 }
@@ -126,15 +202,9 @@ type mcpToolsCallParams struct {
 	Name string `json:"name"`
 	// Arguments may be absent — treated as an empty object.
 	Arguments json.RawMessage `json:"arguments,omitempty"`
-	// Meta carries optional MCP extension fields. PgArachne reads
-	// _meta.idempotencyKey and forwards it to pgarachne.save_idempotency_key,
-	// identical to the idempotencyKey top-level field on JSON-RPC requests.
+	// Meta carries the standard MCP _meta extension block — both the
+	// protocol's per-request fields and PgArachne's idempotencyKey.
 	Meta *mcpMeta `json:"_meta,omitempty"`
-}
-
-// mcpMeta holds the standard MCP _meta extension block.
-type mcpMeta struct {
-	IdempotencyKey string `json:"idempotencyKey,omitempty"`
 }
 
 type mcpToolsCallResult struct {
@@ -167,15 +237,19 @@ type capabilityEntry struct {
 //
 //	POST /{prefix}/{database}/mcp
 //
-// Protocol flow:
-//  1. Client calls initialize     → server returns capabilities (no auth required).
-//  2. Client sends notifications/ → server returns 202 Accepted (no body).
-//  3. Client calls tools/list     → pgarachne.capabilities() as authenticated role.
-//  4. Client calls tools/call     → schema.function(args::jsonb) as authenticated role.
-//  5. Client calls resources/list → pgarachne.mcp_list_resources() as authenticated role.
-//  6. Client calls resources/read → pgarachne.mcp_read_resource(params) as authenticated role.
-//  7. Client calls prompts/list   → pgarachne.mcp_list_prompts() as authenticated role.
-//  8. Client calls prompts/get    → pgarachne.mcp_get_prompt(params) as authenticated role.
+// Protocol flow (2026-07-28, stateless — no initialize/session handshake):
+//  1. Every request must carry params._meta.protocolVersion +
+//     clientCapabilities, and the MCP-Protocol-Version / Mcp-Method / Mcp-Name
+//     HTTP headers must agree with the request body.
+//  2. Client calls server/discover → server returns supported versions,
+//     capabilities, identity (no auth required).
+//  3. Client sends notifications/*    → server returns 202 Accepted (no body).
+//  4. Client calls tools/list         → pgarachne.capabilities() as authenticated role.
+//  5. Client calls tools/call         → schema.function(args::jsonb) as authenticated role.
+//  6. Client calls resources/list     → pgarachne.mcp_list_resources() as authenticated role.
+//  7. Client calls resources/read     → pgarachne.mcp_read_resource(params) as authenticated role.
+//  8. Client calls prompts/list       → pgarachne.mcp_list_prompts() as authenticated role.
+//  9. Client calls prompts/get        → pgarachne.mcp_get_prompt(params) as authenticated role.
 func (s *Server) handleMCP(c *gin.Context) {
 	databaseName := c.Param("database")
 	if !isSafeDatabaseName(databaseName) {
@@ -201,13 +275,17 @@ func (s *Server) handleMCP(c *gin.Context) {
 		return
 	}
 
-	// Methods that do not require authentication.
-	switch req.Method {
-	case "initialize":
-		s.handleMCPInitialize(c, req)
+	// Transport-level validation introduced by protocol version 2026-07-28:
+	// every request must declare its protocol version and client
+	// capabilities, and the standard Mcp-* headers must agree with the body.
+	if errResp := mcpValidateRequest(c, req); errResp != nil {
+		c.JSON(http.StatusBadRequest, *errResp)
 		return
-	case "ping":
-		c.JSON(http.StatusOK, mcpResponse{JSONRPC: "2.0", ID: req.ID, Result: struct{}{}})
+	}
+
+	// Methods that do not require authentication.
+	if req.Method == "server/discover" {
+		s.handleMCPDiscover(c, req)
 		return
 	}
 
@@ -265,46 +343,176 @@ func (s *Server) handleMCP(c *gin.Context) {
 	// All other authenticated methods are backed by a pgarachne SQL function
 	// registered in mcpDatabaseMethods. This covers resources/* and prompts/*,
 	// and can be extended without adding new Go code.
-	if sqlFunc, ok := mcpDatabaseMethods[req.Method]; ok {
-		s.handleMCPDatabaseMethod(c, req, db, dbRole, sqlFunc)
+	if method, ok := mcpDatabaseMethods[req.Method]; ok {
+		s.handleMCPDatabaseMethod(c, req, db, dbRole, method)
 		return
 	}
 
 	slog.Warn("MCP: unknown method", "method", req.Method, "database", databaseName)
-	c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrMethod, "Method not found: "+req.Method))
+	c.JSON(http.StatusNotFound, newMCPError(req.ID, mcpErrMethod, "Method not found: "+req.Method))
+}
+
+// mcpMethodNotAllowed handles GET and DELETE on the MCP endpoint. Protocol
+// versions 2025-03-26 through 2025-11-25 used GET to open a standalone SSE
+// stream and DELETE to terminate a session; 2026-07-28 removed both along
+// with protocol-level sessions, and directs servers that only implement this
+// revision to reject such requests with 405.
+func mcpMethodNotAllowed(c *gin.Context) {
+	c.Status(http.StatusMethodNotAllowed)
+}
+
+// ---------------------------------------------------------------------------
+// Transport-level validation (2026-07-28)
+// ---------------------------------------------------------------------------
+
+// mcpValidateRequest enforces the transport requirements introduced in MCP
+// 2026-07-28: every request must declare its protocol version and client
+// capabilities in params._meta, the MCP-Protocol-Version header must agree
+// with that _meta field and be a version this server supports, and the
+// Mcp-Method (and, for name/uri-addressed methods, Mcp-Name) headers must
+// agree with the request body. It returns a non-nil error response — to be
+// sent with HTTP 400 — when validation fails.
+func mcpValidateRequest(c *gin.Context, req mcpRequest) *mcpResponse {
+	var params mcpParamsBase
+	if len(req.Params) > 0 {
+		if err := json.Unmarshal(req.Params, &params); err != nil {
+			resp := newMCPError(req.ID, mcpErrParams, "Invalid params: "+err.Error())
+			return &resp
+		}
+	}
+
+	if params.Meta == nil || params.Meta.ProtocolVersion == "" || params.Meta.ClientCapabilities == nil {
+		resp := newMCPError(req.ID, mcpErrParams,
+			`params._meta must include "`+mcpMetaProtocolVersion+`" and "`+mcpMetaClientCapabilities+`"`)
+		return &resp
+	}
+	metaVersion := params.Meta.ProtocolVersion
+
+	headerVersion := c.GetHeader("MCP-Protocol-Version")
+	if headerVersion == "" {
+		resp := newMCPError(req.ID, mcpErrHeaderMismatch, "Missing required header: MCP-Protocol-Version")
+		return &resp
+	}
+	if headerVersion != metaVersion {
+		resp := newMCPError(req.ID, mcpErrHeaderMismatch,
+			fmt.Sprintf("Header mismatch: MCP-Protocol-Version header value %q does not match body value %q", headerVersion, metaVersion))
+		return &resp
+	}
+	if metaVersion != mcpProtocolVersion {
+		return mcpUnsupportedVersionError(req.ID, metaVersion)
+	}
+
+	methodHeader := c.GetHeader("Mcp-Method")
+	if methodHeader == "" {
+		resp := newMCPError(req.ID, mcpErrHeaderMismatch, "Missing required header: Mcp-Method")
+		return &resp
+	}
+	if methodHeader != req.Method {
+		resp := newMCPError(req.ID, mcpErrHeaderMismatch,
+			fmt.Sprintf("Header mismatch: Mcp-Method header value %q does not match body method %q", methodHeader, req.Method))
+		return &resp
+	}
+
+	if requiresNameHeader(req.Method) {
+		expected := params.Name
+		if req.Method == "resources/read" {
+			expected = params.URI
+		}
+		nameHeader, err := decodeMCPHeaderValue(c.GetHeader("Mcp-Name"))
+		if err != nil {
+			resp := newMCPError(req.ID, mcpErrHeaderMismatch, "Invalid Mcp-Name header encoding")
+			return &resp
+		}
+		if nameHeader == "" {
+			resp := newMCPError(req.ID, mcpErrHeaderMismatch, "Missing required header: Mcp-Name")
+			return &resp
+		}
+		if nameHeader != expected {
+			resp := newMCPError(req.ID, mcpErrHeaderMismatch,
+				fmt.Sprintf("Header mismatch: Mcp-Name header value %q does not match body value %q", nameHeader, expected))
+			return &resp
+		}
+	}
+
+	return nil
+}
+
+// requiresNameHeader reports whether method requires the Mcp-Name header,
+// per the Streamable HTTP standard request headers table.
+func requiresNameHeader(method string) bool {
+	switch method {
+	case "tools/call", "resources/read", "prompts/get":
+		return true
+	default:
+		return false
+	}
+}
+
+// decodeMCPHeaderValue decodes the "=?base64?...?=" sentinel format used to
+// carry header values that cannot be represented as plain ASCII. Values
+// without the sentinel are returned unchanged.
+func decodeMCPHeaderValue(v string) (string, error) {
+	const prefix = "=?base64?"
+	const suffix = "?="
+	if v == "" || !strings.HasPrefix(v, prefix) || !strings.HasSuffix(v, suffix) {
+		return v, nil
+	}
+	decoded, err := base64.StdEncoding.DecodeString(v[len(prefix) : len(v)-len(suffix)])
+	if err != nil {
+		return "", err
+	}
+	return string(decoded), nil
+}
+
+// mcpUnsupportedVersionError builds the UnsupportedProtocolVersionError
+// response mandated when a request's protocol version is not supported.
+func mcpUnsupportedVersionError(id interface{}, requested string) *mcpResponse {
+	data, err := json.Marshal(struct {
+		Supported []string `json:"supported"`
+		Requested string   `json:"requested"`
+	}{
+		Supported: []string{mcpProtocolVersion},
+		Requested: requested,
+	})
+	if err != nil {
+		data = nil
+	}
+	return &mcpResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Error: &mcpError{
+			Code:    mcpErrUnsupportedVersion,
+			Message: "Unsupported protocol version",
+			Data:    data,
+		},
+	}
 }
 
 // ---------------------------------------------------------------------------
 // Method handlers
 // ---------------------------------------------------------------------------
 
-// handleMCPInitialize handles the MCP initialize handshake.
-// Authentication is NOT required — the client needs to discover capabilities
-// before it can present credentials.
-func (s *Server) handleMCPInitialize(c *gin.Context, req mcpRequest) {
-	c.JSON(http.StatusOK, mcpResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result: mcpInitializeResult{
-			ProtocolVersion: mcpProtocolVersion,
-			Capabilities: mcpServerCapabilities{
-				Tools: &mcpToolsCapability{
-					ListChanged: false,
-				},
-				Resources: &mcpResourcesCapability{
-					Subscribe:   false,
-					ListChanged: false,
-				},
-				Prompts: &mcpPromptsCapability{
-					ListChanged: false,
-				},
-			},
-			ServerInfo: mcpImplementation{
-				Name:    "PgArachne",
-				Version: version.Version,
-			},
+// handleMCPDiscover handles server/discover, the 2026-07-28 replacement for
+// the old initialize handshake. Authentication is NOT required — clients may
+// call this before presenting credentials to learn what the server supports.
+func (s *Server) handleMCPDiscover(c *gin.Context, req mcpRequest) {
+	result, err := mcpWrapCacheableResult(mcpDiscoverResult{
+		SupportedVersions: []string{mcpProtocolVersion},
+		Capabilities: mcpServerCapabilities{
+			Tools:     &mcpToolsCapability{ListChanged: false},
+			Resources: &mcpResourcesCapability{Subscribe: false, ListChanged: false},
+			Prompts:   &mcpPromptsCapability{ListChanged: false},
 		},
-	})
+		Instructions: "PgArachne exposes PostgreSQL functions as MCP tools, tables and views as MCP resources, " +
+			"and stored templates as MCP prompts. Authenticate with a Bearer token (JWT or long-lived API token) " +
+			"or HTTP Basic credentials.",
+	}, mcpDiscoverTTLMs, mcpCacheScopePublic)
+	if err != nil {
+		slog.Error("MCP server/discover: failed to build result", "error", err)
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to build discover result"))
+		return
+	}
+	c.JSON(http.StatusOK, mcpResponse{JSONRPC: "2.0", ID: req.ID, Result: result})
 }
 
 // handleMCPToolsList handles tools/list by calling pgarachne.capabilities()
@@ -340,11 +548,13 @@ func (s *Server) handleMCPToolsList(c *gin.Context, req mcpRequest, db *sql.DB, 
 		})
 	}
 
-	c.JSON(http.StatusOK, mcpResponse{
-		JSONRPC: "2.0",
-		ID:      req.ID,
-		Result:  mcpToolsListResult{Tools: tools},
-	})
+	result, err := mcpWrapCacheableResult(mcpToolsListResult{Tools: tools}, mcpToolsListTTLMs, mcpCacheScopePrivate)
+	if err != nil {
+		slog.Error("MCP tools/list: failed to build result", "error", err)
+		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to list tools"))
+		return
+	}
+	c.JSON(http.StatusOK, mcpResponse{JSONRPC: "2.0", ID: req.ID, Result: result})
 }
 
 // handleMCPToolsCall handles tools/call by executing the named PostgreSQL
@@ -421,10 +631,7 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 			c.JSON(http.StatusOK, mcpResponse{
 				JSONRPC: "2.0",
 				ID:      req.ID,
-				Result: mcpToolsCallResult{
-					Content: []mcpContent{{Type: "text", Text: "This request has already been processed"}},
-					IsError: true,
-				},
+				Result:  mcpToolResult([]mcpContent{{Type: "text", Text: "This request has already been processed"}}, true),
 			})
 		case errors.Is(err, errIdempotencyCheckFailed):
 			slog.Error("MCP tools/call: idempotency check failed",
@@ -458,10 +665,7 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		c.JSON(http.StatusOK, mcpResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
-			Result: mcpToolsCallResult{
-				Content: []mcpContent{{Type: "text", Text: errText}},
-				IsError: true,
-			},
+			Result:  mcpToolResult([]mcpContent{{Type: "text", Text: errText}}, true),
 		})
 		return
 	}
@@ -477,9 +681,7 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 	c.JSON(http.StatusOK, mcpResponse{
 		JSONRPC: "2.0",
 		ID:      req.ID,
-		Result: mcpToolsCallResult{
-			Content: []mcpContent{{Type: "text", Text: mcpFormatResult(resultJSON)}},
-		},
+		Result:  mcpToolResult([]mcpContent{{Type: "text", Text: mcpFormatResult(resultJSON)}}, false),
 	})
 }
 
@@ -491,16 +693,16 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 // (with the error field set) rather than tool-level errors, because these
 // methods represent infrastructure queries — a missing resource or prompt is a
 // caller error, not a tool execution failure.
-func (s *Server) handleMCPDatabaseMethod(c *gin.Context, req mcpRequest, db *sql.DB, dbRole, sqlFunc string) {
+func (s *Server) handleMCPDatabaseMethod(c *gin.Context, req mcpRequest, db *sql.DB, dbRole string, method mcpDatabaseMethod) {
 	params := req.Params
 	if len(params) == 0 {
 		params = json.RawMessage(`{}`)
 	}
 
-	raw, err := s.callPgarachneFunc(c.Request.Context(), db, dbRole, sqlFunc, params)
+	raw, err := s.callPgarachneFunc(c.Request.Context(), db, dbRole, method.sqlFunc, params)
 	if err != nil {
 		slog.Error("MCP database method failed",
-			"method", req.Method, "func", sqlFunc, "error", err)
+			"method", req.Method, "func", method.sqlFunc, "error", err)
 		errText := "Method execution failed"
 		if s.Cfg.MCPSQLErrorDetail {
 			errText = sanitiseSQLError(err)
@@ -509,12 +711,13 @@ func (s *Server) handleMCPDatabaseMethod(c *gin.Context, req mcpRequest, db *sql
 		return
 	}
 
-	// The SQL function already returns a fully-shaped MCP result object.
-	// Unmarshal to interface{} so it is re-serialised without double encoding.
-	var result interface{}
-	if err := json.Unmarshal(raw, &result); err != nil {
+	// The SQL function already returns a fully-shaped MCP result object; wrap
+	// it with the resultType/_meta/cache fields 2026-07-28 requires without
+	// re-decoding it into a typed Go struct.
+	result, err := mcpWrapResultWithCache(raw, method.cacheable, method.ttlMs, method.cacheScope)
+	if err != nil {
 		slog.Error("MCP database method: failed to unmarshal result",
-			"method", req.Method, "func", sqlFunc, "error", err)
+			"method", req.Method, "func", method.sqlFunc, "error", err)
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrInternal, "Failed to parse method result"))
 		return
 	}
@@ -585,6 +788,61 @@ func newMCPError(id interface{}, code int, message string) mcpResponse {
 		ID:      id,
 		Error:   &mcpError{Code: code, Message: message},
 	}
+}
+
+// mcpToolResult builds a tools/call result envelope. It is a thin wrapper
+// around mcpWrapResult that falls back to an unwrapped envelope on the
+// (practically unreachable) marshal error, since content only ever holds
+// strings and bools.
+func mcpToolResult(content []mcpContent, isError bool) map[string]interface{} {
+	result, err := mcpWrapResult(mcpToolsCallResult{Content: content, IsError: isError})
+	if err != nil {
+		return map[string]interface{}{
+			"resultType": mcpResultTypeComplete,
+			"content":    content,
+			"isError":    isError,
+		}
+	}
+	return result
+}
+
+// mcpWrapResult wraps a non-cacheable result with the fields the MCP
+// specification requires on every result: resultType and _meta.serverInfo.
+func mcpWrapResult(result interface{}) (map[string]interface{}, error) {
+	return mcpWrapResultWithCache(result, false, 0, "")
+}
+
+// mcpWrapCacheableResult wraps a CacheableResult (tools/list, prompts/list,
+// resources/list, resources/read, server/discover) with resultType,
+// _meta.serverInfo, and the ttlMs/cacheScope freshness hints.
+func mcpWrapCacheableResult(result interface{}, ttlMs int64, cacheScope string) (map[string]interface{}, error) {
+	return mcpWrapResultWithCache(result, true, ttlMs, cacheScope)
+}
+
+// mcpWrapResultWithCache marshals result to a JSON object and adds the
+// protocol-mandated fields. result may be a Go struct or a json.RawMessage
+// (e.g. a value already shaped by a SQL function) — both marshal cleanly.
+func mcpWrapResultWithCache(result interface{}, cacheable bool, ttlMs int64, cacheScope string) (map[string]interface{}, error) {
+	raw, err := json.Marshal(result)
+	if err != nil {
+		return nil, err
+	}
+	var obj map[string]interface{}
+	if err := json.Unmarshal(raw, &obj); err != nil {
+		return nil, err
+	}
+	if obj == nil {
+		obj = map[string]interface{}{}
+	}
+	obj["resultType"] = mcpResultTypeComplete
+	if cacheable {
+		obj["ttlMs"] = ttlMs
+		obj["cacheScope"] = cacheScope
+	}
+	obj["_meta"] = map[string]interface{}{
+		mcpMetaServerInfo: mcpImplementation{Name: mcpServerName, Version: version.Version},
+	}
+	return obj, nil
 }
 
 // mcpFormatResult pretty-prints a JSON value for inclusion in an MCP text

@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Changed
+
+- **Breaking:** `internal/server/mcp.go`: the MCP endpoint now implements protocol version `2026-07-28` exclusively, replacing `2024-11-05`. This is a hard cutover, not a dual-era rollout — clients still speaking the old `initialize`/`ping` handshake are no longer supported. The new revision is fully stateless: `initialize`/`notifications/initialized` and `ping` are gone, replaced by an unauthenticated `server/discover` method; every request must now carry `params._meta["io.modelcontextprotocol/protocolVersion"]` and `["...clientCapabilities"]`, and the `MCP-Protocol-Version`, `Mcp-Method`, and (for `tools/call`/`resources/read`/`prompts/get`) `Mcp-Name` HTTP headers, which must agree with the request body (`HeaderMismatch`, `-32020`, HTTP 400 on mismatch; `UnsupportedProtocolVersionError`, `-32022`, on an unrecognised version). Every result now carries `resultType: "complete"` and `_meta["io.modelcontextprotocol/serverInfo"]`; `server/discover`, `tools/list`, `resources/list`, `resources/read`, and `prompts/list` additionally carry `ttlMs`/`cacheScope` cache hints. GET and DELETE on the MCP endpoint (used by earlier Streamable HTTP revisions for the SSE stream and session teardown) now return 405. See `AGENTS.md` for the full method/error-model reference.
+
 ### Security
 
 - CI (`.github/workflows/ci.yml`): three `go/sql-injection` / `js/xss-through-dom` CodeQL alerts (`internal/server/mcp.go`, `internal/server/server.go`, `docs-src/static/assets/script.js`) were dismissed as false positives via the code scanning API — each sink is already guarded by an allowlist validator (`isSafeFunctionName`, `safeSiteUrl`) that CodeQL's taint tracking doesn't model as a barrier.

@@ -140,15 +140,15 @@ menu:
 		<h4>Γιατί το MCP μεταφράζεται στον server:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Μηδενικές αλλαγές σε υπάρχουσες functions:</strong> Κάθε function που είναι ήδη εκτεθειμένη μέσω JSON-RPC γίνεται άμεσα διαθέσιμη ως εργαλείο MCP. Καμία αλλαγή SQL, καμία επανεγκατάσταση αντικειμένων της βάσης δεδομένων.</li>
-			<li><strong>Το MCP είναι πολύ περισσότερο από εργαλεία:</strong> Το πρωτόκολλο περιλαμβάνει handshake αρχικοποίησης, ping, notifications, και πιθανές μελλοντικές επεκτάσεις (resources, prompts, sampling). Αυτά είναι ζητήματα επιπέδου πρωτοκόλλου που ανήκουν στη Go, όχι σε SQL functions.</li>
+			<li><strong>Το MCP είναι πολύ περισσότερο από εργαλεία:</strong> Το πρωτόκολλο περιλαμβάνει μια μέθοδο ανακάλυψης (<code>server/discover</code>), μεταδεδομένα έκδοσης πρωτοκόλλου και δυνατοτήτων σε κάθε αίτημα, notifications, και επεκτάσεις (resources, prompts) πέρα από απλές κλήσεις εργαλείων. Αυτά είναι ζητήματα επιπέδου πρωτοκόλλου που ανήκουν στη Go, όχι σε SQL functions.</li>
 			<li><strong>Η ασφάλεια παραμένει σε ένα σημείο:</strong> Η authentication, η αλλαγή ρόλων και η επικύρωση εισόδου είναι ήδη υλοποιημένες στη Go. Το endpoint MCP επαναχρησιμοποιεί αυτή τη λογική αμετάβλητη.</li>
 			<li><strong>Πολλαπλά πρωτόκολλα, ένα backend:</strong> Η ίδια PostgreSQL function μπορεί να κληθεί μέσω JSON-RPC (από κανονικό client), MCP (από Claude Desktop ή Cursor), ή SSE (για event subscriptions). Η βάση δεδομένων είναι protocol-agnostic.</li>
-			<li><strong>Απλούστερη SQL:</strong> Η επεξεργασία envelopes MCP (<code>initialize</code>, <code>tools/list</code>, χειρισμός notifications) εντός PostgreSQL functions θα απαιτούσε ανάλυση σύνθετων δομών JSON σε PL/pgSQL, καθιστώντας τις functions δυσκολότερες στη γραφή, τη δοκιμή και τη συντήρηση.</li>
+			<li><strong>Απλούστερη SQL:</strong> Η επεξεργασία envelopes MCP (<code>server/discover</code>, <code>tools/list</code>, χειρισμός notifications) εντός PostgreSQL functions θα απαιτούσε ανάλυση σύνθετων δομών JSON σε PL/pgSQL, καθιστώντας τις functions δυσκολότερες στη γραφή, τη δοκιμή και τη συντήρηση.</li>
 		</ul>
 
 		<h4>Γιατί όχι να μεταφερθεί το MCP στη βάση δεδομένων:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Το handshake του MCP δεν χρειάζεται βάση δεδομένων:</strong> Τα <code>initialize</code> και <code>ping</code> είναι καθαρά μηνύματα πρωτοκόλλου. Το άνοιγμα σύνδεσης βάσης δεδομένων για αυτά σπαταλά πόρους και προσθέτει latency.</li>
+			<li><strong>Η επικύρωση transport του MCP δεν χρειάζεται βάση δεδομένων:</strong> Το <code>server/discover</code> και οι έλεγχοι έκδοσης πρωτοκόλλου/headers σε κάθε αίτημα είναι καθαρά μηνύματα πρωτοκόλλου. Το άνοιγμα σύνδεσης βάσης δεδομένων για αυτά σπαταλά πόρους και προσθέτει latency.</li>
 			<li><strong>Η SQL είναι λάθος εργαλείο για λογική πρωτοκόλλου:</strong> Οι κωδικοί σφάλματος JSON-RPC 2.0, η δρομολόγηση notifications και η διαχείριση idempotency keys είναι ζητήματα middleware, όχι ζητήματα δεδομένων.</li>
 		</ul>
 	</div>

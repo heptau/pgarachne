@@ -140,15 +140,15 @@ menu:
 		<h4>Czemu tłumaczyć MCP na serwerze:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Zero zmian w istniejących funkcjach:</strong> Każda funkcja już udostępniona przez JSON-RPC jest natychmiast dostępna jako narzędzie MCP. Żadnych zmian w SQL, żadnego ponownego wdrażania obiektów bazy danych.</li>
-			<li><strong>MCP to więcej niż tylko narzędzia:</strong> Protokół obejmuje uzgadnianie inicjalizacyjne (handshake), ping, powiadomienia i potencjalne przyszłe rozszerzenia (zasoby, prompty, sampling). To sprawy na poziomie protokołu, które należą do Go, nie do funkcji SQL.</li>
+			<li><strong>MCP to więcej niż tylko narzędzia:</strong> Protokół obejmuje metodę wykrywania (<code>server/discover</code>), metadane wersji protokołu i możliwości przesyłane z każdym żądaniem, powiadomienia oraz rozszerzenia (zasoby, prompty) wykraczające poza proste wywołania narzędzi. To sprawy na poziomie protokołu, które należą do Go, nie do funkcji SQL.</li>
 			<li><strong>Bezpieczeństwo pozostaje w jednym miejscu:</strong> Autoryzacja, przełączanie ról i walidacja danych wejściowych są już zaimplementowane w Go. Endpoint MCP wykorzystuje tę logikę bez zmian.</li>
 			<li><strong>Wiele protokołów, jeden backend:</strong> Ta sama funkcja PostgreSQL może być wywoływana przez JSON-RPC (ze zwykłego klienta), MCP (z Claude Desktop lub Cursor) lub SSE (dla subskrypcji zdarzeń). Baza danych jest niezależna od protokołu.</li>
-			<li><strong>Prostszy SQL:</strong> Przetwarzanie obwiedni MCP (<code>initialize</code>, <code>tools/list</code>, obsługa powiadomień) wewnątrz funkcji PostgreSQL wymagałoby parsowania złożonych struktur JSON w PL/pgSQL, co uczyniłoby funkcje trudniejszymi do pisania, testowania i utrzymania.</li>
+			<li><strong>Prostszy SQL:</strong> Przetwarzanie obwiedni MCP (<code>server/discover</code>, <code>tools/list</code>, obsługa powiadomień) wewnątrz funkcji PostgreSQL wymagałoby parsowania złożonych struktur JSON w PL/pgSQL, co uczyniłoby funkcje trudniejszymi do pisania, testowania i utrzymania.</li>
 		</ul>
 
 		<h4>Czemu nie przenieść MCP do bazy danych:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Handshake MCP nie potrzebuje bazy danych:</strong> <code>initialize</code> i <code>ping</code> to czyste komunikaty protokołu. Otwieranie połączenia z bazą danych dla nich marnuje zasoby i dodaje latencję.</li>
+			<li><strong>Walidacja transportu MCP nie potrzebuje bazy danych:</strong> <code>server/discover</code> oraz sprawdzanie wersji protokołu i nagłówków przy każdym żądaniu to czyste komunikaty protokołu. Otwieranie połączenia z bazą danych dla nich marnuje zasoby i dodaje latencję.</li>
 			<li><strong>SQL to niewłaściwe narzędzie do logiki protokołu:</strong> Kody błędów JSON-RPC 2.0, routing powiadomień i zarządzanie kluczami idempotencji to zagadnienia middleware, nie zagadnienia danych.</li>
 		</ul>
 	</div>

@@ -103,13 +103,32 @@ Common optional:
 - `GET /metrics` — Prometheus metrics on the dedicated metrics listener (`METRICS_LISTEN_ADDR`)
 
 ## MCP Endpoint Detail (`/{prefix}/{database}/mcp`)
-Implements the MCP Streamable HTTP transport (protocol version `2024-11-05`). All communication uses a single `POST` endpoint.
+Implements the MCP Streamable HTTP transport, protocol version `2026-07-28`. This
+revision made the protocol fully stateless: there is no `initialize`/session
+handshake, no `Mcp-Session-Id`, and no GET/SSE stream — every request is an
+independent `POST` that declares its own protocol version and capabilities.
+GET and DELETE on the endpoint return `405`.
+
+### Transport-level requirements (every request)
+- `params._meta` must include `io.modelcontextprotocol/protocolVersion` and
+  `io.modelcontextprotocol/clientCapabilities` → missing either is `-32602`
+  (Invalid params), HTTP 400.
+- HTTP headers `MCP-Protocol-Version` and `Mcp-Method` are required and must
+  agree with the body's `_meta` version and `method` → disagreement is
+  `-32020` (`HeaderMismatch`), HTTP 400.
+- `tools/call`, `resources/read`, `prompts/get` additionally require an
+  `Mcp-Name` header matching `params.name` (or `params.uri` for
+  `resources/read`) → same `HeaderMismatch` error on mismatch.
+- An unsupported `protocolVersion` (anything but `2026-07-28`) →
+  `-32022` (`UnsupportedProtocolVersionError`), HTTP 400, `data.supported`
+  lists the versions this server accepts.
+- All of the above is validated centrally in `mcpValidateRequest`
+  (`internal/server/mcp.go`) before method dispatch.
 
 ### Method mapping
 | MCP method              | Auth | Action |
 |-------------------------|:----:|--------|
-| `initialize`            | No   | Returns server name, protocol version, capabilities (tools + resources + prompts) |
-| `ping`                  | No   | Returns `{}` |
+| `server/discover`       | No   | Returns supported protocol versions, capabilities (tools + resources + prompts), server identity |
 | `notifications/*`       | No   | Returns HTTP 202, no body |
 | `tools/list`            | Yes  | Calls `pgarachne.capabilities()` as authenticated role; maps to MCP tool descriptors |
 | `tools/call`            | Yes  | Calls `schema.function(arguments::jsonb)` as authenticated role; wraps result in MCP text content block |
@@ -118,8 +137,23 @@ Implements the MCP Streamable HTTP transport (protocol version `2024-11-05`). Al
 | `prompts/list`          | Yes  | Calls `pgarachne.mcp_list_prompts()` as authenticated role |
 | `prompts/get`           | Yes  | Calls `pgarachne.mcp_get_prompt({name, arguments})` as authenticated role |
 
+`initialize` and `ping` no longer exist — both were removed from the core
+protocol in 2026-07-28.
+
+### Result shape
+Every result carries `resultType: "complete"` (PgArachne never needs
+mid-call client input, so this is the only value it emits) and
+`_meta["io.modelcontextprotocol/serverInfo"]`. `server/discover`,
+`tools/list`, `resources/list`, `resources/read`, and `prompts/list` are also
+`CacheableResult`s and additionally carry `ttlMs` + `cacheScope` (`"private"`
+for anything gated by the authenticated role's grants, `"public"` for
+`server/discover`). Built centrally by `mcpWrapResult`/`mcpWrapCacheableResult`
+in `internal/server/mcp.go`.
+
 ### Adding new MCP methods
-Register the MCP method name and its SQL backing function in the `mcpDatabaseMethods` map in `internal/server/mcp.go`. No other Go changes needed.
+Register the MCP method name, its SQL backing function, and its cache hints
+in the `mcpDatabaseMethods` map in `internal/server/mcp.go`. No other Go
+changes needed.
 
 ### Error model
 - **SQL failures in `tools/call`** → tool-level error (`isError: true` in result content), NOT a JSON-RPC protocol error — per MCP spec.

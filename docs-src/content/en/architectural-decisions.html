@@ -140,15 +140,15 @@ menu:
 		<h4>Why translate MCP on the server:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Zero changes to existing functions:</strong> Any function already exposed via JSON-RPC is instantly available as an MCP tool. No SQL changes, no redeployment of database objects.</li>
-			<li><strong>MCP is more than just tools:</strong> The protocol includes an initialization handshake, ping, notifications, and potential future extensions (resources, prompts, sampling). These are protocol-level concerns that belong in Go, not in SQL functions.</li>
+			<li><strong>MCP is more than just tools:</strong> The protocol includes a discovery method (<code>server/discover</code>), per-request protocol version and capability metadata, notifications, and extensions (resources, prompts) beyond simple tool calls. These are protocol-level concerns that belong in Go, not in SQL functions.</li>
 			<li><strong>Security stays in one place:</strong> Authentication, role switching, and input validation are already implemented in Go. The MCP endpoint reuses this logic unchanged.</li>
 			<li><strong>Multiple protocols, one backend:</strong> The same PostgreSQL function can be called via JSON-RPC (from a regular client), MCP (from Claude Desktop or Cursor), or SSE (for event subscriptions). The database is protocol-agnostic.</li>
-			<li><strong>Simpler SQL:</strong> Processing MCP envelopes (<code>initialize</code>, <code>tools/list</code>, notification handling) inside PostgreSQL functions would require parsing complex JSON structures in PL/pgSQL, making functions harder to write, test, and maintain.</li>
+			<li><strong>Simpler SQL:</strong> Processing MCP envelopes (<code>server/discover</code>, <code>tools/list</code>, notification handling) inside PostgreSQL functions would require parsing complex JSON structures in PL/pgSQL, making functions harder to write, test, and maintain.</li>
 		</ul>
 
 		<h4>Why not push MCP into the database:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>MCP handshake doesn't need a database:</strong> <code>initialize</code> and <code>ping</code> are pure protocol messages. Opening a database connection for them wastes resources and adds latency.</li>
+			<li><strong>MCP transport validation doesn't need a database:</strong> <code>server/discover</code> and the per-request protocol-version/header checks are pure protocol messages. Opening a database connection for them wastes resources and adds latency.</li>
 			<li><strong>SQL is the wrong tool for protocol logic:</strong> JSON-RPC 2.0 error codes, notification routing, and idempotency key management are middleware concerns, not data concerns.</li>
 		</ul>
 	</div>

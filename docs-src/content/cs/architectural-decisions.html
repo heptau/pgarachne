@@ -139,15 +139,15 @@ menu:
 		<h4>Proč překládat MCP na serveru:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Žádné změny existujících funkcí:</strong> Jakákoli funkce již vystavená přes JSON-RPC je okamžitě dostupná jako MCP nástroj. Žádné SQL změny, žádné přenasazení databázových objektů.</li>
-			<li><strong>MCP je víc než jen nástroje:</strong> Protokol zahrnuje inicializační handshake, ping, notifikace a potenciální budoucí rozšíření (resources, prompts, sampling). To jsou obavy na úrovni protokolu, které patří do Go, ne do SQL funkcí.</li>
+			<li><strong>MCP je víc než jen nástroje:</strong> Protokol zahrnuje discovery metodu (<code>server/discover</code>), metadata verze protokolu a schopností posílaná s každým požadavkem, notifikace a rozšíření (resources, prompts) nad rámec prostých volání nástrojů. To jsou obavy na úrovni protokolu, které patří do Go, ne do SQL funkcí.</li>
 			<li><strong>Bezpečnost zůstává na jednom místě:</strong> Autentizace, přepínání rolí a validace vstupů jsou již implementovány v Go. MCP endpoint tuto logiku používá beze změny.</li>
 			<li><strong>Více protokolů, jeden backend:</strong> Stejnou PostgreSQL funkci lze volat přes JSON-RPC (z běžného klienta), MCP (z Claude Desktop nebo Cursor) nebo sledovat přes SSE. Databáze je protokolově neutrální.</li>
-			<li><strong>Jednodušší SQL:</strong> Zpracování MCP obálek (<code>initialize</code>, <code>tools/list</code>, obsluha notifikací) uvnitř PostgreSQL funkcí by vyžadovalo parsování složitých JSON struktur v PL/pgSQL, čímž by funkce byly obtížněji psatelné, testovatelné a udržovatelné.</li>
+			<li><strong>Jednodušší SQL:</strong> Zpracování MCP obálek (<code>server/discover</code>, <code>tools/list</code>, obsluha notifikací) uvnitř PostgreSQL funkcí by vyžadovalo parsování složitých JSON struktur v PL/pgSQL, čímž by funkce byly obtížněji psatelné, testovatelné a udržovatelné.</li>
 		</ul>
 
 		<h4>Proč netlačit MCP do databáze:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>MCP handshake nepotřebuje databázi:</strong> <code>initialize</code> a <code>ping</code> jsou čisté protokolové zprávy. Otevírání databázového připojení pro ně plýtvá zdroji a přidává latenci.</li>
+			<li><strong>Validace MCP transportu nepotřebuje databázi:</strong> <code>server/discover</code> a kontroly verze protokolu/hlaviček u každého požadavku jsou čisté protokolové zprávy. Otevírání databázového připojení pro ně plýtvá zdroji a přidává latenci.</li>
 			<li><strong>SQL není správný nástroj pro protokolovou logiku:</strong> Chybové kódy JSON-RPC 2.0, směrování notifikací a správa idempotency klíčů jsou middleware záležitosti, nikoli datové záležitosti.</li>
 		</ul>
 	</div>

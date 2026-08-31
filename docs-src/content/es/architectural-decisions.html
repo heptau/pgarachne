@@ -140,15 +140,15 @@ menu:
 		<h4>Por qué traducir MCP en el servidor:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Sin cambios en funciones existentes:</strong> Cualquier función ya expuesta vía JSON-RPC está disponible instantáneamente como herramienta MCP. Sin cambios SQL ni redistribución de objetos de base de datos.</li>
-			<li><strong>MCP es más que solo herramientas:</strong> El protocolo incluye el handshake de inicialización, ping, notificaciones y posibles extensiones futuras. Estas son preocupaciones de nivel de protocolo que pertenecen a Go, no a funciones SQL.</li>
+			<li><strong>MCP es más que solo herramientas:</strong> El protocolo incluye un método de descubrimiento (<code>server/discover</code>), metadatos de versión de protocolo y capacidades en cada solicitud, notificaciones y extensiones (resources, prompts) más allá de simples llamadas a herramientas. Estas son preocupaciones de nivel de protocolo que pertenecen a Go, no a funciones SQL.</li>
 			<li><strong>La seguridad permanece en un lugar:</strong> La autenticación, el cambio de rol y la validación de entradas ya están implementados en Go. El endpoint MCP reutiliza esta lógica sin cambios.</li>
 			<li><strong>Múltiples protocolos, un backend:</strong> La misma función PostgreSQL puede llamarse vía JSON-RPC (desde un cliente normal), MCP (desde Claude Desktop o Cursor) o SSE (para suscripciones a eventos). La base de datos es agnóstica al protocolo.</li>
-			<li><strong>SQL más simple:</strong> Procesar envoltorios MCP (<code>initialize</code>, <code>tools/list</code>, gestión de notificaciones) dentro de funciones PostgreSQL requeriría parsear estructuras JSON complejas en PL/pgSQL, haciendo las funciones más difíciles de escribir, probar y mantener.</li>
+			<li><strong>SQL más simple:</strong> Procesar envoltorios MCP (<code>server/discover</code>, <code>tools/list</code>, gestión de notificaciones) dentro de funciones PostgreSQL requeriría parsear estructuras JSON complejas en PL/pgSQL, haciendo las funciones más difíciles de escribir, probar y mantener.</li>
 		</ul>
 
 		<h4>Por qué no llevar MCP a la base de datos:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>El handshake MCP no necesita base de datos:</strong> <code>initialize</code> y <code>ping</code> son mensajes de protocolo puros. Abrir una conexión de base de datos para ellos desperdicia recursos y aumenta la latencia.</li>
+			<li><strong>La validación de transporte MCP no necesita base de datos:</strong> <code>server/discover</code> y las comprobaciones de versión de protocolo/cabeceras en cada solicitud son mensajes de protocolo puros. Abrir una conexión de base de datos para ellos desperdicia recursos y aumenta la latencia.</li>
 			<li><strong>SQL es la herramienta equivocada para la lógica de protocolo:</strong> Los códigos de error JSON-RPC 2.0, el enrutamiento de notificaciones y la gestión de claves de idempotencia son preocupaciones de middleware, no de datos.</li>
 		</ul>
 	</div>
