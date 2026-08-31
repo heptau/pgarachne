@@ -253,20 +253,30 @@ CREATE OR REPLACE FUNCTION pgarachne.generate_openapi_spec(
 )
 RETURNS JSONB
 LANGUAGE plpgsql
-SECURITY DEFINER
 SET search_path = pg_catalog
 STABLE
 AS $$
 DECLARE
     methods_array   JSONB;
     method_descriptions JSONB;
+    method_paths    JSONB;
     path_template   TEXT;
     methods_list    TEXT;
 BEGIN
+    -- Deliberately SECURITY INVOKER (the default — no SECURITY DEFINER
+    -- clause above): capabilities() filters by has_function_privilege
+    -- (current_user, ...), and current_user only reflects the caller's
+    -- authenticated role if this function runs as invoker. A SECURITY
+    -- DEFINER function forces current_user to its owner for its entire
+    -- execution, including nested calls to capabilities() below — that
+    -- would silently defeat the role-based filtering the Go handler
+    -- relies on (it does SET LOCAL ROLE before calling this function).
+    --
     -- Pull the list of callable methods from the same source that the
     -- capabilities() method uses, so the spec stays in sync with what
-    -- is actually executable. The first element of the array is the
-    -- synthetic "capabilities" entry that lists the database itself.
+    -- is actually executable, and reflects only what the calling role
+    -- may call. The first element of the array is the synthetic
+    -- "capabilities" entry that lists the database itself.
     methods_array := COALESCE(pgarachne.capabilities()::jsonb, '[]'::jsonb);
 
     -- Build the per-method extension block. Each entry carries the
@@ -291,6 +301,68 @@ BEGIN
 
     path_template := '/' || pgarachne.api_prefix() || '/' || CURRENT_CATALOG || '/jsonrpc';
 
+    -- One native `paths` entry per exposed method, at a virtual
+    -- /rpc/{method} address. These paths do not exist as real HTTP
+    -- routes — every actual call still goes through the single
+    -- /jsonrpc endpoint above — they exist purely so tooling that
+    -- expects one operation per path (Swagger UI, Postman, codegen)
+    -- can list and describe each method individually. Each operation's
+    -- description spells out the real JSON-RPC request needed to
+    -- invoke it. Method names may contain dots (api.hello_world),
+    -- which need no escaping as either a jsonb object key or an
+    -- OpenAPI path segment.
+    SELECT COALESCE(jsonb_object_agg(
+        '/' || pgarachne.api_prefix() || '/' || CURRENT_CATALOG || '/rpc/' || (method_entry->>'method'),
+        jsonb_build_object(
+            'post', jsonb_build_object(
+                'operationId', replace(method_entry->>'method', '.', '_'),
+                'summary',     'Call ' || (method_entry->>'method'),
+                'description', COALESCE(method_entry->>'description', 'No description') ||
+                               E'\n\nThis path is a documentation-only placeholder — there is no real HTTP route at this address. ' ||
+                               'To actually call this method, send: POST ' || path_template ||
+                               ' with body {"jsonrpc":"2.0","method":"' || (method_entry->>'method') ||
+                               '","params":<params matching the schema below>,"id":1}',
+                'tags',        jsonb_build_array(
+                    CASE WHEN (method_entry->>'method') = 'capabilities'
+                        THEN 'pgarachne'
+                        ELSE split_part(method_entry->>'method', '.', 1)
+                    END
+                ),
+                'requestBody', jsonb_build_object(
+                    'required', true,
+                    'content', jsonb_build_object(
+                        'application/json', jsonb_build_object(
+                            'schema', COALESCE(method_entry->'parameters', jsonb_build_object('type', 'object'))
+                        )
+                    )
+                ),
+                'responses', jsonb_build_object(
+                    '200', jsonb_build_object(
+                        'description', 'Successful call (via /jsonrpc) — result is the function''s JSON return value',
+                        'content', jsonb_build_object(
+                            'application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcResponse'))
+                        )
+                    ),
+                    '400', jsonb_build_object('description', 'Malformed JSON-RPC request or invalid parameters',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                    '401', jsonb_build_object('description', 'Missing or invalid Authorization header',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                    '403', jsonb_build_object('description', 'Authenticated but not permitted to call this method',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                    '404', jsonb_build_object('description', 'Unknown method',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                    '409', jsonb_build_object('description', 'Idempotency key has been used before',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                    '500', jsonb_build_object('description', 'Server-side error while executing the SQL function',
+                        'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError'))))
+                ),
+                'security', jsonb_build_array(jsonb_build_object('BearerAuth', '{}'::jsonb))
+            )
+        )
+    ), '{}'::jsonb)
+    INTO method_paths
+    FROM jsonb_array_elements(methods_array) AS method_entry;
+
     RETURN jsonb_build_object(
         'openapi', '3.1.0',
         'info', jsonb_build_object(
@@ -302,8 +374,14 @@ BEGIN
         ),
         'servers', jsonb_build_array(
             jsonb_build_object(
-                'url',         server_url_base || path_template,
-                'description', 'PgArachne JSON-RPC endpoint'
+                -- The bare origin, not origin+/jsonrpc: every `paths` key
+                -- below (both /jsonrpc and the per-method /rpc/* entries) is
+                -- already a full absolute path, and per OpenAPI 3.1's URL
+                -- resolution rule (server.url + path key) the server entry
+                -- must therefore be just the origin, or URLs built by
+                -- tooling from this spec would double up the path.
+                'url',         server_url_base,
+                'description', 'PgArachne API base URL'
             )
         ),
         'paths', jsonb_build_object(
@@ -317,43 +395,25 @@ BEGIN
                         'required', true,
                         'content', jsonb_build_object(
                             'application/json', jsonb_build_object(
-                                'schema', jsonb_build_object(
-                                    'type', 'object',
-                                    'properties', jsonb_build_object(
-                                        'jsonrpc', jsonb_build_object(
-                                            'type',    'string',
-                                            'const',   '2.0',
-                                            'examples', jsonb_build_array('2.0')
-                                        ),
-                                        'method', jsonb_build_object(
-                                            'type',    'string',
-                                            'examples', jsonb_build_array('api.hello_world')
-                                        ),
-                                        'id', jsonb_build_object(
-                                            'type',     jsonb_build_array('integer', 'string', 'null'),
-                                            'examples', jsonb_build_array(1, 'abc', NULL)
-                                        ),
-                                        'params', jsonb_build_object(
-                                            'type',        'object',
-                                            'description', 'Function arguments, passed through to the SQL function as jsonb.'
-                                        ),
-                                        'idempotencyKey', jsonb_build_object(
-                                            'type',        'string',
-                                            'description', 'Optional non-standard extension. When present, a previously-seen key returns HTTP 409 Conflict.'
-                                        )
-                                    ),
-                                    'required', jsonb_build_array('jsonrpc', 'method')
-                                )
+                                'schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcRequest')
                             )
                         )
                     ),
                     'responses', jsonb_build_object(
-                        '200', jsonb_build_object('description', 'Successful JSON-RPC response (result field populated)'),
-                        '400', jsonb_build_object('description', 'Malformed JSON-RPC request'),
-                        '401', jsonb_build_object('description', 'Missing or invalid Authorization header'),
-                        '409', jsonb_build_object('description', 'Idempotency key has been used before'),
-                        '429', jsonb_build_object('description', 'Login rate limit exceeded'),
-                        '500', jsonb_build_object('description', 'Server-side error while executing the SQL function')
+                        '200', jsonb_build_object(
+                            'description', 'Successful JSON-RPC response (result field populated)',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcResponse')))
+                        ),
+                        '400', jsonb_build_object('description', 'Malformed JSON-RPC request',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                        '401', jsonb_build_object('description', 'Missing or invalid Authorization header',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                        '409', jsonb_build_object('description', 'Idempotency key has been used before',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                        '429', jsonb_build_object('description', 'Login rate limit exceeded',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                        '500', jsonb_build_object('description', 'Server-side error while executing the SQL function',
+                            'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError'))))
                     ),
                     'security', jsonb_build_array(
                         jsonb_build_object('BearerAuth', '{}'::jsonb)
@@ -367,8 +427,60 @@ BEGIN
                     'x-pgarachne-methods', method_descriptions
                 )
             )
-        ),
+        ) || method_paths,
         'components', jsonb_build_object(
+            'schemas', jsonb_build_object(
+                'JsonRpcRequest', jsonb_build_object(
+                    'type', 'object',
+                    'properties', jsonb_build_object(
+                        'jsonrpc', jsonb_build_object(
+                            'type',    'string',
+                            'const',   '2.0',
+                            'examples', jsonb_build_array('2.0')
+                        ),
+                        'method', jsonb_build_object(
+                            'type',    'string',
+                            'examples', jsonb_build_array('api.hello_world')
+                        ),
+                        'id', jsonb_build_object(
+                            'type',     jsonb_build_array('integer', 'string', 'null'),
+                            'examples', jsonb_build_array(1, 'abc', NULL)
+                        ),
+                        'params', jsonb_build_object(
+                            'type',        'object',
+                            'description', 'Function arguments, passed through to the SQL function as jsonb.'
+                        ),
+                        'idempotencyKey', jsonb_build_object(
+                            'type',        'string',
+                            'description', 'Optional non-standard extension. When present, a previously-seen key returns HTTP 409 Conflict.'
+                        )
+                    ),
+                    'required', jsonb_build_array('jsonrpc', 'method')
+                ),
+                'JsonRpcResponse', jsonb_build_object(
+                    'type', 'object',
+                    'properties', jsonb_build_object(
+                        'jsonrpc', jsonb_build_object('type', 'string', 'const', '2.0'),
+                        'result',  jsonb_build_object('description', 'Function result. Shape depends on the called method.'),
+                        'id',      jsonb_build_object('type', jsonb_build_array('integer', 'string', 'null'))
+                    )
+                ),
+                'JsonRpcError', jsonb_build_object(
+                    'type', 'object',
+                    'properties', jsonb_build_object(
+                        'jsonrpc', jsonb_build_object('type', 'string', 'const', '2.0'),
+                        'error',   jsonb_build_object(
+                            'type', 'object',
+                            'properties', jsonb_build_object(
+                                'code',    jsonb_build_object('type', 'integer'),
+                                'message', jsonb_build_object('type', 'string')
+                            ),
+                            'required', jsonb_build_array('message')
+                        ),
+                        'id', jsonb_build_object('type', jsonb_build_array('integer', 'string', 'null'))
+                    )
+                )
+            ),
             'securitySchemes', jsonb_build_object(
                 'BearerAuth', jsonb_build_object(
                     'type',        'http',
@@ -382,7 +494,7 @@ END;
 $$;
 
 COMMENT ON FUNCTION pgarachne.generate_openapi_spec(text, text)
-    IS 'Build an OpenAPI 3.1 spec for the current database. server_url_base is the public base URL (e.g. https://api.example.com). The second argument is accepted for API symmetry and currently unused; the function always reflects the database it is invoked from.';
+    IS 'Build an OpenAPI 3.1 spec for the current database, filtered to the methods the calling role may execute. server_url_base is the public base URL (e.g. https://api.example.com). The second argument is accepted for API symmetry and currently unused; the function always reflects the database it is invoked from. paths includes the real /jsonrpc endpoint plus one virtual /rpc/{method} path per exposed method (documentation only — real calls always go through /jsonrpc).';
 GRANT EXECUTE ON FUNCTION pgarachne.generate_openapi_spec(text, text) TO public;
 
 --

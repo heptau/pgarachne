@@ -72,5 +72,14 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 		<p>Kompletní návod k připojení najdete na <a href="../mcp/">MCP (Model Context Protocol)</a>.</p>
 	</div>
 
+	<h3>7. Získejte specifikaci OpenAPI (Swagger, Postman, codegen)</h3>
+	<div class="deployment-option">
+		<p>Každá vystavená funkce je také popsána jako dokument OpenAPI 3.1, filtrovaný podle toho, co smí autentizovaný volající zavolat:</p>
+		<pre><code>curl http://localhost:8080/db/my_database/openapi.json \
+  -u demo_user:user_password
+# nebo jako YAML: .../openapi.yaml</code></pre>
+		<p>Importujte URL přímo do Swagger UI, Postman nebo generátoru kódu OpenAPI. Každá metoda stále běží přes jediný JSON-RPC endpoint z kroku 5 — viz <a href="../architectural-decisions/">Architektonická rozhodnutí</a>, kde je vysvětleno, proč specifikace uvádí cestu pro každou metodu bez odpovídající skutečné route.</p>
+	</div>
+
 	<p>To je vše. Přečtěte si <a href="../hello-world-example/">Hello World</a> návod pro JWT autentizaci, nebo <a href="../comparison/">srovnání s PostgREST</a> pro pochopení, kam PgArachne zapadá.</p>
 </section>

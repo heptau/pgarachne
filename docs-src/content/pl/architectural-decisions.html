@@ -152,4 +152,28 @@ menu:
 			<li><strong>SQL to niewłaściwe narzędzie do logiki protokołu:</strong> Kody błędów JSON-RPC 2.0, routing powiadomień i zarządzanie kluczami idempotencji to zagadnienia middleware, nie zagadnienia danych.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. Eksport OpenAPI: wirtualne ścieżki, nie nowy protokół</h3>
+		<p>
+			<code>GET /{prefix}/{database}/openapi.json</code> (lub <code>.yaml</code>) generuje dokument OpenAPI 3.1
+			opisujący każdą metodę, którą uwierzytelniony wywołujący może wykonać. Rzeczywiste wywołanie nadal odbywa się
+			wyłącznie przez jeden endpoint <code>POST /{prefix}/{database}/jsonrpc</code> — specyfikacja dodatkowo wymienia
+			każdą metodę pod własną ścieżką, taką jak <code>/{prefix}/{database}/rpc/api.hello_world</code>, ale ta ścieżka
+			służy wyłącznie dokumentacji i nie istnieje jako trasa HTTP, którą można wywołać bezpośrednio.
+		</p>
+
+		<h4>Czemu wirtualne ścieżki per metoda:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Kompatybilność z narzędziami:</strong> Swagger UI, Postman, Insomnia i większość generatorów kodu OpenAPI oczekują jednej operacji na wpis w <code>paths</code>. Pojedyncza ścieżka JSON-RPC nie może inaczej reprezentować N różnych sygnatur metod w sposób zrozumiały dla tych narzędzi.</li>
+			<li><strong>Brak zmian w backendzie:</strong> Dodanie prawdziwej trasy dla każdej metody oznaczałoby drugi sposób wywoływania każdej funkcji, z własną warstwą autoryzacji, obsługi błędów i wersjonowania, którą trzeba by utrzymywać w zgodzie z JSON-RPC. Generowanie ścieżek wyłącznie na podstawie <code>capabilities()</code> zachowuje powierzchnię protokołu dokładnie taką, jak opisano w decyzji&nbsp;1, jednocześnie spełniając wymagania narzędzi potrzebujących schematów per operacja.</li>
+			<li><strong>Samodokumentowanie:</strong> Opis każdej wirtualnej operacji dokładnie wyjaśnia żądanie JSON-RPC (metodę + parametry) potrzebne do jej faktycznego wywołania, więc brak prawdziwej trasy niczego nie traci.</li>
+		</ul>
+
+		<h4>Czemu specyfikacja jest uwierzytelniona i filtrowana według ról:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Spójność z resztą API:</strong> Każdy inny endpoint (JSON-RPC, MCP <code>tools/list</code>) ujawnia wyłącznie metody, które rola wywołującego może wykonać. Nieuwierzytelniony i niefiltrowany dokument OpenAPI ujawniałby istnienie i kształt parametrów funkcji, których dany wywołujący w rzeczywistości nie może wywołać.</li>
+			<li><strong>Ten sam mechanizm co wszędzie indziej:</strong> Handler w Go uwierzytelnia za pomocą tej samej logiki Basic/JWT/token API co <code>/jsonrpc</code>, a następnie wykonuje <code>SET LOCAL ROLE</code> przed wygenerowaniem specyfikacji — <code>pgarachne.generate_openapi_spec()</code> ma atrybut <code>SECURITY INVOKER</code> właśnie po to, by jej wewnętrzne wywołanie <code>capabilities()</code> widziało tę rolę, dokładnie tak jak już działa MCP <code>tools/list</code>.</li>
+		</ul>
+	</div>
 </section>

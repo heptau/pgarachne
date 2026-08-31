@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/heptau/pgarachne/internal/database"
 	"github.com/heptau/pgarachne/internal/version"
 )
 
@@ -294,39 +293,21 @@ func (s *Server) handleMCP(c *gin.Context) {
 	//   Basic Auth  → direct user pool, dbRole = "" (no SET LOCAL ROLE).
 	//   Bearer JWT  → system pool, dbRole = JWT subject.
 	//   API token   → system pool, dbRole = token's role.
-	var db *sql.DB
-	var dbRole string
-
-	if username, password, ok := parseBasicAuth(c.GetHeader("Authorization")); ok {
-		if len(username) == 0 || len(username) > MaxLoginLength || len(password) > MaxPasswordLength {
-			recordAuthResult("direct", "malformed")
-			c.JSON(http.StatusUnauthorized, newMCPError(req.ID, mcpErrAuth, "Invalid credentials"))
-			return
+	db, dbRole, authErr := s.authenticateForDatabase(c, databaseName)
+	if authErr != nil {
+		var af *authFailure
+		errors.As(authErr, &af)
+		// A failed database connection (503) is an MCP-internal error;
+		// every other authenticateForDatabase failure (malformed/invalid
+		// credentials, invalid token) is an auth error — mirrors the
+		// mcpErrInternal-vs-mcpErrAuth split the pre-refactor code made
+		// explicitly per branch.
+		errCode := mcpErrAuth
+		if af.status == http.StatusServiceUnavailable {
+			errCode = mcpErrInternal
 		}
-		userDB, err := database.GetUserConnection(s.Cfg, databaseName, username, password)
-		if err != nil {
-			slog.Warn("MCP: direct authentication failed", "user", username, "database", databaseName, "error", err)
-			recordAuthResult("direct", "invalid")
-			c.JSON(http.StatusUnauthorized, newMCPError(req.ID, mcpErrAuth, "Invalid credentials"))
-			return
-		}
-		recordAuthResult("direct", "success")
-		db = userDB
-		// dbRole = "" → SET LOCAL ROLE is skipped in sub-handlers.
-	} else {
-		sysDB, err := database.GetConnection(s.Cfg, databaseName)
-		if err != nil {
-			slog.Error("MCP: database connection failed", "database", databaseName, "error", err)
-			c.JSON(http.StatusServiceUnavailable, newMCPError(req.ID, mcpErrInternal, "Database connection failed"))
-			return
-		}
-		role, errMsg, httpStatus := s.authenticateToken(c, sysDB, databaseName)
-		if errMsg != "" {
-			c.JSON(httpStatus, newMCPError(req.ID, mcpErrAuth, errMsg))
-			return
-		}
-		db = sysDB
-		dbRole = role
+		c.JSON(af.status, newMCPError(req.ID, errCode, af.message))
+		return
 	}
 
 	// tools/* methods are handled explicitly because tools/call has special

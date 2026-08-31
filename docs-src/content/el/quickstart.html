@@ -72,5 +72,14 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 		<p>Δείτε <a href="../mcp/">MCP (Model Context Protocol)</a> για πλήρεις οδηγίες σύνδεσης.</p>
 	</div>
 
+	<h3>7. Αποκτήστε μια Προδιαγραφή OpenAPI (Swagger, Postman, codegen)</h3>
+	<div class="deployment-option">
+		<p>Κάθε εκτεθειμένη function περιγράφεται επίσης ως έγγραφο OpenAPI 3.1, φιλτραρισμένο σε ό,τι επιτρέπεται να καλέσει ο αυθεντικοποιημένος client:</p>
+		<pre><code>curl http://localhost:8080/db/my_database/openapi.json \
+  -u demo_user:user_password
+# ή ως YAML: .../openapi.yaml</code></pre>
+		<p>Εισαγάγετε το URL απευθείας στο Swagger UI, στο Postman, ή σε έναν OpenAPI code generator. Κάθε μέθοδος εξακολουθεί να εκτελείται μέσω του ενιαίου endpoint JSON-RPC από το βήμα 5 — δείτε τις <a href="../architectural-decisions/">Αρχιτεκτονικές Αποφάσεις</a> για να καταλάβετε γιατί η προδιαγραφή παραθέτει ένα path ανά μέθοδο χωρίς αντίστοιχο πραγματικό route.</p>
+	</div>
+
 	<p>Αυτό ήταν. Διαβάστε τον οδηγό <a href="../hello-world-example/">Hello World</a> για τη ροή αυθεντικοποίησης JWT, ή τη <a href="../comparison/">σύγκριση με το PostgREST</a> για να κατανοήσετε πού ταιριάζει το PgArachne.</p>
 </section>

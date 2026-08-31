@@ -152,4 +152,28 @@ menu:
 			<li><strong>SQL is the wrong tool for protocol logic:</strong> JSON-RPC 2.0 error codes, notification routing, and idempotency key management are middleware concerns, not data concerns.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. OpenAPI Export: Virtual Paths, Not a New Protocol</h3>
+		<p>
+			<code>GET /{prefix}/{database}/openapi.json</code> (or <code>.yaml</code>) generates an OpenAPI 3.1 document
+			describing every method the authenticated caller may execute. Real invocation still happens exclusively
+			through the single <code>POST /{prefix}/{database}/jsonrpc</code> endpoint — the spec additionally lists
+			each method under its own path, such as <code>/{prefix}/{database}/rpc/api.hello_world</code>, but that
+			path is documentation only and does not exist as an HTTP route you can call directly.
+		</p>
+
+		<h4>Why virtual per-method paths:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Tooling compatibility:</strong> Swagger UI, Postman, Insomnia, and most OpenAPI code generators expect one operation per <code>paths</code> entry. A single JSON-RPC path can't otherwise represent N different method signatures in a way these tools understand.</li>
+			<li><strong>No backend changes required:</strong> Adding a real route per method would mean a second way to invoke every function, with its own auth, error-handling, and versioning surface to maintain in lockstep with JSON-RPC. Generating the paths purely from <code>capabilities()</code> keeps the protocol surface exactly as described in decision&nbsp;1, while still satisfying tools that need per-operation schemas.</li>
+			<li><strong>Self-documenting:</strong> Each virtual operation's description spells out the exact JSON-RPC request (method + params) needed to actually call it, so nothing is lost by not having a real route.</li>
+		</ul>
+
+		<h4>Why the spec is authenticated and role-filtered:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Consistency with the rest of the API:</strong> Every other endpoint (JSON-RPC, MCP <code>tools/list</code>) only ever reveals methods the caller's role may execute. An unauthenticated, unfiltered OpenAPI document would leak the existence and parameter shapes of functions a given caller can't actually invoke.</li>
+			<li><strong>Same mechanism as everywhere else:</strong> The Go handler authenticates with the same Basic/JWT/API-token logic as <code>/jsonrpc</code>, then <code>SET LOCAL ROLE</code>s before generating the spec — <code>pgarachne.generate_openapi_spec()</code> is <code>SECURITY INVOKER</code> specifically so its internal call to <code>capabilities()</code> sees that role, the same way MCP <code>tools/list</code> already works.</li>
+		</ul>
+	</div>
 </section>

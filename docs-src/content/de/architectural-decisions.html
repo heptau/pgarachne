@@ -152,4 +152,29 @@ menu:
 			<li><strong>SQL ist das falsche Werkzeug für Protokolllogik:</strong> JSON-RPC-2.0-Fehlercodes, Benachrichtigungs-Routing und Idempotency-Key-Verwaltung sind Middleware-Belange, keine Daten-Belange.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. OpenAPI-Export: Virtuelle Pfade, kein neues Protokoll</h3>
+		<p>
+			<code>GET /{prefix}/{datenbank}/openapi.json</code> (oder <code>.yaml</code>) erzeugt ein OpenAPI-3.1-Dokument,
+			das jede Methode beschreibt, die der authentifizierte Aufrufer ausführen darf. Der eigentliche Aufruf erfolgt
+			weiterhin ausschließlich über den einzelnen <code>POST /{prefix}/{datenbank}/jsonrpc</code>-Endpunkt — die
+			Spezifikation listet zusätzlich jede Methode unter einem eigenen Pfad auf, etwa
+			<code>/{prefix}/{datenbank}/rpc/api.hello_world</code>, doch dieser Pfad dient nur der Dokumentation und
+			existiert nicht als HTTP-Route, die direkt aufgerufen werden kann.
+		</p>
+
+		<h4>Warum virtuelle Pfade pro Methode:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Tooling-Kompatibilität:</strong> Swagger UI, Postman, Insomnia und die meisten OpenAPI-Codegeneratoren erwarten eine Operation pro <code>paths</code>-Eintrag. Ein einzelner JSON-RPC-Pfad kann N verschiedene Methodensignaturen sonst nicht so darstellen, wie diese Werkzeuge es verstehen.</li>
+			<li><strong>Keine Backend-Änderungen nötig:</strong> Eine echte Route pro Methode hinzuzufügen würde einen zweiten Weg bedeuten, jede Funktion aufzurufen — mit eigener Authentifizierung, Fehlerbehandlung und Versionierungsoberfläche, die im Gleichschritt mit JSON-RPC gepflegt werden müsste. Die Pfade rein aus <code>capabilities()</code> zu generieren, hält die Protokolloberfläche exakt so, wie in Entscheidung&nbsp;1 beschrieben, und erfüllt gleichzeitig die Anforderungen von Werkzeugen, die Schemas pro Operation benötigen.</li>
+			<li><strong>Selbstdokumentierend:</strong> Die Beschreibung jeder virtuellen Operation legt genau die JSON-RPC-Anfrage (Methode + Parameter) offen, die für den tatsächlichen Aufruf nötig ist — es geht also nichts verloren, nur weil keine echte Route existiert.</li>
+		</ul>
+
+		<h4>Warum die Spezifikation authentifiziert und rollengefiltert ist:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Konsistenz mit dem Rest der API:</strong> Jeder andere Endpunkt (JSON-RPC, MCP <code>tools/list</code>) zeigt ausschließlich Methoden, die die Rolle des Aufrufers ausführen darf. Ein unauthentifiziertes, ungefiltertes OpenAPI-Dokument würde die Existenz und Parameterformen von Funktionen preisgeben, die ein bestimmter Aufrufer gar nicht aufrufen kann.</li>
+			<li><strong>Derselbe Mechanismus wie überall sonst:</strong> Der Go-Handler authentifiziert mit derselben Basic/JWT/API-Token-Logik wie <code>/jsonrpc</code> und führt dann vor der Erzeugung der Spezifikation ein <code>SET LOCAL ROLE</code> aus — <code>pgarachne.generate_openapi_spec()</code> ist <code>SECURITY INVOKER</code>, genau damit der interne Aufruf von <code>capabilities()</code> diese Rolle sieht, auf dieselbe Weise, wie MCP <code>tools/list</code> bereits funktioniert.</li>
+		</ul>
+	</div>
 </section>

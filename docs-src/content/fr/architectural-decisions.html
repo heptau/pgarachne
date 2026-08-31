@@ -152,4 +152,29 @@ menu:
 			<li><strong>SQL est le mauvais outil pour la logique de protocole :</strong> Les codes d'erreur JSON-RPC, le routage des notifications et la gestion des clés d'idempotence sont des préoccupations middleware, pas des préoccupations de données.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. Export OpenAPI : Chemins Virtuels, pas un Nouveau Protocole</h3>
+		<p>
+			<code>GET /{prefixe}/{base_de_donnees}/openapi.json</code> (ou <code>.yaml</code>) génère un document OpenAPI 3.1
+			décrivant chaque méthode que l'appelant authentifié peut exécuter. L'invocation réelle continue de se faire
+			exclusivement via l'unique endpoint <code>POST /{prefixe}/{base_de_donnees}/jsonrpc</code> — la spécification
+			liste en plus chaque méthode sous son propre chemin, tel que
+			<code>/{prefixe}/{base_de_donnees}/rpc/api.hello_world</code>, mais ce chemin est uniquement de la
+			documentation et n'existe pas comme route HTTP appelable directement.
+		</p>
+
+		<h4>Pourquoi des chemins virtuels par méthode :</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Compatibilité avec les outils :</strong> Swagger UI, Postman, Insomnia et la plupart des générateurs de code OpenAPI attendent une opération par entrée <code>paths</code>. Un chemin JSON-RPC unique ne peut sinon pas représenter N signatures de méthode différentes d'une manière que ces outils comprennent.</li>
+			<li><strong>Aucun changement backend requis :</strong> Ajouter une vraie route par méthode signifierait une seconde façon d'invoquer chaque fonction, avec sa propre surface d'authentification, de gestion des erreurs et de versionnement à maintenir en synchronisation avec JSON-RPC. Générer les chemins uniquement à partir de <code>capabilities()</code> préserve la surface du protocole exactement telle que décrite dans la décision&nbsp;1, tout en satisfaisant les outils qui ont besoin de schémas par opération.</li>
+			<li><strong>Auto-documenté :</strong> La description de chaque opération virtuelle détaille la requête JSON-RPC exacte (méthode + paramètres) nécessaire pour l'appeler réellement, donc rien n'est perdu à ne pas avoir de route réelle.</li>
+		</ul>
+
+		<h4>Pourquoi la spécification est authentifiée et filtrée par rôle :</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Cohérence avec le reste de l'API :</strong> Tous les autres endpoints (JSON-RPC, MCP <code>tools/list</code>) ne révèlent jamais que les méthodes que le rôle de l'appelant peut exécuter. Un document OpenAPI non authentifié et non filtré révélerait l'existence et la forme des paramètres de fonctions qu'un appelant donné ne peut pas réellement invoquer.</li>
+			<li><strong>Le même mécanisme que partout ailleurs :</strong> Le gestionnaire Go s'authentifie avec la même logique Basic/JWT/jeton API que <code>/jsonrpc</code>, puis exécute <code>SET LOCAL ROLE</code> avant de générer la spécification — <code>pgarachne.generate_openapi_spec()</code> est <code>SECURITY INVOKER</code> précisément pour que son appel interne à <code>capabilities()</code> voie ce rôle, de la même manière que <code>tools/list</code> de MCP fonctionne déjà.</li>
+		</ul>
+	</div>
 </section>

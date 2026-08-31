@@ -152,4 +152,28 @@ menu:
 			<li><strong>SQL é a ferramenta inadequada para lógica de protocolo:</strong> Códigos de erro JSON-RPC, roteamento de notificações e gerenciamento de chaves de idempotência são preocupações de middleware, não de dados.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. Exportação de OpenAPI: Caminhos Virtuais, Não um Novo Protocolo</h3>
+		<p>
+			<code>GET /{prefix}/{database}/openapi.json</code> (ou <code>.yaml</code>) gera um documento OpenAPI 3.1
+			descrevendo todos os métodos que o chamador autenticado pode executar. A invocação real ainda acontece
+			exclusivamente através do endpoint único <code>POST /{prefix}/{database}/jsonrpc</code> — a especificação
+			lista adicionalmente cada método sob seu próprio caminho, como <code>/{prefix}/{database}/rpc/api.hello_world</code>,
+			mas esse caminho é apenas documentação e não existe como uma rota HTTP que você possa chamar diretamente.
+		</p>
+
+		<h4>Por que caminhos virtuais por método:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Compatibilidade com ferramentas:</strong> Swagger UI, Postman, Insomnia e a maioria dos geradores de código OpenAPI esperam uma operação por entrada em <code>paths</code>. Um único caminho JSON-RPC não consegue, de outra forma, representar N assinaturas de métodos diferentes de uma forma que essas ferramentas entendam.</li>
+			<li><strong>Nenhuma alteração de backend necessária:</strong> Adicionar uma rota real por método significaria uma segunda forma de invocar cada função, com sua própria superfície de autenticação, tratamento de erros e versionamento a ser mantida em sincronia com o JSON-RPC. Gerar os caminhos puramente a partir de <code>capabilities()</code> mantém a superfície do protocolo exatamente como descrita na decisão&nbsp;1, ao mesmo tempo que satisfaz as ferramentas que precisam de esquemas por operação.</li>
+			<li><strong>Autodocumentado:</strong> A descrição de cada operação virtual detalha exatamente a requisição JSON-RPC (método + parâmetros) necessária para realmente chamá-la, portanto nada se perde por não haver uma rota real.</li>
+		</ul>
+
+		<h4>Por que a especificação é autenticada e filtrada por papel:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Consistência com o restante da API:</strong> Todos os demais endpoints (JSON-RPC, <code>tools/list</code> do MCP) só revelam os métodos que o papel do chamador pode executar. Um documento OpenAPI não autenticado e não filtrado vazaria a existência e o formato dos parâmetros de funções que um determinado chamador não pode realmente invocar.</li>
+			<li><strong>Mesmo mecanismo utilizado em todo o resto:</strong> O handler Go autentica com a mesma lógica Basic/JWT/token de API usada em <code>/jsonrpc</code>, e então executa <code>SET LOCAL ROLE</code> antes de gerar a especificação — <code>pgarachne.generate_openapi_spec()</code> é <code>SECURITY INVOKER</code> especificamente para que sua chamada interna a <code>capabilities()</code> veja esse papel, da mesma forma que o <code>tools/list</code> do MCP já funciona.</li>
+		</ul>
+	</div>
 </section>

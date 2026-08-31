@@ -151,4 +151,28 @@ menu:
 			<li><strong>SQL není správný nástroj pro protokolovou logiku:</strong> Chybové kódy JSON-RPC 2.0, směrování notifikací a správa idempotency klíčů jsou middleware záležitosti, nikoli datové záležitosti.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. Export OpenAPI: virtuální cesty, nikoli nový protokol</h3>
+		<p>
+			<code>GET /{prefix}/{databaze}/openapi.json</code> (nebo <code>.yaml</code>) generuje dokument OpenAPI 3.1
+			popisující každou metodu, kterou smí autentizovaný volající vykonat. Skutečné volání stále probíhá výhradně
+			přes jediný endpoint <code>POST /{prefix}/{databaze}/jsonrpc</code> — specifikace navíc uvádí každou metodu
+			pod vlastní cestou, například <code>/{prefix}/{databaze}/rpc/api.hello_world</code>, ale tato cesta je pouze
+			dokumentační a neexistuje jako HTTP route, kterou lze volat přímo.
+		</p>
+
+		<h4>Proč virtuální cesty pro jednotlivé metody:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Kompatibilita s nástroji:</strong> Swagger UI, Postman, Insomnia a většina generátorů kódu OpenAPI očekává jednu operaci na položku <code>paths</code>. Jediná cesta JSON-RPC jinak nedokáže reprezentovat N různých signatur metod způsobem, kterému tyto nástroje rozumí.</li>
+			<li><strong>Žádné změny backendu nejsou nutné:</strong> Přidání skutečné route pro každou metodu by znamenalo druhý způsob volání každé funkce, s vlastní autentizací, zpracováním chyb a verzováním, které by bylo nutné udržovat v souladu s JSON-RPC. Generování cest čistě z <code>capabilities()</code> zachovává povrch protokolu přesně tak, jak je popsán v rozhodnutí&nbsp;1, a přitom uspokojuje nástroje vyžadující schémata pro jednotlivé operace.</li>
+			<li><strong>Samodokumentující se:</strong> Popis každé virtuální operace uvádí přesný požadavek JSON-RPC (metodu + parametry) potřebný k jejímu skutečnému zavolání, takže absencí skutečné route se nic neztrácí.</li>
+		</ul>
+
+		<h4>Proč je specifikace autentizovaná a filtrovaná podle role:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Konzistence se zbytkem API:</strong> Každý další endpoint (JSON-RPC, MCP <code>tools/list</code>) vždy odhaluje pouze metody, které smí role volajícího vykonat. Neautentizovaný, nefiltrovaný dokument OpenAPI by prozradil existenci a tvar parametrů funkcí, které daný volající ve skutečnosti nemůže zavolat.</li>
+			<li><strong>Stejný mechanismus jako všude jinde:</strong> Go handler autentizuje pomocí stejné logiky Basic/JWT/API-token jako <code>/jsonrpc</code> a poté před generováním specifikace provede <code>SET LOCAL ROLE</code> — <code>pgarachne.generate_openapi_spec()</code> je <code>SECURITY INVOKER</code> právě proto, aby její vnitřní volání <code>capabilities()</code> tuto roli vidělo, stejně jako to již funguje u MCP <code>tools/list</code>.</li>
+		</ul>
+	</div>
 </section>

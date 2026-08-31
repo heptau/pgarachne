@@ -126,6 +126,11 @@ func (e *testEnv) sseURL() string {
 	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/sse"
 }
 
+// openAPIURL returns the canonical OpenAPI spec endpoint URL for the test database.
+func (e *testEnv) openAPIURL() string {
+	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/openapi.json"
+}
+
 func TestLoginAndJWTFlow(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
@@ -793,32 +798,65 @@ func TestMetricsNotExposedOnMainAPI(t *testing.T) {
 // application/json (what OpenAPI tooling expects), is reachable without
 // authentication (it only describes method names, never data), and
 // embeds the per-method x-pgarachne-methods extension.
-func TestOpenAPISpec(t *testing.T) {
-	env := requireTestEnv(t)
-	defer env.close()
-
-	url := env.httpServer.URL + "/" + env.cfg.APIPrefix + "/" + env.dbName + "/openapi.json"
-	resp, err := http.Get(url)
+// fetchOpenAPISpec issues an authenticated GET against the OpenAPI spec
+// endpoint and returns the HTTP status and, on success, the parsed document.
+func fetchOpenAPISpec(env *testEnv, token string) (int, map[string]interface{}, error) {
+	req, err := http.NewRequest(http.MethodGet, env.openAPIURL(), nil)
 	if err != nil {
-		t.Fatalf("GET %s: %v", url, err)
+		return 0, nil, err
+	}
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
-	}
-	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/json") {
-		t.Fatalf("Content-Type = %q, want application/json prefix", ct)
-	}
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		t.Fatalf("read body: %v", err)
+		return resp.StatusCode, nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, nil, nil
 	}
 
 	var spec map[string]interface{}
 	if err := json.Unmarshal(body, &spec); err != nil {
-		t.Fatalf("unmarshal spec: %v", err)
+		return resp.StatusCode, nil, fmt.Errorf("unmarshal spec: %w", err)
+	}
+	return resp.StatusCode, spec, nil
+}
+
+func TestOpenAPISpecRequiresAuth(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	status, _, err := fetchOpenAPISpec(env, "")
+	if err != nil {
+		t.Fatalf("fetch spec: %v", err)
+	}
+	if status != http.StatusUnauthorized {
+		t.Fatalf("status = %d, want %d", status, http.StatusUnauthorized)
+	}
+}
+
+func TestOpenAPISpec(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	status, spec, err := fetchOpenAPISpec(env, token)
+	if err != nil {
+		t.Fatalf("fetch spec: %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, want %d", status, http.StatusOK)
 	}
 
 	if got, want := spec["openapi"], "3.1.0"; got != want {
@@ -833,15 +871,52 @@ func TestOpenAPISpec(t *testing.T) {
 		t.Errorf("info.title = %q, expected to contain %q", title, env.dbName)
 	}
 
+	servers, ok := spec["servers"].([]interface{})
+	if !ok || len(servers) == 0 {
+		t.Fatal("servers block missing or empty")
+	}
+	serverURL, _ := servers[0].(map[string]interface{})["url"].(string)
+	if strings.HasSuffix(serverURL, "/jsonrpc") {
+		t.Errorf("servers[0].url = %q, should be the bare origin, not suffixed with /jsonrpc (would double up when joined with a paths key)", serverURL)
+	}
+
 	paths, ok := spec["paths"].(map[string]interface{})
 	if !ok {
 		t.Fatal("paths block missing or not an object")
 	}
-	// Exactly one path — the JSON-RPC endpoint — keyed by the configured
-	// prefix + database name + /jsonrpc.
-	wantPath := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/jsonrpc"
-	if _, ok := paths[wantPath]; !ok {
-		t.Errorf("paths missing key %q (have: %v)", wantPath, mapKeys(paths))
+	wantJSONRPCPath := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/jsonrpc"
+	if _, ok := paths[wantJSONRPCPath]; !ok {
+		t.Errorf("paths missing key %q (have: %v)", wantJSONRPCPath, mapKeys(paths))
+	}
+
+	// A virtual, documentation-only per-method path must exist for
+	// api.hello_world alongside the real /jsonrpc path.
+	wantMethodPath := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/rpc/api.hello_world"
+	methodPathEntry, ok := paths[wantMethodPath].(map[string]interface{})
+	if !ok {
+		t.Fatalf("paths missing virtual method key %q (have: %v)", wantMethodPath, mapKeys(paths))
+	}
+	postOp, ok := methodPathEntry["post"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("paths[%q].post missing or not an object", wantMethodPath)
+	}
+	if _, ok := postOp["x-pgarachne-methods"]; ok {
+		t.Errorf("x-pgarachne-methods should stay exclusive to the /jsonrpc path, found it on %q", wantMethodPath)
+	}
+	reqBody, ok := postOp["requestBody"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("paths[%q].post.requestBody missing", wantMethodPath)
+	}
+	content, _ := reqBody["content"].(map[string]interface{})
+	appJSON, _ := content["application/json"].(map[string]interface{})
+	if appJSON == nil || appJSON["schema"] == nil {
+		t.Errorf("paths[%q].post.requestBody.content.application/json.schema missing", wantMethodPath)
+	}
+
+	// The synthetic "capabilities" method also gets its own virtual path.
+	wantCapabilitiesPath := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/rpc/capabilities"
+	if _, ok := paths[wantCapabilitiesPath]; !ok {
+		t.Errorf("paths missing virtual method key %q (have: %v)", wantCapabilitiesPath, mapKeys(paths))
 	}
 
 	components, ok := spec["components"].(map[string]interface{})
@@ -855,6 +930,116 @@ func TestOpenAPISpec(t *testing.T) {
 	} else if bearer["type"] != "http" || bearer["scheme"] != "bearer" {
 		t.Errorf("BearerAuth = %v, want {type:http, scheme:bearer}", bearer)
 	}
+
+	schemas, ok := components["schemas"].(map[string]interface{})
+	if !ok {
+		t.Fatal("components.schemas block missing")
+	}
+	for _, name := range []string{"JsonRpcRequest", "JsonRpcResponse", "JsonRpcError"} {
+		if _, ok := schemas[name]; !ok {
+			t.Errorf("components.schemas.%s missing (have: %v)", name, mapKeys(schemas))
+		}
+	}
+
+	jsonrpcOp, _ := paths[wantJSONRPCPath].(map[string]interface{})["post"].(map[string]interface{})
+	jsonrpcReqSchema, _ := jsonrpcOp["requestBody"].(map[string]interface{})["content"].(map[string]interface{})["application/json"].(map[string]interface{})["schema"].(map[string]interface{})
+	if ref, _ := jsonrpcReqSchema["$ref"].(string); ref != "#/components/schemas/JsonRpcRequest" {
+		t.Errorf("/jsonrpc requestBody schema $ref = %q, want #/components/schemas/JsonRpcRequest", ref)
+	}
+}
+
+// TestOpenAPISpecRespectsExecutePrivilege verifies that generate_openapi_spec
+// is filtered per authenticated role, the same way capabilities() already is
+// (TestCapabilitiesRespectsExecutePrivilege) — a function without an EXECUTE
+// grant for the caller must not appear as a virtual /rpc/{method} path.
+func TestOpenAPISpecRespectsExecutePrivilege(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	functionName := fmt.Sprintf("api.private_openapi_fn_%d", time.Now().UnixNano())
+	if err := createPrivateFunction(env, functionName); err != nil {
+		t.Fatalf("create private function: %v", err)
+	}
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	wantPath := "/" + env.cfg.APIPrefix + "/" + env.dbName + "/rpc/" + functionName
+
+	status, spec, err := fetchOpenAPISpec(env, token)
+	if err != nil {
+		t.Fatalf("fetch spec: %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, want %d", status, http.StatusOK)
+	}
+	paths, _ := spec["paths"].(map[string]interface{})
+	if _, ok := paths[wantPath]; ok {
+		t.Fatalf("expected %q to be hidden without EXECUTE", wantPath)
+	}
+
+	if err := grantExecute(env, functionName); err != nil {
+		t.Fatalf("grant execute: %v", err)
+	}
+
+	status, spec, err = fetchOpenAPISpec(env, token)
+	if err != nil {
+		t.Fatalf("fetch spec after grant: %v", err)
+	}
+	if status != http.StatusOK {
+		t.Fatalf("status = %d, want %d", status, http.StatusOK)
+	}
+	paths, _ = spec["paths"].(map[string]interface{})
+	if _, ok := paths[wantPath]; !ok {
+		t.Fatalf("expected %q to be visible after EXECUTE grant (have: %v)", wantPath, mapKeys(paths))
+	}
+}
+
+func TestOpenAPISpecYAML(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login failed: %v", err)
+	}
+
+	yamlURL := env.httpServer.URL + "/" + env.cfg.APIPrefix + "/" + env.dbName + "/openapi.yaml"
+	req, err := http.NewRequest(http.MethodGet, yamlURL, nil)
+	if err != nil {
+		t.Fatalf("new request: %v", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("GET %s: %v", yamlURL, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Fatalf("status = %d, want %d", resp.StatusCode, http.StatusOK)
+	}
+	if ct := resp.Header.Get("Content-Type"); !strings.HasPrefix(ct, "application/yaml") {
+		t.Fatalf("Content-Type = %q, want application/yaml prefix", ct)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	if !strings.Contains(string(body), "openapi:") {
+		t.Errorf("YAML body does not look like an OpenAPI document: %s", truncate(string(body), 200))
+	}
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
 }
 
 // mapKeys returns the keys of a map[string]interface{} as a slice, for

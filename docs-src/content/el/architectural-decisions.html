@@ -152,4 +152,29 @@ menu:
 			<li><strong>Η SQL είναι λάθος εργαλείο για λογική πρωτοκόλλου:</strong> Οι κωδικοί σφάλματος JSON-RPC 2.0, η δρομολόγηση notifications και η διαχείριση idempotency keys είναι ζητήματα middleware, όχι ζητήματα δεδομένων.</li>
 		</ul>
 	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>7. Εξαγωγή OpenAPI: Εικονικά Paths, Όχι Νέο Πρωτόκολλο</h3>
+		<p>
+			Το <code>GET /{prefix}/{database}/openapi.json</code> (ή <code>.yaml</code>) παράγει ένα έγγραφο OpenAPI 3.1
+			που περιγράφει κάθε μέθοδο που μπορεί να εκτελέσει ο αυθεντικοποιημένος client. Η πραγματική κλήση εξακολουθεί
+			να γίνεται αποκλειστικά μέσω του ενιαίου endpoint <code>POST /{prefix}/{database}/jsonrpc</code> — η προδιαγραφή
+			απλώς παραθέτει επιπλέον κάθε μέθοδο κάτω από το δικό της path, όπως το
+			<code>/{prefix}/{database}/rpc/api.hello_world</code>, αλλά αυτό το path υπάρχει μόνο ως τεκμηρίωση και δεν
+			αποτελεί πραγματικό HTTP route που μπορείτε να καλέσετε απευθείας.
+		</p>
+
+		<h4>Γιατί εικονικά paths ανά μέθοδο:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Συμβατότητα με tooling:</strong> Τα Swagger UI, Postman, Insomnia, και οι περισσότεροι OpenAPI code generators αναμένουν μία operation ανά καταχώριση <code>paths</code>. Ένα μόνο JSON-RPC path δεν μπορεί διαφορετικά να αναπαραστήσει N διαφορετικές υπογραφές μεθόδων με τρόπο που να κατανοούν αυτά τα εργαλεία.</li>
+			<li><strong>Καμία αλλαγή backend δεν απαιτείται:</strong> Η προσθήκη πραγματικού route ανά μέθοδο θα σήμαινε έναν δεύτερο τρόπο κλήσης κάθε function, με τη δική του επιφάνεια auth, error-handling και versioning που θα έπρεπε να συντηρείται σε πλήρη συγχρονισμό με το JSON-RPC. Η παραγωγή των paths αποκλειστικά από την <code>capabilities()</code> διατηρεί την επιφάνεια του πρωτοκόλλου ακριβώς όπως περιγράφεται στην απόφαση&nbsp;1, ικανοποιώντας παράλληλα τα εργαλεία που χρειάζονται schemas ανά operation.</li>
+			<li><strong>Αυτοτεκμηριούμενο:</strong> Η περιγραφή κάθε εικονικής operation αναφέρει ρητά το ακριβές JSON-RPC request (method + params) που απαιτείται για την πραγματική κλήση της, οπότε τίποτα δεν χάνεται από το ότι δεν υπάρχει πραγματικό route.</li>
+		</ul>
+
+		<h4>Γιατί η προδιαγραφή είναι αυθεντικοποιημένη και φιλτραρισμένη βάσει ρόλου:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Συνέπεια με το υπόλοιπο API:</strong> Κάθε άλλο endpoint (JSON-RPC, MCP <code>tools/list</code>) αποκαλύπτει πάντα μόνο τις μεθόδους που επιτρέπεται να εκτελέσει ο ρόλος του client. Ένα μη αυθεντικοποιημένο, μη φιλτραρισμένο έγγραφο OpenAPI θα διέρρεε την ύπαρξη και τη μορφή των παραμέτρων functions που ένας συγκεκριμένος client δεν μπορεί στην πραγματικότητα να καλέσει.</li>
+			<li><strong>Ίδιος μηχανισμός παντού:</strong> Ο handler της Go αυθεντικοποιεί με την ίδια λογική Basic/JWT/API-token όπως το <code>/jsonrpc</code>, και στη συνέχεια εκτελεί <code>SET LOCAL ROLE</code> πριν την παραγωγή της προδιαγραφής — η <code>pgarachne.generate_openapi_spec()</code> είναι <code>SECURITY INVOKER</code> ειδικά ώστε η εσωτερική κλήση της στην <code>capabilities()</code> να «βλέπει» αυτόν τον ρόλο, με τον ίδιο τρόπο που λειτουργεί ήδη το MCP <code>tools/list</code>.</li>
+		</ul>
+	</div>
 </section>
