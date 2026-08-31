@@ -14,6 +14,10 @@ menu:
 		<code>SET LOCAL ROLE</code> k přepnutí identity; metoda 4 (přímé přihlášení) se připojuje
 		<em>přímo</em> jako daný uživatel, takže přepnutí role není zapotřebí.
 	</p>
+	<p>Toto platí pro JSON-RPC a MCP endpointy. <a href="real-time-notifications.html">SSE endpoint</a> je jedinou
+		výjimkou — autentizuje volajícího, ale nepřepíná roli ani jinak nekontroluje oprávnění na úrovni kanálu,
+		protože kanály PostgreSQL <code>LISTEN</code>/<code>NOTIFY</code> nejsou databázové objekty s vlastním
+		<code>GRANT</code>em, který by šlo vynutit. Co to v praxi znamená, najdete na stránce o SSE.</p>
 
 	<h3>1. Interaktivní přihlášení (JWT)</h3>
 	<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>

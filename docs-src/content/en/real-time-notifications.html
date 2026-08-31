@@ -21,6 +21,22 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>If the payload is plain text, it is wrapped as a string in <code>data</code>.</p>
 
+	<div class="warning">
+		<h3>Channels are not role-scoped</h3>
+		<p>Unlike the JSON-RPC and MCP endpoints, SSE does <strong>not</strong> apply <code>SET LOCAL ROLE</code> or
+			otherwise check the authenticated role's grants before subscribing. PgArachne authenticates the caller
+			(a valid JWT, API token, or direct credential for the target database), but any authenticated caller —
+			regardless of which role their credential maps to — can subscribe to <strong>any</strong>
+			<code>NOTIFY</code> channel name and will receive everything published on it. This falls out of how the
+			endpoint is built: all SSE clients for a database share a single <code>LISTEN</code> connection opened
+			as the <code>DB_USER</code> service account, and PostgreSQL itself has no per-channel <code>GRANT</code>
+			to delegate to — <code>LISTEN</code>/<code>NOTIFY</code> channels are not database objects.</p>
+		<p>Do not <code>NOTIFY</code> payloads containing data that not every authenticated role should see. If you
+			need channel-level access control, enforce it in your own application logic (e.g. per-role channel
+			naming conventions, or filtering what you put in the payload) — PgArachne will not do it for you on this
+			endpoint.</p>
+	</div>
+
 	<h3>Sending notifications from PostgreSQL</h3>
 	<p>From <code>psql</code> or any database session:</p>
 	<pre><code>-- Simple text payload

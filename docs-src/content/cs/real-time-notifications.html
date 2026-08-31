@@ -21,6 +21,23 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Pokud je payload text, zabalí se jako string do <code>data</code>.</p>
 
+	<div class="warning">
+		<h3>Kanály nejsou vázané na roli</h3>
+		<p>Na rozdíl od JSON-RPC a MCP endpointů SSE <strong>nepoužívá</strong> <code>SET LOCAL ROLE</code> ani jinak
+			nekontroluje oprávnění autentizované role před přihlášením k odběru. PgArachne autentizuje volajícího
+			(platný JWT, API token nebo přímé přihlašovací údaje pro cílovou databázi), ale libovolný autentizovaný
+			volající — bez ohledu na to, jaké roli jeho přihlašovací údaje odpovídají — se může přihlásit k odběru
+			<strong>jakéhokoli</strong> <code>NOTIFY</code> kanálu a bude dostávat vše, co se do něj publikuje.
+			Vyplývá to z architektury endpointu: všichni SSE klienti pro danou databázi sdílí jedno společné
+			<code>LISTEN</code> spojení otevřené jako servisní účet <code>DB_USER</code>, a PostgreSQL samotný nemá
+			žádný <code>GRANT</code> na úrovni kanálu, na který by se dalo delegovat — kanály
+			<code>LISTEN</code>/<code>NOTIFY</code> nejsou databázové objekty.</p>
+		<p>Neposílejte přes <code>NOTIFY</code> payloady s daty, která by neměla vidět úplně každá autentizovaná
+			role. Pokud potřebujete řízení přístupu na úrovni kanálu, implementujte ho ve vlastní aplikační logice
+			(např. konvencí pojmenování kanálů podle role, nebo filtrováním obsahu payloadu) — PgArachne to na
+			tomto endpointu za vás neudělá.</p>
+	</div>
+
 	<h3>Odesílání notifikací z PostgreSQL</h3>
 	<p>Z <code>psql</code> nebo jakékoli databázové session:</p>
 	<pre><code>-- Jednoduchý textový payload

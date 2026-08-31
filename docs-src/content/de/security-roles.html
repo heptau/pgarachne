@@ -14,6 +14,11 @@ menu:
 		<code>SET LOCAL ROLE</code>, um die Identität zu wechseln; Methode 4 (direkte Zugangsdaten) verbindet sich
 		<em>direkt</em> als der jeweilige Benutzer, sodass kein Rollenwechsel nötig ist.
 	</p>
+	<p>Dies gilt für die JSON-RPC- und MCP-Endpunkte. Der <a href="real-time-notifications.html">SSE-Endpunkt</a>
+		ist die eine Ausnahme — er authentifiziert den Aufrufer, wechselt aber weder die Rolle noch prüft er
+		Berechtigungen auf Kanalebene, da PostgreSQL-<code>LISTEN</code>/<code>NOTIFY</code>-Kanäle keine
+		Datenbankobjekte mit eigenen durchsetzbaren <code>GRANT</code>s sind. Was das in der Praxis bedeutet,
+		steht auf der SSE-Seite.</p>
 
 	<h3>1. Interaktives Login (JWT)</h3>
 	<p>Benutzer authentifizieren sich mit ihrem <strong>echten PostgreSQL-Benutzernamen und -Passwort</strong> über die

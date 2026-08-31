@@ -1,6 +1,7 @@
 package database
 
 import (
+	"database/sql"
 	"encoding/json"
 	"os"
 	"strconv"
@@ -9,6 +10,19 @@ import (
 
 	"github.com/heptau/pgarachne/internal/config"
 )
+
+// newIdleTestPool returns a *sql.DB that has never dialed out — sql.Open is
+// lazy, so this is safe to construct and Close without a live PostgreSQL
+// server. Its Stats().OpenConnections is always 0, matching the "idle" pools
+// evictIdleDirectPoolLocked looks for.
+func newIdleTestPool(t *testing.T) *sql.DB {
+	t.Helper()
+	db, err := sql.Open("postgres", "host=127.0.0.1 port=1 user=nobody dbname=nobody sslmode=disable")
+	if err != nil {
+		t.Fatalf("sql.Open: %v", err)
+	}
+	return db
+}
 
 func requireTestDB(t *testing.T) (cfg *config.Config, dbName string) {
 	t.Helper()
@@ -264,4 +278,82 @@ func TestCloseAllClosesPools(t *testing.T) {
 	if err := cached.Ping(); err == nil {
 		t.Fatal("expected Ping on closed pool to fail; got nil")
 	}
+}
+
+// withCleanDirectPools swaps directPools for an empty map for the duration
+// of fn, restoring whatever was there before on return. Tests that populate
+// directPools directly (bypassing GetUserConnection) use this so they cannot
+// see or corrupt entries left behind by sibling tests.
+func withCleanDirectPools(t *testing.T, fn func()) {
+	t.Helper()
+	directPoolsMu.Lock()
+	saved := directPools
+	directPools = make(map[string]*directPoolEntry)
+	directPoolsMu.Unlock()
+
+	defer func() {
+		directPoolsMu.Lock()
+		for _, entry := range directPools {
+			_ = entry.db.Close()
+		}
+		directPools = saved
+		directPoolsMu.Unlock()
+	}()
+
+	fn()
+}
+
+// TestEvictIdleDirectPoolLockedEvictsOldestIdle verifies that when the direct
+// pool cache is full, GetUserConnection reclaims the least-recently-used
+// entry that has no open connections rather than rejecting the new
+// credential outright — the scenario that used to permanently lock out new
+// direct-auth callers after enough distinct (user, password) pairs had
+// accumulated over a long-running process's lifetime (e.g. routine password
+// rotation), even though those old pools were long idle.
+func TestEvictIdleDirectPoolLockedEvictsOldestIdle(t *testing.T) {
+	withCleanDirectPools(t, func() {
+		oldest := &directPoolEntry{db: newIdleTestPool(t), lastUsed: 1}
+		newer := &directPoolEntry{db: newIdleTestPool(t), lastUsed: 2}
+
+		directPoolsMu.Lock()
+		directPools["oldest"] = oldest
+		directPools["newer"] = newer
+		ok := evictIdleDirectPoolLocked()
+		_, oldestStillPresent := directPools["oldest"]
+		_, newerStillPresent := directPools["newer"]
+		directPoolsMu.Unlock()
+
+		if !ok {
+			t.Fatal("expected an idle entry to be evicted")
+		}
+		if oldestStillPresent {
+			t.Error("expected the least-recently-used entry to be evicted")
+		}
+		if !newerStillPresent {
+			t.Error("did not expect the more recently used entry to be evicted")
+		}
+		if err := oldest.db.Ping(); err == nil {
+			t.Error("expected the evicted pool to be closed")
+		}
+	})
+}
+
+// TestEvictIdleDirectPoolLockedNoCandidates verifies the fail-closed
+// behaviour is preserved when there is nothing to reclaim: with an empty
+// cache, eviction reports false rather than panicking on a missing victim.
+// The "never close a pool with open connections" half of the contract is
+// enforced by the OpenConnections guard in evictIdleDirectPoolLocked itself
+// and is exercised implicitly by every real GetUserConnection caller, since
+// simulating a genuinely open connection needs a live PostgreSQL server
+// (see TestGetConnectionRecoversFromDeadPool and friends, gated on
+// PGARACHNE_TEST_DB).
+func TestEvictIdleDirectPoolLockedNoCandidates(t *testing.T) {
+	withCleanDirectPools(t, func() {
+		directPoolsMu.Lock()
+		ok := evictIdleDirectPoolLocked()
+		directPoolsMu.Unlock()
+		if ok {
+			t.Fatal("expected no eviction candidate in an empty map")
+		}
+	})
 }

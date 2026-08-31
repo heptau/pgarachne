@@ -21,6 +21,24 @@ curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Jeśli payload jest zwykłym tekstem, zostaje zapakowany jako string w polu <code>data</code>.</p>
 
+	<div class="warning">
+		<h3>Kanały nie są ograniczone rolą</h3>
+		<p>W przeciwieństwie do endpointów JSON-RPC i MCP, SSE <strong>nie</strong> stosuje
+			<code>SET LOCAL ROLE</code> ani w żaden inny sposób nie sprawdza uprawnień uwierzytelnionej roli przed
+			subskrypcją. PgArachne uwierzytelnia wywołującego (ważny JWT, token API lub bezpośrednie dane
+			logowania do docelowej bazy danych), ale każdy uwierzytelniony wywołujący — niezależnie od tego,
+			jakiej roli odpowiadają jego dane logowania — może zasubskrybować <strong>dowolny</strong> kanał
+			<code>NOTIFY</code> i będzie otrzymywać wszystko, co jest w nim publikowane. Wynika to ze sposobu, w
+			jaki zbudowany jest ten endpoint: wszyscy klienci SSE dla danej bazy danych współdzielą jedno
+			połączenie <code>LISTEN</code> otwarte jako konto usługowe <code>DB_USER</code>, a sam PostgreSQL nie
+			ma żadnego <code>GRANT</code>u na poziomie kanału, na który mógłby delegować uprawnienia — kanały
+			<code>LISTEN</code>/<code>NOTIFY</code> nie są obiektami bazy danych.</p>
+		<p>Nie wysyłaj przez <code>NOTIFY</code> payloadów zawierających dane, których nie powinna widzieć każda
+			uwierzytelniona rola. Jeśli potrzebujesz kontroli dostępu na poziomie kanału, zaimplementuj ją we
+			własnej logice aplikacji (np. konwencje nazewnictwa kanałów zależne od roli lub filtrowanie
+			zawartości payloadu) — PgArachne nie zrobi tego za Ciebie na tym endpointcie.</p>
+	</div>
+
 	<h3>Wysyłanie powiadomień z PostgreSQL</h3>
 	<p>Z <code>psql</code> lub innej sesji bazy danych:</p>
 	<pre><code>-- Prosty tekstowy payload

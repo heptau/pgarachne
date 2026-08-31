@@ -97,7 +97,7 @@ Common optional:
 ## HTTP Endpoints
 - `GET /health` — health check
 - `POST /{prefix}/:database/jsonrpc` — JSON-RPC 2.0 gateway (including `get_jwt`)
-- `GET /{prefix}/:database/sse` — SSE stream for PostgreSQL `NOTIFY` channels (`channels` query param required)
+- `GET /{prefix}/:database/sse` — SSE stream for PostgreSQL `NOTIFY` channels (`channels` query param required). Authenticates the caller but, unlike every other endpoint here, does **not** `SET LOCAL ROLE` or check per-channel permissions — all SSE clients for a database share one `LISTEN` connection opened as `DB_USER`, so any authenticated caller can subscribe to any channel name. This is by design (Postgres channels aren't objects with their own GRANTs) and documented in `docs-src/content/en/real-time-notifications.html`; don't "fix" it locally without reading that note first.
 - `POST /{prefix}/:database/mcp` — MCP (Model Context Protocol) Streamable HTTP endpoint
 - `GET /{prefix}/:database/openapi.json` — OpenAPI 3.1 spec generated on the fly by `pgarachne.generate_openapi_spec`. Unauthenticated — the spec only describes method names, not data. Served as `application/json` for OpenAPI tooling compatibility.
 - `GET /metrics` — Prometheus metrics on the dedicated metrics listener (`METRICS_LISTEN_ADDR`)

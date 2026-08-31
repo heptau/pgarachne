@@ -16,6 +16,23 @@ menu:
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Si el payload es texto, se envuelve como string en <code>data</code>.</p>
 
+	<div class="warning">
+		<h3>Los canales no están restringidos por rol</h3>
+		<p>A diferencia de los endpoints JSON-RPC y MCP, SSE <strong>no</strong> aplica <code>SET LOCAL ROLE</code>
+			ni comprueba de ningún otro modo los permisos del rol autenticado antes de suscribirse. PgArachne
+			autentica al llamante (un JWT válido, un token de API o credenciales directas para la base de datos de
+			destino), pero cualquier llamante autenticado — sin importar a qué rol correspondan sus credenciales —
+			puede suscribirse a <strong>cualquier</strong> canal <code>NOTIFY</code> y recibirá todo lo que se
+			publique en él. Esto se debe a cómo está construido el endpoint: todos los clientes SSE de una base de
+			datos comparten una única conexión <code>LISTEN</code> abierta como la cuenta de servicio
+			<code>DB_USER</code>, y PostgreSQL en sí no tiene ningún <code>GRANT</code> por canal en el que
+			delegar — los canales <code>LISTEN</code>/<code>NOTIFY</code> no son objetos de base de datos.</p>
+		<p>No envíes mediante <code>NOTIFY</code> payloads con datos que no todos los roles autenticados deberían
+			ver. Si necesitas control de acceso a nivel de canal, impleméntalo en tu propia lógica de aplicación
+			(por ejemplo, convenciones de nombres de canal por rol, o filtrando lo que incluyes en el payload) —
+			PgArachne no lo hará por ti en este endpoint.</p>
+	</div>
+
 	<h3>Enviar notificaciones desde PostgreSQL</h3>
 	<p>Desde <code>psql</code> o cualquier sesión de base de datos:</p>
 	<pre><code>-- Payload de texto simple

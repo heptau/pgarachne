@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/heptau/pgarachne/internal/config"
@@ -23,7 +24,7 @@ var (
 	// directPools holds per-user connection pools for direct-credential auth
 	// (Authorization: Basic …). Keyed by directPoolKey() so that a password
 	// change always triggers fresh authentication against PostgreSQL.
-	directPools   = make(map[string]*sql.DB)
+	directPools   = make(map[string]*directPoolEntry)
 	directPoolsMu sync.RWMutex
 
 	// poolKeyMACKey is a process-lifetime random key used to derive
@@ -39,6 +40,22 @@ func randomKey() []byte {
 		panic(fmt.Sprintf("failed to generate pool key MAC secret: %v", err))
 	}
 	return key
+}
+
+// directPoolEntry pairs a per-user pool with the last time it was handed to a
+// caller, so that GetUserConnection can evict long-idle entries instead of
+// rejecting new credentials once the map fills up (see its use in
+// evictIdleDirectPoolLocked).
+type directPoolEntry struct {
+	db *sql.DB
+	// lastUsed is a Unix-nanosecond timestamp, accessed via sync/atomic so
+	// GetUserConnection's read-locked cache-hit path can refresh it without
+	// upgrading to the write lock.
+	lastUsed int64
+}
+
+func (e *directPoolEntry) touch() {
+	atomic.StoreInt64(&e.lastUsed, time.Now().UnixNano())
 }
 
 // defaultMaxDirectPools caps the number of distinct (user, password, dbname)
@@ -172,9 +189,10 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 	key := directPoolKey(dbName, username, password)
 
 	directPoolsMu.RLock()
-	if db, ok := directPools[key]; ok {
+	if entry, ok := directPools[key]; ok {
+		entry.touch()
 		directPoolsMu.RUnlock()
-		return db, nil
+		return entry.db, nil
 	}
 	directPoolsMu.RUnlock()
 
@@ -182,12 +200,24 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 	defer directPoolsMu.Unlock()
 
 	// Re-check after acquiring the write lock.
-	if db, ok := directPools[key]; ok {
-		return db, nil
+	if entry, ok := directPools[key]; ok {
+		entry.touch()
+		return entry.db, nil
 	}
 
 	if limit := maxDirectPools(cfg); len(directPools) >= limit {
-		return nil, fmt.Errorf("direct connection pool limit reached (max %d distinct credentials)", limit)
+		// The cap exists to bound memory under a credential-spray attack, but
+		// long-lived deployments legitimately accumulate one entry per past
+		// (user, password) combination — every password rotation leaves its
+		// old pool behind forever, since nothing else ever removes a map
+		// entry. Without this eviction step, enough routine rotations
+		// eventually fill the map and lock out brand-new direct-auth
+		// credentials even though most cached pools have long since gone
+		// idle. Only a pool with zero open connections is evicted, so an
+		// entry actively serving requests is never closed out from under it.
+		if !evictIdleDirectPoolLocked() {
+			return nil, fmt.Errorf("direct connection pool limit reached (max %d distinct credentials)", limit)
+		}
 	}
 
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
@@ -221,9 +251,36 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 		return nil, fmt.Errorf("direct authentication failed for user %q: %w", username, err)
 	}
 
-	directPools[key] = db
+	entry := &directPoolEntry{db: db}
+	entry.touch()
+	directPools[key] = entry
 	slog.Info("Created direct user connection pool", "database", dbName, "user", username)
 	return db, nil
+}
+
+// evictIdleDirectPoolLocked scans directPools for the least-recently-used
+// entry that currently has zero open connections and evicts it, closing its
+// pool and returning true. It reports false when every cached pool has at
+// least one open connection, meaning none can be safely reclaimed. Callers
+// must hold directPoolsMu for writing.
+func evictIdleDirectPoolLocked() bool {
+	var victimKey string
+	var victim *directPoolEntry
+	for key, entry := range directPools {
+		if entry.db.Stats().OpenConnections > 0 {
+			continue
+		}
+		if victim == nil || atomic.LoadInt64(&entry.lastUsed) < atomic.LoadInt64(&victim.lastUsed) {
+			victimKey, victim = key, entry
+		}
+	}
+	if victim == nil {
+		return false
+	}
+	delete(directPools, victimKey)
+	_ = victim.db.Close()
+	slog.Info("Evicted idle direct user connection pool to make room for a new one")
+	return true
 }
 
 // directPoolKey builds the map key for a direct-auth pool.
@@ -255,8 +312,8 @@ func CloseAll() {
 	dbMutex.Unlock()
 
 	directPoolsMu.Lock()
-	for key, db := range directPools {
-		if err := db.Close(); err != nil {
+	for key, entry := range directPools {
+		if err := entry.db.Close(); err != nil {
 			slog.Warn("Failed to close direct user DB pool", "key", key, "error", err)
 		}
 		delete(directPools, key)

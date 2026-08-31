@@ -14,6 +14,11 @@ menu:
 		<code>SET LOCAL ROLE</code> do przełączania tożsamości; metoda 4 (bezpośrednie dane logowania) łączy się
 		<em>bezpośrednio</em> jako dany użytkownik, więc przełączanie roli nie jest potrzebne.
 	</p>
+	<p>Dotyczy to endpointów JSON-RPC i MCP. <a href="real-time-notifications.html">Endpoint SSE</a> jest jedynym
+		wyjątkiem — uwierzytelnia wywołującego, ale nie przełącza roli ani nie sprawdza uprawnień na poziomie
+		kanału, ponieważ kanały <code>LISTEN</code>/<code>NOTIFY</code> PostgreSQL nie są obiektami bazy danych z
+		własnymi egzekwowalnymi <code>GRANT</code>ami. Zobacz stronę SSE, aby dowiedzieć się, co to oznacza w
+		praktyce.</p>
 
 	<h3>1. Logowanie interaktywne (JWT)</h3>
 	<p>Użytkownicy uwierzytelniają się za pomocą swojej <strong>rzeczywistej nazwy użytkownika i hasła PostgreSQL</strong> poprzez

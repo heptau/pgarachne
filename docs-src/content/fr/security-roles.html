@@ -15,6 +15,11 @@ menu:
 		<code>SET LOCAL ROLE</code> pour changer d'identité ; la méthode 4 (identifiants directs) se connecte
 		<em>directement</em> en tant que l'utilisateur, sans changement de rôle nécessaire.
 	</p>
+	<p>Cela s'applique aux endpoints JSON-RPC et MCP. L'<a href="real-time-notifications.html">endpoint SSE</a>
+		est la seule exception — il authentifie l'appelant mais ne change pas de rôle et ne vérifie pas les
+		permissions par canal, car les canaux <code>LISTEN</code>/<code>NOTIFY</code> de PostgreSQL ne sont pas
+		des objets de base de données avec leurs propres <code>GRANT</code>s à faire respecter. Voir la page SSE
+		pour ce que cela signifie en pratique.</p>
 
 	<h3>1. Connexion interactive (JWT)</h3>
 	<p>Les utilisateurs s'authentifient en utilisant leur <strong>vrai nom d'utilisateur et mot de passe

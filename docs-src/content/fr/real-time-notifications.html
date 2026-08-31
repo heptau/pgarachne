@@ -16,6 +16,24 @@ menu:
 	<pre><code>{"channel":"orders","data":{"id":123,"status":"created"}}</code></pre>
 	<p>Si le payload est du texte, il est encapsulé en string dans <code>data</code>.</p>
 
+	<div class="warning">
+		<h3>Les canaux ne sont pas restreints par rôle</h3>
+		<p>Contrairement aux endpoints JSON-RPC et MCP, SSE <strong>n'applique pas</strong> <code>SET LOCAL ROLE</code>
+			et ne vérifie pas non plus les droits du rôle authentifié avant l'abonnement. PgArachne authentifie
+			l'appelant (un JWT valide, un jeton API ou des identifiants directs pour la base de données cible),
+			mais n'importe quel appelant authentifié — quel que soit le rôle auquel ses identifiants correspondent
+			— peut s'abonner à <strong>n'importe quel</strong> canal <code>NOTIFY</code> et recevra tout ce qui y
+			est publié. Cela découle de la façon dont l'endpoint est construit : tous les clients SSE d'une base
+			de données partagent une unique connexion <code>LISTEN</code> ouverte en tant que compte de service
+			<code>DB_USER</code>, et PostgreSQL lui-même n'a aucun <code>GRANT</code> par canal auquel déléguer —
+			les canaux <code>LISTEN</code>/<code>NOTIFY</code> ne sont pas des objets de base de données.</p>
+		<p>N'envoyez pas via <code>NOTIFY</code> des payloads contenant des données que tous les rôles
+			authentifiés ne devraient pas voir. Si vous avez besoin d'un contrôle d'accès au niveau du canal,
+			mettez-le en œuvre dans votre propre logique applicative (par exemple des conventions de nommage des
+			canaux par rôle, ou en filtrant le contenu du payload) — PgArachne ne le fera pas pour vous sur cet
+			endpoint.</p>
+	</div>
+
 	<h3>Envoyer des notifications depuis PostgreSQL</h3>
 	<p>Depuis <code>psql</code> ou n'importe quelle session de base de données :</p>
 	<pre><code>-- Payload texte simple

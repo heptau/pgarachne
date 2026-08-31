@@ -13,6 +13,11 @@ menu:
 		de Control de Acceso (ACLs). La mayoría de los métodos de autenticación ejecutan las consultas bajo
 		el rol de base de datos específico del usuario autenticado usando <code>SET LOCAL ROLE</code>.
 	</p>
+	<p>Esto aplica a los endpoints JSON-RPC y MCP. El <a href="real-time-notifications.html">endpoint SSE</a> es
+		la única excepción — autentica al llamante, pero no cambia de rol ni comprueba permisos por canal, ya que
+		los canales <code>LISTEN</code>/<code>NOTIFY</code> de PostgreSQL no son objetos de base de datos con sus
+		propios <code>GRANT</code>s que aplicar. Consulta la página de SSE para saber qué significa esto en la
+		práctica.</p>
 
 	<h3>1. Inicio de Sesión Interactivo (JWT)</h3>
 	<p>Los usuarios se autentican usando su <strong>nombre de usuario y contraseña reales de PostgreSQL</strong>

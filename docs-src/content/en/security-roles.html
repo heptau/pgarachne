@@ -14,6 +14,10 @@ menu:
 		<code>SET LOCAL ROLE</code> to switch identity; method 4 (direct credentials) connects
 		<em>directly</em> as the user, so no role switch is needed.
 	</p>
+	<p>This applies to the JSON-RPC and MCP endpoints. The <a href="real-time-notifications.html">SSE endpoint</a> is
+		the one exception — it authenticates the caller but does not switch role or otherwise check per-channel
+		permissions, since PostgreSQL <code>LISTEN</code>/<code>NOTIFY</code> channels are not database objects with
+		their own <code>GRANT</code>s to enforce. See the SSE page for what that means in practice.</p>
 
 	<h3>1. Interactive Login (JWT)</h3>
 	<p>Users authenticate using their <strong>real PostgreSQL username and password</strong> via the
