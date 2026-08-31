@@ -7,6 +7,8 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-08-31
+
 ### Added
 
 - `sql/schema.sql`/`internal/server/server.go`: `pgarachne.generate_openapi_spec()` now emits one virtual, documentation-only `paths` entry per exposed method (`/{prefix}/{database}/rpc/{method}`), alongside the existing single `/jsonrpc` path — for tooling that expects one operation per path (Swagger UI, Postman, codegen) and can't otherwise represent N method signatures under one JSON-RPC path. These paths are not real HTTP routes; every actual call still goes through `/jsonrpc`, and each virtual operation's description spells out the equivalent JSON-RPC request. The JSON-RPC request/response/error shapes were also pulled out into reusable `components.schemas.JsonRpcRequest`/`JsonRpcResponse`/`JsonRpcError`, referenced via `$ref` from both the real and virtual paths.
