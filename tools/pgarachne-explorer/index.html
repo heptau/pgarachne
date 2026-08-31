@@ -597,8 +597,17 @@
 		}
 
 		// --- JSON Syntax Highlighting ---
-		// JSON.stringify output is safe for innerHTML: it escapes <, >, &, and quotes.
+		// JSON.stringify does NOT escape <, >, or & — a result value containing
+		// e.g. "<img src=x onerror=...>" would otherwise be parsed as real HTML
+		// once inserted via innerHTML below. escapeHtml runs first so only the
+		// safe, escaped text ever reaches the DOM; the <span> wrapper tags added
+		// by the regex below are the only real markup in the output.
+		function escapeHtml(str) {
+			return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		}
+
 		function syntaxHighlight(json) {
+			json = escapeHtml(json);
 			return json.replace(
 				/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
 				function (match) {

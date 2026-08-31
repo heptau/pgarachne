@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Security
+
+- `tools/pgarachne-explorer/index.html`: `showResultJSON()` inserted a JSON-RPC result's `JSON.stringify` output into the page via `innerHTML`, on the mistaken assumption (stated in a now-removed comment) that `JSON.stringify` escapes `<`, `>`, and `&`. It does not — a result value containing e.g. `<img src=x onerror=...>` was parsed as real markup and executed. `syntaxHighlight()` now HTML-escapes the stringified JSON before adding its `<span>` highlighting wrappers.
+
 ## [2.1.0] - 2026-08-31
 
 ### Added
