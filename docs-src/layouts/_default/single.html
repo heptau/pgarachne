@@ -54,24 +54,6 @@
 			{{ end }}
 		{{ end }}
 
-		{{ $related := slice
-			(dict "url" (printf "%sinstallation/" $homeURL) "name" (i18n "nav_installation"))
-			(dict "url" (printf "%sconfiguration/" $homeURL) "name" (i18n "link_configuration"))
-			(dict "url" (printf "%ssecurity-roles/" $homeURL) "name" (i18n "link_security"))
-			(dict "url" (printf "%sdeployment-https/" $homeURL) "name" (i18n "link_deployment"))
-			(dict "url" (printf "%smetrics/" $homeURL) "name" (i18n "link_metrics"))
-		}}
-		<div class="doc-related">
-			<h3>{{ i18n "related_docs_title" }}</h3>
-			<ul>
-				{{ range $related }}
-					{{ if ne .url $.RelPermalink }}
-					<li><a href="{{ .url }}">{{ .name }}</a></li>
-					{{ end }}
-				{{ end }}
-			</ul>
-		</div>
-
 		<div class="doc-next doc-nav">
 			{{ with $scratch.Get "prev" }}
 			<a class="doc-prev" href="{{ .URL }}" aria-label="{{ i18n "prev_label" }}: {{ .Name }}">← <span>{{ .Name }}</span></a>

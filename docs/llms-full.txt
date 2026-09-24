@@ -1,0 +1,1571 @@
+# PgArachne – full documentation
+
+> PgArachne: High-performance PostgreSQL JSON-RPC gateway with SSE real-time updates and Prometheus metrics.
+
+Source: https://www.pgarachne.com/en/ · Index: https://www.pgarachne.com/llms.txt · Repository: https://github.com/heptau/pgarachne
+
+
+---
+
+# About & Architecture
+
+URL: https://www.pgarachne.com/en/about-architecture/
+
+## About & Architecture
+
+PgArachne™ serves as a lightweight, high-performance web server that sits between
+your HTTP clients and the PostgreSQL database. It eliminates the need for traditional backend
+languages (like Python, Node.js, or PHP) by mapping HTTP requests directly to database functions.
+
+### Core Technical Capabilities
+
+- JSON-RPC 2.0 Gateway: All API interactions follow the strict JSON-RPC 2.0
+specification. There are no REST endpoints to design; you simply call SQL functions by name
+via POST requests.
+
+- Native DB Authentication: No separate user tables. Users log in with their
+actual PostgreSQL credentials to receive a JWT. Alternatively, service accounts
+can use persistent API Tokens.
+
+- Role Masquerading: PgArachne™ connects as a proxy user but executes every
+request using `SET LOCAL ROLE` to switch to the authenticated user's identity.
+Row-Level Security (RLS) works automatically.
+
+- MCP (Model Context Protocol): A native MCP endpoint allows AI clients such
+as Claude Desktop, Cursor, and other MCP-compatible tools to discover your PostgreSQL functions
+as tools and call them directly — no custom glue code required. The same authentication and
+role security applies. Resources (tables/views) and prompt templates are also exposed via MCP.
+
+- Real-time Notifications (SSE): Subscribe to PostgreSQL `NOTIFY`
+channels over SSE for live updates without polling.
+
+- Static File Server: PgArachne™ can serve static assets (HTML, JS, CSS),
+allowing you to host Single Page Applications (SPAs) or the Explorer tool directly.
+
+This architecture dramatically simplifies the stack: Database ↔ PgArachne ↔ Frontend / AI Agent.
+
+Endpoint structure: All database endpoints share a common prefix (default `db`, configurable via `API_PREFIX`):
+
+POST /{prefix}/{database}/jsonrpc — JSON-RPC 2.0 gateway
+
+GET  /{prefix}/{database}/sse    — PostgreSQL NOTIFY stream
+
+POST /{prefix}/{database}/mcp   — Model Context Protocol
+
+View Detailed Architectural Decisions
+
+
+---
+
+# Architectural Decisions
+
+URL: https://www.pgarachne.com/en/architectural-decisions/
+
+## Architectural Design Decisions
+
+This page explains the reasoning behind the key architectural and technology choices in PgArachne.
+These decisions were made to prioritize performance, security, and developer productivity while ensuring the system remains
+highly compatible with modern AI and LLM agents.
+
+### 1. JSON-RPC 2.0 vs. REST
+
+PgArachne uses JSON-RPC 2.0 as its primary communication protocol instead of traditional REST.
+
+#### Why JSON-RPC 2.0:
+
+- Single Endpoint: All communication happens via `POST /{prefix}/{database}/jsonrpc`. There is no need to design complex URL structures or debate HTTP verb semantics.
+
+- Self-Contained Calls: Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.
+
+- Standardized Error Handling: Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.
+
+- Batching: The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.
+
+- Discovery: The capabilities endpoint provides a full description of the API in a format that AI agents can consume to understand available tools without hallucinations.
+
+#### Why not REST:
+
+- Complexity for AI: REST semantics (GET/POST/PATCH/DELETE + URL params + body) are spread across multiple places, making it harder for AI agents to construct calls reliably.
+
+- Schema Leakage: CRUD-over-tables (like PostgREST) often leaks the internal database structure directly into the API. PgArachne deliberately exposes functions, keeping business logic encapsulated in SQL.
+
+- Lack of Standards: REST offers no universal standard for batch operations, cross-platform error envelopes, or automated API discovery.
+
+### 2. SSE (Server-Sent Events) vs. WebSockets
+
+For real-time notifications, PgArachne implements Server-Sent Events (SSE).
+
+#### Why SSE:
+
+- Plain HTTP: SSE is standard HTTP. It works through proxies, load balancers, and CDNs without special "protocol upgrade" configuration.
+
+- Native Browser Support: The `EventSource` API is built into all modern browsers and handles automatic reconnection without any client libraries.
+
+- Matches NOTIFY Semantics: PostgreSQL's `NOTIFY` is unidirectional (server to client), which maps perfectly to SSE.
+
+- Multiplexing: Over HTTP/2, hundreds of SSE streams can share a single TCP connection, making it extremely efficient.
+
+- Operational Simplicity: SSE connections appear as normal HTTP requests in logs and monitoring tools, making them easier to debug and rate-limit.
+
+#### Why not WebSockets:
+
+- Unnecessary Bidirectionality: Since the client never needs to send data back over the notification channel, the complexity of WebSockets provides no benefit.
+
+- Connectivity Issues: WebSockets are often blocked or prematurely closed by corporate firewalls and some cloud load balancers.
+
+- Higher Overhead: Adds protocol complexity (handshakes, ping/pong frames) that isn't required for simple event streaming.
+
+### 3. Go vs. Alternatives
+
+PgArachne is written in Go to provide the best balance of performance and deployment simplicity.
+
+#### Why Go:
+
+- Static Binaries: Compiles to a single binary with zero external dependencies. Deployment is as simple as copying the file to the server.
+
+- Concurrency: Go's goroutines make handling thousands of concurrent SSE and database connections lightweight and straightforward.
+
+- Robust Standard Library: The built-in libraries for HTTP, TLS, and JSON are production-grade and require no "node_modules" or external runtimes.
+
+- Cross-Compilation: Easily targets Linux, macOS, and Windows (amd64 and arm64) from any development machine.
+
+#### Why not Node.js, PHP, or Ruby:
+
+- Runtimes: These require installing a specific runtime environment on every target machine.
+
+- Efficiency: Node's single-threaded loop or PHP's process-per-request model are less efficient for maintaining thousands of idle SSE connections.
+
+- Memory Footprint: Go uses significantly less memory per connection than scripted languages.
+
+#### Why not Rust:
+
+- Development Velocity: While Rust offers extreme performance, its complexity (borrow checker) slows down iteration for an I/O-bound tool where Go's performance is already more than sufficient.
+
+#### Why not C / C++:
+
+- Safety: Manual memory management adds significant security risks (buffer overflows) for no meaningful performance gain in a gateway application.
+
+### 4. PostgreSQL Functions as API Surface
+
+PgArachne intentionally exposes database functions rather than raw tables.
+
+#### Why functions:
+
+- Encapsulation: Business logic lives co-located with the data in the database—one place to audit, version, and secure.
+
+- Explicit Security: Only functions that are explicitly granted `EXECUTE` permissions to a specific role are accessible via the API.
+
+- Abstraction: Input validation, computed fields, and complex multi-table operations are hidden from the client, providing a clean interface.
+
+#### Why not table-level CRUD:
+
+- Tight Coupling: Exposing tables directly ties your API to your internal database schema, making it difficult to refactor the database without breaking clients.
+
+- Business Rule Fragmentation: Business logic ends up split between database constraints and whatever middleware is used to filter HTTP requests.
+
+### 5. URL Structure: `/{prefix}/{database}/{endpoint}`
+
+PgArachne routes all endpoints under a configurable prefix segment:
+`/db/{database}/jsonrpc`, `/db/{database}/sse`, `/db/{database}/mcp`.
+The prefix defaults to `db` and can be changed via `API_PREFIX`.
+
+#### Why this structure:
+
+- Reverse proxy routing: A single PgArachne instance can serve multiple databases. A reverse proxy (Nginx, Caddy, Traefik) can route by prefix or database name without inspecting the request body, which is critical for load balancing and path-based routing rules.
+
+- Horizontal scalability: With the database name in the URL path, you can run multiple PgArachne instances and route traffic to specific instances per database using standard proxy rules — no sticky sessions or body inspection required.
+
+- Protocol multiplexing per database: Grouping `/jsonrpc`, `/sse`, and `/mcp` under the same `/{prefix}/{database}/` namespace makes it natural to apply per-database authentication, rate limiting, and access control at the proxy layer.
+
+- Configurable prefix: Deployments that already use `/api/` as a prefix in their infrastructure can set `API_PREFIX=api` to match their conventions.
+
+- Observability: Log aggregators and metrics systems can group and filter traffic by database name directly from the URL without parsing JSON bodies.
+
+#### Why not a flat structure like `/api/{database}`:
+
+- Protocol ambiguity: A single flat endpoint cannot distinguish between JSON-RPC, SSE, and MCP traffic at the routing layer — that decision falls into application logic or header inspection.
+
+- Harder to extend: Adding new protocols (e.g., GraphQL, gRPC-gateway) requires introducing new top-level paths anyway, so the structured namespace future-proofs the design.
+
+### 6. MCP as a Translation Layer, Not a Database Protocol
+
+PgArachne implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
+as a thin translation layer in the Go server. PostgreSQL functions are never aware of MCP — they
+remain simple `jsonb → json` functions.
+
+#### Why translate MCP on the server:
+
+- Zero changes to existing functions: Any function already exposed via JSON-RPC is instantly available as an MCP tool. No SQL changes, no redeployment of database objects.
+
+- MCP is more than just tools: The protocol includes a discovery method (`server/discover`), per-request protocol version and capability metadata, notifications, and extensions (resources, prompts) beyond simple tool calls. These are protocol-level concerns that belong in Go, not in SQL functions.
+
+- Security stays in one place: Authentication, role switching, and input validation are already implemented in Go. The MCP endpoint reuses this logic unchanged.
+
+- Multiple protocols, one backend: The same PostgreSQL function can be called via JSON-RPC (from a regular client), MCP (from Claude Desktop or Cursor), or SSE (for event subscriptions). The database is protocol-agnostic.
+
+- Simpler SQL: Processing MCP envelopes (`server/discover`, `tools/list`, notification handling) inside PostgreSQL functions would require parsing complex JSON structures in PL/pgSQL, making functions harder to write, test, and maintain.
+
+#### Why not push MCP into the database:
+
+- MCP transport validation doesn't need a database: `server/discover` and the per-request protocol-version/header checks are pure protocol messages. Opening a database connection for them wastes resources and adds latency.
+
+- SQL is the wrong tool for protocol logic: JSON-RPC 2.0 error codes, notification routing, and idempotency key management are middleware concerns, not data concerns.
+
+### 7. OpenAPI Export: Virtual Paths, Not a New Protocol
+
+`GET /{prefix}/{database}/openapi.json` (or `.yaml`) generates an OpenAPI 3.1 document
+describing every method the authenticated caller may execute. Real invocation still happens exclusively
+through the single `POST /{prefix}/{database}/jsonrpc` endpoint — the spec additionally lists
+each method under its own path, such as `/{prefix}/{database}/rpc/api.hello_world`, but that
+path is documentation only and does not exist as an HTTP route you can call directly.
+
+#### Why virtual per-method paths:
+
+- Tooling compatibility: Swagger UI, Postman, Insomnia, and most OpenAPI code generators expect one operation per `paths` entry. A single JSON-RPC path can't otherwise represent N different method signatures in a way these tools understand.
+
+- No backend changes required: Adding a real route per method would mean a second way to invoke every function, with its own auth, error-handling, and versioning surface to maintain in lockstep with JSON-RPC. Generating the paths purely from `capabilities()` keeps the protocol surface exactly as described in decision 1, while still satisfying tools that need per-operation schemas.
+
+- Self-documenting: Each virtual operation's description spells out the exact JSON-RPC request (method + params) needed to actually call it, so nothing is lost by not having a real route.
+
+#### Why the spec is authenticated and role-filtered:
+
+- Consistency with the rest of the API: Every other endpoint (JSON-RPC, MCP `tools/list`) only ever reveals methods the caller's role may execute. An unauthenticated, unfiltered OpenAPI document would leak the existence and parameter shapes of functions a given caller can't actually invoke.
+
+- Same mechanism as everywhere else: The Go handler authenticates with the same Basic/JWT/API-token logic as `/jsonrpc`, then `SET LOCAL ROLE`s before generating the spec — `pgarachne.generate_openapi_spec()` is `SECURITY INVOKER` specifically so its internal call to `capabilities()` sees that role, the same way MCP `tools/list` already works.
+
+
+---
+
+# Comparison: PgArachne vs. PostgREST
+
+URL: https://www.pgarachne.com/en/comparison/
+
+## Comparison: PgArachne vs. PostgREST
+
+Feature | PgArachne (+ Universal Functions) | PostgREST
+
+Setup Speed | High. Universal functions allow instant CRUD similar to PostgREST. | High. Automatically generates endpoints for all tables.
+
+Logic Flexibility | Unlimited. Ability to combine universal CRUD with specific RPC functions. | Limited. Most logic must reside in URL filters or Database Views.
+
+Schema Handling | Native. Access via `schema.function`. | Flat/Global. Requires switching profiles in HTTP headers to change schemas.
+
+Abstraction | Optional. You can either expose data directly (proxy) or encapsulate it safely. | Low. The API is essentially a mirror of the database schema.
+
+AI & LLM Ready | Extreme. JSON-RPC and ability to define “Tool” functions specifically for AI agents. | Medium. AI has to struggle with strict URL parameter syntax.
+
+Static Files | Yes. Serves HTML/JS/CSS directly from a single binary. | No. You must configure and manage an external Nginx in front of it.
+
+Real-time (SSE) | Yes. Built-in SSE endpoint for PostgreSQL `NOTIFY` streams. | No. Requires custom wiring (e.g., LISTEN/NOTIFY + separate service).
+
+Multi-Database Support | Server-wide (N:1). A single PgArachne instance connects to the server
+(IP:Port) and can serve all databases hosted there. | Per-Database (1:1). One instance is bound to one specific database. Serving
+multiple databases requires running multiple instances on different ports.
+
+Authentication | JWT / API Tokens. Natively supports both worlds. | Primarily JWT.
+
+Rate Limiting | Yes. Built-in login rate limiting (configurable). | No. Requires external proxy or middleware.
+
+### Why “Hybrid PgArachne” Wins
+
+Thanks to the Universal Functions (acting as an emulator), you get the best of both
+worlds:
+
+- Start-up Phase (MVP): Deploy PgArachne with a few proxy functions (like those in
+`universal_table_access.sql`) and within minutes you have a functional API for all tables. At
+this stage, it behaves exactly like PostgREST.
+
+- Production Phase: As the application grows, begin writing dedicated functions for
+sensitive operations (e.g., `process_payment`). This increases security and performance
+without changing the underlying technology stack.
+
+- Frontend & AI: At the same time, your application runs on the same port as the API
+(thanks to static file serving), and AI agents can call your functions directly via JSON-RPC.
+
+Note: The “Universal Functions” are a set of standard PL/pgSQL functions you can add to your database
+to enable generic Read, Create, Update, and Delete operations on any table.
+
+
+---
+
+# Quick Start
+
+URL: https://www.pgarachne.com/en/quickstart/
+
+## Quick Start
+
+Get a running JSON-RPC API from your PostgreSQL database in under a minute.
+Your database is your backend — no framework, no boilerplate.
+
+### 1. Install
+
+#### Download a binary
+
+```
+# macOS (Homebrew)
+brew install heptau/tap/pgarachne
+
+# or download the latest release for your OS:
+#   https://github.com/heptau/pgarachne/releases/latest
+```
+
+### 2. Set Up Your Database
+
+Create a database and load the PgArachne schema:
+
+```
+createdb my_database
+psql -d my_database -f sql/schema.sql
+```
+
+### 3. Configure & Start
+
+Create a `pgarachne.env` file (the server finds it in the current directory):
+
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=$(openssl rand -hex 32)
+```
+
+Start the server:
+
+```
+./pgarachne
+```
+
+### 4. Define a Function
+
+In your database, create a role and a function. The function's SQL comment documents it for LLMs.
+
+```
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json LANGUAGE sql AS $$
+    SELECT '"Hello World"'::json;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+```
+
+### 5. Call It
+
+Your API endpoint is live:
+
+```
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+# → {"jsonrpc":"2.0","result":"Hello World","id":1}
+```
+
+### 6. Connect an AI Agent (MCP)
+
+Expose the same functions to Claude Desktop or Cursor as tools via the MCP endpoint:
+
+```
+POST http://localhost:8080/db/my_database/mcp
+```
+
+See MCP (Model Context Protocol) for full connection instructions.
+
+### 7. Get an OpenAPI Spec (Swagger, Postman, codegen)
+
+Every exposed function is also described as an OpenAPI 3.1 document, filtered to what the authenticated caller may call:
+
+```
+curl http://localhost:8080/db/my_database/openapi.json \
+  -u demo_user:user_password
+# or as YAML: .../openapi.yaml
+```
+
+Import the URL directly into Swagger UI, Postman, or an OpenAPI code generator. Every method still runs through the single JSON-RPC endpoint from step 5 — see Architectural Decisions for why the spec lists a per-method path without a matching real route.
+
+That's it. Read the Hello World guide for the JWT authentication flow, or the comparison with PostgREST to understand where PgArachne fits.
+
+
+---
+
+# Installation
+
+URL: https://www.pgarachne.com/en/installation/
+
+## Installation
+
+### 1. Installation
+
+#### Option A: Download Binaries
+
+Download the latest pre-compiled version for your operating system:
+
+#### Linux
+
+[x64/Intel/AMD](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-amd64.tar.gz)
+[ARM64/Aarch64](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-linux-arm64.tar.gz)
+
+#### macOS
+
+[ARM64/Apple Silicon](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-arm64-app.zip)
+[x64/Intel](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-macos-amd64-app.zip)
+
+#### Windows
+
+[x64/Intel/AMD](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-amd64.zip)
+[ARM64](https://github.com/heptau/pgarachne/releases/latest/download/pgarachne-windows-arm64.zip)
+
+More versions available in [GitHub Releases](https://github.com/heptau/pgarachne/releases).
+
+#### Option B: Install via Homebrew
+
+```
+# CLI (macOS + Linux)
+brew install heptau/tap/pgarachne
+
+# GUI app (macOS)
+brew install --cask heptau/tap/pgarachne-app
+```
+
+#### Option C: Build from Source
+
+```
+git clone https://github.com/heptau/pgarachne.git
+cd pgarachne
+make build
+```
+
+### 2. Database Setup
+
+1. Create a database (e.g., `my_database`).
+
+2. Run the schema script to create the necessary `pgarachne` structure.
+
+```
+psql -d my_database -f sql/schema.sql
+```
+
+3. Create the `pgarachne` system user (optional but recommended for production):
+
+```
+-- Connect to your database
+CREATE ROLE pgarachne WITH LOGIN PASSWORD 'secure_password';
+GRANT ALL PRIVILEGES ON DATABASE my_database TO pgarachne;
+-- Ensure it can use the schema
+GRANT USAGE ON SCHEMA pgarachne TO pgarachne;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA pgarachne TO pgarachne;
+```
+
+4. Configure `~/.pgpass` to allow `pgarachne` to connect without a password prompt:
+
+```
+# Format: hostname:port:database:username:password
+echo "localhost:5432:*:pgarachne:secure_password" >> ~/.pgpass
+chmod 0600 ~/.pgpass
+```
+
+
+---
+
+# Configuration
+
+URL: https://www.pgarachne.com/en/configuration/
+
+## Configuration
+
+PgArachne loads configuration from environment variables or a file.
+
+Note: `schema.sql` attempts to create the `pgarachne_admin` role and grant it to `pgarachne`. If you run the script without superuser privileges, role creation is skipped. Create the role and grant it manually if needed.
+
+The proxy user (`DB_USER`) must be a member of `pgarachne` and `pgarachne_admin` to verify and mint API tokens.
+
+Security Note: PgArachne does not handle database passwords in the configuration file.
+Rely on the standard PostgreSQL `.pgpass` file mechanism (or `PGPASSWORD` system
+variable) for authentication.
+
+Tip: If you run PgArachne behind a reverse proxy, set `TRUSTED_PROXIES` so client IPs are resolved correctly and rate limiting cannot be spoofed.
+
+Search Order: If no configuration file is specified via CLI, it searches in:
+
+- Current directory: `./pgarachne.env` (All OS)
+
+- User config:
+
+- Linux / macOS: `~/.config/pgarachne/pgarachne.env`
+
+- Windows: `%USERPROFILE%\.config\pgarachne\pgarachne.env`
+
+- System config: `/etc/pgarachne/pgarachne.env` (Linux / macOS only)
+
+### Minimal Configuration Example
+
+This is all you need to get started:
+
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET` (minimum 32 bytes; generate with `openssl rand -hex 32`).
+
+### Quick Validation Checklist
+
+- `JWT_SECRET` is long, random, and not reused across environments.
+
+- `DB_USER` can switch only to expected roles (verify role membership grants).
+
+- `TRUSTED_PROXIES` is set when running behind a reverse proxy.
+
+- `LOGIN_RATE_LIMIT` is enabled for internet-facing deployments.
+
+- `METRICS_LISTEN_ADDR` is private (for example `127.0.0.1:9090`).
+
+### Configuration Reference
+
+Variable | Required | Description
+
+Database
+Connection
+
+`DB_HOST` | ✓ | PostgreSQL server address (e.g., `localhost`).
+
+`DB_PORT` | ✓ | Database port.
+
+`DB_USER` | ✓ | The database user PgArachne connects with.
+
+`DB_SSLMODE` | ○ | PostgreSQL SSL mode. Default: `require`. Set `disable` explicitly only for local development against a non-TLS PostgreSQL.
+
+`DB_SSLROOTCERT` | ○ | Path to CA root certificate (PEM).
+
+`DB_SSLCERT` | ○ | Path to client certificate (PEM).
+
+`DB_SSLKEY` | ○ | Path to client private key (PEM).
+
+HTTP Server
+
+`HTTP_PORT` | ○ | Port to listen on. Default: `8080`.
+
+`API_PREFIX` | ○ | First URL path segment for all database endpoints (`/jsonrpc`, `/sse`, `/mcp`). Default: `db`, giving routes like `/db/:database/jsonrpc`. Only letters, digits, hyphens and underscores are allowed.
+
+`PID_FILE` | ○ | Path to daemon PID file used by `-start`/`-stop`. Default: OS user cache dir (fallback: temp dir).
+
+`ALLOWED_ORIGINS` | ○ | CORS settings. Comma-separated list of allowed origins (e.g. `https://myapp.com`).
+Default: unset — cross-origin browser requests are disabled. Set `*` explicitly to allow any origin.
+
+`STATIC_FILES_PATH` | ○ | Absolute path to serve static files (Explorer/Frontend).
+
+Security (JWT)
+
+`JWT_SECRET` | ✓ | A long, random string used to sign session tokens. Minimum 32 bytes; generate with `openssl rand -hex 32`.
+
+`JWT_EXPIRY_HOURS` | ○ | Session validity in hours. Default: `8`.
+
+`JWT_ISSUER` | ○ | If set, written into the `iss` claim on issue and required to match exactly on validation. Leave empty to skip issuer checking.
+
+`JWT_AUDIENCE` | ○ | If set, written into the `aud` claim on issue and required to match on validation. Leave empty to skip audience checking.
+
+`JWT_LEEWAY` | ○ | Clock-skew tolerance for `exp`/`nbf`/`iat` validation (e.g. `30s`). Default: `30s`.
+
+`LOGIN_RATE_LIMIT` | ○ | Max login attempts per window. Default: `5`. Set `0` to disable.
+
+`LOGIN_RATE_LIMIT_PER_IP` | ○ | Max login attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Default: 5× `LOGIN_RATE_LIMIT`. Set `0` to disable.
+
+`LOGIN_RATE_WINDOW` | ○ | Rate limit window duration. Default: `1m`.
+
+Login rate limiting is per instance (in-memory). In multi-instance deployments, use a shared limiter if you need global enforcement.
+
+`TRUSTED_PROXIES` | ○ | Trusted proxy IPs/CIDRs for `X-Forwarded-For` handling. Comma-separated. If empty, forwarded headers are ignored and client IP is taken from the direct connection.
+
+`MAX_REQUEST_BYTES` | ○ | Max request body size in bytes. Default: `2097152`.
+
+`MCP_SQL_ERROR_DETAIL` | ○ | Include the raw PostgreSQL error message in MCP tool errors. Detailed errors help LLM agents self-correct, but can expose schema details (table and constraint names) to authenticated callers. Default: `false`.
+
+`DIRECT_POOL_LIMIT` | ○ | Max number of distinct Basic-Auth credential connection pools. Default: `1000`.
+
+`METRICS_ENABLED` | ○ | Enable dedicated metrics endpoint. Default: `true`.
+
+`METRICS_LISTEN_ADDR` | ○ | Metrics listener address (`host:port`). Default: `127.0.0.1:9090`.
+
+`SSE_MAX_CHANNELS` | ○ | Max channels per SSE connection. Default: `8`.
+
+`SSE_MAX_CLIENTS` | ○ | Max concurrent SSE clients per database. Default: `1000`.
+
+`SSE_CLIENT_BUFFER` | ○ | SSE per-client buffer size (messages). Default: `64`.
+
+`SSE_SEND_TIMEOUT` | ○ | Max time to wait when sending to a slow client. Default: `2s`.
+
+`SSE_HEARTBEAT` | ○ | Heartbeat interval for SSE connections. Default: `20s`.
+
+`SSE_IDLE_TIMEOUT` | ○ | Idle timeout without notifications. Default: `90s`.
+
+Logging
+
+`LOG_LEVEL` | ○ | Verbosity: `DEBUG`, `INFO`, `WARN`, `ERROR`.
+Default: `INFO`.
+
+`LOG_OUTPUT` | ○ | Where to write logs: `stdout` or file path.
+
+✓ Required   ○ Optional
+
+Security behavior: requests without a valid `Authorization` header are rejected before opening a database connection.
+
+Start the server:
+
+```
+./pgarachne -config .env
+```
+
+### Related Docs
+
+- Security & Authentication
+
+- Error Codes
+
+
+---
+
+# JSON-RPC & Hello World
+
+URL: https://www.pgarachne.com/en/hello-world-example/
+
+## JSON-RPC & Hello World
+
+This example creates a simple API endpoint associated with a database user. Two authentication
+approaches are shown: the classic JWT flow and the simpler direct-credentials flow.
+
+### 1. Create User and Function
+
+In your database (`my_database`):
+
+```
+-- 1. Create a user who will log in to the API
+CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
+GRANT USAGE ON SCHEMA api TO demo_user;
+
+-- 2. Create the Hello World function
+-- Input: empty jsonb, Output: json
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+RETURNS json
+LANGUAGE sql
+AS $$
+    SELECT '"Hello World"'::json;
+$$;
+
+-- 3. Grant permission to the user
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+```
+
+Which authentication approach should you use?
+
+Choose Option A (JWT) for browser-based or end-user sessions.
+Choose Option B (direct credentials) for local development, scripts,
+or internal services — no token management is required.
+
+### Option A: JWT Token Flow
+
+JWT authentication requires the PgArachne system user (`pgarachne`) to be able to switch
+to `demo_user`:
+
+```
+-- Required for JWT auth only: allow PgArachne to switch to demo_user
+GRANT demo_user TO pgarachne;
+```
+
+#### Step 1 — Obtain a JWT
+
+Call the `get_jwt` JSON-RPC method with the user's credentials:
+
+```
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'
+```
+
+Response:
+
+```
+{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}
+```
+
+#### Step 2 — Call the Function
+
+Use the JWT in the `Authorization` header:
+
+```
+export TOKEN="YOUR_JWT_TOKEN_HERE"
+
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+```
+
+Response:
+
+```
+{"jsonrpc":"2.0","result":"Hello World","id":1}
+```
+
+### Option B: Direct Credentials (No JWT Required)
+
+Send the PostgreSQL username and password directly with every request using HTTP Basic
+Authentication. PgArachne opens a connection pool as that user — no `GRANT … TO pgarachne`
+is needed.
+
+```
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+```
+
+Response:
+
+```
+{"jsonrpc":"2.0","result":"Hello World","id":1}
+```
+
+The `-u user:password` flag in curl automatically sets the
+`Authorization: Basic …` header. Both options produce identical responses.
+
+See Security & Authentication — Direct Credentials
+for a full comparison of all authentication methods.
+
+
+---
+
+# Model Context Protocol (MCP)
+
+URL: https://www.pgarachne.com/en/mcp/
+
+## Model Context Protocol (MCP)
+
+PgArachne natively supports the Model Context Protocol (MCP), an open standard that allows AI models (like Claude or Cursor) to safely access your data and functions as "tools".
+
+### How Does It Work?
+
+PgArachne acts directly as an MCP Server. Instead of writing a custom HTTP server for each project, simply run PgArachne on top of your database. PgArachne automatically analyzes your permitted SQL functions and exposes them to AI clients via HTTP(S).
+
+### 🛠️ SQL Functions as Tools
+
+Any SQL function accessible via PgArachne's JSON-RPC 2.0 endpoint automatically becomes a "tool" available to the AI. The default behavior (calling `pgarachne.allowed_schemas()`) exposes functions stored in the `api` schema that the authenticated user has access to (via `GRANT EXECUTE`). The LLM sees the function name, parameters, and description from SQL comments.
+
+### Connection Guide
+
+#### 1a. Authentication — API Token (Recommended for Production)
+
+For a permanent AI connection, use a long-lived API token. The token must be generated by an administrator (a member of the `pgarachne_admin` role):
+
+```
+-- Switch to the administrator role
+SET ROLE pgarachne_admin;
+
+-- Generate a new token for the target role (e.g., 'app_user')
+SELECT pgarachne.add_api_token('Claude Desktop', 'app_user');
+```
+
+Save the returned string. Use it as `Authorization: Bearer YOUR_API_TOKEN` in the AI client configuration.
+
+#### 1b. Authentication — Direct Credentials (Development & Simple Setups)
+
+Alternatively, send the PostgreSQL username and password directly using HTTP Basic Authentication.
+No API token management is required, and no `GRANT … TO pgarachne` is needed — PgArachne
+connects directly as the specified user.
+
+```
+Authorization: Basic <base64(username:password)>
+```
+
+Use this approach for local testing or internal tools where credentials are already managed securely.
+For production AI integrations with cloud clients, API tokens are preferable.
+
+#### 2. Claude Desktop
+
+Add PgArachne to your Claude Desktop configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```
+{
+  "mcpServers": {
+    "pgarachne": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-http",
+        "--url",
+        "https://your-api.com/db/my_database/mcp"
+      ],
+      "env": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
+```
+
+Note: HTTP(S) is required for the connection. The example uses the `server-http` npx bridge from Anthropic, which acts as an intermediary between standard MCP (stdio) and PgArachne (HTTP).
+
+#### 3. Cursor
+
+In Cursor settings (Settings > MCP), add a new server communicating directly via HTTP (or using the bridge mentioned above if your version of Cursor does not support native HTTP MCP servers):
+
+- Type: `command` (with npx bridge) or `http`
+
+- Name: `PgArachne`
+
+- URL: `https://your-api.com/db/my_database/mcp`
+
+- Auth Header: `Authorization: Bearer YOUR_API_TOKEN`
+
+#### 🌐 Public Accessibility (Ngrok)
+
+If you are testing PgArachne locally and want to connect it to a cloud-based AI client (outside local installations), your server must be publicly accessible via an HTTP(S) URL.
+
+```
+# Run ngrok for the HTTP PgArachne port (e.g., 8080)
+ngrok http 8080
+```
+
+Then use the generated HTTPS address from Ngrok in the AI configuration.
+
+### Security
+
+The MCP endpoint fully respects PostgreSQL's permission system:
+
+- Authentication: Every request requires a valid API token, JWT, or HTTP Basic credentials; unauthenticated requests are rejected immediately.
+
+- Authorization: The AI can see and call only those functions in allowed schemas for which the authenticated role has `GRANT EXECUTE`.
+
+- RLS: Row-Level Security is fully active — the AI sees only the rows the specific role has access to.
+
+- Error detail: By default MCP tool errors do not leak raw PostgreSQL error text. To let LLM agents self-correct against your own database, set `MCP_SQL_ERROR_DETAIL=true` (see Configuration).
+
+See Security & Authentication for a full comparison of all supported authentication methods.
+
+### AI/LLM Discovery
+
+For AI agents and LLM crawlers, the project exposes a machine-readable index at
+llms.txt (see [llmstxt.org](https://llmstxt.org/) for the format).
+Add it as a context source so models can discover PgArachne and its MCP endpoint.
+
+
+---
+
+# Real-time Notifications (SSE)
+
+URL: https://www.pgarachne.com/en/real-time-notifications/
+
+## Real-time Notifications (SSE)
+
+Subscribe to PostgreSQL `NOTIFY` channels over Server-Sent Events:
+
+```
+# Bearer token (JWT or API token)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -H "Authorization: Bearer $TOKEN"
+
+# Direct credentials (HTTP Basic Auth — no GRANT … TO pgarachne required)
+curl -N "http://localhost:8080/db/my_database/sse?channels=orders,users" \
+  -u "alice:secret"
+```
+
+Each message is JSON with the channel name and payload:
+
+```
+{"channel":"orders","data":{"id":123,"status":"created"}}
+```
+
+If the payload is plain text, it is wrapped as a string in `data`.
+
+### Channels are not role-scoped
+
+Unlike the JSON-RPC and MCP endpoints, SSE does not apply `SET LOCAL ROLE` or
+otherwise check the authenticated role's grants before subscribing. PgArachne authenticates the caller
+(a valid JWT, API token, or direct credential for the target database), but any authenticated caller —
+regardless of which role their credential maps to — can subscribe to any
+`NOTIFY` channel name and will receive everything published on it. This falls out of how the
+endpoint is built: all SSE clients for a database share a single `LISTEN` connection opened
+as the `DB_USER` service account, and PostgreSQL itself has no per-channel `GRANT`
+to delegate to — `LISTEN`/`NOTIFY` channels are not database objects.
+
+Do not `NOTIFY` payloads containing data that not every authenticated role should see. If you
+need channel-level access control, enforce it in your own application logic (e.g. per-role channel
+naming conventions, or filtering what you put in the payload) — PgArachne will not do it for you on this
+endpoint.
+
+### Sending notifications from PostgreSQL
+
+From `psql` or any database session:
+
+```
+-- Simple text payload
+NOTIFY orders, 'new order';
+
+-- JSON payload
+NOTIFY orders, '{"id":123,"status":"created"}';
+
+```
+
+From a trigger or stored procedure:
+
+```
+PERFORM pg_notify('orders', json_build_object('id', NEW.id, 'status', NEW.status)::text);
+```
+
+Note: `NOTIFY` is only delivered to other sessions after the sending transaction
+commits. If you run it inside an open transaction in `psql`, subscribers won't receive it until
+you execute `COMMIT`.
+
+
+---
+
+# Idempotency Key Cleanup
+
+URL: https://www.pgarachne.com/en/idempotency-cleanup/
+
+Idempotency Key Cleanup
+
+Every JSON-RPC request that carries an `idempotencyKey` field
+is recorded in the `pgarachne.requests` table by the
+`pgarachne.save_idempotency_key()` function. This is what makes
+duplicate detection work — but it also means the table grows without bound
+unless an operator runs cleanup periodically.
+
+PgArachne does not run a background scheduler itself. The cleanest
+options:
+
+## pg_cron (recommended if you can install extensions)
+
+```
+-- Run every hour, remove keys older than 24 hours
+SELECT cron.schedule(
+  'pgarachne-idempotency-cleanup',
+  '0 * * * *',
+  $$SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);$$
+);
+```
+
+## External cron / systemd timer
+
+Schedule a shell job that calls the function via `psql`:
+
+```
+0 * * * * psql "host=... user=... dbname=..." \
+  -c "SELECT pgarachne.cleanup_idempotency_keys('24 hours'::interval);" \
+  >> /var/log/pgarachne-cleanup.log 2>&1
+```
+
+## Manual / ad-hoc
+
+You can call the function at any time from psql, a migration script,
+or any other client. It returns the number of rows deleted.
+
+```
+SELECT pgarachne.cleanup_idempotency_keys();          -- default: 24 hours
+SELECT pgarachne.cleanup_idempotency_keys('7 days'::interval);
+```
+
+## Choosing a retention window
+
+Pick a window comfortably longer than the longest expected retry
+interval for your clients. If a buggy client retries the same
+idempotency key 48 hours after the original request, a 24-hour
+retention window will silently let the duplicate through.
+
+For most deployments, 24 hours is a safe default.
+
+
+---
+
+# Tools
+
+URL: https://www.pgarachne.com/en/tools/
+
+## Tools
+
+PgArachne is supported by a set of browser-based tools that simplify development, testing, and API exploration. All tools are single HTML files — no build step, no dependencies.
+
+### PgArachne Explorer
+
+A full-featured web UI to browse your API, test functions, and view auto-generated documentation. Supports both direct credentials (HTTP Basic Auth) and Bearer token authentication.
+
+Learn more about Explorer
+
+### SSE Tester
+
+Subscribe to one or more PostgreSQL NOTIFY channels over a live Server-Sent Events connection. Supports all three authentication methods and displays JSON events with syntax highlighting.
+
+Learn more about SSE Tester
+
+### JWT Getter
+
+Exchange a PostgreSQL username and password for a short-lived JWT via the `get_jwt` method. Shows the decoded payload and expiry time — useful for debugging token-based flows.
+
+Learn more about JWT Getter
+
+### PgArachne Toolbar (macOS)
+
+A native macOS application that lives in your menu bar. Manage multiple PgArachne instances, view live logs, and monitor metrics with a single click.
+
+Explore Toolbar Features
+
+
+---
+
+# JWT Getter
+
+URL: https://www.pgarachne.com/en/tools/get-jwt/
+
+## JWT Getter
+
+The JWT Getter is a minimal single-file browser tool located in `tools/get-jwt`. It exchanges a PostgreSQL username and password for a short-lived JWT by calling the `get_jwt` JSON-RPC method — and shows you the decoded payload and expiry time.
+
+### When to use it
+
+Use the JWT Getter when you need a token for one of these purposes:
+
+- Pasting a token into the Explorer or SSE Tester (Bearer Token tab).
+
+- Testing JWT expiry or `db_role` / `db_name` claims in your application.
+
+- Quickly verifying that the `pgarachne` system user can switch to a given role (`GRANT <role> TO pgarachne` must be in place).
+
+Note: `get_jwt` requires `GRANT <role> TO pgarachne` in the database because PgArachne verifies the password internally via `SET LOCAL ROLE`. If you want to skip that grant, use direct credentials (HTTP Basic Auth) in the Explorer or SSE Tester instead.
+
+### Features
+
+- Enter API URL, prefix, database, username and password — press Enter or click Get JWT.
+
+- The raw token is displayed and can be copied with one click.
+
+- The JWT payload is Base64-decoded and displayed with JSON syntax highlighting.
+
+- An expiry badge shows the remaining lifetime (or marks the token as expired).
+
+- Connection settings and login are saved to `localStorage`.
+
+### How to enable it
+
+Set `STATIC_FILES_PATH` to `tools/get-jwt` and visit `http://localhost:8080`, or open `index.html` directly in a browser.
+
+
+---
+
+# PgArachne Explorer
+
+URL: https://www.pgarachne.com/en/tools/api-explorer/
+
+## PgArachne Explorer
+
+The Explorer is a powerful web GUI included in the `tools/pgarachne-explorer` directory. It is not
+merely a documentation tool — it is a fully functional demo application built with HTML/JS
+that communicates with the database exclusively via PgArachne. A hosted version is also available at
+[explorer.pgarachne.com](https://explorer.pgarachne.com).
+
+What can it do?
+
+- Inspect API: It reads the `capabilities` function to display all available
+endpoints and their parameters.
+
+- Live Testing: You can execute functions directly from the browser.
+
+- Auto-Documentation: It renders the SQL comments (including `--- PARAMS ---`
+metadata) into readable documentation.
+
+- Modern UI: Features Dark/Light mode support and can be installed as a PWA on mobile devices.
+
+- Authentication: The Password tab uses HTTP Basic Auth to connect directly as the database user — no `GRANT … TO pgarachne` required. The API Token tab accepts a JWT or long-lived API token sent as `Bearer`.
+
+URL Parameters:
+
+You can pre-fill the connection settings using the `?url=` parameter, for example: 
+`?url=http://localhost:8080/db/my_database`. This will automatically split the URL into API Host, Prefix, and Database fields.
+
+How to enable it: Set the `STATIC_FILES_PATH` environment variable to point to the
+`tools/pgarachne-explorer` folder on your disk. Then visit `http://localhost:8080`.
+
+
+---
+
+# PgArachne Toolbar (macOS)
+
+URL: https://www.pgarachne.com/en/tools/macos-toolbar/
+
+## PgArachne Toolbar for macOS
+
+The PgArachne Toolbar is a professional native application for macOS designed to provide an effortless management experience for your JSON-RPC gateway instances.
+
+Status: Under development. Expected release: Q2 2026.
+
+### Key Features
+
+- Multi-Server Management: Start, stop, and restart multiple PgArachne instances from a single menu.
+
+- Configuration Switching: Quickly toggle between shared environments or local database configurations.
+
+- Live Monitoring: Integrated window for real-time logs and performance metrics.
+
+- Native Experience: Built specifically for macOS with support for dark mode and Apple Silicon.
+
+### Coming to the Mac App Store
+
+The application is being optimized for the Mac App Store to ensure the highest security and seamless updates.
+
+
+---
+
+# SSE Tester
+
+URL: https://www.pgarachne.com/en/tools/sse-tester/
+
+## SSE Tester
+
+The SSE Tester is a single-file browser tool located in `tools/test-sse`. It lets you subscribe to any number of PostgreSQL `NOTIFY` channels over a live Server-Sent Events connection and watch the incoming events in real time.
+
+### Features
+
+- Multi-channel subscriptions — add or remove channels as pill tags before connecting. All channels are passed as a comma-separated `?channels=` query parameter.
+
+- All authentication methods — the Password tab uses HTTP Basic Auth (direct credentials, no JWT needed); the Bearer Token tab accepts a JWT or API token.
+
+- Live stream — uses the Fetch Streams API with an `AbortController` for clean disconnect. SSE lines are parsed manually so `event:`, `data:`, and heartbeat (`:`) fields are all handled correctly.
+
+- JSON syntax highlighting — data payloads that are valid JSON are pretty-printed with colour coding.
+
+- Persistent settings — API URL, prefix, database, login, and channel list are saved to `localStorage`.
+
+### Authentication
+
+The tool verifies credentials before revealing the subscription panel. Clicking Verify & Continue calls `capabilities` with the chosen header — if PgArachne returns a successful response, the subscription panel unlocks.
+
+- Password tab — sends `Authorization: Basic <base64(user:pass)>`. The database user must have `GRANT EXECUTE` on the target functions and access to the SSE endpoint; no `GRANT <role> TO pgarachne` is needed.
+
+- Bearer Token tab — sends `Authorization: Bearer <token>`. Paste a JWT (obtained via the JWT Getter) or a long-lived API token.
+
+How to enable it: Set `STATIC_FILES_PATH` to `tools/test-sse` and visit `http://localhost:8080`. Alternatively, open `index.html` directly in a browser — all functionality works without a local server.
+
+
+---
+
+# Metrics (Prometheus)
+
+URL: https://www.pgarachne.com/en/metrics/
+
+## Metrics (Prometheus)
+
+PgArachne exports Prometheus metrics on a dedicated metrics listener (default `127.0.0.1:9090`) at `/metrics`, including standard Go runtime metrics and:
+
+- `pgarachne_http_requests_total`, `pgarachne_http_request_duration_seconds`
+
+- `pgarachne_auth_requests_total`, `pgarachne_login_attempts_total`
+
+- `pgarachne_jsonrpc_requests_total`
+
+- `pgarachne_sse_clients`, `pgarachne_sse_channels`, `pgarachne_sse_client_drops_total`
+
+- `pgarachne_sse_events_forwarded_total` — PostgreSQL NOTIFY events dispatched to SSE clients, labelled by database
+
+- `pgarachne_sse_bytes_sent_total` — bytes written to SSE response streams (payloads, heartbeats, preamble), labelled by database
+
+- `pgarachne_sse_listen_errors_total` — PostgreSQL LISTEN/connection errors and reconnect events, labelled by database and event type. A non-zero value warrants investigation — the hub drops all clients on reconnect so users see a brief interruption.
+
+
+---
+
+# Security & Authentication
+
+URL: https://www.pgarachne.com/en/security-roles/
+
+## Security & Authentication
+
+PgArachne relies entirely on the PostgreSQL permission system. It does not reinvent Access Control Lists (ACLs).
+PgArachne supports four authentication methods. Methods 1–3 use
+`SET LOCAL ROLE` to switch identity; method 4 (direct credentials) connects
+directly as the user, so no role switch is needed.
+
+This applies to the JSON-RPC and MCP endpoints. The SSE endpoint is
+the one exception — it authenticates the caller but does not switch role or otherwise check per-channel
+permissions, since PostgreSQL `LISTEN`/`NOTIFY` channels are not database objects with
+their own `GRANT`s to enforce. See the SSE page for what that means in practice.
+
+### 1. Interactive Login (JWT)
+
+Users authenticate using their real PostgreSQL username and password via the
+`get_jwt` JSON-RPC method. If successful, they receive a short-lived JWT. Subsequent requests
+carry this token in the `Authorization: Bearer <token>` header, and PgArachne switches the
+active role to that user for the duration of each request.
+
+### 2. Service Accounts (API Tokens)
+
+For automated systems or scripts, long-lived API tokens are recommended.
+
+- Tokens are stored in the `pgarachne.api_tokens` table.
+
+- Each token is mapped to a specific database role.
+
+- Send the token via the `Authorization: Bearer <token>` header.
+
+Minting API tokens requires `pgarachne_admin`. Use `pgarachne.add_api_token(...)`
+with a role that is a member of `pgarachne_admin`.
+
+### 3. External Identity Provider (Bring Your Own JWT)
+
+If users are authenticated outside PgArachne (for example, via an external authentication service), you can
+mint JWTs there and send them directly to PgArachne.
+
+- Header format: `Authorization: Bearer <jwt>`.
+
+- Signing: HMAC only (`HS256` / `HS384` / `HS512`) using the same
+`JWT_SECRET` configured in PgArachne.
+
+- Required claims: `db_role` (string, non-empty) and `db_name` (string, must
+match the `:database` path segment).
+
+- Recommended claim: `exp` (Unix timestamp) for token expiration.
+
+Minimal payload example:
+
+```
+{
+  "db_role": "demo_user",
+  "db_name": "my_database",
+  "exp": 1767225600
+}
+```
+
+Note: asymmetric JWT algorithms (e.g. `RS256` / `ES256`) are not
+supported.
+
+### 4. Direct Database Credentials (Basic Auth)
+
+The simplest option: send the PostgreSQL username and password with every request using
+standard HTTP Basic Authentication. PgArachne opens a dedicated connection pool authenticated directly
+as that user — `SET LOCAL ROLE` is not performed.
+
+```
+Authorization: Basic <base64(username:password)>
+```
+
+Example with curl:
+
+```
+curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u demo_user:user_password \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
+```
+
+When to use direct credentials:
+
+- Quick prototyping and local development — no token management required.
+
+- Internal services that already handle credentials securely.
+
+- Scenarios where issuing a JWT upfront adds unnecessary complexity.
+
+Key differences from token-based methods:
+
+- No `GRANT demo_user TO pgarachne` is required — PgArachne does not switch roles.
+
+- PostgreSQL Row-Level Security and `GRANT` permissions are enforced as usual because the
+connection runs as the actual user.
+
+- Connection pools are kept per user for efficiency, with a maximum lifetime of 5 minutes. After a
+password change, old connections expire within that window.
+
+- For idempotency keys to work with direct credentials, grant the user
+`EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)`.
+
+### Proxy Privileges: Required for Methods 1–3 Only
+
+For JWT and API-token authentication, PgArachne connects as the system user defined in
+`DB_USER` (e.g. `pgarachne`) and switches identity via
+`SET LOCAL ROLE`. The system user must be a member of every target role.
+
+```
+-- Required for JWT / API-token auth only:
+GRANT demo_user TO pgarachne;
+```
+
+This grant is not needed when using direct credentials (method 4).
+
+### Authentication Method Comparison
+
+Method | Header | SET LOCAL ROLE | GRANT … TO pgarachne | Best for
+
+JWT (get_jwt) | `Bearer <jwt>` | ✅ Yes | Required | End-user sessions
+
+API Token | `Bearer <token>` | ✅ Yes | Required | Automated services
+
+External JWT | `Bearer <jwt>` | ✅ Yes | Required | External IdP integration
+
+Direct credentials | `Basic <b64>` | ❌ No | Not required | Dev, internal services
+
+### Related Docs
+
+- Configuration
+
+- Error Codes
+
+
+---
+
+# Deployment & HTTPS
+
+URL: https://www.pgarachne.com/en/deployment-https/
+
+## Deployment & HTTPS
+
+PgArachne is designed to perform one job well: API Gateway. For SSL/TLS (HTTPS), header security, and
+public routing, you should place a Reverse Proxy in front of it.
+
+### Option A: Caddy Server
+
+Best for: Modern production deployments, ease of use.
+
+[Caddy](https://caddyserver.com/) is the only web server that obtains
+and renews SSL certificates (Let’s Encrypt) automatically by default. It requires almost zero
+configuration.
+
+```
+# Caddyfile
+example.com {
+    reverse_proxy localhost:8080
+}
+```
+
+### Option B: Nginx
+
+Best for: Enterprise environments, complex routing.
+
+[Nginx](https://nginx.org/) is the industry standard for
+high-performance load balancing. Use this if you already have an Nginx infrastructure. You will
+need to manage Certbot manually.
+
+```
+server {
+    server_name example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+    }
+}
+```
+
+### Option C: Ngrok
+
+Best for: Local development, demos, webhook testing.
+
+[Ngrok](https://ngrok.com/) creates a secure tunnel from the public
+internet directly to your laptop without configuring firewalls. Ideal for showing your work to
+colleagues instantly.
+
+```
+./ngrok http 8080
+```
+
+### Production checklist
+
+- Terminate TLS on the reverse proxy and forward `X-Forwarded-Proto` and `X-Forwarded-For`.
+
+- Set `TRUSTED_PROXIES` in PgArachne to your proxy IP/CIDR ranges.
+
+- Disable buffering for SSE routes and keep read timeouts long enough for streaming.
+
+- Expose metrics only internally (default `127.0.0.1:9090`) and scrape from your monitoring network.
+
+### Nginx hardening example (SSE + forwarded headers)
+
+```
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+}
+
+location /sse/ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_buffering off;
+    proxy_read_timeout 1h;
+}
+```
+
+
+---
+
+# Error Codes
+
+URL: https://www.pgarachne.com/en/error-codes/
+
+## Error Codes
+
+PgArachne returns standard JSON-RPC 2.0 error objects. Below are the specific codes you may
+encounter:
+
+Code | Message | Meaning
+
+`-32700` | Parse error | Invalid JSON was received by the server.
+
+`-32601` | Method not found | The function does not exist in the schema.
+
+`-32602` | Invalid params | Arguments do not match the function signature.
+
+`-32001` | Permission denied | The current user role lacks privileges to execute the function (DB level).
+
+`-32000` | Internal Error | Generic server error (check logs).
+
+Current behavior: runtime responses are primarily mapped to HTTP status codes with a JSON-RPC error `message`. Custom JSON-RPC code `-32001` is used for role/permission denial.
+
+### HTTP Status Mapping
+
+HTTP | Typical message | When it happens
+
+`400` | Invalid JSON request / Invalid function name | Malformed request payload or method format.
+
+`401` | Authorization header is missing / Invalid or expired token | Missing or invalid auth.
+
+`403` | Permission denied for the specified role | `SET LOCAL ROLE` failed (`-32001`).
+
+`404` | Function does not exist | Target method is missing.
+
+`429` | Too many login attempts | Login rate limit exceeded.
+
+`500` | Function call failed / Transaction commit failed | Execution or commit failed.
+
+`503` | Database connection failed / Database unavailable | Database or listener temporarily unavailable.
+
+### Related Docs
+
+- Security & Authentication
+
+- Configuration
+
+
+---
+
+# What's New
+
+URL: https://www.pgarachne.com/en/whats-new/
+
+## What's New
+
+More detailed information about changes in each version can be found in [GitHub Releases](https://github.com/heptau/pgarachne/releases).
+
+v2.1.0
+
+- 📄 Per-method OpenAPI export: `generate_openapi_spec()` now also emits one documentation-only path per exposed method, for tools that expect one operation per path (Swagger UI, Postman, codegen). A new `openapi.yaml` endpoint returns the same spec as YAML.
+
+- 🔒 Authenticated, role-filtered OpenAPI export: `/openapi.json` now requires the same authentication as `/jsonrpc` and only lists the methods the caller's role may execute — previously the endpoint was unauthenticated and listed every method to anyone.
+
+- 🔌 MCP protocol upgrade: the MCP endpoint now speaks protocol version `2026-07-28` exclusively; the old `initialize`/`ping` handshake is no longer supported. See `AGENTS.md` for the full reference.
+
+- 🐛 Connection pool fix: direct-auth (Basic Auth) connection pools are now correctly evicted when idle, fixing an issue where routine password rotation could eventually lock out new credentials.
+
+- 📦 Dependency and CI updates: routine Go dependency refresh (now requires Go 1.26) and matching CI tooling bumps.
+
+v2.0.3
+
+- 🔒 Security hardening: role switching no longer builds SQL via string concatenation (uses the parameterized `set_config()` function instead), static file serving now resolves paths through `os.Root` so a symlink can't escape the served directory, tightened log/PID file permissions, and stricter validation of docs-site search result links.
+
+- 🚀 New Quick Start page (all 10 languages): a fast path from install to a working endpoint, without the full Installation/Configuration detour.
+
+- 📄 `llms.txt` discoverability: linked from the homepage, the MCP page, the README, and every page's header, so LLM crawlers can find it.
+
+- 🐛 Fixes: the mobile menu toggle now correctly shows a working Home button on wide screens, the custom 404 page's links now resolve correctly regardless of URL depth, and the mobile menu gained a "Home" entry.
+
+v2.0.2
+
+- 🔒 Security hardening: Closed several static-analysis findings — HMAC-based (instead of plain SHA-256) direct-auth pool cache keys, an explicit containment check for static file serving, HTML-escaping of the SSE Tester's login status text, a URL-scheme allowlist for docs-site search result links, and least-privilege permissions on the CI workflow.
+
+- 📦 Dependency updates: Upgraded all Go dependencies, including `gin-gonic/gin` to v1.12.0 and `lib/pq` to v1.12.3 (now requires Go 1.25).
+
+- 🌐 3 new languages: The documentation site is now available in Polish, Ukrainian, and Greek — 10 languages total.
+
+v2.0.1
+
+- 🔒 Security fix: Upgraded the transitive HTTP/3 dependency `quic-go` to v0.59.1, closing a QPACK trailer expansion vulnerability that could let a malicious peer exhaust memory on the server or client.
+
+- 🎨 Docs site polish: New light/dark/auto theme switcher and icon-only language switcher, GitHub/Support icon links in the navbar, fixed double-encoded JSON-LD structured data, and an expanded `llms.txt`.
+
+v2.0.0
+
+- 🔒 Secure defaults (breaking): `DB_SSLMODE` now defaults to `require`, `ALLOWED_ORIGINS` no longer defaults to `*`, and `JWT_SECRET` must be at least 32 bytes. Existing deployments must review their configuration before upgrading.
+
+- 🧹 Legacy cleanup: Removed the `/api/…` and `/sse/…` redirect routes and the deprecated JSON-RPC `login` alias. Use `/{prefix}/:database/…` and `get_jwt` directly.
+
+- 🛡️ Tighter auth & error handling: New per-IP login rate limit (`LOGIN_RATE_LIMIT_PER_IP`) closes a credential-spraying gap, and MCP tool errors no longer leak raw PostgreSQL error text by default (opt back in with `MCP_SQL_ERROR_DETAIL`).
+
+- ⚙️ Configurable connection limits: The direct-auth connection pool cap is now configurable via `DIRECT_POOL_LIMIT`.
+
+- 🔑 External IdP support (BYO JWT): New `JWT_ISSUER`, `JWT_AUDIENCE`, and `JWT_LEEWAY` settings bind issued tokens to a specific issuer/audience and tune clock-skew tolerance.
+
+- 🧰 New tools: A standalone JWT Getter (`/tools/get-jwt`) and SSE Tester (`/tools/test-sse`) join the Explorer for quick manual testing.
+
+- 🐛 Reliability fixes: Fixed a stuck SSE shutdown and a dead-connection recovery bug that could leave the server unable to reconnect to PostgreSQL.
+
+- 🧪 CI hardening: Added `golangci-lint`, the Go race detector, and `govulncheck` to every build, plus expanded test coverage.
+
+- 📦 Release process: Added `CHANGELOG.md` and split the release workflow into `make release-local` (build & verify) and `make release` (tag, publish, update the Homebrew tap).
+
+v1.3.0
+
+- 🌐 PgArachne Explorer – modern PWA: Complete visual & functional refresh – dark/light theme (auto), responsive cards layout, JSON syntax highlighting, copy-to-clipboard button, better auth UX (password/token tabs), PWA install support (manifest, icons, service worker), shareable links via `?url=…` parameter.
+
+- 🛠️ Model Context Protocol (MCP) support: New endpoint `/{prefix}/{db}/mcp` with standard methods `resources/list`, `resources/read`, `prompts/list`, `prompts/get` – fully backed by PostgreSQL functions and reusing existing auth & role switching.
+
+- 🔧 Configurable API prefix: Default changed to `/db/{database}/jsonrpc` and `/db/{database}/sse`, with the legacy `/api/…` and `/sse/…` paths kept as 307 redirects for backward compatibility. Controlled via the `API_PREFIX` environment variable.
+
+- 🛡️ Idempotency protection: Optional `idempotencyKey` field in JSON-RPC requests – automatic duplicate detection (HTTP 409 + error code on collision) using `pgarachne.save_idempotency_key()`.
+
+- 📚 Documentation improvements: New /tools/ section with cards (Explorer + upcoming macOS Toolbar), new page “Architectural Decisions”, SECURITY.md with vulnerability reporting instructions, better typography across all languages via TypoLima, improved 404 page support for GitHub Pages.
+
+- 📝 Login method rename: JSON-RPC method `login` renamed to `get_jwt` (old name kept as deprecated alias with warning in logs).
+
+- 📊 Logging cleanup: When logging to file, console shows only minimal startup info → cleaner output in production / docker environments.
+
+v1.2.0
+
+- 🛡️ Security: Access token validation now occurs before establishing a database connection. Improved protection against IP spoofing (added `TRUSTED_PROXIES` setting) and hiding internal database errors from end users.
+
+- 📊 Isolated Metrics: The Prometheus `/metrics` endpoint moved from the public API to its own secure port (by default available only on `127.0.0.1:9090`).
+
+- 📦 New Installation Option: The project now has an official Homebrew tap for macOS and Linux. Builds are signed and generated via GoReleaser.
+
+- 📚 Redesigned Documentation: Completely new look built on the Hugo framework. Added lightning-fast full-text search, code copying capabilities, and production deployment examples (Nginx hardening, BYO JWT).
+
+- ⚙️ Improved Daemon Management: Added support for custom `PID_FILE` path configuration.
+
+v1.1.0
+
+- 🔌 Unified API: All calls go through `POST /api/<db>` (the called method is specified in the JSON-RPC body).
+
+- ⚡ Real-time Notifications: New endpoint `GET /sse/<db>?channels=...` for listening to database events with multi-channel support.
+
+- 📈 Observability: Detailed Prometheus metrics for HTTP, auth, JSON-RPC, and SSE.
+
+- 🏋️ Major Stability Improvements: Protection against slow clients, strict timeouts, and automatic connection cleanup.
+
+
+---
+
+# License & Trademark
+
+URL: https://www.pgarachne.com/en/license/
+
+## License & Trademark
+
+The Code (MIT License):
+
+You can use the source code for free for any personal or commercial project. You can modify it,
+fork it, and distribute it.
+
+The Brand (Trademark):
+
+The name “PgArachne” and the Logo are trademarks of Zbyněk Vanžura. If you fork the
+project or offer a commercial “Managed PgArachne” service, you must remove the original branding
+and logo unless you have obtained a special license.
+

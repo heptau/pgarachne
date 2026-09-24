@@ -146,6 +146,8 @@ docs:
 		cp docs/en/404.html docs/404.html; \
 		rm -f docs/*/404.html; \
 	fi
+	@echo "==> Promoting llms-full.txt to the site root"
+	@if [ -f docs/en/llms-full.txt ]; then mv docs/en/llms-full.txt docs/llms-full.txt; fi
 	@echo "==> Fixing typography (TypoLima)"
 	@command -v typolima >/dev/null 2>&1 || { echo "==> Skipping typography fixes (install 'typolima' via brew)"; }
 	@if command -v typolima >/dev/null 2>&1; then \

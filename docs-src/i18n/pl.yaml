@@ -21,7 +21,7 @@
 - id: nav_support
   translation: "Wsparcie"
 - id: nav_star
-  translation: "Oceń na GitHubie"
+  translation: "Oceń na GitHubie (otwiera GitHub)"
 - id: nav_installation
   translation: "Instalacja"
 - id: nav_documentation

@@ -4,6 +4,8 @@
 
 PgArachne is a production-grade, single-binary backend gateway written in Go. It introspects PostgreSQL functions and exposes them as JSON-RPC 2.0 endpoints, authenticating every request as a real PostgreSQL role so Row-Level Security works automatically. It also exposes a native Model Context Protocol (MCP) endpoint so AI clients such as Claude Desktop and Cursor can discover and call your database functions as tools.
 
+The complete English documentation is also available as a single plain-text file: [llms-full.txt](https://www.pgarachne.com/llms-full.txt).
+
 ## Docs
 
 - [Quick Start](https://www.pgarachne.com/en/quickstart/): Get a running JSON-RPC API in under a minute.

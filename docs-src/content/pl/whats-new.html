@@ -11,6 +11,23 @@ menu:
 	<h2>Nowości</h2>
 	<p>Bardziej szczegółowe informacje o zmianach w każdej wersji znajdziesz w <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.1.0</p>
+	<ul>
+		<li>📄 <strong>Eksport OpenAPI per metoda</strong>: <code>generate_openapi_spec()</code> generuje teraz również jedną ścieżkę dokumentacyjną dla każdej udostępnionej metody, dla narzędzi oczekujących jednej operacji na ścieżkę (Swagger UI, Postman, generatory kodu). Nowy endpoint <code>openapi.yaml</code> zwraca tę samą specyfikację w formacie YAML.</li>
+		<li>🔒 <strong>Uwierzytelniony eksport OpenAPI filtrowany według ról</strong>: <code>/openapi.json</code> wymaga teraz tego samego uwierzytelnienia co <code>/jsonrpc</code> i wyświetla tylko metody, które rola wywołującego może wykonać — wcześniej endpoint był niezabezpieczony i pokazywał wszystkie metody każdemu.</li>
+		<li>🔌 <strong>Aktualizacja protokołu MCP</strong>: endpoint MCP obsługuje teraz wyłącznie wersję protokołu <code>2026-07-28</code>; stary handshake <code>initialize</code>/<code>ping</code> nie jest już wspierany. Pełny opis znajdziesz w <code>AGENTS.md</code>.</li>
+		<li>🐛 <strong>Poprawka poolu połączeń</strong>: pule połączeń uwierzytelniania bezpośredniego (Basic Auth) są teraz prawidłowo usuwane po bezczynności, co naprawia błąd, przez który rutynowa rotacja haseł mogła ostatecznie zablokować nowe dane uwierzytelniające.</li>
+		<li>📦 <strong>Aktualizacja zależności i CI</strong>: rutynowe odświeżenie zależności Go (wymaga teraz Go 1.26) oraz odpowiadające aktualizacje narzędzi CI.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.3</p>
+	<ul>
+		<li>🔒 <strong>Wzmocnienie bezpieczeństwa</strong>: przełączanie ról nie buduje już zapytań SQL przez konkatenację ciągów znaków (używa teraz sparametryzowanej funkcji <code>set_config()</code>), serwowanie plików statycznych rozwiązuje teraz ścieżki za pomocą <code>os.Root</code>, dzięki czemu dowiązanie symboliczne nie może wyjść poza serwowany katalog, zaostrzono uprawnienia plików logów/PID oraz zaostrzono walidację linków wyników wyszukiwania na stronie dokumentacji.</li>
+		<li>🚀 <strong>Nowa strona Szybki start</strong> (wszystkie 10 języków): szybka ścieżka od instalacji do działającego endpointu, bez pełnego objazdu przez Instalację/Konfigurację.</li>
+		<li>📄 <strong>Odnajdywalność <code>llms.txt</code></strong>: linkowany ze strony głównej, strony MCP, README oraz nagłówka każdej strony, aby ułatwić jego znalezienie robotom LLM.</li>
+		<li>🐛 <strong>Poprawki</strong>: przełącznik menu mobilnego poprawnie pokazuje teraz działający przycisk Home na szerokich ekranach, linki na niestandardowej stronie 404 rozwiązują się teraz poprawnie niezależnie od głębokości adresu URL, a menu mobilne zyskało pozycję „Home”.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.2</p>
 	<ul>
 		<li>🔒 <strong>Wzmocnienie bezpieczeństwa</strong>: zamknięto kilka wyników analizy statycznej — klucze pamięci podręcznej poolu uwierzytelniania bezpośredniego używają teraz HMAC (a nie zwykłego SHA-256), dodano wyraźną weryfikację, że serwowane pliki statyczne nie mogą wyjść poza skonfigurowany katalog, ucieczkę HTML tekstu statusu logowania w narzędziu SSE Tester, listę dozwolonych schematów URL dla linków wyników wyszukiwania na stronie dokumentacji oraz uprawnienia o minimalnym zakresie w workflow CI.</li>

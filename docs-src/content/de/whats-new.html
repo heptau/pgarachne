@@ -11,6 +11,23 @@ menu:
 	        <h2>Neuigkeiten</h2>
         <p>Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.1.0</p>
+	<ul>
+		<li>📄 <strong>OpenAPI-Export pro Methode</strong>: <code>generate_openapi_spec()</code> erzeugt nun zusätzlich pro exponierter Methode einen rein dokumentarischen Pfad, für Tools, die einen Vorgang pro Pfad erwarten (Swagger UI, Postman, Codegenerierung). Ein neuer <code>openapi.yaml</code>-Endpunkt liefert dieselbe Spezifikation als YAML.</li>
+		<li>🔒 <strong>Authentifizierter, rollengefilterter OpenAPI-Export</strong>: <code>/openapi.json</code> erfordert nun dieselbe Authentifizierung wie <code>/jsonrpc</code> und listet nur die Methoden auf, die die Rolle des Aufrufers ausführen darf — zuvor war der Endpunkt unauthentifiziert und listete jedem alle Methoden auf.</li>
+		<li>🔌 <strong>MCP-Protokoll-Upgrade</strong>: Der MCP-Endpunkt spricht nun ausschließlich Protokollversion <code>2026-07-28</code>; der alte <code>initialize</code>/<code>ping</code>-Handshake wird nicht mehr unterstützt. Siehe <code>AGENTS.md</code> für die vollständige Referenz.</li>
+		<li>🐛 <strong>Korrektur am Connection-Pool</strong>: Direct-Auth-Connection-Pools (Basic Auth) werden nun korrekt entfernt, wenn sie inaktiv sind — dies behebt ein Problem, bei dem eine routinemäßige Passwort-Rotation letztlich neue Zugangsdaten aussperren konnte.</li>
+		<li>📦 <strong>Abhängigkeits- und CI-Updates</strong>: Routinemäßige Aktualisierung der Go-Abhängigkeiten (erfordert nun Go 1.26) sowie entsprechende Aktualisierungen der CI-Tools.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.3</p>
+	<ul>
+		<li>🔒 <strong>Sicherheitshärtung</strong>: Der Rollenwechsel baut SQL nicht mehr durch String-Konkatenation zusammen (stattdessen wird die parametrisierte Funktion <code>set_config()</code> verwendet), das Ausliefern statischer Dateien löst Pfade nun über <code>os.Root</code> auf, sodass ein Symlink das ausgelieferte Verzeichnis nicht mehr verlassen kann, verschärfte Berechtigungen für Log-/PID-Dateien sowie strengere Validierung der Suchergebnis-Links der Doku-Website.</li>
+		<li>🚀 <strong>Neue Schnellstart-Seite</strong> (alle 10 Sprachen): Ein schneller Weg von der Installation zu einem funktionierenden Endpunkt, ohne den vollständigen Umweg über Installation und Konfiguration.</li>
+		<li>📄 <strong><code>llms.txt</code>-Auffindbarkeit</strong>: Verlinkt von der Startseite, der MCP-Seite, der README und dem Header jeder Seite, damit LLM-Crawler sie finden können.</li>
+		<li>🐛 <strong>Fehlerbehebungen</strong>: Der mobile Menü-Umschalter zeigt nun auf breiten Bildschirmen korrekt eine funktionierende Home-Schaltfläche an, die Links der benutzerdefinierten 404-Seite lösen nun unabhängig von der URL-Tiefe korrekt auf, und das mobile Menü hat einen „Home“-Eintrag erhalten.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.2</p>
 	<ul>
 		<li>🔒 <strong>Sicherheitsverbesserungen</strong>: Mehrere Befunde aus der statischen Analyse behoben — die Cache-Schlüssel des Direct-Auth-Pools verwenden jetzt HMAC statt eines reinen SHA-256, eine explizite Containment-Prüfung für das Ausliefern statischer Dateien, HTML-Escaping des Login-Statustexts im SSE Tester, eine URL-Schema-Allowlist für Suchergebnis-Links der Doku-Website und Least-Privilege-Berechtigungen im CI-Workflow.</li>

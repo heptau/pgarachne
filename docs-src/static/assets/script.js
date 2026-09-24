@@ -16,7 +16,7 @@
 			var label = isWide ? toggle.dataset.labelHome : toggle.dataset.labelMenu;
 			if (label) {
 				toggle.setAttribute("aria-label", label);
-				toggle.setAttribute("title", label);
+				toggle.setAttribute("data-tooltip", label);
 			}
 			if (isWide) {
 				toggle.removeAttribute("aria-expanded");

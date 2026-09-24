@@ -116,6 +116,7 @@ body {
 	align-items: center;
 	justify-content: center;
 	transition: all 0.2s;
+	position: relative;
 }
 
 .nav-toggle:hover {
@@ -189,6 +190,71 @@ body {
 	justify-content: center;
 	transition: all 0.2s;
 	flex-shrink: 0;
+	position: relative;
+}
+
+/* Header icon tooltips: shown on hover/focus for the home, support, star,
+   theme and language nav buttons. Plain CSS so it works without JS and
+   doesn't stack with a native title tooltip (title is intentionally not
+   set on these elements). */
+[data-tooltip]::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	top: calc(100% + 10px);
+	left: 50%;
+	transform: translateX(-50%) translateY(-4px);
+	background: var(--bg-white);
+	color: var(--text-main);
+	font-size: 0.75rem;
+	font-weight: 500;
+	line-height: 1.3;
+	white-space: nowrap;
+	max-width: 220px;
+	padding: 6px 10px;
+	border-radius: 6px;
+	box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+	pointer-events: none;
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.15s ease-in-out, transform 0.15s ease-in-out, visibility 0.15s;
+	z-index: 2000;
+}
+
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
+	opacity: 1;
+	visibility: visible;
+	transform: translateX(-50%) translateY(0);
+}
+
+/* Edge icons: keep the tooltip from overhanging the viewport. */
+.nav-toggle[data-tooltip]::after {
+	left: 0;
+	transform: translateY(-4px);
+}
+
+.nav-toggle[data-tooltip]:hover::after,
+.nav-toggle[data-tooltip]:focus-visible::after {
+	transform: translateY(0);
+}
+
+.theme-trigger[data-tooltip]::after {
+	left: auto;
+	right: 0;
+	transform: translateY(-4px);
+}
+
+.theme-trigger[data-tooltip]:hover::after,
+.theme-trigger[data-tooltip]:focus-visible::after {
+	transform: translateY(0);
+}
+
+/* Tooltips are a hover/pointer enhancement; skip them on touch devices
+   where there is no hover state and they'd otherwise linger after a tap. */
+@media (hover: none) {
+	[data-tooltip]::after {
+		display: none;
+	}
 }
 
 .theme-trigger:hover,
@@ -212,24 +278,6 @@ body {
 .icon-sw {
 	width: 1.15rem;
 	height: 1.15rem;
-	display: block;
-}
-
-.theme-icon-light,
-.theme-icon-dark {
-	display: none;
-}
-
-html[data-theme="light"] .theme-icon-auto,
-html[data-theme="dark"] .theme-icon-auto {
-	display: none;
-}
-
-html[data-theme="light"] .theme-icon-light {
-	display: block;
-}
-
-html[data-theme="dark"] .theme-icon-dark {
 	display: block;
 }
 
@@ -1512,6 +1560,103 @@ html[data-theme="dark"] .os-btn-group .btn-download:hover {
 	padding: 10px 5px;
 }
 
+/* GitHub Sponsors: full-width banner spanning the whole donation grid,
+   placed ahead of the Buy Me a Coffee card. Uses GitHub's sponsor pink. */
+.donation-card.sponsors {
+	--sponsors-pink: #bf3989;
+	grid-column: 1 / -1;
+	order: -2;
+	flex-direction: row;
+	align-items: center;
+	gap: 24px;
+	height: auto;
+	padding: 24px 28px;
+	text-align: left;
+	border: 2px solid var(--sponsors-pink);
+	background: #fff7fb;
+}
+
+@media (prefers-color-scheme: dark) {
+	html:not([data-theme="light"]) .donation-card.sponsors {
+		--sponsors-pink: #db61a2;
+		background: rgba(219, 97, 162, 0.06);
+	}
+}
+
+html[data-theme="dark"] .donation-card.sponsors {
+	--sponsors-pink: #db61a2;
+	background: rgba(219, 97, 162, 0.06);
+}
+
+.sponsors-mark {
+	flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 64px;
+	height: 64px;
+	border-radius: 50%;
+	color: var(--sponsors-pink);
+	background: color-mix(in srgb, var(--sponsors-pink) 12%, transparent);
+}
+
+.sponsors-mark svg {
+	width: 32px;
+	height: 32px;
+}
+
+.sponsors-body {
+	flex: 1;
+	min-width: 0;
+}
+
+.donation-card.sponsors h4 {
+	margin-bottom: 6px;
+	font-size: 1.25rem;
+	color: var(--sponsors-pink);
+}
+
+.donation-card.sponsors p {
+	margin: 0;
+}
+
+.btn-sponsors {
+	flex-shrink: 0;
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	margin: 0;
+	padding: 12px 22px;
+	font-size: 1rem;
+	font-weight: bold;
+	white-space: nowrap;
+	background: #bf3989;
+}
+
+.btn-sponsors svg {
+	width: 16px;
+	height: 16px;
+}
+
+.btn-sponsors:hover {
+	background: #99286e;
+}
+
+@media (max-width: 900px) {
+	.donation-card.sponsors {
+		flex-direction: column;
+		text-align: center;
+		padding: 20px;
+		gap: 14px;
+	}
+
+	.btn-sponsors {
+		width: 100%;
+		justify-content: center;
+		white-space: normal;
+	}
+}
+
 .support-row {
 	margin-bottom: 12px;
 	text-align: left;
@@ -1758,6 +1903,16 @@ html[data-theme="dark"] .support-val-box code {
 .footer-copy {
 	color: var(--text-muted);
 	font-size: 0.9rem;
+}
+
+.footer-copy a {
+	color: inherit;
+	text-decoration: none;
+	border-bottom: 1px dotted currentColor;
+}
+
+.footer-copy a:hover {
+	color: var(--teal);
 }
 
 .footer-links {

@@ -1,0 +1,51 @@
+{{- /* Flattens every documentation page (menu order, tools sub-pages inline)
+     into one Markdown-ish text file. The page bodies are hand-written HTML,
+     so the conversion below is a small set of regex rewrites (headings, lists,
+     code, external links, table cells) followed by tag stripping + htmlUnescape (plainify
+     would also collapse newlines, which wrecks code blocks). */ -}}
+# PgArachne – full documentation
+
+> {{ site.Params.description }}
+
+Source: {{ site.Home.Permalink }} · Index: {{ "llms.txt" | absURL }} · Repository: https://github.com/heptau/pgarachne
+{{ $pages := slice }}
+{{- $tail := slice }}
+{{- range site.Menus.main }}
+	{{- with .Page }}
+		{{- $name := .File.ContentBaseName }}
+		{{- if in (slice "whats-new" "license") $name }}
+			{{- $tail = $tail | append . }}
+		{{- else if ne $name "support-donate" }}
+			{{- $pages = $pages | append . }}
+			{{- if .IsSection }}{{ range .RegularPages.ByTitle }}{{ $pages = $pages | append . }}{{ end }}{{ end }}
+		{{- end }}
+	{{- end }}
+{{- end }}
+{{- $pages = $pages | append $tail }}
+{{- range $pages }}
+{{ $c := .Content }}
+{{- $c = replaceRE `(?s)<pre[^>]*>\s*<code[^>]*>` "\n```\n" $c }}
+{{- $c = replaceRE `(?s)</code>\s*</pre>` "\n```\n" $c }}
+{{- $c = replaceRE `(?s)<h2[^>]*>(.*?)</h2>` "\n\n## $1\n" $c }}
+{{- $c = replaceRE `(?s)<h3[^>]*>(.*?)</h3>` "\n\n### $1\n" $c }}
+{{- $c = replaceRE `(?s)<h4[^>]*>(.*?)</h4>` "\n\n#### $1\n" $c }}
+{{- $c = replaceRE `(?s)<h5[^>]*>(.*?)</h5>` "\n\n##### $1\n" $c }}
+{{- $c = replaceRE `(?s)<code[^>]*>(.*?)</code>` "`$1`" $c }}
+{{- $c = replaceRE `(?s)<a [^>]*href="(https?://[^"]+)"[^>]*>(.*?)</a>` "[$2]($1)" $c }}
+{{- $c = replaceRE `<li[^>]*>\s*` "\n- " $c }}
+{{- $c = replaceRE `</t[dh]>\s*<t[dh][^>]*>` " | " $c }}
+{{- $c = replaceRE `<tr[^>]*>` "\n" $c }}
+{{- $c = replaceRE `<br\s*/?>` "\n" $c }}
+{{- $c = replaceRE `</(p|div|ul|ol|table|section|details|summary|blockquote)>` "\n" $c }}
+{{- $c = replaceRE `<[^>]+>` "" $c | htmlUnescape }}
+{{- $c = replaceRE `(?m)^[\t ]+$` "" $c }}
+{{- $c = replaceRE `(?m)^\t+` "" $c }}
+{{- $c = replaceRE `\n{3,}` "\n\n" $c }}
+---
+
+# {{ .Title }}
+
+URL: {{ .Permalink }}
+
+{{ $c | strings.TrimSpace }}
+{{ end }}

@@ -21,7 +21,7 @@
 - id: nav_support
   translation: "Підтримка"
 - id: nav_star
-  translation: "Зірка на GitHub"
+  translation: "Поставити зірку на GitHub (відкриє GitHub)"
 - id: nav_installation
   translation: "Встановлення"
 - id: nav_documentation

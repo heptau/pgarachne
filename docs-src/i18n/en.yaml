@@ -21,7 +21,7 @@
 - id: nav_support
   translation: "Support"
 - id: nav_star
-  translation: "Star on GitHub"
+  translation: "Star on GitHub (opens GitHub)"
 - id: nav_installation
   translation: "Installation"
 - id: nav_documentation

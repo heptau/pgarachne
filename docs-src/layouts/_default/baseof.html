@@ -72,7 +72,7 @@
 <body>
 	<nav class="navbar">
 		<div class="container nav-container">
-			<button class="nav-toggle" aria-label="{{ i18n "nav_menu" }}" title="{{ i18n "nav_menu" }}" aria-expanded="false" aria-controls="toc" data-home-url="{{ if $is404 }}{{ "/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}{{ end }}" data-label-menu="{{ i18n "nav_menu" }}" data-label-home="{{ i18n "nav_home" }}">
+			<button class="nav-toggle" aria-label="{{ i18n "nav_menu" }}" data-tooltip="{{ i18n "nav_menu" }}" aria-expanded="false" aria-controls="toc" data-home-url="{{ if $is404 }}{{ "/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}{{ end }}" data-label-menu="{{ i18n "nav_menu" }}" data-label-home="{{ i18n "nav_home" }}">
 				<span class="nav-toggle-icon"><span></span></span>
 				<span class="nav-toggle-home-icon icon-sw"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5"></path></svg></span>
 			</button>
@@ -85,29 +85,16 @@
 			</div>
 
 			<div class="nav-icons">
-				<a class="nav-heart" href="{{ if $is404 }}{{ "support-donate/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}support-donate/{{ end }}" aria-label="{{ i18n "nav_support" }}" title="{{ i18n "nav_support" }}">
+				<a class="nav-heart" href="{{ if $is404 }}{{ "support-donate/" | absLangURL }}{{ else }}{{ "/" | relLangURL }}support-donate/{{ end }}" aria-label="{{ i18n "nav_support" }}" data-tooltip="{{ i18n "nav_support" }}">
 					<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 21s-.87-.6-2.02-1.44C6.1 16.9 2 13.5 2 9.5 2 6.7 4.2 4.5 7 4.5c1.6 0 3.15.75 4.13 1.94l.87 1.06.87-1.06C13.85 5.25 15.4 4.5 17 4.5c2.8 0 5 2.2 5 5 0 4-4.1 7.4-7.98 10.06C12.87 20.4 12 21 12 21z"></path></svg>
 				</a>
 
-				<a class="nav-star" href="https://github.com/heptau/pgarachne" target="_blank" rel="noopener" aria-label="{{ i18n "nav_star" }}" title="{{ i18n "nav_star" }}">
+				<a class="nav-star" href="https://github.com/heptau/pgarachne" target="_blank" rel="noopener" aria-label="{{ i18n "nav_star" }}" data-tooltip="{{ i18n "nav_star" }}">
 					<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.77 5.82 21 7 14.14l-5-4.87 6.91-1.01L12 2z"></path></svg>
 				</a>
 
-				<div class="theme-dropdown">
-					<button class="theme-trigger" aria-label="{{ i18n "nav_theme" }}" title="{{ i18n "nav_theme" }}" aria-haspopup="true" aria-expanded="false">
-						<svg class="icon-sw theme-icon-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
-						<svg class="icon-sw theme-icon-light" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-						<svg class="icon-sw theme-icon-dark" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18V4c4.42 0 8 3.58 8 8s-3.58 8-8 8z"></path></svg>
-					</button>
-					<div class="theme-menu">
-						<button class="theme-option" data-theme-value="auto"><span class="theme-option-icon">🖥️</span><span>{{ i18n "theme_auto" }}</span></button>
-						<button class="theme-option" data-theme-value="light"><span class="theme-option-icon">☀️</span><span>{{ i18n "theme_light" }}</span></button>
-						<button class="theme-option" data-theme-value="dark"><span class="theme-option-icon">🌙</span><span>{{ i18n "theme_dark" }}</span></button>
-					</div>
-				</div>
-
 				<div class="lang-dropdown">
-					<button class="lang-trigger" aria-label="{{ i18n "nav_language" }}" title="{{ i18n "nav_language" }}" aria-haspopup="true" aria-expanded="false">
+					<button class="lang-trigger" aria-label="{{ i18n "nav_language" }}" data-tooltip="{{ i18n "nav_language" }}" aria-haspopup="true" aria-expanded="false">
 						<svg class="icon-sw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
 					</button>
 					<div class="lang-menu">
@@ -133,6 +120,17 @@
 						{{ end }}
 					</div>
 				</div>
+
+				<div class="theme-dropdown">
+					<button class="theme-trigger" aria-label="{{ i18n "nav_theme" }}" data-tooltip="{{ i18n "nav_theme" }}" aria-haspopup="true" aria-expanded="false">
+						<svg class="icon-sw" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm0 18V4c4.42 0 8 3.58 8 8s-3.58 8-8 8z"></path></svg>
+					</button>
+					<div class="theme-menu">
+						<button class="theme-option" data-theme-value="auto"><span class="theme-option-icon">🖥️</span><span>{{ i18n "theme_auto" }}</span></button>
+						<button class="theme-option" data-theme-value="light"><span class="theme-option-icon">☀️</span><span>{{ i18n "theme_light" }}</span></button>
+						<button class="theme-option" data-theme-value="dark"><span class="theme-option-icon">🌙</span><span>{{ i18n "theme_dark" }}</span></button>
+					</div>
+				</div>
 			</div>
 		</div>
 	</nav>
@@ -141,7 +139,7 @@
 
 	<footer class="site-footer">
 		<div class="container footer-inner">
-			<div class="footer-copy">Copyright © 2025-2026 Zbyněk Vanžura.</div>
+			<div class="footer-copy">Copyright © 2025–2026 <a href="https://www.80.cz/" target="_blank" rel="noopener">Zbyněk Vanžura</a></div>
 			<div class="footer-links">
 				<a href="https://github.com/heptau/pgarachne" aria-label="GitHub" title="GitHub" target="_blank" rel="noopener">
 					<svg viewBox="0 0 24 24" class="footer-icon" aria-hidden="true">

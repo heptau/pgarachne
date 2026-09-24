@@ -11,6 +11,23 @@ menu:
 	        <h2>Novedades</h2>
         <p>Puede encontrar información más detallada sobre los cambios en cada versión directamente en <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.1.0</p>
+	<ul>
+		<li>📄 <strong>Exportación OpenAPI por método</strong>: <code>generate_openapi_spec()</code> ahora también genera una ruta solo de documentación por cada método expuesto, para herramientas que esperan una operación por ruta (Swagger UI, Postman, generación de código). Un nuevo endpoint <code>openapi.yaml</code> devuelve la misma especificación en formato YAML.</li>
+		<li>🔒 <strong>Exportación OpenAPI autenticada y filtrada por rol</strong>: <code>/openapi.json</code> ahora requiere la misma autenticación que <code>/jsonrpc</code> y solo lista los métodos que el rol del solicitante puede ejecutar — anteriormente el endpoint no requería autenticación y mostraba todos los métodos a cualquiera.</li>
+		<li>🔌 <strong>Actualización del protocolo MCP</strong>: El endpoint MCP ahora habla exclusivamente la versión de protocolo <code>2026-07-28</code>; el antiguo intercambio <code>initialize</code>/<code>ping</code> ya no es compatible. Consulte <code>AGENTS.md</code> para la referencia completa.</li>
+		<li>🐛 <strong>Corrección del pool de conexiones</strong>: Los pools de conexión de autenticación directa (Basic Auth) ahora se desalojan correctamente cuando están inactivos, corrigiendo un problema por el cual la rotación rutinaria de contraseñas podía eventualmente bloquear el acceso con credenciales nuevas.</li>
+		<li>📦 <strong>Actualizaciones de dependencias y CI</strong>: Actualización rutinaria de dependencias de Go (ahora requiere Go 1.26) y las correspondientes actualizaciones de herramientas de CI.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.3</p>
+	<ul>
+		<li>🔒 <strong>Refuerzo de seguridad</strong>: El cambio de rol ya no construye SQL mediante concatenación de cadenas (en su lugar usa la función parametrizada <code>set_config()</code>), el servicio de archivos estáticos ahora resuelve las rutas a través de <code>os.Root</code> para que un symlink no pueda escapar del directorio servido, se reforzaron los permisos de los archivos de registro/PID, y se aplicó una validación más estricta de los enlaces de resultados de búsqueda del sitio de documentación.</li>
+		<li>🚀 <strong>Nueva página de Inicio Rápido</strong> (los 10 idiomas): Un camino rápido desde la instalación hasta un endpoint funcionando, sin el rodeo completo de Instalación/Configuración.</li>
+		<li>📄 <strong>Detectabilidad de <code>llms.txt</code></strong>: Enlazado desde la página de inicio, la página de MCP, el README y el encabezado de cada página, para que los rastreadores de LLM puedan encontrarlo.</li>
+		<li>🐛 <strong>Correcciones</strong>: El interruptor del menú móvil ahora muestra correctamente un botón de Inicio funcional en pantallas anchas, los enlaces de la página 404 personalizada ahora se resuelven correctamente sin importar la profundidad de la URL, y el menú móvil obtuvo una entrada de «Inicio».</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.2</p>
 	<ul>
 		<li>🔒 <strong>Refuerzo de seguridad</strong>: Se cerraron varios hallazgos de análisis estático — las claves de caché del pool de autenticación directa ahora usan HMAC (en lugar de un SHA-256 simple), una comprobación explícita de contención para el servicio de archivos estáticos, escape HTML del texto de estado de inicio de sesión del SSE Tester, una lista blanca de esquemas de URL para los enlaces de resultados de búsqueda del sitio de documentación, y permisos de mínimo privilegio en el workflow de CI.</li>

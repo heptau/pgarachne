@@ -21,7 +21,7 @@
 - id: nav_support
   translation: "Υποστήριξη"
 - id: nav_star
-  translation: "Star στο GitHub"
+  translation: "Star στο GitHub (ανοίγει το GitHub)"
 - id: nav_installation
   translation: "Εγκατάσταση"
 - id: nav_documentation

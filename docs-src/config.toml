@@ -22,6 +22,18 @@ relativeURLs = true
 
 [taxonomies]
 
+# llms-full.txt: the whole English documentation flattened into one plain-text
+# file for LLM tooling (llmstxt.org convention). Enabled only on the English
+# home page (see content/en/_index.html); the Makefile promotes it to the
+# site root next to the hand-curated static/llms.txt.
+[outputFormats]
+  [outputFormats.llmsfull]
+    baseName = "llms-full"
+    mediaType = "text/plain"
+    isPlainText = true
+    notAlternative = true
+    permalinkable = false
+
 [params]
   description = "PgArachne: High-performance PostgreSQL JSON-RPC gateway with SSE real-time updates and Prometheus metrics."
   ogDescription = "Turn PostgreSQL into a secure API instantly. JSON-RPC gateway with SSE real-time updates and Prometheus metrics."

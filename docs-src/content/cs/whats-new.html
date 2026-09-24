@@ -11,6 +11,23 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.1.0</p>
+	<ul>
+		<li>📄 <strong>Export OpenAPI po jednotlivých metodách</strong>: <code>generate_openapi_spec()</code> nyní navíc vygeneruje jednu dokumentační cestu pro každou vystavenou funkci — pro nástroje, které očekávají jednu operaci na cestu (Swagger UI, Postman, generátory kódu). Nový endpoint <code>openapi.yaml</code> vrací stejnou specifikaci ve formátu YAML.</li>
+		<li>🔒 <strong>Autentizovaný a rolí filtrovaný OpenAPI export</strong>: <code>/openapi.json</code> nyní vyžaduje stejnou autentizaci jako <code>/jsonrpc</code> a vrací pouze metody, které smí volat role přihlášeného uživatele — dříve byl endpoint neautentizovaný a zobrazoval úplně všechny metody komukoliv.</li>
+		<li>🔌 <strong>Aktualizace protokolu MCP</strong>: MCP endpoint nyní podporuje výhradně verzi protokolu <code>2026-07-28</code>; starší handshake (<code>initialize</code>/<code>ping</code>) už není podporován. Úplný referenční popis najdete v <code>AGENTS.md</code>.</li>
+		<li>🐛 <strong>Oprava poolu spojení</strong>: pooly přímé (Basic Auth) autentizace se nyní správně uvolňují, když jsou nečinné — opravuje problém, kdy běžná rotace hesel mohla časem znemožnit přihlášení novým uživatelům.</li>
+		<li>📦 <strong>Aktualizace závislostí a CI</strong>: rutinní aktualizace Go závislostí (nyní vyžaduje Go 1.26) a odpovídající aktualizace CI nástrojů.</li>
+	</ul>
+
+	<p class="whats-new-subtitle">v2.0.3</p>
+	<ul>
+		<li>🔒 <strong>Zpevnění zabezpečení</strong>: přepínání rolí už neskládá SQL dotaz spojováním řetězců (používá parametrizovanou funkci <code>set_config()</code>), servírování statických souborů nyní prochází přes <code>os.Root</code>, takže symlink nemůže uniknout z nakonfigurované složky, zpřísněna oprávnění log/PID souborů a přísnější validace odkazů ve vyhledávání na webu s dokumentací.</li>
+		<li>🚀 <strong>Nová stránka Rychlý start</strong> (všech 10 jazyků): rychlá cesta od instalace k funkčnímu endpointu bez zacházky přes kompletní Instalaci a Konfiguraci.</li>
+		<li>📄 <strong>Lepší dohledatelnost <code>llms.txt</code></strong>: odkazováno z domovské stránky, stránky MCP, README a hlavičky každé stránky, aby jej LLM prohledávače snadno našly.</li>
+		<li>🐛 <strong>Opravy</strong>: přepínač mobilního menu nyní na širokých obrazovkách správně zobrazuje funkční tlačítko Domů, odkazy na vlastní stránce 404 se nyní správně vyhodnocují bez ohledu na hloubku URL a mobilní menu získalo položku „Domů“.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.0.2</p>
 	<ul>
 		<li>🔒 <strong>Zpevnění zabezpečení</strong>: Uzavřeno několik nálezů ze statické analýzy — cache klíče poolu přímé autentizace nyní používají HMAC (namísto pouhého SHA-256), přidána explicitní kontrola, že servírované statické soubory nemohou uniknout z nakonfigurované složky, HTML escapování stavového textu přihlášení v nástroji SSE Tester, whitelist URL schémat pro odkazy ve výsledcích vyhledávání na webu s dokumentací a oprávnění s nejmenšími právy pro CI workflow.</li>
