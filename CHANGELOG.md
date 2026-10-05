@@ -7,6 +7,8 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-10-05
+
 ### Added
 
 - `JWT_SECRET` is now optional. Without it JWT support is disabled: `get_jwt` returns HTTP 404 / JSON-RPC `-32601`, Bearer values are only checked as long-lived API tokens, and clients authenticate with HTTP Basic credentials or API tokens. When set, the existing checks (minimum 32 bytes, placeholder rejected) still apply. Configuration docs (all 10 languages), README, and `config/example.pgarachne.env` updated accordingly.
