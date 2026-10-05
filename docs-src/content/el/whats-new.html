@@ -11,6 +11,16 @@ menu:
 	<h2>Τι Νέο Υπάρχει</h2>
 	<p>Πιο αναλυτικές πληροφορίες σχετικά με τις αλλαγές σε κάθε έκδοση μπορείτε να βρείτε στα <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>Προαιρετικό JWT</strong>: το <code>JWT_SECRET</code> δεν είναι πλέον υποχρεωτικό. Χωρίς αυτό το JWT απενεργοποιείται (το <code>get_jwt</code> επιστρέφει 404 / <code>-32601</code>) και οι πελάτες χρησιμοποιούν διαπιστευτήρια HTTP Basic ή API tokens.</li>
+		<li>🛡️ <strong>Περιορισμός προσπαθειών για όλες τις μεθόδους ταυτοποίησης (ασφάλεια)</strong>: το <code>LOGIN_RATE_LIMIT</code> καλύπτει πλέον και HTTP Basic και Bearer (JWT / API token) σε όλα τα endpoints, όχι μόνο το <code>get_jwt</code>. Παλαιότερα οι κωδικοί μπορούσαν να μαντευτούν χωρίς όριο μέσω <code>Authorization: Basic</code>.</li>
+		<li>🔒 <strong>Πρόσβαση μόνο με βάση τα δικαιώματα (breaking)</strong>: το <code>pgarachne.allowed_schemas()</code> αφαιρέθηκε. Το <code>capabilities()</code> (και μαζί του το MCP <code>tools/list</code> και η εξαγωγή OpenAPI) εμφανίζει κάθε συνάρτηση <code>jsonb</code> που ο καλών μπορεί να εκτελέσει και της οποίας το σχήμα μπορεί να χρησιμοποιήσει. Ανακαλέστε <code>EXECUTE</code>/<code>USAGE</code> όπου δεν το επιθυμείτε· δείτε τη σελίδα Ασφάλεια.</li>
+		<li>⚠️ <strong>Άλλες ασύμβατες αλλαγές</strong>: το <code>save_idempotency_key</code> δέχεται πλέον πεδίο ανά ρόλο (εφαρμόστε ξανά το <code>sql/schema.sql</code> πριν αναβαθμίσετε το εκτελέσιμο), τα <code>universal_update</code>/<code>universal_delete</code> απορρίπτουν κενά φίλτρα εκτός αν δοθεί <code>"all": true</code>, και το <code>universal_read</code> δέχεται στο <code>select</code> μόνο <code>*</code> ή απλά ονόματα στηλών (κλείνει ένα κενό SQL injection).</li>
+		<li>🐛 <strong>Διορθώσεις</strong>: αδιέξοδο (deadlock) του SSE κατά την επανασύνδεση του listener, αργές ή αποτυχημένες συνδέσεις που μπλόκαραν άλλα αιτήματα, απόδοση ορισμάτων στο MCP <code>prompts/get</code>, κακοσχηματισμένο σχόλιο συνάρτησης που χαλούσε το <code>capabilities</code>, αποτελέσματα «falsy» που εμφανίζονταν ως σφάλματα στον Explorer και ένα XSS στην προβολή αποτελεσμάτων του Explorer.</li>
+		<li>📚 <strong>Τεκμηρίωση</strong>: νέο <code>llms-full.txt</code>, κάρτα GitHub Sponsors, tooltips στα εικονίδια της γραμμής πλοήγησης· η σελίδα αυτή περιλαμβάνει πλέον και τα v2.0.3 και v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Εξαγωγή OpenAPI ανά μέθοδο</strong>: Η <code>generate_openapi_spec()</code> παράγει πλέον και μία διαδρομή τεκμηρίωσης-μόνο ανά εκτεθειμένη μέθοδο, για εργαλεία που αναμένουν μία λειτουργία (operation) ανά διαδρομή (Swagger UI, Postman, codegen). Ένα νέο endpoint <code>openapi.yaml</code> επιστρέφει το ίδιο spec σε μορφή YAML.</li>

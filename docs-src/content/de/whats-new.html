@@ -11,6 +11,16 @@ menu:
 	        <h2>Neuigkeiten</h2>
         <p>Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>Optionales JWT</strong>: <code>JWT_SECRET</code> ist nicht mehr erforderlich. Ohne ihn ist JWT deaktiviert (<code>get_jwt</code> liefert 404 / <code>-32601</code>) und Clients nutzen HTTP-Basic-Zugangsdaten oder API-Tokens.</li>
+		<li>🛡️ <strong>Rate Limiting für alle Auth-Methoden (Sicherheit)</strong>: <code>LOGIN_RATE_LIMIT</code> gilt jetzt auch für HTTP Basic und Bearer (JWT / API-Token) an allen Endpunkten, nicht nur für <code>get_jwt</code>. Zuvor ließen sich Passwörter über <code>Authorization: Basic</code> unbegrenzt erraten.</li>
+		<li>🔒 <strong>Zugriff nur über Berechtigungen (Breaking)</strong>: <code>pgarachne.allowed_schemas()</code> wurde entfernt. <code>capabilities()</code> (und damit MCP <code>tools/list</code> und der OpenAPI-Export) listet jede <code>jsonb</code>-Funktion, die der Aufrufer ausführen darf und deren Schema er nutzen darf. Entziehen Sie <code>EXECUTE</code>/<code>USAGE</code>, wo das unerwünscht ist; siehe Seite Sicherheit.</li>
+		<li>⚠️ <strong>Weitere Breaking Changes</strong>: <code>save_idempotency_key</code> erhält jetzt einen Rollen-Scope (<code>sql/schema.sql</code> vor dem Binary-Upgrade erneut anwenden), <code>universal_update</code>/<code>universal_delete</code> lehnen leere Filter ab, außer <code>"all": true</code> wird übergeben, und <code>universal_read</code> akzeptiert in <code>select</code> nur <code>*</code> oder einfache Spaltennamen (schließt eine SQL-Injection-Lücke).</li>
+		<li>🐛 <strong>Fixes</strong>: SSE-Deadlock beim Listener-Reconnect, langsame oder fehlerhafte Logins blockierten andere Anfragen, Argument-Rendering in MCP <code>prompts/get</code>, ein fehlerhafter Funktionskommentar brach <code>capabilities</code>, „falsy“-Ergebnisse wurden im Explorer als Fehler angezeigt, und eine XSS-Lücke in der Explorer-Ergebnisansicht.</li>
+		<li>📚 <strong>Doku</strong>: neue <code>llms-full.txt</code>, GitHub-Sponsors-Karte, Tooltips für Navbar-Icons; diese Seite listet nun auch v2.0.3 und v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>OpenAPI-Export pro Methode</strong>: <code>generate_openapi_spec()</code> erzeugt nun zusätzlich pro exponierter Methode einen rein dokumentarischen Pfad, für Tools, die einen Vorgang pro Pfad erwarten (Swagger UI, Postman, Codegenerierung). Ein neuer <code>openapi.yaml</code>-Endpunkt liefert dieselbe Spezifikation als YAML.</li>

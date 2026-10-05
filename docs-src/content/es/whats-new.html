@@ -11,6 +11,16 @@ menu:
 	        <h2>Novedades</h2>
         <p>Puede encontrar información más detallada sobre los cambios en cada versión directamente en <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>JWT opcional</strong>: <code>JWT_SECRET</code> ya no es obligatorio. Sin él, JWT queda desactivado (<code>get_jwt</code> devuelve 404 / <code>-32601</code>) y los clientes usan credenciales HTTP Basic o tokens de API.</li>
+		<li>🛡️ <strong>Límite de intentos para todos los métodos de autenticación (seguridad)</strong>: <code>LOGIN_RATE_LIMIT</code> ahora cubre también HTTP Basic y Bearer (JWT / token de API) en todos los endpoints, no solo <code>get_jwt</code>. Antes se podían adivinar contraseñas mediante <code>Authorization: Basic</code> sin límite.</li>
+		<li>🔒 <strong>Acceso gobernado solo por privilegios (breaking)</strong>: se elimina <code>pgarachne.allowed_schemas()</code>. <code>capabilities()</code> (y con ello MCP <code>tools/list</code> y la exportación OpenAPI) lista toda función <code>jsonb</code> que quien llama puede ejecutar y cuyo esquema puede usar. Revoque <code>EXECUTE</code>/<code>USAGE</code> donde no se desee; consulte la página de Seguridad.</li>
+		<li>⚠️ <strong>Otros cambios incompatibles</strong>: <code>save_idempotency_key</code> ahora recibe un ámbito por rol (vuelva a aplicar <code>sql/schema.sql</code> antes de actualizar el binario), <code>universal_update</code>/<code>universal_delete</code> rechazan filtros vacíos salvo que se pase <code>"all": true</code>, y <code>universal_read</code> solo acepta <code>*</code> o nombres de columna simples en <code>select</code> (cierra una vía de inyección SQL).</li>
+		<li>🐛 <strong>Correcciones</strong>: interbloqueo de SSE al reconectar el listener, inicios de sesión lentos o con contraseña errónea que bloqueaban otras peticiones, renderizado de argumentos en MCP <code>prompts/get</code>, un comentario de función mal formado que rompía <code>capabilities</code>, resultados «falsy» mostrados como errores en el Explorer y un XSS en la vista de resultados del Explorer.</li>
+		<li>📚 <strong>Documentación</strong>: nuevo <code>llms-full.txt</code>, tarjeta de GitHub Sponsors, tooltips en los iconos de la barra de navegación; esta página ahora también incluye v2.0.3 y v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Exportación OpenAPI por método</strong>: <code>generate_openapi_spec()</code> ahora también genera una ruta solo de documentación por cada método expuesto, para herramientas que esperan una operación por ruta (Swagger UI, Postman, generación de código). Un nuevo endpoint <code>openapi.yaml</code> devuelve la misma especificación en formato YAML.</li>

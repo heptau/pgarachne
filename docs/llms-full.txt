@@ -1101,7 +1101,7 @@ URL: https://www.pgarachne.com/en/tools/macos-toolbar/
 
 The PgArachne Toolbar is a professional native application for macOS designed to provide an effortless management experience for your JSON-RPC gateway instances.
 
-Status: Under development. Expected release: Q2 2026.
+Status: Under development. Expected release: by the end of 2026.
 
 ### Key Features
 
@@ -1504,6 +1504,20 @@ URL: https://www.pgarachne.com/en/whats-new/
 ## What's New
 
 More detailed information about changes in each version can be found in [GitHub Releases](https://github.com/heptau/pgarachne/releases).
+
+v2.2.0
+
+- 🔑 Optional JWT: `JWT_SECRET` is no longer required. Without it JWT support is disabled (`get_jwt` returns 404 / `-32601`) and clients use HTTP Basic credentials or API tokens.
+
+- 🛡️ Rate limiting for every auth method (security): `LOGIN_RATE_LIMIT` now also covers HTTP Basic and Bearer (JWT / API token) attempts on all endpoints, not just `get_jwt`. Previously passwords could be guessed via `Authorization: Basic` without any limit.
+
+- 🔒 Privilege-only access (breaking): `pgarachne.allowed_schemas()` is removed. `capabilities()` (and with it MCP `tools/list` and the OpenAPI export) lists every `jsonb` function the caller may execute and use the schema of. Revoke `EXECUTE`/`USAGE` where that is unwanted; see the Security page.
+
+- ⚠️ Other breaking changes: `save_idempotency_key` now takes a role scope (re-apply `sql/schema.sql` before upgrading the binary), `universal_update`/`universal_delete` refuse empty filters unless `"all": true` is passed, and `universal_read` accepts only `*` or plain column names in `select` (closes an SQL injection hole).
+
+- 🐛 Fixes: SSE deadlock on listener reconnect, slow or wrong-password logins stalling other requests, MCP `prompts/get` argument rendering, a malformed function comment breaking `capabilities`, falsy results shown as errors in the Explorer, and an XSS in the Explorer result view.
+
+- 📚 Docs: new `llms-full.txt`, GitHub Sponsors card, tooltips on navbar icons, and this page now also lists v2.0.3 and v2.1.0.
 
 v2.1.0
 

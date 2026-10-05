@@ -8,7 +8,7 @@ description: "PgArachne Toolbar for macOS - Documentation."
 <p>The <strong>PgArachne Toolbar</strong> is a professional native application for macOS designed to provide an effortless management experience for your JSON-RPC gateway instances.</p>
 
 <div class="status-badge" style="display: inline-block; background: #fff3cd; color: #856404; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; border: 1px solid #ffeeba;">
-<strong>Status:</strong> Under development. Expected release: <strong>Q2 2026</strong>.
+<strong>Status:</strong> Under development. Expected release: <strong>by the end of 2026</strong>.
 </div>
 
 <h3>Key Features</h3>

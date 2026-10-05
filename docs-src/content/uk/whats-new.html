@@ -11,6 +11,16 @@ menu:
 	<h2>Що нового</h2>
 	<p>Детальнішу інформацію про зміни в кожній версії можна знайти на <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>Необов'язковий JWT</strong>: <code>JWT_SECRET</code> більше не обов'язковий. Без нього підтримка JWT вимкнена (<code>get_jwt</code> повертає 404 / <code>-32601</code>), а клієнти використовують облікові дані HTTP Basic або API-токени.</li>
+		<li>🛡️ <strong>Обмеження спроб для всіх методів автентифікації (безпека)</strong>: <code>LOGIN_RATE_LIMIT</code> тепер охоплює також HTTP Basic і Bearer (JWT / API-токен) на всіх ендпоінтах, а не лише <code>get_jwt</code>. Раніше паролі можна було підбирати без обмежень через <code>Authorization: Basic</code>.</li>
+		<li>🔒 <strong>Доступ лише на основі привілеїв (breaking)</strong>: <code>pgarachne.allowed_schemas()</code> видалено. <code>capabilities()</code> (а отже, MCP <code>tools/list</code> та експорт OpenAPI) показує кожну <code>jsonb</code>-функцію, яку викликач може виконати і схемою якої може користуватися. Відкличте <code>EXECUTE</code>/<code>USAGE</code>, де це небажано; див. сторінку Безпека.</li>
+		<li>⚠️ <strong>Інші несумісні зміни</strong>: <code>save_idempotency_key</code> тепер приймає область дії за роллю (повторно застосуйте <code>sql/schema.sql</code> перед оновленням бінарного файлу), <code>universal_update</code>/<code>universal_delete</code> відхиляють порожні фільтри, якщо не передано <code>"all": true</code>, а <code>universal_read</code> у <code>select</code> приймає лише <code>*</code> або прості імена стовпців (закриває діру SQL-ін'єкції).</li>
+		<li>🐛 <strong>Виправлення</strong>: взаємне блокування SSE під час перепідключення listener, повільні або невдалі входи, що блокували інші запити, відображення аргументів у MCP <code>prompts/get</code>, некоректний коментар функції, що ламав <code>capabilities</code>, «falsy»-результати, показані в Explorer як помилки, та XSS у перегляді результатів Explorer.</li>
+		<li>📚 <strong>Документація</strong>: новий <code>llms-full.txt</code>, картка GitHub Sponsors, підказки до іконок навігації; ця сторінка тепер також містить v2.0.3 та v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Експорт OpenAPI для кожного методу</strong>: <code>generate_openapi_spec()</code> тепер також генерує окремий шлях лише для документації для кожного відкритого методу — для інструментів, які очікують одну операцію на шлях (Swagger UI, Postman, генератори коду). Новий ендпоінт <code>openapi.yaml</code> повертає ту саму специфікацію у форматі YAML.</li>

@@ -11,6 +11,16 @@ menu:
 	<h2>Nouveautés</h2>
         <p>De plus amples informations sur les changements apportés à chaque version se trouvent directement sur <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>JWT optionnel</strong> : <code>JWT_SECRET</code> n'est plus obligatoire. Sans lui, JWT est désactivé (<code>get_jwt</code> renvoie 404 / <code>-32601</code>) et les clients utilisent des identifiants HTTP Basic ou des jetons d'API.</li>
+		<li>🛡️ <strong>Limitation du débit pour toutes les méthodes d'authentification (sécurité)</strong> : <code>LOGIN_RATE_LIMIT</code> couvre désormais aussi HTTP Basic et Bearer (JWT / jeton d'API) sur tous les endpoints, et pas seulement <code>get_jwt</code>. Auparavant, les mots de passe pouvaient être devinés sans limite via <code>Authorization: Basic</code>.</li>
+		<li>🔒 <strong>Accès régi uniquement par les privilèges (breaking)</strong> : <code>pgarachne.allowed_schemas()</code> est supprimée. <code>capabilities()</code> (et donc MCP <code>tools/list</code> et l'export OpenAPI) liste toute fonction <code>jsonb</code> que l'appelant peut exécuter et dont il peut utiliser le schéma. Révoquez <code>EXECUTE</code>/<code>USAGE</code> là où ce n'est pas souhaité ; voir la page Sécurité.</li>
+		<li>⚠️ <strong>Autres changements incompatibles</strong> : <code>save_idempotency_key</code> prend désormais une portée par rôle (réappliquez <code>sql/schema.sql</code> avant de mettre à jour le binaire), <code>universal_update</code>/<code>universal_delete</code> refusent les filtres vides sauf si <code>"all": true</code> est passé, et <code>universal_read</code> n'accepte que <code>*</code> ou des noms de colonnes simples dans <code>select</code> (ferme une faille d'injection SQL).</li>
+		<li>🐛 <strong>Corrections</strong> : interblocage SSE lors de la reconnexion du listener, connexions lentes ou à mot de passe erroné bloquant les autres requêtes, rendu des arguments dans MCP <code>prompts/get</code>, un commentaire de fonction mal formé cassant <code>capabilities</code>, résultats « falsy » affichés comme erreurs dans l'Explorer et une faille XSS dans la vue des résultats de l'Explorer.</li>
+		<li>📚 <strong>Documentation</strong> : nouveau <code>llms-full.txt</code>, carte GitHub Sponsors, info-bulles sur les icônes de la barre de navigation ; cette page liste aussi désormais v2.0.3 et v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Export OpenAPI par méthode</strong> : <code>generate_openapi_spec()</code> émet désormais aussi un chemin (path) documentaire dédié par méthode exposée, pour les outils qui attendent une opération par chemin (Swagger UI, Postman, génération de code). Un nouveau point de terminaison <code>openapi.yaml</code> renvoie la même spécification au format YAML.</li>

@@ -11,6 +11,16 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>Volitelné JWT</strong>: <code>JWT_SECRET</code> už není povinný. Bez něj je podpora JWT vypnutá (<code>get_jwt</code> vrací 404 / <code>-32601</code>) a klienti používají HTTP Basic přihlášení nebo API tokeny.</li>
+		<li>🛡️ <strong>Omezení počtu pokusů pro všechny způsoby přihlášení (bezpečnost)</strong>: <code>LOGIN_RATE_LIMIT</code> nově pokrývá i HTTP Basic a Bearer (JWT / API token) na všech endpointech, nejen <code>get_jwt</code>. Dříve šlo hesla bez omezení hádat přes <code>Authorization: Basic</code>.</li>
+		<li>🔒 <strong>Přístup řízený pouze oprávněními (breaking)</strong>: <code>pgarachne.allowed_schemas()</code> byla odstraněna. <code>capabilities()</code> (a tím i MCP <code>tools/list</code> a export OpenAPI) vypisuje každou <code>jsonb</code> funkci, kterou smí volající spustit a jejíž schéma smí používat. Kde to není žádoucí, odeberte <code>EXECUTE</code>/<code>USAGE</code>; viz stránka Zabezpečení.</li>
+		<li>⚠️ <strong>Další breaking změny</strong>: <code>save_idempotency_key</code> nově přijímá rozsah (roli) – před upgradem binárky znovu aplikujte <code>sql/schema.sql</code>; <code>universal_update</code>/<code>universal_delete</code> odmítnou prázdné filtry, pokud není předáno <code>"all": true</code>; <code>universal_read</code> v <code>select</code> přijímá jen <code>*</code> nebo prosté názvy sloupců (uzavírá díru pro SQL injection).</li>
+		<li>🐛 <strong>Opravy</strong>: deadlock SSE při reconnectu listeneru, pomalá nebo chybná přihlášení blokující ostatní požadavky, vykreslování argumentů v MCP <code>prompts/get</code>, vadný komentář funkce rozbíjející <code>capabilities</code>, „falsy“ výsledky zobrazené v Exploreru jako chyby a XSS ve výsledcích Exploreru.</li>
+		<li>📚 <strong>Dokumentace</strong>: nový <code>llms-full.txt</code>, karta GitHub Sponsors, popisky ikon v navigaci a tato stránka nově uvádí i v2.0.3 a v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Export OpenAPI po jednotlivých metodách</strong>: <code>generate_openapi_spec()</code> nyní navíc vygeneruje jednu dokumentační cestu pro každou vystavenou funkci — pro nástroje, které očekávají jednu operaci na cestu (Swagger UI, Postman, generátory kódu). Nový endpoint <code>openapi.yaml</code> vrací stejnou specifikaci ve formátu YAML.</li>

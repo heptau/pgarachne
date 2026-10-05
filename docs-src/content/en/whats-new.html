@@ -11,6 +11,16 @@ menu:
 	<h2>What's New</h2>
 	<p>More detailed information about changes in each version can be found in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v2.2.0</p>
+	<ul>
+		<li>🔑 <strong>Optional JWT</strong>: <code>JWT_SECRET</code> is no longer required. Without it JWT support is disabled (<code>get_jwt</code> returns 404 / <code>-32601</code>) and clients use HTTP Basic credentials or API tokens.</li>
+		<li>🛡️ <strong>Rate limiting for every auth method (security)</strong>: <code>LOGIN_RATE_LIMIT</code> now also covers HTTP Basic and Bearer (JWT / API token) attempts on all endpoints, not just <code>get_jwt</code>. Previously passwords could be guessed via <code>Authorization: Basic</code> without any limit.</li>
+		<li>🔒 <strong>Privilege-only access (breaking)</strong>: <code>pgarachne.allowed_schemas()</code> is removed. <code>capabilities()</code> (and with it MCP <code>tools/list</code> and the OpenAPI export) lists every <code>jsonb</code> function the caller may execute and use the schema of. Revoke <code>EXECUTE</code>/<code>USAGE</code> where that is unwanted; see the Security page.</li>
+		<li>⚠️ <strong>Other breaking changes</strong>: <code>save_idempotency_key</code> now takes a role scope (re-apply <code>sql/schema.sql</code> before upgrading the binary), <code>universal_update</code>/<code>universal_delete</code> refuse empty filters unless <code>"all": true</code> is passed, and <code>universal_read</code> accepts only <code>*</code> or plain column names in <code>select</code> (closes an SQL injection hole).</li>
+		<li>🐛 <strong>Fixes</strong>: SSE deadlock on listener reconnect, slow or wrong-password logins stalling other requests, MCP <code>prompts/get</code> argument rendering, a malformed function comment breaking <code>capabilities</code>, falsy results shown as errors in the Explorer, and an XSS in the Explorer result view.</li>
+		<li>📚 <strong>Docs</strong>: new <code>llms-full.txt</code>, GitHub Sponsors card, tooltips on navbar icons, and this page now also lists v2.0.3 and v2.1.0.</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.1.0</p>
 	<ul>
 		<li>📄 <strong>Per-method OpenAPI export</strong>: <code>generate_openapi_spec()</code> now also emits one documentation-only path per exposed method, for tools that expect one operation per path (Swagger UI, Postman, codegen). A new <code>openapi.yaml</code> endpoint returns the same spec as YAML.</li>

@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Changed
+
+- Docs site: `whats-new.html` (all 10 languages) now lists the `v2.2.0` release, and the macOS Toolbar page's expected release moved from Q2 2026 to "by the end of 2026" (all 10 languages).
+
 ## [2.2.0] - 2026-10-05
 
 ### Added
