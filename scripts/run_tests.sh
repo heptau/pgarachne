@@ -14,8 +14,19 @@ PGARACHNE_PASSWORD="pgarachne_password"
 TEST_USER="pgarachne_test_user"
 TEST_PASSWORD="pgarachne_test_password"
 
+# Prefer the `docker compose` plugin; fall back to the standalone
+# `docker-compose` binary (e.g. Homebrew installs without the CLI plugin).
+if docker compose version >/dev/null 2>&1; then
+  COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+  COMPOSE=(docker-compose)
+else
+  echo "Neither 'docker compose' nor 'docker-compose' is available." >&2
+  exit 1
+fi
+
 cleanup() {
-  docker compose -f "$COMPOSE_FILE" down -v
+  "${COMPOSE[@]}" -f "$COMPOSE_FILE" down -v
 }
 trap cleanup EXIT
 
@@ -26,12 +37,12 @@ echo "==> Starting Postgres (test container)"
 # pg_isready loop can catch that transient setup instance as "ready" and
 # then race into the restart on the very next check; Compose's own
 # healthcheck-driven wait doesn't have that failure mode.
-docker compose -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60
+"${COMPOSE[@]}" -f "$COMPOSE_FILE" up -d --wait --wait-timeout 60
 
 # The container publishes to a random host port (see docker-compose.test.yml)
 # so this never collides with another project's Postgres container on the
 # same machine. Read back whatever Docker actually assigned.
-DB_PORT="$(docker compose -f "$COMPOSE_FILE" port postgres 5432 | cut -d: -f2)"
+DB_PORT="$("${COMPOSE[@]}" -f "$COMPOSE_FILE" port postgres 5432 | cut -d: -f2)"
 if [ -z "$DB_PORT" ]; then
   echo "Could not determine the host port Docker assigned to Postgres." >&2
   exit 1
