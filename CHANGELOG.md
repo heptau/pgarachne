@@ -7,8 +7,13 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Added
+
+- Docs site: `architectural-decisions.html` (all 10 languages) gained a "Why PostgreSQL" decision explaining why PgArachne is built exclusively on PostgreSQL (built-in role/`EXECUTE` permission model, Row-Level Security, `jsonb`, transactions, `LISTEN`/`NOTIFY`, catalog introspection, extensions) and why not other databases, including NoSQL stores and a database-agnostic layer.
+
 ### Changed
 
+- Docs site: the decisions in `architectural-decisions.html` (all 10 languages) are reordered from data layer to protocols — PostgreSQL, PostgreSQL functions, Go, JSON-RPC, SSE, URL structure, MCP, OpenAPI — and renumbered; in-text cross-references updated.
 - Docs site: `whats-new.html` (all 10 languages) now lists the `v2.2.0` release, and the macOS Toolbar page's expected release moved from Q2 2026 to "by the end of 2026" (all 10 languages).
 
 ## [2.2.0] - 2026-10-05

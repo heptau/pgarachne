@@ -67,53 +67,63 @@ This page explains the reasoning behind the key architectural and technology cho
 These decisions were made to prioritize performance, security, and developer productivity while ensuring the system remains
 highly compatible with modern AI and LLM agents.
 
-### 1. JSON-RPC 2.0 vs. REST
+### 1. Why PostgreSQL
 
-PgArachne uses JSON-RPC 2.0 as its primary communication protocol instead of traditional REST.
+PgArachne is deliberately built exclusively on top of PostgreSQL and does not try to be database-agnostic.
+Most of what the gateway offers is not custom Go logic, but a direct use of PostgreSQL features.
 
-#### Why JSON-RPC 2.0:
+#### Why PostgreSQL:
 
-- Single Endpoint: All communication happens via `POST /{prefix}/{database}/jsonrpc`. There is no need to design complex URL structures or debate HTTP verb semantics.
+- Built-in permission model: Roles, `GRANT`/`REVOKE`, and `EXECUTE` privileges on functions are part of the database. PgArachne therefore needs no authorization layer of its own — it simply switches the role with `SET LOCAL ROLE` and PostgreSQL takes care of the rest. The same access rules apply to the API, `psql`, and any other tool.
 
-- Self-Contained Calls: Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.
+- Row-Level Security: Row-level policies are evaluated against the role the call runs as. Data isolation between users or tenants thus lives in the database, not in the gateway code.
 
-- Standardized Error Handling: Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.
+- Native JSON (`jsonb`): The `function(jsonb) → json` contract maps exactly onto the body of a JSON-RPC request and response. There is no need to map parameters to types or generate envelopes — JSON passes through the gateway unchanged.
 
-- Batching: The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.
+- Transactional guarantees: Every call runs in a single transaction with full ACID guarantees. A function can atomically write to multiple tables, and on error everything is rolled back, without the gateway having to know anything about it.
 
-- Discovery: The capabilities endpoint provides a full description of the API in a format that AI agents can consume to understand available tools without hallucinations.
+- Powerful programming model: PL/pgSQL, SQL functions, and other procedural languages let you write business logic where the data lives, without shipping intermediate results over the network.
 
-#### Why not REST:
+- `LISTEN`/`NOTIFY`: Real-time notifications (decision 5) come straight from a PostgreSQL mechanism. No external message broker is needed.
 
-- Complexity for AI: REST semantics (GET/POST/PATCH/DELETE + URL params + body) are spread across multiple places, making it harder for AI agents to construct calls reliably.
+- System catalog introspection: The list of callable methods, their descriptions, and their parameter schemas are read from `pg_proc` and function comments. `capabilities`, MCP `tools/list`, and the OpenAPI specification are all derived from a single source of truth, so they cannot drift from reality.
 
-- Schema Leakage: CRUD-over-tables (like PostgREST) often leaks the internal database structure directly into the API. PgArachne deliberately exposes functions, keeping business logic encapsulated in SQL.
+- Extension ecosystem: PostGIS, pgvector, TimescaleDB, `pg_trgm`, and other extensions are immediately available as ordinary SQL functions, and therefore also as API methods and tools for AI agents — without a single line of Go code.
 
-- Lack of Standards: REST offers no universal standard for batch operations, cross-platform error envelopes, or automated API discovery.
+- Openness and maturity: A free license with no vendor lock-in, decades of proven production use, active development, and availability from all major cloud providers as well as a self-hosted instance.
 
-### 2. SSE (Server-Sent Events) vs. WebSockets
+#### Why not another database or a database-agnostic layer:
 
-For real-time notifications, PgArachne implements Server-Sent Events (SSE).
+- Lowest common denominator: Supporting multiple databases would mean giving up precisely the features PgArachne is built on — the role-based security model, `jsonb`, `LISTEN`/`NOTIFY`, and function introspection. What would remain is a thin and less secure layer on top of generic SQL.
 
-#### Why SSE:
+- MySQL / MariaDB: They have no native Row-Level Security or equivalent of `LISTEN`/`NOTIFY`, and their JSON and procedural logic support is more limited.
 
-- Plain HTTP: SSE is standard HTTP. It works through proxies, load balancers, and CDNs without special "protocol upgrade" configuration.
+- SQL Server and Oracle: Proprietary licensing and operating costs run counter to the goal of easy, free deployment as a single binary.
 
-- Native Browser Support: The `EventSource` API is built into all modern browsers and handles automatic reconnection without any client libraries.
+- NoSQL databases (document, key-value, columnar): The scaling and schema flexibility that NoSQL is chosen for are not the main benefit for PgArachne. The document storage it needs is covered by `jsonb`, including indexing and querying, alongside relational data and within the same transaction. What is missing, on the other hand, is what PgArachne stands on: server-side functions callable with granular `EXECUTE` privileges for a specific role, Row-Level Security, function introspection from the catalog, and a unified query language. Without them, the gateway would have to handle authorization, validation, and API description itself — and would cease to be a thin layer.
 
-- Matches NOTIFY Semantics: PostgreSQL's `NOTIFY` is unidirectional (server to client), which maps perfectly to SSE.
+- SQLite: It is an embedded database without the server-side role and permission model on which all of PgArachne's security is built.
 
-- Multiplexing: Over HTTP/2, hundreds of SSE streams can share a single TCP connection, making it extremely efficient.
+As a result, PgArachne stays small: it delegates security, transactions, notifications, and API discovery to PostgreSQL
+and itself takes care only of protocol translation and authentication.
 
-- Operational Simplicity: SSE connections appear as normal HTTP requests in logs and monitoring tools, making them easier to debug and rate-limit.
+### 2. PostgreSQL Functions as API Surface
 
-#### Why not WebSockets:
+PgArachne intentionally exposes database functions rather than raw tables.
 
-- Unnecessary Bidirectionality: Since the client never needs to send data back over the notification channel, the complexity of WebSockets provides no benefit.
+#### Why functions:
 
-- Connectivity Issues: WebSockets are often blocked or prematurely closed by corporate firewalls and some cloud load balancers.
+- Encapsulation: Business logic lives co-located with the data in the database—one place to audit, version, and secure.
 
-- Higher Overhead: Adds protocol complexity (handshakes, ping/pong frames) that isn't required for simple event streaming.
+- Explicit Security: Only functions that are explicitly granted `EXECUTE` permissions to a specific role are accessible via the API.
+
+- Abstraction: Input validation, computed fields, and complex multi-table operations are hidden from the client, providing a clean interface.
+
+#### Why not table-level CRUD:
+
+- Tight Coupling: Exposing tables directly ties your API to your internal database schema, making it difficult to refactor the database without breaking clients.
+
+- Business Rule Fragmentation: Business logic ends up split between database constraints and whatever middleware is used to filter HTTP requests.
 
 ### 3. Go vs. Alternatives
 
@@ -145,25 +155,55 @@ PgArachne is written in Go to provide the best balance of performance and deploy
 
 - Safety: Manual memory management adds significant security risks (buffer overflows) for no meaningful performance gain in a gateway application.
 
-### 4. PostgreSQL Functions as API Surface
+### 4. JSON-RPC 2.0 vs. REST
 
-PgArachne intentionally exposes database functions rather than raw tables.
+PgArachne uses JSON-RPC 2.0 as its primary communication protocol instead of traditional REST.
 
-#### Why functions:
+#### Why JSON-RPC 2.0:
 
-- Encapsulation: Business logic lives co-located with the data in the database—one place to audit, version, and secure.
+- Single Endpoint: All communication happens via `POST /{prefix}/{database}/jsonrpc`. There is no need to design complex URL structures or debate HTTP verb semantics.
 
-- Explicit Security: Only functions that are explicitly granted `EXECUTE` permissions to a specific role are accessible via the API.
+- Self-Contained Calls: Each request is a complete JSON object (method + params + id). This format is trivially generated and parsed by LLMs and AI agents with high reliability.
 
-- Abstraction: Input validation, computed fields, and complex multi-table operations are hidden from the client, providing a clean interface.
+- Standardized Error Handling: Error codes and messages are part of the specification, eliminating the need to "invent" HTTP status code conventions for business errors.
 
-#### Why not table-level CRUD:
+- Batching: The protocol natively supports batch requests, allowing multiple operations (e.g., several function calls) in a single HTTP round-trip without extra work.
 
-- Tight Coupling: Exposing tables directly ties your API to your internal database schema, making it difficult to refactor the database without breaking clients.
+- Discovery: The capabilities endpoint provides a full description of the API in a format that AI agents can consume to understand available tools without hallucinations.
 
-- Business Rule Fragmentation: Business logic ends up split between database constraints and whatever middleware is used to filter HTTP requests.
+#### Why not REST:
 
-### 5. URL Structure: `/{prefix}/{database}/{endpoint}`
+- Complexity for AI: REST semantics (GET/POST/PATCH/DELETE + URL params + body) are spread across multiple places, making it harder for AI agents to construct calls reliably.
+
+- Schema Leakage: CRUD-over-tables (like PostgREST) often leaks the internal database structure directly into the API. PgArachne deliberately exposes functions, keeping business logic encapsulated in SQL.
+
+- Lack of Standards: REST offers no universal standard for batch operations, cross-platform error envelopes, or automated API discovery.
+
+### 5. SSE (Server-Sent Events) vs. WebSockets
+
+For real-time notifications, PgArachne implements Server-Sent Events (SSE).
+
+#### Why SSE:
+
+- Plain HTTP: SSE is standard HTTP. It works through proxies, load balancers, and CDNs without special "protocol upgrade" configuration.
+
+- Native Browser Support: The `EventSource` API is built into all modern browsers and handles automatic reconnection without any client libraries.
+
+- Matches NOTIFY Semantics: PostgreSQL's `NOTIFY` is unidirectional (server to client), which maps perfectly to SSE.
+
+- Multiplexing: Over HTTP/2, hundreds of SSE streams can share a single TCP connection, making it extremely efficient.
+
+- Operational Simplicity: SSE connections appear as normal HTTP requests in logs and monitoring tools, making them easier to debug and rate-limit.
+
+#### Why not WebSockets:
+
+- Unnecessary Bidirectionality: Since the client never needs to send data back over the notification channel, the complexity of WebSockets provides no benefit.
+
+- Connectivity Issues: WebSockets are often blocked or prematurely closed by corporate firewalls and some cloud load balancers.
+
+- Higher Overhead: Adds protocol complexity (handshakes, ping/pong frames) that isn't required for simple event streaming.
+
+### 6. URL Structure: `/{prefix}/{database}/{endpoint}`
 
 PgArachne routes all endpoints under a configurable prefix segment:
 `/db/{database}/jsonrpc`, `/db/{database}/sse`, `/db/{database}/mcp`.
@@ -187,7 +227,7 @@ The prefix defaults to `db` and can be changed via `API_PREFIX`.
 
 - Harder to extend: Adding new protocols (e.g., GraphQL, gRPC-gateway) requires introducing new top-level paths anyway, so the structured namespace future-proofs the design.
 
-### 6. MCP as a Translation Layer, Not a Database Protocol
+### 7. MCP as a Translation Layer, Not a Database Protocol
 
 PgArachne implements the [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
 as a thin translation layer in the Go server. PostgreSQL functions are never aware of MCP — they
@@ -211,7 +251,7 @@ remain simple `jsonb → json` functions.
 
 - SQL is the wrong tool for protocol logic: JSON-RPC 2.0 error codes, notification routing, and idempotency key management are middleware concerns, not data concerns.
 
-### 7. OpenAPI Export: Virtual Paths, Not a New Protocol
+### 8. OpenAPI Export: Virtual Paths, Not a New Protocol
 
 `GET /{prefix}/{database}/openapi.json` (or `.yaml`) generates an OpenAPI 3.1 document
 describing every method the authenticated caller may execute. Real invocation still happens exclusively
@@ -223,7 +263,7 @@ path is documentation only and does not exist as an HTTP route you can call dire
 
 - Tooling compatibility: Swagger UI, Postman, Insomnia, and most OpenAPI code generators expect one operation per `paths` entry. A single JSON-RPC path can't otherwise represent N different method signatures in a way these tools understand.
 
-- No backend changes required: Adding a real route per method would mean a second way to invoke every function, with its own auth, error-handling, and versioning surface to maintain in lockstep with JSON-RPC. Generating the paths purely from `capabilities()` keeps the protocol surface exactly as described in decision 1, while still satisfying tools that need per-operation schemas.
+- No backend changes required: Adding a real route per method would mean a second way to invoke every function, with its own auth, error-handling, and versioning surface to maintain in lockstep with JSON-RPC. Generating the paths purely from `capabilities()` keeps the protocol surface exactly as described in decision 4, while still satisfying tools that need per-operation schemas.
 
 - Self-documenting: Each virtual operation's description spells out the exact JSON-RPC request (method + params) needed to actually call it, so nothing is lost by not having a real route.
 

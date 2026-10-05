@@ -16,44 +16,55 @@ menu:
 	</p>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>1. JSON-RPC 2.0 vs. REST</h3>
-		<p>O PgArachne utiliza JSON-RPC 2.0 como seu protocolo de comunicação primário em vez do tradicional REST.</p>
+		<h3>1. Por que PostgreSQL</h3>
+		<p>
+			O PgArachne é construído deliberadamente apenas sobre o PostgreSQL e não tenta ser agnóstico em relação ao banco de dados.
+			A maior parte do que o gateway oferece não é lógica própria em Go, mas o uso direto de recursos do PostgreSQL.
+		</p>
 
-		<h4>Por que JSON-RPC 2.0:</h4>
+		<h4>Por que PostgreSQL:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Endpoint único:</strong> Toda a comunicação ocorre via <code>POST /{prefixo}/{banco_de_dados}/jsonrpc</code>. Não há necessidade de projetar estruturas de URL complexas.</li>
-			<li><strong>Chamadas autocontidas:</strong> Cada requisição é um objeto JSON completo (método + parâmetros + id), fácil de gerar e processar para LLMs.</li>
-			<li><strong>Tratamento de erros padronizado:</strong> Códigos e mensagens de erro fazem parte da especificação.</li>
-			<li><strong>Loteamento (Batching):</strong> O protocolo suporta nativamente requisições em lote em uma única viagem de ida e volta HTTP.</li>
-			<li><strong>Descoberta (Discovery):</strong> O endpoint de capacidades fornece uma descrição completa da API para agentes de IA sem alucinações.</li>
+			<li><strong>Modelo de permissões integrado:</strong> Papéis, <code>GRANT</code>/<code>REVOKE</code> e permissões <code>EXECUTE</code> em funções fazem parte do banco de dados. Por isso, o PgArachne não precisa de uma camada de autorização própria — ele apenas troca o papel com <code>SET LOCAL ROLE</code> e o PostgreSQL cuida do resto. As regras de acesso valem, assim, da mesma forma para a API, o <code>psql</code> e qualquer outra ferramenta.</li>
+			<li><strong>Row-Level Security:</strong> As políticas em nível de linha são avaliadas de acordo com o papel em nome do qual a chamada é executada. O isolamento de dados entre usuários ou tenants vive no banco de dados, e não no código do gateway.</li>
+			<li><strong>JSON nativo (<code>jsonb</code>):</strong> O contrato <code>função(jsonb) → json</code> corresponde exatamente ao corpo da requisição e da resposta JSON-RPC. Não é preciso mapear parâmetros para tipos nem gerar envelopes — o JSON atravessa o gateway sem alterações.</li>
+			<li><strong>Garantias transacionais:</strong> Cada chamada é executada em uma única transação com garantias ACID completas. Uma função pode gravar atomicamente em várias tabelas e, em caso de erro, tudo é revertido, sem que o gateway precise saber de nada.</li>
+			<li><strong>Modelo de programação poderoso:</strong> PL/pgSQL, funções SQL e outras linguagens procedurais permitem escrever a lógica de negócio onde estão os dados, sem transferir resultados intermediários pela rede.</li>
+			<li><strong><code>LISTEN</code>/<code>NOTIFY</code>:</strong> As notificações em tempo real (decisão&nbsp;5) vêm diretamente do mecanismo do PostgreSQL. Não é necessário um message broker externo.</li>
+			<li><strong>Introspecção do catálogo do sistema:</strong> A lista de métodos chamáveis, suas descrições e os esquemas de parâmetros são lidos de <code>pg_proc</code> e dos comentários das funções. De uma única fonte da verdade surgem <code>capabilities</code>, o <code>tools/list</code> do MCP e a especificação OpenAPI, que não podem divergir da realidade.</li>
+			<li><strong>Ecossistema de extensões:</strong> PostGIS, pgvector, TimescaleDB, <code>pg_trgm</code> e outras extensões ficam imediatamente disponíveis como funções SQL comuns e, portanto, também como métodos da API e ferramentas para agentes de IA — sem uma única linha de código Go.</li>
+			<li><strong>Abertura e maturidade:</strong> Licença livre sem vendor lock-in, décadas de operação comprovada, desenvolvimento ativo e disponibilidade em todos os principais provedores de nuvem, e também como instância autogerenciada.</li>
 		</ul>
 
-		<h4>Por que não REST:</h4>
+		<h4>Por que não outro banco de dados ou uma camada agnóstica:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Complexidade para IA:</strong> A semântica REST está dispersa em vários lugares, dificultando a construção de chamadas confiáveis para agentes de IA.</li>
-			<li><strong>Exposição do esquema:</strong> O CRUD sobre tabelas muitas vezes expõe a estrutura interna. O PgArachne expõe funções deliberadamente.</li>
-			<li><strong>Ausência de padrões:</strong> O REST não oferece padrão universal para lotes, envelopes de erro ou descoberta automatizada.</li>
+			<li><strong>Menor denominador comum:</strong> Suportar vários bancos de dados significaria abrir mão justamente dos recursos sobre os quais o PgArachne se apoia — o modelo de segurança por papéis, o <code>jsonb</code>, o <code>LISTEN</code>/<code>NOTIFY</code> e a introspecção de funções. Sobraria uma camada fina e menos segura sobre SQL genérico.</li>
+			<li><strong>MySQL / MariaDB:</strong> Não têm Row-Level Security nativo nem equivalente ao <code>LISTEN</code>/<code>NOTIFY</code>, e o suporte a JSON e a lógica procedural são mais limitados.</li>
+			<li><strong>SQL Server e Oracle:</strong> O licenciamento proprietário e os custos operacionais contradizem o objetivo de uma implantação simples e gratuita com um único binário.</li>
+			<li><strong>Bancos NoSQL (documentos, chave-valor, colunares):</strong> A escalabilidade e a flexibilidade de esquema pelas quais se escolhe NoSQL não são o principal benefício para o PgArachne. O armazenamento de documentos necessário é coberto pelo <code>jsonb</code>, incluindo indexação e consultas, ao lado dos dados relacionais e na mesma transação. Em contrapartida, falta justamente aquilo em que o PgArachne se apoia: funções no servidor chamáveis com permissão granular <code>EXECUTE</code> para um papel específico, Row-Level Security, introspecção de funções a partir do catálogo e uma linguagem de consulta unificada. Sem isso, o gateway teria de resolver sozinho a autorização, a validação e a descrição da API — e deixaria de ser uma camada fina.</li>
+			<li><strong>SQLite:</strong> É um banco de dados embarcado sem modelo de servidor com papéis e permissões, no qual toda a segurança do PgArachne é construída.</li>
 		</ul>
+
+		<p>
+			Como consequência, o PgArachne continua pequeno: delega ao PostgreSQL a segurança, as transações, as notificações e a descoberta da API
+			e cuida apenas da tradução de protocolos e da autenticação.
+		</p>
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>2. SSE (Server-Sent Events) vs. WebSockets</h3>
-		<p>Para notificações em tempo real, o PgArachne implementa Server-Sent Events (SSE).</p>
+		<h3>2. Funções PostgreSQL como Superfície da API</h3>
+		<p>O PgArachne expõe deliberadamente funções do banco de dados em vez de tabelas diretamente.</p>
 
-		<h4>Por que SSE:</h4>
+		<h4>Por que funções:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>HTTP puro:</strong> O SSE é HTTP padrão, funcionando através de proxies e CDNs sem configurações especiais.</li>
-			<li><strong>Suporte nativo do navegador:</strong> A API <code>EventSource</code> gerencia a reconexão automática sem bibliotecas externas.</li>
-			<li><strong>Corresponde à semântica do NOTIFY:</strong> O <code>NOTIFY</code> do PostgreSQL é unidirecional, adequando-se perfeitamente ao SSE.</li>
-			<li><strong>Multiplexação:</strong> Sobre HTTP/2, centenas de fluxos SSE compartilham uma única conexão TCP.</li>
-			<li><strong>Simplicidade operacional:</strong> As conexões SSE aparecem como requisições HTTP normais nos logs.</li>
+			<li><strong>Encapsulamento:</strong> A lógica de negócio reside com os dados no banco de dados — um único lugar para auditoria, versionamento e segurança.</li>
+			<li><strong>Segurança explícita:</strong> Apenas as funções com permissões <code>EXECUTE</code> para um papel específico são acessíveis.</li>
+			<li><strong>Abstração:</strong> Validação, campos calculados e operações complexas ficam ocultos para o cliente.</li>
 		</ul>
 
-		<h4>Por que não WebSockets:</h4>
+		<h4>Por que não CRUD em nível de tabela:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Bidirecionalidade desnecessária:</strong> O cliente nunca precisa enviar dados pelo canal de notificação.</li>
-			<li><strong>Problemas de conectividade:</strong> Frequentemente bloqueados por firewalls corporativos e alguns balanceadores de carga em nuvem.</li>
-			<li><strong>Maior sobrecarga:</strong> Handshakes e frames de ping/pong desnecessários para o simples streaming de eventos.</li>
+			<li><strong>Acoplamento forte:</strong> Expor tabelas vincula a API ao esquema interno, dificultando refatorações.</li>
+			<li><strong>Fragmentação de regras de negócio:</strong> A lógica se divide entre restrições do banco de dados e middleware.</li>
 		</ul>
 	</div>
 
@@ -88,25 +99,49 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>4. Funções PostgreSQL como Superfície da API</h3>
-		<p>O PgArachne expõe deliberadamente funções do banco de dados em vez de tabelas diretamente.</p>
+		<h3>4. JSON-RPC 2.0 vs. REST</h3>
+		<p>O PgArachne utiliza JSON-RPC 2.0 como seu protocolo de comunicação primário em vez do tradicional REST.</p>
 
-		<h4>Por que funções:</h4>
+		<h4>Por que JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Encapsulamento:</strong> A lógica de negócio reside com os dados no banco de dados — um único lugar para auditoria, versionamento e segurança.</li>
-			<li><strong>Segurança explícita:</strong> Apenas as funções com permissões <code>EXECUTE</code> para um papel específico são acessíveis.</li>
-			<li><strong>Abstração:</strong> Validação, campos calculados e operações complexas ficam ocultos para o cliente.</li>
+			<li><strong>Endpoint único:</strong> Toda a comunicação ocorre via <code>POST /{prefixo}/{banco_de_dados}/jsonrpc</code>. Não há necessidade de projetar estruturas de URL complexas.</li>
+			<li><strong>Chamadas autocontidas:</strong> Cada requisição é um objeto JSON completo (método + parâmetros + id), fácil de gerar e processar para LLMs.</li>
+			<li><strong>Tratamento de erros padronizado:</strong> Códigos e mensagens de erro fazem parte da especificação.</li>
+			<li><strong>Loteamento (Batching):</strong> O protocolo suporta nativamente requisições em lote em uma única viagem de ida e volta HTTP.</li>
+			<li><strong>Descoberta (Discovery):</strong> O endpoint de capacidades fornece uma descrição completa da API para agentes de IA sem alucinações.</li>
 		</ul>
 
-		<h4>Por que não CRUD em nível de tabela:</h4>
+		<h4>Por que não REST:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Acoplamento forte:</strong> Expor tabelas vincula a API ao esquema interno, dificultando refatorações.</li>
-			<li><strong>Fragmentação de regras de negócio:</strong> A lógica se divide entre restrições do banco de dados e middleware.</li>
+			<li><strong>Complexidade para IA:</strong> A semântica REST está dispersa em vários lugares, dificultando a construção de chamadas confiáveis para agentes de IA.</li>
+			<li><strong>Exposição do esquema:</strong> O CRUD sobre tabelas muitas vezes expõe a estrutura interna. O PgArachne expõe funções deliberadamente.</li>
+			<li><strong>Ausência de padrões:</strong> O REST não oferece padrão universal para lotes, envelopes de erro ou descoberta automatizada.</li>
 		</ul>
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>5. Estrutura de URL: <code>/{prefixo}/{banco_de_dados}/{endpoint}</code></h3>
+		<h3>5. SSE (Server-Sent Events) vs. WebSockets</h3>
+		<p>Para notificações em tempo real, o PgArachne implementa Server-Sent Events (SSE).</p>
+
+		<h4>Por que SSE:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>HTTP puro:</strong> O SSE é HTTP padrão, funcionando através de proxies e CDNs sem configurações especiais.</li>
+			<li><strong>Suporte nativo do navegador:</strong> A API <code>EventSource</code> gerencia a reconexão automática sem bibliotecas externas.</li>
+			<li><strong>Corresponde à semântica do NOTIFY:</strong> O <code>NOTIFY</code> do PostgreSQL é unidirecional, adequando-se perfeitamente ao SSE.</li>
+			<li><strong>Multiplexação:</strong> Sobre HTTP/2, centenas de fluxos SSE compartilham uma única conexão TCP.</li>
+			<li><strong>Simplicidade operacional:</strong> As conexões SSE aparecem como requisições HTTP normais nos logs.</li>
+		</ul>
+
+		<h4>Por que não WebSockets:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Bidirecionalidade desnecessária:</strong> O cliente nunca precisa enviar dados pelo canal de notificação.</li>
+			<li><strong>Problemas de conectividade:</strong> Frequentemente bloqueados por firewalls corporativos e alguns balanceadores de carga em nuvem.</li>
+			<li><strong>Maior sobrecarga:</strong> Handshakes e frames de ping/pong desnecessários para o simples streaming de eventos.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. Estrutura de URL: <code>/{prefixo}/{banco_de_dados}/{endpoint}</code></h3>
 		<p>
 			O PgArachne roteia todos os endpoints sob um segmento de prefixo configurável:
 			<code>/db/{banco_de_dados}/jsonrpc</code>, <code>/db/{banco_de_dados}/sse</code>, <code>/db/{banco_de_dados}/mcp</code>.
@@ -130,7 +165,7 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>6. MCP como Camada de Tradução, não como Protocolo de Banco de Dados</h3>
+		<h3>7. MCP como Camada de Tradução, não como Protocolo de Banco de Dados</h3>
 		<p>
 			O PgArachne implementa o <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
 			como uma fina camada de tradução no servidor Go. As funções PostgreSQL nunca têm conhecimento do MCP —
@@ -154,7 +189,7 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>7. Exportação de OpenAPI: Caminhos Virtuais, Não um Novo Protocolo</h3>
+		<h3>8. Exportação de OpenAPI: Caminhos Virtuais, Não um Novo Protocolo</h3>
 		<p>
 			<code>GET /{prefix}/{database}/openapi.json</code> (ou <code>.yaml</code>) gera um documento OpenAPI 3.1
 			descrevendo todos os métodos que o chamador autenticado pode executar. A invocação real ainda acontece
@@ -166,7 +201,7 @@ menu:
 		<h4>Por que caminhos virtuais por método:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Compatibilidade com ferramentas:</strong> Swagger UI, Postman, Insomnia e a maioria dos geradores de código OpenAPI esperam uma operação por entrada em <code>paths</code>. Um único caminho JSON-RPC não consegue, de outra forma, representar N assinaturas de métodos diferentes de uma forma que essas ferramentas entendam.</li>
-			<li><strong>Nenhuma alteração de backend necessária:</strong> Adicionar uma rota real por método significaria uma segunda forma de invocar cada função, com sua própria superfície de autenticação, tratamento de erros e versionamento a ser mantida em sincronia com o JSON-RPC. Gerar os caminhos puramente a partir de <code>capabilities()</code> mantém a superfície do protocolo exatamente como descrita na decisão&nbsp;1, ao mesmo tempo que satisfaz as ferramentas que precisam de esquemas por operação.</li>
+			<li><strong>Nenhuma alteração de backend necessária:</strong> Adicionar uma rota real por método significaria uma segunda forma de invocar cada função, com sua própria superfície de autenticação, tratamento de erros e versionamento a ser mantida em sincronia com o JSON-RPC. Gerar os caminhos puramente a partir de <code>capabilities()</code> mantém a superfície do protocolo exatamente como descrita na decisão&nbsp;4, ao mesmo tempo que satisfaz as ferramentas que precisam de esquemas por operação.</li>
 			<li><strong>Autodocumentado:</strong> A descrição de cada operação virtual detalha exatamente a requisição JSON-RPC (método + parâmetros) necessária para realmente chamá-la, portanto nada se perde por não haver uma rota real.</li>
 		</ul>
 

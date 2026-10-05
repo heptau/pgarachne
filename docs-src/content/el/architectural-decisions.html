@@ -16,44 +16,55 @@ menu:
 	</p>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>1. JSON-RPC 2.0 έναντι REST</h3>
-		<p>Το PgArachne χρησιμοποιεί το JSON-RPC 2.0 ως το κύριο πρωτόκολλο επικοινωνίας του, αντί για το παραδοσιακό REST.</p>
+		<h3>1. Γιατί PostgreSQL</h3>
+		<p>
+			Το PgArachne είναι σκόπιμα χτισμένο αποκλειστικά πάνω στην PostgreSQL και δεν επιχειρεί να είναι ανεξάρτητο από τη βάση δεδομένων.
+			Το μεγαλύτερο μέρος όσων προσφέρει το gateway δεν είναι custom λογική σε Go, αλλά άμεση αξιοποίηση των δυνατοτήτων της PostgreSQL.
+		</p>
 
-		<h4>Γιατί JSON-RPC 2.0:</h4>
+		<h4>Γιατί PostgreSQL:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Ένα Μόνο Endpoint:</strong> Όλη η επικοινωνία γίνεται μέσω <code>POST /{prefix}/{database}/jsonrpc</code>. Δεν υπάρχει ανάγκη σχεδιασμού πολύπλοκων δομών URL ή συζήτησης σχετικά με τη σημασιολογία των HTTP verbs.</li>
-			<li><strong>Αυτοτελείς Κλήσεις:</strong> Κάθε request είναι ένα πλήρες JSON object (method + params + id). Αυτή η μορφή παράγεται και αναλύεται εύκολα από LLMs και AI agents με υψηλή αξιοπιστία.</li>
-			<li><strong>Τυποποιημένη Διαχείριση Σφαλμάτων:</strong> Οι κωδικοί και τα μηνύματα σφάλματος αποτελούν μέρος της προδιαγραφής, εξαλείφοντας την ανάγκη να «εφευρίσκετε» συμβάσεις HTTP status codes για επιχειρησιακά σφάλματα.</li>
-			<li><strong>Batching:</strong> Το πρωτόκολλο υποστηρίζει εγγενώς batch requests, επιτρέποντας πολλαπλές λειτουργίες (π.χ. αρκετές κλήσεις functions) σε ένα μόνο HTTP round-trip χωρίς επιπλέον δουλειά.</li>
-			<li><strong>Discovery:</strong> Το capabilities endpoint παρέχει μια πλήρη περιγραφή του API σε μορφή που οι AI agents μπορούν να καταναλώσουν για να κατανοήσουν τα διαθέσιμα εργαλεία χωρίς hallucinations.</li>
+			<li><strong>Ενσωματωμένο μοντέλο δικαιωμάτων:</strong> Οι ρόλοι, τα <code>GRANT</code>/<code>REVOKE</code> και τα δικαιώματα <code>EXECUTE</code> σε functions αποτελούν μέρος της βάσης δεδομένων. Έτσι το PgArachne δεν χρειάζεται δικό του επίπεδο εξουσιοδότησης — απλώς αλλάζει ρόλο με <code>SET LOCAL ROLE</code> και τα υπόλοιπα τα αναλαμβάνει η PostgreSQL. Οι κανόνες πρόσβασης ισχύουν ίδιοι για το API, το <code>psql</code> και κάθε άλλο εργαλείο.</li>
+			<li><strong>Row-Level Security:</strong> Οι πολιτικές σε επίπεδο γραμμής αξιολογούνται με βάση τον ρόλο εκ μέρους του οποίου εκτελείται η κλήση. Η απομόνωση δεδομένων μεταξύ χρηστών ή tenants βρίσκεται στη βάση δεδομένων, όχι στον κώδικα του gateway.</li>
+			<li><strong>Native JSON (<code>jsonb</code>):</strong> Το συμβόλαιο <code>function(jsonb) → json</code> ταιριάζει ακριβώς με το σώμα του JSON-RPC request και response. Δεν χρειάζεται αντιστοίχιση παραμέτρων σε τύπους ούτε δημιουργία envelopes — το JSON διέρχεται από το gateway αναλλοίωτο.</li>
+			<li><strong>Συναλλακτικές εγγυήσεις:</strong> Κάθε κλήση εκτελείται σε μία συναλλαγή με πλήρεις εγγυήσεις ACID. Μια function μπορεί να γράψει ατομικά σε πολλούς πίνακες και, σε περίπτωση σφάλματος, όλα αναιρούνται, χωρίς το gateway να χρειάζεται να γνωρίζει οτιδήποτε σχετικό.</li>
+			<li><strong>Ισχυρό προγραμματιστικό μοντέλο:</strong> Η PL/pgSQL, οι SQL functions και άλλες διαδικαστικές γλώσσες επιτρέπουν τη διατύπωση της business logic εκεί όπου βρίσκονται τα δεδομένα, χωρίς μεταφορά ενδιάμεσων αποτελεσμάτων μέσω δικτύου.</li>
+			<li><strong><code>LISTEN</code>/<code>NOTIFY</code>:</strong> Οι ειδοποιήσεις πραγματικού χρόνου (απόφαση&nbsp;5) βασίζονται απευθείας στον μηχανισμό της PostgreSQL. Δεν απαιτείται εξωτερικός message broker.</li>
+			<li><strong>Introspection του system catalog:</strong> Η λίστα των καλέσιμων μεθόδων, οι περιγραφές τους και τα schemas των παραμέτρων διαβάζονται από το <code>pg_proc</code> και τα σχόλια των functions. Από μία και μόνη πηγή αλήθειας προκύπτουν το <code>capabilities</code>, το MCP <code>tools/list</code> και η προδιαγραφή OpenAPI, και δεν μπορούν να αποκλίνουν από την πραγματικότητα.</li>
+			<li><strong>Οικοσύστημα επεκτάσεων:</strong> Οι PostGIS, pgvector, TimescaleDB, <code>pg_trgm</code> και άλλες επεκτάσεις είναι άμεσα διαθέσιμες ως κανονικές SQL functions, άρα και ως μέθοδοι API και εργαλεία για AI agents — χωρίς ούτε μία γραμμή κώδικα Go.</li>
+			<li><strong>Ανοιχτότητα και ωριμότητα:</strong> Ελεύθερη άδεια χωρίς vendor lock-in, δεκαετίες δοκιμασμένης λειτουργίας, ενεργή ανάπτυξη και διαθεσιμότητα σε όλους τους μεγάλους παρόχους cloud, αλλά και ως αυτόνομα διαχειριζόμενο instance.</li>
 		</ul>
 
-		<h4>Γιατί όχι REST:</h4>
+		<h4>Γιατί όχι άλλη βάση δεδομένων ή επίπεδο ανεξάρτητο από τη βάση δεδομένων:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Πολυπλοκότητα για AI:</strong> Η σημασιολογία του REST (GET/POST/PATCH/DELETE + URL params + body) είναι διασκορπισμένη σε πολλά σημεία, καθιστώντας δυσκολότερη τη σύνθεση κλήσεων με αξιοπιστία από τους AI agents.</li>
-			<li><strong>Διαρροή Σχήματος:</strong> Το CRUD-over-tables (όπως το PostgREST) συχνά αφήνει να διαρρεύσει η εσωτερική δομή της βάσης δεδομένων απευθείας στο API. Το PgArachne σκόπιμα εκθέτει functions, κρατώντας τη business logic ενσωματωμένη στην SQL.</li>
-			<li><strong>Έλλειψη Προτύπων:</strong> Το REST δεν προσφέρει καθολικό πρότυπο για batch operations, cross-platform error envelopes, ή αυτοματοποιημένη ανακάλυψη API.</li>
+			<li><strong>Ελάχιστος κοινός παρονομαστής:</strong> Η υποστήριξη πολλών βάσεων δεδομένων θα σήμαινε παραίτηση ακριβώς από τις δυνατότητες πάνω στις οποίες στηρίζεται το PgArachne — το μοντέλο ασφάλειας με ρόλους, το <code>jsonb</code>, το <code>LISTEN</code>/<code>NOTIFY</code> και το introspection των functions. Θα έμενε ένα λεπτό και λιγότερο ασφαλές επίπεδο πάνω από γενική SQL.</li>
+			<li><strong>MySQL / MariaDB:</strong> Δεν διαθέτουν native Row-Level Security ούτε ισοδύναμο του <code>LISTEN</code>/<code>NOTIFY</code>, και η υποστήριξή τους για JSON και διαδικαστική λογική είναι πιο περιορισμένη.</li>
+			<li><strong>SQL Server και Oracle:</strong> Η ιδιοκτησιακή αδειοδότηση και το λειτουργικό κόστος έρχονται σε αντίθεση με τον στόχο της εύκολης, δωρεάν εγκατάστασης με ένα μόνο binary.</li>
+			<li><strong>Βάσεις NoSQL (document, key-value, column-family):</strong> Η κλιμάκωση και η ευελιξία του schema, για τις οποίες επιλέγεται συνήθως η NoSQL, δεν αποτελούν το βασικό όφελος για το PgArachne. Την αναγκαία αποθήκευση εγγράφων καλύπτει το <code>jsonb</code>, με indexing και querying, δίπλα στα σχεσιακά δεδομένα και στην ίδια συναλλαγή. Αντίθετα λείπουν όσα στηρίζουν το PgArachne: server-side functions που καλούνται με λεπτομερές δικαίωμα <code>EXECUTE</code> για συγκεκριμένο ρόλο, Row-Level Security, introspection των functions από τον κατάλογο και ενιαία γλώσσα ερωτημάτων. Χωρίς αυτά το gateway θα έπρεπε να χειρίζεται μόνο του την εξουσιοδότηση, την επικύρωση και την περιγραφή του API — και θα έπαυε να είναι λεπτό επίπεδο.</li>
+			<li><strong>SQLite:</strong> Είναι embedded βάση δεδομένων χωρίς μοντέλο ρόλων και δικαιωμάτων σε επίπεδο server, πάνω στο οποίο είναι χτισμένη ολόκληρη η ασφάλεια του PgArachne.</li>
 		</ul>
+
+		<p>
+			Το αποτέλεσμα είναι ότι το PgArachne παραμένει μικρό: αναθέτει στην PostgreSQL την ασφάλεια, τις συναλλαγές, τις ειδοποιήσεις και την ανακάλυψη του API,
+			και το ίδιο φροντίζει μόνο για τη μετάφραση πρωτοκόλλων και την authentication.
+		</p>
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>2. SSE (Server-Sent Events) έναντι WebSockets</h3>
-		<p>Για ειδοποιήσεις πραγματικού χρόνου, το PgArachne υλοποιεί Server-Sent Events (SSE).</p>
+		<h3>2. PostgreSQL Functions ως Επιφάνεια API</h3>
+		<p>Το PgArachne εκθέτει σκόπιμα functions της βάσης δεδομένων αντί για raw πίνακες.</p>
 
-		<h4>Γιατί SSE:</h4>
+		<h4>Γιατί functions:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Απλό HTTP:</strong> Το SSE είναι τυπικό HTTP. Λειτουργεί μέσα από proxies, load balancers και CDNs χωρίς ειδική διαμόρφωση «protocol upgrade».</li>
-			<li><strong>Native Υποστήριξη Browser:</strong> Το API <code>EventSource</code> είναι ενσωματωμένο σε όλους τους σύγχρονους browsers και διαχειρίζεται αυτόματη επανασύνδεση χωρίς καμία client library.</li>
-			<li><strong>Ταιριάζει με τη Σημασιολογία του NOTIFY:</strong> Το <code>NOTIFY</code> της PostgreSQL είναι μονόδρομο (από τον server στον client), το οποίο ταιριάζει απόλυτα με το SSE.</li>
-			<li><strong>Multiplexing:</strong> Πάνω από HTTP/2, εκατοντάδες SSE streams μπορούν να μοιραστούν μία μόνο σύνδεση TCP, κάνοντάς το εξαιρετικά αποδοτικό.</li>
-			<li><strong>Λειτουργική Απλότητα:</strong> Οι συνδέσεις SSE εμφανίζονται ως κανονικά HTTP requests σε logs και εργαλεία monitoring, καθιστώντας ευκολότερο το debugging και το rate-limiting.</li>
+			<li><strong>Encapsulation:</strong> Η business logic βρίσκεται συνεντοπισμένη με τα δεδομένα στη βάση δεδομένων — ένα μόνο σημείο για audit, versioning και ασφάλεια.</li>
+			<li><strong>Ρητή Ασφάλεια:</strong> Μόνο functions στις οποίες έχουν ρητά χορηγηθεί δικαιώματα <code>EXECUTE</code> σε συγκεκριμένο ρόλο είναι προσβάσιμες μέσω του API.</li>
+			<li><strong>Abstraction:</strong> Η επικύρωση εισόδου, τα υπολογιζόμενα πεδία και οι σύνθετες λειτουργίες πολλών πινάκων είναι κρυμμένες από τον client, παρέχοντας ένα καθαρό interface.</li>
 		</ul>
 
-		<h4>Γιατί όχι WebSockets:</h4>
+		<h4>Γιατί όχι CRUD σε επίπεδο πίνακα:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Άσκοπη Διπλή Κατεύθυνση:</strong> Καθώς ο client δεν έχει ποτέ ανάγκη να στείλει δεδομένα πίσω μέσω του καναλιού ειδοποιήσεων, η πολυπλοκότητα των WebSockets δεν προσφέρει κανένα όφελος.</li>
-			<li><strong>Προβλήματα Συνδεσιμότητας:</strong> Τα WebSockets συχνά μπλοκάρονται ή κλείνονται πρόωρα από εταιρικά firewalls και ορισμένα cloud load balancers.</li>
-			<li><strong>Υψηλότερο Overhead:</strong> Προσθέτει πολυπλοκότητα πρωτοκόλλου (handshakes, ping/pong frames) που δεν απαιτείται για απλό event streaming.</li>
+			<li><strong>Στενή Σύζευξη:</strong> Η απευθείας έκθεση πινάκων συνδέει στενά το API σας με το εσωτερικό σχήμα της βάσης δεδομένων, καθιστώντας δύσκολο το refactoring της βάσης χωρίς να «σπάσουν» οι clients.</li>
+			<li><strong>Κατακερματισμός Επιχειρησιακών Κανόνων:</strong> Η business logic καταλήγει μοιρασμένη ανάμεσα σε constraints της βάσης δεδομένων και σε όποιο middleware χρησιμοποιείται για το φιλτράρισμα HTTP requests.</li>
 		</ul>
 	</div>
 
@@ -88,25 +99,49 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>4. PostgreSQL Functions ως Επιφάνεια API</h3>
-		<p>Το PgArachne εκθέτει σκόπιμα functions της βάσης δεδομένων αντί για raw πίνακες.</p>
+		<h3>4. JSON-RPC 2.0 έναντι REST</h3>
+		<p>Το PgArachne χρησιμοποιεί το JSON-RPC 2.0 ως το κύριο πρωτόκολλο επικοινωνίας του, αντί για το παραδοσιακό REST.</p>
 
-		<h4>Γιατί functions:</h4>
+		<h4>Γιατί JSON-RPC 2.0:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Encapsulation:</strong> Η business logic βρίσκεται συνεντοπισμένη με τα δεδομένα στη βάση δεδομένων — ένα μόνο σημείο για audit, versioning και ασφάλεια.</li>
-			<li><strong>Ρητή Ασφάλεια:</strong> Μόνο functions στις οποίες έχουν ρητά χορηγηθεί δικαιώματα <code>EXECUTE</code> σε συγκεκριμένο ρόλο είναι προσβάσιμες μέσω του API.</li>
-			<li><strong>Abstraction:</strong> Η επικύρωση εισόδου, τα υπολογιζόμενα πεδία και οι σύνθετες λειτουργίες πολλών πινάκων είναι κρυμμένες από τον client, παρέχοντας ένα καθαρό interface.</li>
+			<li><strong>Ένα Μόνο Endpoint:</strong> Όλη η επικοινωνία γίνεται μέσω <code>POST /{prefix}/{database}/jsonrpc</code>. Δεν υπάρχει ανάγκη σχεδιασμού πολύπλοκων δομών URL ή συζήτησης σχετικά με τη σημασιολογία των HTTP verbs.</li>
+			<li><strong>Αυτοτελείς Κλήσεις:</strong> Κάθε request είναι ένα πλήρες JSON object (method + params + id). Αυτή η μορφή παράγεται και αναλύεται εύκολα από LLMs και AI agents με υψηλή αξιοπιστία.</li>
+			<li><strong>Τυποποιημένη Διαχείριση Σφαλμάτων:</strong> Οι κωδικοί και τα μηνύματα σφάλματος αποτελούν μέρος της προδιαγραφής, εξαλείφοντας την ανάγκη να «εφευρίσκετε» συμβάσεις HTTP status codes για επιχειρησιακά σφάλματα.</li>
+			<li><strong>Batching:</strong> Το πρωτόκολλο υποστηρίζει εγγενώς batch requests, επιτρέποντας πολλαπλές λειτουργίες (π.χ. αρκετές κλήσεις functions) σε ένα μόνο HTTP round-trip χωρίς επιπλέον δουλειά.</li>
+			<li><strong>Discovery:</strong> Το capabilities endpoint παρέχει μια πλήρη περιγραφή του API σε μορφή που οι AI agents μπορούν να καταναλώσουν για να κατανοήσουν τα διαθέσιμα εργαλεία χωρίς hallucinations.</li>
 		</ul>
 
-		<h4>Γιατί όχι CRUD σε επίπεδο πίνακα:</h4>
+		<h4>Γιατί όχι REST:</h4>
 		<ul style="margin-left: 20px;">
-			<li><strong>Στενή Σύζευξη:</strong> Η απευθείας έκθεση πινάκων συνδέει στενά το API σας με το εσωτερικό σχήμα της βάσης δεδομένων, καθιστώντας δύσκολο το refactoring της βάσης χωρίς να «σπάσουν» οι clients.</li>
-			<li><strong>Κατακερματισμός Επιχειρησιακών Κανόνων:</strong> Η business logic καταλήγει μοιρασμένη ανάμεσα σε constraints της βάσης δεδομένων και σε όποιο middleware χρησιμοποιείται για το φιλτράρισμα HTTP requests.</li>
+			<li><strong>Πολυπλοκότητα για AI:</strong> Η σημασιολογία του REST (GET/POST/PATCH/DELETE + URL params + body) είναι διασκορπισμένη σε πολλά σημεία, καθιστώντας δυσκολότερη τη σύνθεση κλήσεων με αξιοπιστία από τους AI agents.</li>
+			<li><strong>Διαρροή Σχήματος:</strong> Το CRUD-over-tables (όπως το PostgREST) συχνά αφήνει να διαρρεύσει η εσωτερική δομή της βάσης δεδομένων απευθείας στο API. Το PgArachne σκόπιμα εκθέτει functions, κρατώντας τη business logic ενσωματωμένη στην SQL.</li>
+			<li><strong>Έλλειψη Προτύπων:</strong> Το REST δεν προσφέρει καθολικό πρότυπο για batch operations, cross-platform error envelopes, ή αυτοματοποιημένη ανακάλυψη API.</li>
 		</ul>
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>5. Δομή URL: <code>/{prefix}/{database}/{endpoint}</code></h3>
+		<h3>5. SSE (Server-Sent Events) έναντι WebSockets</h3>
+		<p>Για ειδοποιήσεις πραγματικού χρόνου, το PgArachne υλοποιεί Server-Sent Events (SSE).</p>
+
+		<h4>Γιατί SSE:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Απλό HTTP:</strong> Το SSE είναι τυπικό HTTP. Λειτουργεί μέσα από proxies, load balancers και CDNs χωρίς ειδική διαμόρφωση «protocol upgrade».</li>
+			<li><strong>Native Υποστήριξη Browser:</strong> Το API <code>EventSource</code> είναι ενσωματωμένο σε όλους τους σύγχρονους browsers και διαχειρίζεται αυτόματη επανασύνδεση χωρίς καμία client library.</li>
+			<li><strong>Ταιριάζει με τη Σημασιολογία του NOTIFY:</strong> Το <code>NOTIFY</code> της PostgreSQL είναι μονόδρομο (από τον server στον client), το οποίο ταιριάζει απόλυτα με το SSE.</li>
+			<li><strong>Multiplexing:</strong> Πάνω από HTTP/2, εκατοντάδες SSE streams μπορούν να μοιραστούν μία μόνο σύνδεση TCP, κάνοντάς το εξαιρετικά αποδοτικό.</li>
+			<li><strong>Λειτουργική Απλότητα:</strong> Οι συνδέσεις SSE εμφανίζονται ως κανονικά HTTP requests σε logs και εργαλεία monitoring, καθιστώντας ευκολότερο το debugging και το rate-limiting.</li>
+		</ul>
+
+		<h4>Γιατί όχι WebSockets:</h4>
+		<ul style="margin-left: 20px;">
+			<li><strong>Άσκοπη Διπλή Κατεύθυνση:</strong> Καθώς ο client δεν έχει ποτέ ανάγκη να στείλει δεδομένα πίσω μέσω του καναλιού ειδοποιήσεων, η πολυπλοκότητα των WebSockets δεν προσφέρει κανένα όφελος.</li>
+			<li><strong>Προβλήματα Συνδεσιμότητας:</strong> Τα WebSockets συχνά μπλοκάρονται ή κλείνονται πρόωρα από εταιρικά firewalls και ορισμένα cloud load balancers.</li>
+			<li><strong>Υψηλότερο Overhead:</strong> Προσθέτει πολυπλοκότητα πρωτοκόλλου (handshakes, ping/pong frames) που δεν απαιτείται για απλό event streaming.</li>
+		</ul>
+	</div>
+
+	<div class="card" style="margin: 20px 0; padding: 20px;">
+		<h3>6. Δομή URL: <code>/{prefix}/{database}/{endpoint}</code></h3>
 		<p>
 			Το PgArachne δρομολογεί όλα τα endpoints κάτω από ένα ρυθμιζόμενο τμήμα προθέματος:
 			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
@@ -130,7 +165,7 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>6. MCP ως Translation Layer, Όχι ως Πρωτόκολλο Βάσης Δεδομένων</h3>
+		<h3>7. MCP ως Translation Layer, Όχι ως Πρωτόκολλο Βάσης Δεδομένων</h3>
 		<p>
 			Το PgArachne υλοποιεί το <a href="https://modelcontextprotocol.io/" target="_blank">Model Context Protocol (MCP)</a>
 			ως ένα λεπτό translation layer στον Go server. Οι PostgreSQL functions δεν έχουν ποτέ επίγνωση του MCP — παραμένουν
@@ -154,7 +189,7 @@ menu:
 	</div>
 
 	<div class="card" style="margin: 20px 0; padding: 20px;">
-		<h3>7. Εξαγωγή OpenAPI: Εικονικά Paths, Όχι Νέο Πρωτόκολλο</h3>
+		<h3>8. Εξαγωγή OpenAPI: Εικονικά Paths, Όχι Νέο Πρωτόκολλο</h3>
 		<p>
 			Το <code>GET /{prefix}/{database}/openapi.json</code> (ή <code>.yaml</code>) παράγει ένα έγγραφο OpenAPI 3.1
 			που περιγράφει κάθε μέθοδο που μπορεί να εκτελέσει ο αυθεντικοποιημένος client. Η πραγματική κλήση εξακολουθεί
@@ -167,7 +202,7 @@ menu:
 		<h4>Γιατί εικονικά paths ανά μέθοδο:</h4>
 		<ul style="margin-left: 20px;">
 			<li><strong>Συμβατότητα με tooling:</strong> Τα Swagger UI, Postman, Insomnia, και οι περισσότεροι OpenAPI code generators αναμένουν μία operation ανά καταχώριση <code>paths</code>. Ένα μόνο JSON-RPC path δεν μπορεί διαφορετικά να αναπαραστήσει N διαφορετικές υπογραφές μεθόδων με τρόπο που να κατανοούν αυτά τα εργαλεία.</li>
-			<li><strong>Καμία αλλαγή backend δεν απαιτείται:</strong> Η προσθήκη πραγματικού route ανά μέθοδο θα σήμαινε έναν δεύτερο τρόπο κλήσης κάθε function, με τη δική του επιφάνεια auth, error-handling και versioning που θα έπρεπε να συντηρείται σε πλήρη συγχρονισμό με το JSON-RPC. Η παραγωγή των paths αποκλειστικά από την <code>capabilities()</code> διατηρεί την επιφάνεια του πρωτοκόλλου ακριβώς όπως περιγράφεται στην απόφαση&nbsp;1, ικανοποιώντας παράλληλα τα εργαλεία που χρειάζονται schemas ανά operation.</li>
+			<li><strong>Καμία αλλαγή backend δεν απαιτείται:</strong> Η προσθήκη πραγματικού route ανά μέθοδο θα σήμαινε έναν δεύτερο τρόπο κλήσης κάθε function, με τη δική του επιφάνεια auth, error-handling και versioning που θα έπρεπε να συντηρείται σε πλήρη συγχρονισμό με το JSON-RPC. Η παραγωγή των paths αποκλειστικά από την <code>capabilities()</code> διατηρεί την επιφάνεια του πρωτοκόλλου ακριβώς όπως περιγράφεται στην απόφαση&nbsp;4, ικανοποιώντας παράλληλα τα εργαλεία που χρειάζονται schemas ανά operation.</li>
 			<li><strong>Αυτοτεκμηριούμενο:</strong> Η περιγραφή κάθε εικονικής operation αναφέρει ρητά το ακριβές JSON-RPC request (method + params) που απαιτείται για την πραγματική κλήση της, οπότε τίποτα δεν χάνεται από το ότι δεν υπάρχει πραγματικό route.</li>
 		</ul>
 
