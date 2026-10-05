@@ -26,10 +26,13 @@ PgArachne is a Go-based HTTP gateway that exposes PostgreSQL functions as JSON-R
   - `capabilities` is handled specially and maps to `pgarachne.capabilities`.
 
 ## Authentication
-- **Login method**: JSON-RPC `get_jwt` on `POST /{prefix}/:database/jsonrpc` connects to the DB using provided credentials. On success issues a JWT with `db_role` and `db_name` claims.
+- **Login method**: JSON-RPC `get_jwt` on `POST /{prefix}/:database/jsonrpc` connects to the DB using provided credentials. On success issues a JWT with `db_role` and `db_name` claims. Only available when `JWT_SECRET` is set.
+- **Direct credentials**: `Authorization: Basic …` on any endpoint opens a per-user pool authenticated as that user (no `SET LOCAL ROLE`).
+- All endpoints (JSON-RPC, MCP, SSE, OpenAPI) authenticate through `authenticateForDatabase` in `server.go` — don't add a parallel auth path, or it will miss rate limiting. A request without an `Authorization` header is rejected before any DB connection is opened.
 - **Protected calls**: `POST /{prefix}/:database/jsonrpc` accepts:
   - `Authorization: Bearer <jwt>` (validated and scoped to the database)
   - Or a long-lived API token validated by `SELECT pgarachne.verify_api_token($1)`
+  - Or `Authorization: Basic` direct credentials
 - Auth is identical for the MCP endpoint — `initialize` and `ping` are unauthenticated; all other MCP methods require a valid token.
 
 ## Database Schema
@@ -38,8 +41,9 @@ PgArachne is a Go-based HTTP gateway that exposes PostgreSQL functions as JSON-R
 - `pgarachne.add_api_token` / `pgarachne.verify_api_token` — mint and verify tokens.
 - `pgarachne.capabilities(jsonb)` — introspects `pg_proc` to list callable functions; used by both JSON-RPC and MCP `tools/list`.
 - `pgarachne.generate_openapi_spec(server_url_base, db_name)` — builds an **OpenAPI 3.1** document for the current database, filtered to the methods the calling role may execute. Pulls the method list from `pgarachne.capabilities()` so the spec stays in sync. `paths` contains the real `/jsonrpc` operation (with its per-method metadata still also carried in the `x-pgarachne-methods` extension, for tooling that understands it) plus one virtual, documentation-only `/rpc/{method}` path per exposed method, for tooling that expects one path per operation (Swagger UI, Postman, codegen). The function is deliberately `SECURITY INVOKER` (not `DEFINER`) so that its internal call to `capabilities()` — which filters via `has_function_privilege(current_user, ...)` — sees the caller's actual role. `GRANT EXECUTE ... TO public` is set.
-- `pgarachne.requests` + `pgarachne.save_idempotency_key(text)` — idempotency key deduplication (shared by JSON-RPC and MCP).
-- `pgarachne.allowed_schemas()` — returns schemas exposed via API (default: `['api']`).
+- `pgarachne.requests` + `pgarachne.save_idempotency_key(key text, scope text)` — idempotency key deduplication (shared by JSON-RPC and MCP). Keys are namespaced per role (`scope` = authenticated role from Go, or `current_user` for direct auth) so one caller cannot reserve another's key; the old unscoped `save_idempotency_key(text)` is dropped by `schema.sql`.
+- `pgarachne.capabilities()` only lists functions whose single argument is `jsonb` (the gateway calls `fn($1::jsonb)`); a malformed `--- PARAMS ---` JSON in a function comment falls back to the default schema instead of failing.
+- No schema allowlist: access is governed by PostgreSQL privileges alone. `capabilities()` lists every non-procedure function with a single `jsonb` argument on which the caller has `EXECUTE` **and** `USAGE` on its schema, hiding (not blocking) `pg_*`/`information_schema`/`pgarachne` (except `capabilities`) and extension-owned functions. `pgarachne.allowed_schemas()` was removed (it only filtered the listing; the gateway never enforced it) — don't reintroduce a listing-only filter. Because PostgreSQL grants `EXECUTE` on new functions and `USAGE` on schema `public` to `PUBLIC`, docs recommend `ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` and a dedicated API schema.
 
 ### sql/mcp_functions.sql
 Additional SQL objects required by the MCP `resources/*` and `prompts/*` methods:
@@ -60,9 +64,10 @@ public-schema function beyond `api.hello_world`. Load manually for demos:
 Optional PostgREST-like CRUD helpers: `api.universal_read`, `api.universal_create`,
 `api.universal_update`, `api.universal_delete` — each accepts a single `jsonb`
 parameter and dispatches to any `schema.table` the role has privileges on.
-`universal_read` validates the `select` clause against a strict regex; `order`
-goes through a basic injection check (no semicolons, quotes, parentheses,
-`--`). Treat these as convenience helpers; review the SQL before exposing
+`universal_read` validates each comma-separated `select` item as `*` or a plain
+column name and re-emits it with `quote_ident`; `order` is validated against a
+column-list/ASC/DESC whitelist. `universal_update`/`universal_delete` refuse an
+empty `filters` object unless `"all": true` is passed. Treat these as convenience helpers; review the SQL before exposing
 them on a public endpoint.
 
 ### sql/users.sql
@@ -75,17 +80,20 @@ for manual / demo installs.
 Loaded from `pgarachne.env` (current dir), `$XDG_CONFIG_HOME/pgarachne/pgarachne.env`, or `/etc/pgarachne/pgarachne.env`, or directly via environment variables.
 
 Required:
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET` (minimum 32 bytes, e.g. `openssl rand -hex 32`)
+- `DB_HOST`, `DB_PORT`, `DB_USER`
+
+Optional JWT:
+- `JWT_SECRET` (minimum 32 bytes, e.g. `openssl rand -hex 32`). When unset, JWT is disabled: `get_jwt` returns HTTP 404 / JSON-RPC `-32601`, Bearer values are only checked as API tokens, and clients use HTTP Basic credentials or API tokens. `Server.jwtEnabled()` is the single switch.
 
 Common optional:
 - `HTTP_PORT` (default `8080`)
 - `API_PREFIX` (default `db`) — first URL path segment for all database endpoints; gives routes like `/db/:database/jsonrpc`. Only letters, digits, hyphens and underscores allowed.
-- `JWT_EXPIRY_HOURS` (default `8`)
+- `JWT_EXPIRY_HOURS` (default `8`, must be > 0)
 - `ALLOWED_ORIGINS` (comma-separated; unset = cross-origin browser requests disabled, set `*` explicitly to allow any origin)
 - `STATIC_FILES_PATH` (serves files via `NoRoute` fallback; the directory is pinned with `os.OpenRoot` at startup and every request is resolved through that `*os.Root`, so traversal and symlink escapes are refused by the OS — do not reintroduce `filepath.Join` + string containment checks here)
 - `LOG_LEVEL` (`INFO` default), `LOG_OUTPUT` (`stdout` default)
 - `DB_SSLMODE` (default `require`; set `disable` explicitly for local non-TLS PostgreSQL)
-- `LOGIN_RATE_LIMIT_PER_IP` (default 5× `LOGIN_RATE_LIMIT`; per-IP login limit across all usernames, `0` disables)
+- `LOGIN_RATE_LIMIT` (default `5`) / `LOGIN_RATE_LIMIT_PER_IP` (default 5× `LOGIN_RATE_LIMIT`, `0` disables) / `LOGIN_RATE_WINDOW` (default `1m`) — apply to **all** auth methods on all endpoints: `get_jwt` counts every attempt (`loginLimiter.Allow`); Basic auth counts failed attempts per (IP, username) and per IP, failed Bearer (JWT/API token) attempts per IP (`Blocked`/`RecordFailure`, centralised in `authenticateForDatabase`). Exhausted budget → HTTP 429 before credentials are checked.
 - `MCP_SQL_ERROR_DETAIL` (default `false`; `true` includes raw PostgreSQL error messages in MCP tool errors — helps LLM agents self-correct, but leaks schema details to authenticated callers)
 - `DIRECT_POOL_LIMIT` (default `1000`; max distinct Basic-Auth credential pools)
 - `DB_SSLROOTCERT`, `DB_SSLCERT`, `DB_SSLKEY` (optional TLS cert paths)
@@ -175,8 +183,8 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 - `cmd/pgarachne/main.go` — CLI entrypoint, logging, config, daemon flags
 - `internal/server/server.go` — routes, auth, JSON-RPC execution
 - `internal/server/mcp.go` — MCP Streamable HTTP handler; `mcpDatabaseMethods` map for extensibility
-- `internal/server/sse.go` — SSE hub, per-database `pq.Listener`, client broadcast, metrics, `Shutdown(ctx)` for graceful termination
-- `internal/database/database.go` — connection pool per database, `CloseAll()` for graceful shutdown
+- `internal/server/sse.go` — SSE hub, per-database `pq.Listener`, client broadcast, metrics, `Shutdown(ctx)` for graceful termination. Locking rule: `dbListener.mu` (maps) is never held across a LISTEN/UNLISTEN round-trip (`subMu` serialises those), and `run()` / the pq event callback never call into the listener — `dropClient` only closes `client.done`, the handler goroutine unregisters. Breaking this deadlocks pq's connection loop.
+- `internal/database/database.go` — connection pool per database, `CloseAll()` for graceful shutdown. Pools are opened and pinged *outside* the global mutexes, so a slow server or a wrong-password attempt never stalls other requests.
 - `internal/server/metrics.go` — Prometheus collectors + HTTP/method-level middleware
 - `internal/server/types.go` — JSON-RPC envelope types (`JSONRPCRequest`, `JSONRPCResponse`, `LoginRequest`)
 - `internal/server/mcp_test.go` — MCP unit + integration tests (protocol-level tests run without DB; integration tests require `PGARACHNE_TEST_DB=1`)

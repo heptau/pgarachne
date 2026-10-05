@@ -40,7 +40,10 @@ COMMENT ON TABLE pgarachne.prompts IS 'Named prompt templates for the MCP prompt
 -- restricted to the service user (pgarachne) who owns the schema.
 GRANT SELECT ON pgarachne.prompts TO public;
 
--- Reuse the existing update_timestamp trigger function.
+-- Reuse the existing update_timestamp trigger function. Dropped first so the
+-- script can be re-applied (upgrades, re-running setup_test_db.sh).
+DROP TRIGGER IF EXISTS update_prompts_timestamp ON pgarachne.prompts;
+
 CREATE TRIGGER update_prompts_timestamp
 BEFORE UPDATE ON pgarachne.prompts
 FOR EACH ROW
@@ -219,9 +222,10 @@ AS $$
 DECLARE
     prompt_name   TEXT;
     prompt_rec    RECORD;
-    rendered_text TEXT;
-    arg_key       TEXT;
-    arg_val       TEXT;
+    rendered_text TEXT := '';
+    rest          TEXT;
+    args          JSONB := '{}'::jsonb;
+    m             TEXT[];
 BEGIN
     prompt_name := params->>'name';
     IF prompt_name IS NULL OR prompt_name = '' THEN
@@ -236,17 +240,28 @@ BEGIN
         RAISE EXCEPTION 'Prompt not found: %', prompt_name;
     END IF;
 
-    -- Substitute {{key}} placeholders with values from params.arguments.
-    rendered_text := prompt_rec.template;
-    IF (params->'arguments') IS NOT NULL
-        AND jsonb_typeof(params->'arguments') = 'object'
-    THEN
-        FOR arg_key, arg_val IN
-            SELECT key, value FROM jsonb_each_text(params->'arguments')
-        LOOP
-            rendered_text := replace(rendered_text, '{{' || arg_key || '}}', arg_val);
-        END LOOP;
+    IF jsonb_typeof(params->'arguments') = 'object' THEN
+        args := params->'arguments';
     END IF;
+
+    -- Substitute {{key}} placeholders with values from params.arguments in a
+    -- single left-to-right pass over the template, so an argument value that
+    -- itself contains {{other}} is inserted verbatim rather than expanded by
+    -- a later key. A JSON null value renders as an empty string; placeholders
+    -- without a matching argument are left as they are.
+    rest := prompt_rec.template;
+    LOOP
+        m := regexp_match(rest, '^(.*?)\{\{([^{}]+)\}\}(.*)$');
+        EXIT WHEN m IS NULL;
+        rendered_text := rendered_text || m[1];
+        IF args ? m[2] THEN
+            rendered_text := rendered_text || COALESCE(args->>m[2], '');
+        ELSE
+            rendered_text := rendered_text || '{{' || m[2] || '}}';
+        END IF;
+        rest := m[3];
+    END LOOP;
+    rendered_text := rendered_text || rest;
 
     RETURN json_build_object(
         'description', COALESCE(prompt_rec.description, ''),

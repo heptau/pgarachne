@@ -29,6 +29,7 @@ import (
 	"github.com/heptau/pgarachne/internal/auth"
 	"github.com/heptau/pgarachne/internal/config"
 	"github.com/heptau/pgarachne/internal/database"
+	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -314,8 +315,9 @@ func (s *Server) authenticateToken(c *gin.Context, db *sql.DB, databaseName stri
 	authType := parts[0]
 	tokenString := parts[1]
 
-	// 1. Try JWT
-	if strings.ToLower(authType) == "bearer" {
+	// 1. Try JWT (only when JWT_SECRET is configured; otherwise Bearer values
+	// can only be long-lived API tokens).
+	if s.jwtEnabled() && strings.EqualFold(authType, "bearer") {
 		claims, err := s.jwtSign.Parse(s.Cfg.JWTSecret, tokenString)
 		if err == nil {
 			if claims.DBName != databaseName {
@@ -375,22 +377,48 @@ func (e *authFailure) Error() string { return e.message }
 //
 // On failure execDB and dbRole are zero values and err is an *authFailure
 // carrying the HTTP status and message to report; use errors.As to recover it.
+//
+// Failed attempts in every mode count against LOGIN_RATE_LIMIT (per IP and
+// username, Basic only) and LOGIN_RATE_LIMIT_PER_IP, the same budgets the
+// get_jwt login method uses. Only failures are counted here, because every
+// request carries credentials; once a budget is exhausted the request is
+// rejected with 429 before the credentials are checked at all.
 func (s *Server) authenticateForDatabase(c *gin.Context, databaseName string) (execDB *sql.DB, dbRole string, err error) {
-	if username, password, ok := parseBasicAuth(c.GetHeader("Authorization")); ok {
+	clientIP := c.ClientIP()
+	authHeader := c.GetHeader("Authorization")
+
+	if username, password, ok := parseBasicAuth(authHeader); ok {
 		// Direct credential auth: validate size then open/reuse a user pool.
 		if len(username) == 0 || len(username) > MaxLoginLength || len(password) > MaxPasswordLength {
 			recordAuthResult("direct", "malformed")
 			return nil, "", &authFailure{http.StatusUnauthorized, "Invalid credentials"}
 		}
+		if s.authThrottled(clientIP, username) {
+			recordAuthResult("direct", "rate_limited")
+			return nil, "", &authFailure{http.StatusTooManyRequests, "Too many failed authentication attempts. Please try again later."}
+		}
 		userDB, dbErr := database.GetUserConnection(s.Cfg, databaseName, username, password)
 		if dbErr != nil {
 			slog.Warn("Direct authentication failed", "user", username, "database", databaseName, "error", dbErr)
+			s.recordAuthFailure(clientIP, username)
 			recordAuthResult("direct", "invalid")
 			return nil, "", &authFailure{http.StatusUnauthorized, "Invalid credentials"}
 		}
 		recordAuthResult("direct", "success")
 		// dbRole stays "" — SET LOCAL ROLE is skipped by callers.
 		return userDB, "", nil
+	}
+
+	// Reject header-less requests before touching the database, so an
+	// anonymous caller cannot make PgArachne open pools for arbitrary
+	// database names.
+	if authHeader == "" {
+		recordAuthResult("unknown", "missing_header")
+		return nil, "", &authFailure{http.StatusUnauthorized, "Authorization header is missing"}
+	}
+	if s.authThrottled(clientIP, "") {
+		recordAuthResult("unknown", "rate_limited")
+		return nil, "", &authFailure{http.StatusTooManyRequests, "Too many failed authentication attempts. Please try again later."}
 	}
 
 	// JWT / API token auth.
@@ -401,9 +429,17 @@ func (s *Server) authenticateForDatabase(c *gin.Context, databaseName string) (e
 	}
 	role, errMsg, status := s.authenticateToken(c, sysDB, databaseName)
 	if errMsg != "" {
+		s.recordAuthFailure(clientIP, "")
 		return nil, "", &authFailure{status, errMsg}
 	}
 	return sysDB, role, nil
+}
+
+// jwtEnabled reports whether JWT sessions are configured. Without
+// JWT_SECRET the get_jwt method is unavailable and Bearer values are only
+// checked as long-lived API tokens.
+func (s *Server) jwtEnabled() bool {
+	return s.Cfg.JWTSecret != ""
 }
 
 func (s *Server) handleFunctionCall(c *gin.Context) {
@@ -526,8 +562,8 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	if err != nil {
 		slog.Error("Function call failed", "function", functionName, "error", err)
 		recordJSONRPC(functionName, "error")
-		if strings.Contains(err.Error(), "does not exist") {
-			c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{Message: "Function does not exist"}, ID: req.ID})
+		if isUndefinedFunctionError(err) {
+			c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{Code: -32601, Message: "Function does not exist"}, ID: req.ID})
 		} else {
 			c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Function call failed"}, ID: req.ID})
 		}
@@ -548,6 +584,14 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 }
 
 func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName string) {
+	if !s.jwtEnabled() {
+		c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{
+			Code:    -32601,
+			Message: "get_jwt is disabled: JWT_SECRET is not configured; authenticate with HTTP Basic credentials or an API token",
+		}, ID: req.ID})
+		return
+	}
+
 	var loginReq LoginRequest
 	params := req.Params
 	if len(params) == 0 || string(params) == "null" {
@@ -769,6 +813,19 @@ func (s *Server) handleOpenAPISpecFormat(c *gin.Context, defaultFormat string) {
 	c.String(http.StatusOK, spec)
 }
 
+// isUndefinedFunctionError reports whether err is PostgreSQL's
+// undefined_function (42883) or invalid_schema_name (3F000), i.e. the called
+// method does not exist. Matching on the SQLSTATE rather than the message
+// text keeps unrelated "does not exist" errors raised inside a function
+// (missing table, missing role, …) from being reported as a missing method.
+func isUndefinedFunctionError(err error) bool {
+	var pqErr *pq.Error
+	if !errors.As(err, &pqErr) {
+		return false
+	}
+	return pqErr.Code == "42883" || pqErr.Code == "3F000"
+}
+
 func isSafeDatabaseName(name string) bool {
 	if name == "" {
 		return false
@@ -980,6 +1037,84 @@ func (l *loginLimiter) Allow(key string) bool {
 	kept = append(kept, now)
 	l.entries[key] = kept
 	return true
+}
+
+// Blocked reports whether key has used up its budget within the current
+// window, without recording a new attempt. Together with RecordFailure it
+// implements failure-only counting for per-request authentication (Basic
+// credentials, Bearer tokens), where every request carries credentials and
+// counting successful ones would throttle legitimate clients.
+//
+// Like Allow it fails closed: an unknown key is reported as blocked when the
+// map is already at maxEntries.
+func (l *loginLimiter) Blocked(key string) bool {
+	cutoff := time.Now().Add(-l.window)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	entries, exists := l.entries[key]
+	if !exists {
+		return l.maxEntries > 0 && len(l.entries) >= l.maxEntries
+	}
+	n := 0
+	for _, t := range entries {
+		if t.After(cutoff) {
+			n++
+		}
+	}
+	return n >= l.limit
+}
+
+// RecordFailure records a failed attempt for key. It is a no-op for a new
+// key when the map is full — Blocked already reports such keys as blocked.
+func (l *loginLimiter) RecordFailure(key string) {
+	now := time.Now()
+	cutoff := now.Add(-l.window)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	if l.lastCleanup.IsZero() || now.Sub(l.lastCleanup) > l.window {
+		l.lastCleanup = now
+		go l.cleanup(cutoff)
+	}
+
+	entries, exists := l.entries[key]
+	if !exists && l.maxEntries > 0 && len(l.entries) >= l.maxEntries {
+		return
+	}
+	var kept []time.Time
+	for _, t := range entries {
+		if t.After(cutoff) {
+			kept = append(kept, t)
+		}
+	}
+	l.entries[key] = append(kept, now)
+}
+
+// authThrottled reports whether credential attempts from clientIP (and, when
+// username is non-empty, for that username from clientIP) are currently
+// blocked by LOGIN_RATE_LIMIT / LOGIN_RATE_LIMIT_PER_IP.
+func (s *Server) authThrottled(clientIP, username string) bool {
+	if s.ipLoginLimiter != nil && s.ipLoginLimiter.Blocked(clientIP) {
+		return true
+	}
+	if username != "" && s.loginLimiter != nil && s.loginLimiter.Blocked(clientIP+"|"+username) {
+		return true
+	}
+	return false
+}
+
+// recordAuthFailure charges a failed credential attempt against the per-IP
+// budget and, when username is non-empty, the per-(IP, username) budget.
+func (s *Server) recordAuthFailure(clientIP, username string) {
+	if s.ipLoginLimiter != nil {
+		s.ipLoginLimiter.RecordFailure(clientIP)
+	}
+	if username != "" && s.loginLimiter != nil {
+		s.loginLimiter.RecordFailure(clientIP + "|" + username)
+	}
 }
 
 // cleanup removes expired entries from the map. Called from a goroutine to

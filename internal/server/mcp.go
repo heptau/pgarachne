@@ -485,8 +485,7 @@ func (s *Server) handleMCPDiscover(c *gin.Context, req mcpRequest) {
 			Prompts:   &mcpPromptsCapability{ListChanged: false},
 		},
 		Instructions: "PgArachne exposes PostgreSQL functions as MCP tools, tables and views as MCP resources, " +
-			"and stored templates as MCP prompts. Authenticate with a Bearer token (JWT or long-lived API token) " +
-			"or HTTP Basic credentials.",
+			"and stored templates as MCP prompts. " + s.mcpAuthInstructions(),
 	}, mcpDiscoverTTLMs, mcpCacheScopePublic)
 	if err != nil {
 		slog.Error("MCP server/discover: failed to build result", "error", err)
@@ -494,6 +493,15 @@ func (s *Server) handleMCPDiscover(c *gin.Context, req mcpRequest) {
 		return
 	}
 	c.JSON(http.StatusOK, mcpResponse{JSONRPC: "2.0", ID: req.ID, Result: result})
+}
+
+// mcpAuthInstructions describes the authentication modes this instance
+// accepts; JWT is only offered when JWT_SECRET is configured.
+func (s *Server) mcpAuthInstructions() string {
+	if s.jwtEnabled() {
+		return "Authenticate with a Bearer token (JWT or long-lived API token) or HTTP Basic credentials."
+	}
+	return "Authenticate with a Bearer long-lived API token or HTTP Basic credentials."
 }
 
 // handleMCPToolsList handles tools/list by calling pgarachne.capabilities()
@@ -567,7 +575,10 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Tool name is too long"))
 		return
 	}
-	if !isSafeFunctionName(functionName) {
+	// get_jwt is a JSON-RPC pseudo-method handled in Go, not a database
+	// function; isSafeFunctionName admits it for the JSON-RPC endpoint, but
+	// here it would turn into an unqualified, search_path-resolved call.
+	if functionName == "get_jwt" || !isSafeFunctionName(functionName) {
 		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Invalid tool name"))
 		return

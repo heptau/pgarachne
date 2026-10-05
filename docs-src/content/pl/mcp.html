@@ -21,7 +21,7 @@ menu:
 
 	<div class="card" style="margin-bottom: 2rem;">
 		<h3>🛠️ Funkcje SQL jako narzędzia</h3>
-		<p>Każda funkcja SQL dostępna przez endpoint JSON-RPC 2.0 PgArachne automatycznie staje się "narzędziem" dostępnym dla AI. Domyślne zachowanie (wywołanie <code>pgarachne.allowed_schemas()</code>) udostępnia funkcje przechowywane w schemacie <code>api</code>, do których uwierzytelniony użytkownik ma dostęp (poprzez <code>GRANT EXECUTE</code>). LLM widzi nazwę funkcji, parametry i opis pochodzący z komentarzy SQL.</p>
+		<p>Każda funkcja SQL dostępna przez endpoint JSON-RPC 2.0 PgArachne automatycznie staje się "narzędziem" dostępnym dla AI. O tym, które funkcje są udostępniane, decydują wyłącznie uprawnienia PostgreSQL: każda funkcja z jednym parametrem <code>jsonb</code>, do której uwierzytelniona rola ma <code>EXECUTE</code> i do której schematu ma <code>USAGE</code> (zobacz <a href="../security-roles/#function-privileges">Które funkcje można wywołać</a>). LLM widzi nazwę funkcji, parametry i opis pochodzący z komentarzy SQL.</p>
 	</div>
 
 	<h3>Przewodnik połączenia</h3>

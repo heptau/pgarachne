@@ -44,12 +44,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
-	<p><strong>Povinné proměnné:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>).</p>
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Povinné proměnné:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
+	<p><code>JWT_SECRET</code> je volitelný. Nastavte ho (minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>), pokud chcete povolit JWT relace přes <code>get_jwt</code> a externě vydané JWT. Bez něj je podpora JWT vypnutá a klienti se autentizují pomocí HTTP Basic údajů (databázové uživatelské jméno a heslo) nebo dlouhodobých API tokenů.</p>
 
 	<h3>Rychlý validační checklist</h3>
 	<ul>
-		<li><code>JWT_SECRET</code> je dlouhý, náhodný a není sdílený mezi prostředími.</li>
+		<li>Pokud je JWT zapnuté, <code>JWT_SECRET</code> je dlouhý, náhodný a není sdílený mezi prostředími.</li>
 		<li><code>DB_USER</code> může přepínat jen do očekávaných rolí (zkontrolujte role membership granty).</li>
 		<li><code>TRUSTED_PROXIES</code> je nastaveno, pokud běžíte za reverse proxy.</li>
 		<li><code>LOGIN_RATE_LIMIT</code> je zapnut pro veřejně dostupné nasazení.</li>
@@ -143,18 +145,18 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Konfigurace bezpečnosti -->
 			<tr>
-				<td colspan="3" class="config-table-section">Bezpečnost (JWT)
+				<td colspan="3" class="config-table-section">Bezpečnost (JWT &amp; přihlášení)
 				</td>
 			</tr>
-			<tr class="required-row">
+			<tr>
 				<td><code>JWT_SECRET</code></td>
-				<td class="req-col"><span class="req-flag req-yes" title="Povinné" aria-label="Povinné">✓</span></td>
-				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů. Minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>.</td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů. Minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>. Pokud není nastaven, je podpora JWT vypnutá: <code>get_jwt</code> není k dispozici a klienti se autentizují pouze pomocí HTTP Basic údajů nebo API tokenů.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Platnost relace v hodinách. Výchozí: <code>8</code>.</td>
+				<td>Platnost relace v hodinách (musí být větší než 0). Výchozí: <code>8</code>.</td>
 			</tr>
 				<tr>
 					<td><code>JWT_ISSUER</code></td>
@@ -174,12 +176,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Max. počet pokusů o přihlášení v okně. Pro vypnutí nastavte <code>0</code>. Výchozí: <code>5</code></td>
+				<td>Max. počet pokusů o autentizaci na IP klienta a uživatelské jméno v okně. Platí pro všechny způsoby přihlášení: počítá se každé volání <code>get_jwt</code> a u HTTP Basic údajů (na všech endpointech) neúspěšné pokusy. Výchozí: <code>5</code>. Pro vypnutí nastavte <code>0</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Max. počet pokusů o přihlášení na IP klienta napříč všemi uživatelskými jmény, takže střídání jmen limit neobejde. Výchozí: 5× <code>LOGIN_RATE_LIMIT</code>. Pro vypnutí nastavte <code>0</code>.</td>
+				<td>Max. počet pokusů o autentizaci na IP klienta napříč všemi uživatelskými jmény, takže střídání jmen limit neobejde. Počítají se i neúspěšné pokusy s Bearer tokenem (neplatný JWT nebo API token). Výchozí: 5× <code>LOGIN_RATE_LIMIT</code>. Pro vypnutí nastavte <code>0</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>

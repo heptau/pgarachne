@@ -27,6 +27,9 @@ menu:
 		de courte durée. Les requêtes suivantes portent ce jeton dans l'en-tête
 		<code>Authorization: Bearer &lt;token&gt;</code>, et PgArachne bascule le rôle actif vers cet utilisateur
 		pour la durée de chaque requête.</p>
+	<p><em>Nécessite <code>JWT_SECRET</code>. S'il n'est pas configuré, <code>get_jwt</code> renvoie HTTP 404
+		(JSON-RPC <code>-32601</code>) et les clients utilisent à la place les identifiants directs (méthode 4)
+		ou les tokens API (méthode 2).</em></p>
 
 	<h3>2. Comptes de service (Tokens API)</h3>
 	<p>Pour les systèmes automatisés ou les scripts, vous pouvez utiliser des tokens API longue durée.</p>
@@ -48,8 +51,9 @@ menu:
 		<li>Claims requis : <code>db_role</code> (chaîne non vide) et <code>db_name</code> (chaîne qui doit
 			correspondre au segment de chemin <code>:database</code>).
 		</li>
-		<li>Claim recommandé : <code>exp</code> (timestamp Unix) pour l'expiration du token.</li>
+		<li>Claim requis : <code>exp</code> (timestamp Unix) pour l'expiration du token.</li>
 	</ul>
+	<p><em>Nécessite <code>JWT_SECRET</code> ; sans lui, les valeurs Bearer sont uniquement vérifiées comme tokens API.</em></p>
 	<p>Exemple minimal de payload :</p>
 	<pre><code>{
   "db_role": "demo_user",
@@ -92,7 +96,7 @@ menu:
 			maximale de 5 minutes. Après un changement de mot de passe, les anciennes connexions expirent
 			dans cette fenêtre.</li>
 		<li>Pour que les clés d'idempotence fonctionnent avec les identifiants directs, accordez à
-			l'utilisateur <code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+			l'utilisateur <code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)</code>.</li>
 	</ul>
 
 	<div class="warning">
@@ -149,6 +153,39 @@ GRANT demo_user TO pgarachne;</code></pre>
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 id="function-privileges">Quelles fonctions peuvent être appelées</h3>
+	<p>PgArachne n'a pas de liste blanche de schémas qui lui soit propre — ce qu'un rôle peut appeler est entièrement
+		déterminé par les privilèges PostgreSQL. Une fonction est appelable (et listée par <code>capabilities</code>, par MCP
+		<code>tools/list</code> et par l'export OpenAPI) lorsqu'elle prend un unique paramètre <code>jsonb</code>, que le rôle
+		dispose de <code>EXECUTE</code> sur elle et que le rôle dispose de <code>USAGE</code> sur son schéma. Les fonctions de
+		<code>pg_catalog</code>, <code>information_schema</code>, <code>pgarachne</code> ainsi que celles appartenant à des
+		extensions sont omises de la liste pour la garder lisible, mais les mêmes privilèges s'y appliquent.</p>
+	<div class="warning">
+		<h3>Les valeurs par défaut de PostgreSQL sont permissives</h3>
+		<p>Par défaut, PostgreSQL accorde <code>EXECUTE</code> sur chaque nouvelle fonction à <code>PUBLIC</code>, et chaque rôle
+			dispose de <code>USAGE</code> sur le schéma <code>public</code>. Une fonction utilitaire <code>public.something(jsonb)</code>
+			est donc appelable via l'API par n'importe quel rôle authentifié, sauf si vous révoquez ce privilège. Configuration recommandée :</p>
+		<pre><code>-- New functions are not executable by everyone (run as the role that creates them):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Keep API functions in a dedicated schema and grant explicitly:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3 id="rate-limiting">Protection contre la force brute</h3>
+	<p><code>LOGIN_RATE_LIMIT</code> et <code>LOGIN_RATE_LIMIT_PER_IP</code> s'appliquent à toutes les méthodes
+		d'authentification, sur tous les endpoints (JSON-RPC, MCP, SSE, OpenAPI) :</p>
+	<ul>
+		<li><code>get_jwt</code> : chaque tentative est décomptée des budgets par (IP, nom d'utilisateur) et par IP.</li>
+		<li>Identifiants directs (Basic Auth) : les tentatives échouées sont décomptées des budgets par (IP, nom
+			d'utilisateur) et par IP. Les requêtes réussies ne sont pas comptées : un client légitime qui envoie ses
+			identifiants à chaque requête n'est donc jamais limité.</li>
+		<li>Jetons Bearer (JWT ou token API) : les tentatives échouées sont décomptées du budget par IP.</li>
+	</ul>
+	<p>Une fois un budget épuisé, les tentatives suivantes sont rejetées avec HTTP <code>429</code> jusqu'à la fin
+		de la fenêtre (<code>LOGIN_RATE_WINDOW</code>) — sans même vérifier les identifiants.</p>
 
 	<div class="doc-related">
 		<h3>Documentation liée</h3>

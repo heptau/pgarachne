@@ -793,7 +793,8 @@
 				const response = await makeApiRequest(fullUrl, payload);
 				const data = await response.json();
 
-				if (response.ok && data.result) {
+				// 'result' in data, not data.result: 0, false, "" and null are valid results.
+				if (response.ok && data && 'result' in data) {
 					showResultJSON(data.result);
 				} else {
 					const errorMsg = data.error ? data.error.message : `HTTP ${response.status}: ${response.statusText}`;
@@ -840,19 +841,27 @@
 
 			try {
 				const url = new URL(urlParam);
+				// Anyone can craft a link with ?url=, and the credentials typed
+				// in afterwards are sent to that origin. Ask before pointing the
+				// explorer at an origin the user has not used before, and only
+				// apply the values to this page view (not localStorage), so a
+				// crafted link cannot silently redirect later sessions.
+				const knownOrigins = [window.location.origin, localStorage.getItem('apiUrl')];
+				if (!knownOrigins.includes(url.origin) &&
+					!window.confirm('This link points the explorer at ' + url.origin +
+						'.\nLogin credentials and tokens you enter will be sent to that server.\n\nContinue?')) {
+					return;
+				}
 				// Origin = scheme + host (e.g. http://localhost:8080)
 				document.getElementById('apiUrl').value = url.origin;
-				saveToLocalStorage('apiUrl');
 
 				// Path segments: e.g. /db/my_database → ['db', 'my_database']
 				const segments = url.pathname.split('/').filter(s => s.length > 0);
 				if (segments.length >= 1) {
 					document.getElementById('urlPrefix').value = segments[0];
-					saveToLocalStorage('urlPrefix');
 				}
 				if (segments.length >= 2) {
 					document.getElementById('databaseName').value = segments[1];
-					saveToLocalStorage('databaseName');
 				}
 			} catch (e) {
 				// If URL parsing fails, try a simpler split approach

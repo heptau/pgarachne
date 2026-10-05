@@ -24,6 +24,9 @@ menu:
 		<code>get_jwt</code> JSON-RPC method. If successful, they receive a short-lived JWT. Subsequent requests
 		carry this token in the <code>Authorization: Bearer &lt;token&gt;</code> header, and PgArachne switches the
 		active role to that user for the duration of each request.</p>
+	<p><em>Requires <code>JWT_SECRET</code>. When it is not configured, <code>get_jwt</code> returns HTTP 404
+		(JSON-RPC <code>-32601</code>) and clients use direct credentials (method 4) or API tokens (method 2)
+		instead.</em></p>
 
 	<h3>2. Service Accounts (API Tokens)</h3>
 	<p>For automated systems or scripts, long-lived API tokens are recommended.</p>
@@ -44,8 +47,9 @@ menu:
 			<code>JWT_SECRET</code> configured in PgArachne.</li>
 		<li>Required claims: <code>db_role</code> (string, non-empty) and <code>db_name</code> (string, must
 			match the <code>:database</code> path segment).</li>
-		<li>Recommended claim: <code>exp</code> (Unix timestamp) for token expiration.</li>
+		<li>Required claim: <code>exp</code> (Unix timestamp) for token expiration.</li>
 	</ul>
+	<p><em>Requires <code>JWT_SECRET</code>; without it, Bearer values are only checked as API tokens.</em></p>
 	<p>Minimal payload example:</p>
 	<pre><code>{
   "db_role": "demo_user",
@@ -85,7 +89,7 @@ menu:
 		<li>Connection pools are kept per user for efficiency, with a maximum lifetime of 5 minutes. After a
 			password change, old connections expire within that window.</li>
 		<li>For idempotency keys to work with direct credentials, grant the user
-			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)</code>.</li>
 	</ul>
 
 	<div class="warning">
@@ -140,6 +144,39 @@ GRANT demo_user TO pgarachne;</code></pre>
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 id="function-privileges">Which Functions Are Callable</h3>
+	<p>PgArachne has no schema allowlist of its own — what a role may call is decided entirely by PostgreSQL
+		privileges. A function is callable (and listed by <code>capabilities</code>, MCP <code>tools/list</code> and the
+		OpenAPI export) when it takes a single <code>jsonb</code> parameter, the role has <code>EXECUTE</code> on it,
+		and the role has <code>USAGE</code> on its schema. Functions in <code>pg_catalog</code>,
+		<code>information_schema</code>, <code>pgarachne</code> and functions belonging to extensions are left out
+		of the listing to keep it readable, but the same privileges apply to them.</p>
+	<div class="warning">
+		<h3>PostgreSQL defaults are permissive</h3>
+		<p>By default PostgreSQL grants <code>EXECUTE</code> on every new function to <code>PUBLIC</code>, and every role
+			has <code>USAGE</code> on the <code>public</code> schema. A helper function <code>public.something(jsonb)</code>
+			is therefore callable through the API by any authenticated role unless you revoke it. Recommended setup:</p>
+		<pre><code>-- New functions are not executable by everyone (run as the role that creates them):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Keep API functions in a dedicated schema and grant explicitly:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3 id="rate-limiting">Brute-Force Protection</h3>
+	<p><code>LOGIN_RATE_LIMIT</code> and <code>LOGIN_RATE_LIMIT_PER_IP</code> apply to every authentication method,
+		on every endpoint (JSON-RPC, MCP, SSE, OpenAPI):</p>
+	<ul>
+		<li><code>get_jwt</code>: every attempt counts against the per-(IP, username) and per-IP budgets.</li>
+		<li>Direct credentials (Basic Auth): failed attempts count against the per-(IP, username) and per-IP budgets.
+			Successful requests are not counted, so a legitimate client sending credentials on every request is never
+			throttled.</li>
+		<li>Bearer tokens (JWT or API token): failed attempts count against the per-IP budget.</li>
+	</ul>
+	<p>Once a budget is used up, further attempts are rejected with HTTP <code>429</code> until the window
+		(<code>LOGIN_RATE_WINDOW</code>) has passed — without checking the credentials at all.</p>
 
 	<div class="doc-related">
 		<h3>Related Docs</h3>

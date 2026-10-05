@@ -110,10 +110,12 @@ DB_USER=pgarachne
 # DB_SSLROOTCERT=/path/to/ca.pem
 # DB_SSLCERT=/path/to/client-cert.pem
 # DB_SSLKEY=/path/to/client-key.pem
-# Optional login rate limiting (default: 5 attempts per 1m, set 0 to disable)
+# Optional login rate limiting for all auth methods — get_jwt (every attempt),
+# HTTP Basic (failed attempts); default: 5 attempts per 1m, set 0 to disable
 LOGIN_RATE_LIMIT=5
 LOGIN_RATE_WINDOW=1m
-# Optional per-IP login limit across all usernames (default: 5x LOGIN_RATE_LIMIT)
+# Optional per-IP limit across all usernames, also counting failed Bearer
+# (JWT / API token) attempts (default: 5x LOGIN_RATE_LIMIT)
 # LOGIN_RATE_LIMIT_PER_IP=25
 # Optional trusted proxies for client IP resolution (comma-separated)
 TRUSTED_PROXIES=127.0.0.1,10.0.0.0/8
@@ -133,7 +135,9 @@ SSE_SEND_TIMEOUT=2s
 SSE_HEARTBEAT=20s
 SSE_IDLE_TIMEOUT=90s
 # Note: Password is read from .pgpass
-# Must be at least 32 bytes; generate with: openssl rand -hex 32
+# Optional — enables JWT sessions (get_jwt). Without it, clients authenticate
+# with HTTP Basic credentials or API tokens. Must be at least 32 bytes;
+# generate with: openssl rand -hex 32
 JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 HTTP_PORT=8080
 # Optional CORS origins (unset = cross-origin browser requests disabled;
@@ -141,7 +145,7 @@ HTTP_PORT=8080
 # ALLOWED_ORIGINS=https://myapp.example.com
 ```
 
-Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET` (minimum 32 bytes).
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`. `JWT_SECRET` (minimum 32 bytes) is optional: set it to enable JWT sessions via `get_jwt`; without it, clients authenticate with HTTP Basic credentials (`curl -u user:password`) or long-lived API tokens.
 
 If you run PgArachne behind a reverse proxy, set `TRUSTED_PROXIES` so client IPs are resolved correctly and rate limiting cannot be spoofed.
 
@@ -200,7 +204,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
 
 **2. Login via API**
 
-Use the JSON-RPC `get_jwt` method to obtain a JWT token:
+Use the JSON-RPC `get_jwt` method to obtain a JWT token (requires `JWT_SECRET`; without it, skip this step and call the function with `curl -u app_user:user_password` instead of the `Authorization: Bearer` header):
 
 ```bash
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
@@ -270,7 +274,7 @@ The MCP endpoint maps automatically:
 - `tools/list` → calls `pgarachne.capabilities()` as the authenticated role
 - `tools/call` → executes the named PostgreSQL function with the provided arguments
 
-Authentication uses the same Bearer token (JWT or API token) as the JSON-RPC endpoint.
+Authentication is the same as for the JSON-RPC endpoint: a Bearer token (JWT or API token) or HTTP Basic credentials.
 PostgreSQL functions require **no changes** — they remain JSON-RPC-shaped.
 
 ### 7. AI/LLM Discovery

@@ -155,17 +155,11 @@ REVOKE EXECUTE ON FUNCTION pgarachne.verify_api_token(TEXT) FROM public;
 GRANT EXECUTE ON FUNCTION pgarachne.verify_api_token(TEXT) TO pgarachne;
 
 
--- =============================================================================
--- Function: pgarachne.allowed_schemas
--- Description: Returns list of schemas exposed via API.
--- =============================================================================
-CREATE OR REPLACE FUNCTION pgarachne.allowed_schemas()
-RETURNS TEXT[]
-LANGUAGE sql
-IMMUTABLE
-AS $$
-	SELECT ARRAY['api'];
-$$;
+-- pgarachne.allowed_schemas() (v2.1 and earlier) only filtered the
+-- capabilities() listing — the gateway never enforced it — so it hid callable
+-- functions without protecting them. Access is now governed by PostgreSQL
+-- privileges alone (EXECUTE on the function + USAGE on its schema).
+DROP FUNCTION IF EXISTS pgarachne.allowed_schemas();
 
 
 -- =============================================================================
@@ -209,11 +203,28 @@ BEGIN
 			pg_get_function_arguments(p.oid) as args
 		FROM pg_proc AS p
 		JOIN pg_namespace AS n ON p.pronamespace = n.oid
-		WHERE (n.nspname = ANY(pgarachne.allowed_schemas())
+		-- What is listed is exactly what the calling role may call: PostgreSQL
+		-- privileges are the only access control. System schemas, PgArachne's
+		-- own helpers (except capabilities) and functions owned by extensions
+		-- are left out of the listing as noise; they are not blocked, a role
+		-- that has EXECUTE on them can still call them.
+		WHERE (n.nspname NOT LIKE 'pg\_%'
+				AND n.nspname NOT IN ('information_schema', 'pgarachne')
 				OR (n.nspname = 'pgarachne' AND p.proname = 'capabilities'))
+			AND NOT EXISTS (
+				SELECT FROM pg_depend AS d
+				WHERE d.classid = 'pg_proc'::regclass
+					AND d.objid = p.oid
+					AND d.deptype = 'e')
+			AND p.prokind = 'f'
 			AND p.pronargs = 1
-			AND p.proargtypes[0] IN ((SELECT oid FROM pg_type WHERE typname IN ('jsonb', 'json')))
+			-- jsonb only: the gateway calls fn($1::jsonb), and jsonb -> json is
+			-- just an assignment cast, so a json-typed function would be
+			-- advertised here but fail with "function does not exist".
+			AND p.proargtypes[0] = 'jsonb'::regtype
 			AND has_function_privilege(current_user, p.oid, 'EXECUTE')
+			-- Calling a function also requires USAGE on its schema.
+			AND has_schema_privilege(current_user, n.oid, 'USAGE')
 	)
 	SELECT json_agg(json_build_object(
 		'method',
@@ -225,7 +236,10 @@ BEGIN
 		'parameters', json_build_object(
 			'type', 'object',
 			'properties', COALESCE(
-				(substring(af.full_comment from '--- PARAMS ---\s*(\{.*\})'))::jsonb,
+				-- Guarded cast: one function comment with malformed JSON after
+				-- the PARAMS marker must not break discovery for every role.
+				(SELECT CASE WHEN pg_input_is_valid(m.params_text, 'jsonb') THEN m.params_text::jsonb END
+				 FROM (SELECT substring(af.full_comment from '--- PARAMS ---\s*(\{.*\})') AS params_text) AS m),
 				jsonb_build_object('params', jsonb_build_object('type', 'object', 'description', 'Arguments'))
 			),
 			'required', jsonb_build_array()
@@ -530,15 +544,25 @@ $fn$;
 COMMENT ON FUNCTION pgarachne.to_uuid(text) IS 'Smart UUID cast: preserves valid UUIDs, converts BIGINTs to 32-char hex, and uses MD5 hash as fallback for other strings.';
 GRANT EXECUTE ON FUNCTION pgarachne.to_uuid(text) TO public;
 
-CREATE OR REPLACE FUNCTION pgarachne.save_idempotency_key(_key text)
+-- The single-argument signature from v2.1 and earlier shared one key space
+-- across all roles, so any authenticated caller could pre-reserve (and so
+-- block) another caller's key. Drop it so upgraded installs cannot keep
+-- calling the unscoped variant.
+DROP FUNCTION IF EXISTS pgarachne.save_idempotency_key(text);
+
+CREATE OR REPLACE FUNCTION pgarachne.save_idempotency_key(_key text, _scope text DEFAULT NULL)
 RETURNS boolean
 LANGUAGE SQL
-STRICT
 AS $fn$
 
+   -- Keys are namespaced by _scope (PgArachne passes the authenticated role)
+   -- or, when no scope is given, by current_user. Hashing scope and key
+   -- together also avoids to_uuid()'s aliasing ('1', '01', '+1' and
+   -- '00000000-0000-0000-0000-000000000001' would otherwise collide).
    WITH inserted AS (
       INSERT INTO pgarachne.requests (idempotency_id)
-      VALUES (pgarachne.to_uuid(_key))
+      SELECT md5(COALESCE(NULLIF(_scope, ''), current_user::text) || ':' || _key)::uuid
+      WHERE _key IS NOT NULL
       ON CONFLICT (idempotency_id) DO NOTHING
       RETURNING TRUE
    )
@@ -546,8 +570,8 @@ AS $fn$
 
 $fn$;
 
-COMMENT ON FUNCTION pgarachne.save_idempotency_key(text) IS 'Atomically reserves an idempotency key for the current request. Returns TRUE on first use, FALSE on a duplicate (caller should reject as a replay). Cleanup is the operator''s responsibility — see pgarachne.cleanup_idempotency_keys().';
-GRANT EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text) TO public;
+COMMENT ON FUNCTION pgarachne.save_idempotency_key(text, text) IS 'Atomically reserves an idempotency key for the current request, namespaced by _scope (the authenticated role; defaults to current_user). Returns TRUE on first use, FALSE on a duplicate (caller should reject as a replay). Cleanup is the operator''s responsibility — see pgarachne.cleanup_idempotency_keys().';
+GRANT EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text) TO public;
 
 
 -- =============================================================================

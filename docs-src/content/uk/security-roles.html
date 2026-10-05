@@ -25,6 +25,9 @@ menu:
 		метод JSON-RPC <code>get_jwt</code>. У разі успіху вони отримують короткостроковий JWT. Наступні запити
 		передають цей токен у заголовку <code>Authorization: Bearer &lt;token&gt;</code>, і PgArachne перемикає
 		активну роль на цього користувача на час виконання кожного запиту.</p>
+	<p><em>Потребує <code>JWT_SECRET</code>. Якщо його не налаштовано, <code>get_jwt</code> повертає HTTP 404
+		(JSON-RPC <code>-32601</code>), а клієнти натомість використовують прямі облікові дані (метод 4) або
+		API-токени (метод 2).</em></p>
 
 	<h3>2. Сервісні облікові записи (API-токени)</h3>
 	<p>Для автоматизованих систем або скриптів рекомендується використовувати довгострокові API-токени.</p>
@@ -45,8 +48,9 @@ menu:
 			<code>JWT_SECRET</code>, який налаштовано в PgArachne.</li>
 		<li>Обов'язкові claim-и: <code>db_role</code> (рядок, не порожній) та <code>db_name</code> (рядок, має
 			відповідати сегменту шляху <code>:database</code>).</li>
-		<li>Рекомендований claim: <code>exp</code> (Unix-часова метка) для терміну дії токена.</li>
+		<li>Обов'язковий claim: <code>exp</code> (Unix-часова метка) для терміну дії токена.</li>
 	</ul>
+	<p><em>Потребує <code>JWT_SECRET</code>; без нього значення Bearer перевіряються лише як API-токени.</em></p>
 	<p>Приклад мінімального payload:</p>
 	<pre><code>{
   "db_role": "demo_user",
@@ -86,7 +90,7 @@ menu:
 		<li>Пули з'єднань підтримуються окремо для кожного користувача для ефективності, з максимальним часом життя 5 хвилин. Після
 			зміни пароля старі з'єднання завершуються протягом цього вікна.</li>
 		<li>Щоб ключі ідемпотентності працювали з прямими обліковими даними, надайте користувачеві право
-			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)</code>.</li>
 	</ul>
 
 	<div class="warning">
@@ -141,6 +145,39 @@ GRANT demo_user TO pgarachne;</code></pre>
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 id="function-privileges">Які функції можна викликати</h3>
+	<p>PgArachne не має власного списку дозволених схем — те, що може викликати роль, визначають виключно привілеї
+		PostgreSQL. Функцію можна викликати (і її перелічують <code>capabilities</code>, MCP <code>tools/list</code> та
+		експорт OpenAPI), якщо вона приймає єдиний параметр <code>jsonb</code>, роль має на неї <code>EXECUTE</code>, а
+		також роль має <code>USAGE</code> на її схему. Функції в <code>pg_catalog</code>, <code>information_schema</code>,
+		<code>pgarachne</code> та функції, що належать розширенням, не включаються до переліку для зручності читання, але
+		на них поширюються ті самі привілеї.</p>
+	<div class="warning">
+		<h3>Стандартні налаштування PostgreSQL надто дозвільні</h3>
+		<p>За замовчуванням PostgreSQL надає <code>EXECUTE</code> на кожну нову функцію ролі <code>PUBLIC</code>, а кожна роль
+			має <code>USAGE</code> на схему <code>public</code>. Тому допоміжну функцію <code>public.something(jsonb)</code>
+			може викликати через API будь-яка автентифікована роль, якщо ви не відкличете привілей. Рекомендоване налаштування:</p>
+		<pre><code>-- Нові функції не виконуються всіма (запускайте від імені ролі, яка їх створює):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Тримайте API-функції в окремій схемі та надавайте привілеї явно:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3 id="rate-limiting">Захист від перебору (brute-force)</h3>
+	<p><code>LOGIN_RATE_LIMIT</code> та <code>LOGIN_RATE_LIMIT_PER_IP</code> застосовуються до кожного методу автентифікації
+		на кожному endpoint-і (JSON-RPC, MCP, SSE, OpenAPI):</p>
+	<ul>
+		<li><code>get_jwt</code>: кожна спроба зараховується до лімітів на (IP, ім'я користувача) та на IP.</li>
+		<li>Прямі облікові дані (Basic Auth): невдалі спроби зараховуються до лімітів на (IP, ім'я користувача) та на IP.
+			Успішні запити не враховуються, тож легітимний клієнт, який надсилає облікові дані з кожним запитом,
+			ніколи не буде обмежений.</li>
+		<li>Bearer-токени (JWT або API-токен): невдалі спроби зараховуються до ліміту на IP.</li>
+	</ul>
+	<p>Після вичерпання ліміту подальші спроби відхиляються з HTTP <code>429</code>, доки не мине вікно
+		(<code>LOGIN_RATE_WINDOW</code>) — облікові дані при цьому взагалі не перевіряються.</p>
 
 	<div class="doc-related">
 		<h3>Пов'язана документація</h3>

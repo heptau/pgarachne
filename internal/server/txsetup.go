@@ -27,7 +27,8 @@ var (
 //     connections.
 //  2. Idempotency-key check (when idempotencyKey != "") — intentionally
 //     inside the transaction so the key is not persisted when the function
-//     call rolls back. For JWT/API-token auth this runs as the service user
+//     call rolls back. Keys are namespaced per role (dbRole, or current_user
+//     for direct auth), so one caller cannot reserve another caller's key. For JWT/API-token auth this runs as the service user
 //     (DB_USER) before SET LOCAL ROLE, so no extra grants are needed on the
 //     client role. For direct auth the check runs as the authenticated user;
 //     the operator must grant EXECUTE ON FUNCTION
@@ -50,7 +51,7 @@ func (s *Server) setupRequestTx(ctx context.Context, tx *sql.Tx, dbRole, idempot
 	if idempotencyKey != "" {
 		var saved bool
 		if err := tx.QueryRowContext(ctx,
-			`SELECT pgarachne.save_idempotency_key($1)`, idempotencyKey,
+			`SELECT pgarachne.save_idempotency_key($1, $2)`, idempotencyKey, dbRole,
 		).Scan(&saved); err != nil {
 			return fmt.Errorf("%w: %v", errIdempotencyCheckFailed, err)
 		}

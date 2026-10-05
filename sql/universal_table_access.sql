@@ -45,6 +45,7 @@ DECLARE
 	_schema text;
 	_table  text;
 	_cols   text;
+	_cols_ok boolean;
 	_limit  int;
 	_offset int;
 	_order  text;
@@ -70,10 +71,21 @@ BEGIN
 	_order  := _params->>'order';
 	_filters := COALESCE(_params->'filters', '{}'::jsonb);
 
-	-- Security: Validate _cols (prevent SQL Injection)
-	-- Only allow alphanumeric, underscores, commas, spaces, dots, and asterisk.
-	IF _cols !~* '^[a-z0-9_,\.\* ]+$' THEN
-		RAISE EXCEPTION 'Invalid characters in "select" parameter';
+	-- Security: Validate _cols (prevent SQL Injection). Each comma-separated
+	-- item must be either * or a plain column name, and is re-emitted with
+	-- quote_ident. A character-class check on the whole string is not enough:
+	-- it still admits keywords, e.g. "* from other.t union all select *".
+	SELECT string_agg(
+		CASE
+			WHEN btrim(item) = '*' THEN '*'
+			WHEN btrim(item) ~* '^[a-z_][a-z0-9_]*$' THEN quote_ident(lower(btrim(item)))
+			ELSE NULL
+		END, ', ' ORDER BY ord),
+		bool_and(btrim(item) = '*' OR btrim(item) ~* '^[a-z_][a-z0-9_]*$')
+	INTO _cols, _cols_ok
+	FROM unnest(string_to_array(_cols, ',')) WITH ORDINALITY AS u(item, ord);
+	IF _cols IS NULL OR NOT _cols_ok THEN
+		RAISE EXCEPTION 'Invalid "select" parameter (expected * or comma-separated column names)';
 	END IF;
 
 	-- Security: Validate _order (prevent SQL Injection).
@@ -226,6 +238,14 @@ BEGIN
 		RAISE EXCEPTION 'No data provided for update';
 	END IF;
 
+	-- Refuse to touch every row by accident: a missing or empty "filters"
+	-- object would otherwise turn into WHERE TRUE. Pass "all": true to
+	-- operate on the whole table deliberately.
+	IF (jsonb_typeof(_filters) <> 'object' OR _filters = '{}'::jsonb)
+		AND COALESCE((_params->>'all')::boolean, false) IS NOT TRUE THEN
+		RAISE EXCEPTION 'Parameter "filters" must be a non-empty object (or set "all": true to affect every row).';
+	END IF;
+
 	-- Build WHERE clause
 	FOR _key, _val IN
 		SELECT * FROM jsonb_each_text(_filters)
@@ -249,7 +269,8 @@ COMMENT ON FUNCTION api.universal_update(jsonb) IS 'Generic Update function.
   "schema": "api (default)",
   "table": "users (required)",
   "data": { "active": true },
-  "filters": { "id": 1 }
+  "filters": { "id": 1 },
+  "all": "false (default); true is required to update every row when filters is empty"
 }';
 
 
@@ -277,6 +298,14 @@ BEGIN
 	PERFORM api._validate_identifier(_schema, 'schema');
 	PERFORM api._validate_identifier(_table, 'table');
 
+	-- Refuse to touch every row by accident: a missing or empty "filters"
+	-- object would otherwise turn into WHERE TRUE. Pass "all": true to
+	-- operate on the whole table deliberately.
+	IF (jsonb_typeof(_filters) <> 'object' OR _filters = '{}'::jsonb)
+		AND COALESCE((_params->>'all')::boolean, false) IS NOT TRUE THEN
+		RAISE EXCEPTION 'Parameter "filters" must be a non-empty object (or set "all": true to affect every row).';
+	END IF;
+
 	-- Build WHERE clause
 	FOR _key, _val IN
 		SELECT * FROM jsonb_each_text(_filters)
@@ -299,5 +328,6 @@ COMMENT ON FUNCTION api.universal_delete(jsonb) IS 'Generic Delete function.
 {
   "schema": "api (default)",
   "table": "users (required)",
-  "filters": { "id": 1 }
+  "filters": { "id": 1 },
+  "all": "false (default); true is required to delete every row when filters is empty"
 }';

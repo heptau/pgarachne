@@ -26,9 +26,10 @@ menu:
 	<div class="card" style="margin-bottom: 2rem;">
 		<h3>🛠️ Fonctions SQL en tant qu'outils</h3>
 		<p>Toute fonction SQL accessible via l'endpoint JSON-RPC 2.0 de PgArachne devient automatiquement un « outil »
-			disponible pour l'IA. Le comportement par défaut (appel à <code>pgarachne.allowed_schemas()</code>) expose
-			les fonctions stockées dans le schéma <code>api</code> auxquelles l'utilisateur authentifié a accès
-			(via <code>GRANT EXECUTE</code>). Le LLM voit le nom de la fonction, ses paramètres et la description
+			disponible pour l'IA. Les fonctions exposées sont déterminées uniquement
+			par les privilèges PostgreSQL : toute fonction à paramètre <code>jsonb</code> unique sur laquelle le rôle
+			authentifié dispose de <code>EXECUTE</code> et dont il a <code>USAGE</code> sur le schéma (voir
+			<a href="../security-roles/#function-privileges">Quelles fonctions peuvent être appelées</a>). Le LLM voit le nom de la fonction, ses paramètres et la description
 			issue des commentaires SQL.</p>
 	</div>
 

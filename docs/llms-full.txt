@@ -326,7 +326,8 @@ Create a `pgarachne.env` file (the server finds it in the current directory):
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=$(openssl rand -hex 32)
+# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# JWT_SECRET=...
 ```
 
 Start the server:
@@ -506,14 +507,17 @@ This is all you need to get started:
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
-Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`, `JWT_SECRET` (minimum 32 bytes; generate with `openssl rand -hex 32`).
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`.
+
+`JWT_SECRET` is optional. Set it (minimum 32 bytes; generate with `openssl rand -hex 32`) to enable JWT sessions via `get_jwt` and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.
 
 ### Quick Validation Checklist
 
-- `JWT_SECRET` is long, random, and not reused across environments.
+- If JWT is enabled, `JWT_SECRET` is long, random, and not reused across environments.
 
 - `DB_USER` can switch only to expected roles (verify role membership grants).
 
@@ -557,11 +561,11 @@ Default: unset — cross-origin browser requests are disabled. Set `*` explicitl
 
 `STATIC_FILES_PATH` | ○ | Absolute path to serve static files (Explorer/Frontend).
 
-Security (JWT)
+Security (JWT & login)
 
-`JWT_SECRET` | ✓ | A long, random string used to sign session tokens. Minimum 32 bytes; generate with `openssl rand -hex 32`.
+`JWT_SECRET` | ○ | A long, random string used to sign session tokens. Minimum 32 bytes; generate with `openssl rand -hex 32`. If unset, JWT support is disabled: `get_jwt` is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.
 
-`JWT_EXPIRY_HOURS` | ○ | Session validity in hours. Default: `8`.
+`JWT_EXPIRY_HOURS` | ○ | Session validity in hours (must be greater than 0). Default: `8`.
 
 `JWT_ISSUER` | ○ | If set, written into the `iss` claim on issue and required to match exactly on validation. Leave empty to skip issuer checking.
 
@@ -569,9 +573,9 @@ Security (JWT)
 
 `JWT_LEEWAY` | ○ | Clock-skew tolerance for `exp`/`nbf`/`iat` validation (e.g. `30s`). Default: `30s`.
 
-`LOGIN_RATE_LIMIT` | ○ | Max login attempts per window. Default: `5`. Set `0` to disable.
+`LOGIN_RATE_LIMIT` | ○ | Max authentication attempts per client IP and username per window. Applies to every login method: each `get_jwt` call counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: `5`. Set `0` to disable.
 
-`LOGIN_RATE_LIMIT_PER_IP` | ○ | Max login attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Default: 5× `LOGIN_RATE_LIMIT`. Set `0` to disable.
+`LOGIN_RATE_LIMIT_PER_IP` | ○ | Max authentication attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Also counts failed Bearer attempts (invalid JWT or API token). Default: 5× `LOGIN_RATE_LIMIT`. Set `0` to disable.
 
 `LOGIN_RATE_WINDOW` | ○ | Rate limit window duration. Default: `1m`.
 
@@ -751,7 +755,7 @@ PgArachne acts directly as an MCP Server. Instead of writing a custom HTTP serve
 
 ### 🛠️ SQL Functions as Tools
 
-Any SQL function accessible via PgArachne's JSON-RPC 2.0 endpoint automatically becomes a "tool" available to the AI. The default behavior (calling `pgarachne.allowed_schemas()`) exposes functions stored in the `api` schema that the authenticated user has access to (via `GRANT EXECUTE`). The LLM sees the function name, parameters, and description from SQL comments.
+Any SQL function accessible via PgArachne's JSON-RPC 2.0 endpoint automatically becomes a "tool" available to the AI. Which functions are exposed is decided by PostgreSQL privileges alone: every function with a single `jsonb` parameter on which the authenticated role has `EXECUTE` and whose schema it has `USAGE` on (see Function Privileges). The LLM sees the function name, parameters, and description from SQL comments.
 
 ### Connection Guide
 
@@ -1197,6 +1201,10 @@ Users authenticate using their real PostgreSQL username and password via the
 carry this token in the `Authorization: Bearer <token>` header, and PgArachne switches the
 active role to that user for the duration of each request.
 
+Requires `JWT_SECRET`. When it is not configured, `get_jwt` returns HTTP 404
+(JSON-RPC `-32601`) and clients use direct credentials (method 4) or API tokens (method 2)
+instead.
+
 ### 2. Service Accounts (API Tokens)
 
 For automated systems or scripts, long-lived API tokens are recommended.
@@ -1223,7 +1231,9 @@ mint JWTs there and send them directly to PgArachne.
 - Required claims: `db_role` (string, non-empty) and `db_name` (string, must
 match the `:database` path segment).
 
-- Recommended claim: `exp` (Unix timestamp) for token expiration.
+- Required claim: `exp` (Unix timestamp) for token expiration.
+
+Requires `JWT_SECRET`; without it, Bearer values are only checked as API tokens.
 
 Minimal payload example:
 
@@ -1276,7 +1286,7 @@ connection runs as the actual user.
 password change, old connections expire within that window.
 
 - For idempotency keys to work with direct credentials, grant the user
-`EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)`.
+`EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)`.
 
 ### Proxy Privileges: Required for Methods 1–3 Only
 
@@ -1302,6 +1312,46 @@ API Token | `Bearer <token>` | ✅ Yes | Required | Automated services
 External JWT | `Bearer <jwt>` | ✅ Yes | Required | External IdP integration
 
 Direct credentials | `Basic <b64>` | ❌ No | Not required | Dev, internal services
+
+### Which Functions Are Callable
+
+PgArachne has no schema allowlist of its own — what a role may call is decided entirely by PostgreSQL
+privileges. A function is callable (and listed by `capabilities`, MCP `tools/list` and the
+OpenAPI export) when it takes a single `jsonb` parameter, the role has `EXECUTE` on it,
+and the role has `USAGE` on its schema. Functions in `pg_catalog`,
+`information_schema`, `pgarachne` and functions belonging to extensions are left out
+of the listing to keep it readable, but the same privileges apply to them.
+
+### PostgreSQL defaults are permissive
+
+By default PostgreSQL grants `EXECUTE` on every new function to `PUBLIC`, and every role
+has `USAGE` on the `public` schema. A helper function `public.something(jsonb)`
+is therefore callable through the API by any authenticated role unless you revoke it. Recommended setup:
+
+```
+-- New functions are not executable by everyone (run as the role that creates them):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Keep API functions in a dedicated schema and grant explicitly:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+```
+
+### Brute-Force Protection
+
+`LOGIN_RATE_LIMIT` and `LOGIN_RATE_LIMIT_PER_IP` apply to every authentication method,
+on every endpoint (JSON-RPC, MCP, SSE, OpenAPI):
+
+- `get_jwt`: every attempt counts against the per-(IP, username) and per-IP budgets.
+
+- Direct credentials (Basic Auth): failed attempts count against the per-(IP, username) and per-IP budgets.
+Successful requests are not counted, so a legitimate client sending credentials on every request is never
+throttled.
+
+- Bearer tokens (JWT or API token): failed attempts count against the per-IP budget.
+
+Once a budget is used up, further attempts are rejected with HTTP `429` until the window
+(`LOGIN_RATE_WINDOW`) has passed — without checking the credentials at all.
 
 ### Related Docs
 
@@ -1430,9 +1480,9 @@ HTTP | Typical message | When it happens
 
 `403` | Permission denied for the specified role | `SET LOCAL ROLE` failed (`-32001`).
 
-`404` | Function does not exist | Target method is missing.
+`404` | Function does not exist / get_jwt is disabled | Target method is missing (`-32601`), or `get_jwt` was called while `JWT_SECRET` is not configured.
 
-`429` | Too many login attempts | Login rate limit exceeded.
+`429` | Too many login attempts / Too many failed authentication attempts | Login or authentication rate limit exceeded (`LOGIN_RATE_LIMIT`, `LOGIN_RATE_LIMIT_PER_IP`).
 
 `500` | Function call failed / Transaction commit failed | Execution or commit failed.
 

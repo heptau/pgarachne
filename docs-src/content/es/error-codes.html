@@ -53,8 +53,8 @@ menu:
 		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Payload inválido o formato de método incorrecto.</td></tr>
 		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Autenticación ausente o inválida.</td></tr>
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Falló <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
-		<tr><td><code>404</code></td><td>Function does not exist</td><td>El método no existe.</td></tr>
-		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Se excedió el rate limit de login.</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>El método no existe (<code>-32601</code>), o se llamó a <code>get_jwt</code> sin tener configurado <code>JWT_SECRET</code>.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Se excedió el rate limit de login o de autenticación (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Falló la ejecución o el commit.</td></tr>
 		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Base de datos o listener no disponible temporalmente.</td></tr>
 	</table>

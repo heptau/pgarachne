@@ -9,6 +9,7 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Added
 
+- `JWT_SECRET` is now optional. Without it JWT support is disabled: `get_jwt` returns HTTP 404 / JSON-RPC `-32601`, Bearer values are only checked as long-lived API tokens, and clients authenticate with HTTP Basic credentials or API tokens. When set, the existing checks (minimum 32 bytes, placeholder rejected) still apply. Configuration docs (all 10 languages), README, and `config/example.pgarachne.env` updated accordingly.
 - Docs site: `whats-new.html` (all 10 languages) now covers the `v2.0.3` and `v2.1.0` releases, which had gone unlisted since publication.
 - Docs site: the navbar's home/support/star/theme/language icon buttons now show a small styled tooltip on hover/focus (a `[data-tooltip]::after` pseudo-element, replacing the plain `title` attribute) describing what each does; the star tooltip now explicitly says it opens GitHub, so the redirect isn't a surprise.
 - Docs site: `support-donate.html` (all 10 languages) gained a callout pointing out that starring the project on GitHub — via the header's star icon — costs nothing and still helps.
@@ -18,6 +19,14 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Changed
 
+- **Breaking:** `pgarachne.allowed_schemas()` is removed; access is governed by PostgreSQL privileges alone. It only filtered the `capabilities()` listing — the gateway never enforced it — so it hid callable functions without protecting them. `capabilities()` (and with it MCP `tools/list` and the OpenAPI export) now lists every function with a single `jsonb` argument on which the caller has `EXECUTE` and `USAGE` on its schema (new check — previously a function in a schema the role could not use was listed but not callable). System schemas, `pgarachne` helpers and extension-owned functions are hidden from the listing, and procedures/aggregates are no longer listed. Installs that customised `allowed_schemas()` will see functions from other schemas the caller can use; revoke `EXECUTE`/`USAGE` where that is unwanted. The security docs (all 10 languages) now recommend `ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` and a dedicated API schema.
+- `LOGIN_RATE_LIMIT` / `LOGIN_RATE_LIMIT_PER_IP` now cover every authentication method on every endpoint (JSON-RPC, MCP, SSE, OpenAPI), not just `get_jwt`: failed HTTP Basic attempts count per (IP, username) and per IP, failed Bearer (JWT / API token) attempts per IP. Successful Basic/Bearer requests are not counted. An exhausted budget yields HTTP 429 before the credentials are checked.
+- **Breaking:** `pgarachne.save_idempotency_key(text)` is replaced by `save_idempotency_key(key text, scope text DEFAULT NULL)`; keys are namespaced per role. Re-apply `sql/schema.sql` before upgrading the binary (the old signature is dropped). Operators who granted `EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)` explicitly need to re-grant the new signature (it is granted to `public` by `schema.sql`).
+- **Breaking:** `api.universal_update` / `api.universal_delete` (`sql/universal_table_access.sql`) refuse a missing or empty `filters` object, which previously meant `WHERE TRUE` (every row). Pass `"all": true` to affect the whole table deliberately.
+- **Breaking:** `api.universal_read` now only accepts `*` or plain column names in `select` (each re-emitted via `quote_ident`); qualified names such as `t.col` are no longer accepted.
+- `pgarachne.capabilities()` no longer lists functions taking a `json` (rather than `jsonb`) argument — they were advertised but could never be called.
+- JSON-RPC: a call to a non-existent method now carries JSON-RPC code `-32601`, and only PostgreSQL's `undefined_function` / `invalid_schema_name` errors map to HTTP 404 — other "does not exist" errors raised inside a function (missing table, …) are reported as 500 like any other failure.
+- `JWT_EXPIRY_HOURS` must be greater than 0 (previously 0 or negative values passed validation and made every `get_jwt` call fail).
 - Docs site: the navbar's theme switcher now sits at the far right (after the language switcher), and its button always shows a single half-filled "contrast" icon — matching the pg_dbml site — instead of swapping between monitor/sun/moon icons per mode.
 - Docs site: the footer's "Zbyněk Vanžura" is now a link to <https://www.80.cz/>; the stray trailing period after the name is gone.
 
@@ -27,12 +36,26 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Fixed
 
+- SSE: a listener reconnect (or a slow client being dropped) could deadlock the whole SSE subsystem. The pq event callback and the `run()` loop called `UNLISTEN` while pq's connection loop was blocked handing them notifications, and `dbListener.mu` was held across LISTEN/UNLISTEN round-trips. Dropping a client now only signals it; unregistering happens on the client's own goroutine, and network calls never run under the map mutex. Closing an idle listener no longer holds the hub-wide mutex either.
+- SSE: a request racing with the cleanup of the last client on a database could get a spurious 429 "failed to subscribe"; it now retries with a fresh listener.
+- Database pools: `GetUserConnection` (Basic auth) and `GetConnection` held a global mutex during the connect/ping round-trip (up to 5 s), so one slow or wrong-password attempt stalled every other request — including cache hits. Pools are now opened and pinged outside the lock.
+- Requests without an `Authorization` header are rejected before PgArachne opens a connection pool for the requested database name.
+- MCP `tools/call` with the tool name `get_jwt` no longer turns into an unqualified, `search_path`-resolved SQL call.
+- MCP `prompts/get`: an argument with a JSON `null` value blanked the whole rendered prompt, and argument values containing `{{other}}` were expanded again by later keys. Templates are now rendered in a single pass; `null` renders as an empty string.
+- `pgarachne.capabilities()`: one function comment with malformed JSON after `--- PARAMS ---` broke `capabilities`, MCP `tools/list`, and the OpenAPI export for every role; the parameters now fall back to the default schema.
+- `sql/mcp_functions.sql` can be re-applied (`DROP TRIGGER IF EXISTS` before creating `update_prompts_timestamp`).
+- API explorer: results that are falsy (`0`, `false`, `""`, `null`) were shown as errors.
+- Docs: external JWTs were documented as only "recommending" an `exp` claim; PgArachne has always rejected tokens without one.
 - Docs site: `https://www.pgarachne.com/.well-known/security.txt` returned 404 because GitHub Pages runs the published `docs/` directory through Jekyll, which drops dot-directories. An empty `.nojekyll` file is now shipped from `docs-src/static/`, disabling Jekyll processing.
 
 - **Breaking:** Docs site: the "Related Docs"/"See also" section on documentation pages was two inconsistent things — `single.html` appended the same hardcoded five-link list to the bottom of every page regardless of its actual content, while `configuration.html`, `security-roles.html`, and `error-codes.html` (all 10 languages) additionally had their own hand-written, page-relevant "See also" list further up, styled as a plain `<h3>`+`<ul>`. The hardcoded template-wide block is removed; the hand-written per-page lists are renamed to "Related Docs" and now reuse the `.doc-related` card styling the removed block used to have.
 
 ### Security
 
+- HTTP Basic credentials were not rate limited at all, so `LOGIN_RATE_LIMIT` could be bypassed by guessing passwords via `Authorization: Basic` on `/jsonrpc`, `/mcp`, `/sse`, or `/openapi.json` instead of `get_jwt`. See the `LOGIN_RATE_LIMIT` change above.
+- Idempotency keys were global across roles: any authenticated caller could pre-reserve a predictable key (e.g. an order ID) and make the victim's real request fail with 409. Keys are now namespaced per role, and hashing scope and key together also removes the `to_uuid()` aliasing (`'1'`, `'01'`, `'+1'` and a zero-padded UUID collided).
+- `api.universal_read`: the `select` character-class check admitted SQL keywords, so `"* from other_schema.t union all select *"` read any table the caller could see while bypassing the schema/table validation. Each `select` item is now validated and quoted individually.
+- API explorer: a crafted `?url=` link silently pointed the explorer — persistently, via localStorage — at an attacker's origin, so the next login sent the user's credentials there. Query-string values are no longer persisted, and an origin the user has not used before requires confirmation.
 - `tools/pgarachne-explorer/index.html`: `showResultJSON()` inserted a JSON-RPC result's `JSON.stringify` output into the page via `innerHTML`, on the mistaken assumption (stated in a now-removed comment) that `JSON.stringify` escapes `<`, `>`, and `&`. It does not — a result value containing e.g. `<img src=x onerror=...>` was parsed as real markup and executed. `syntaxHighlight()` now HTML-escapes the stringified JSON before adding its `<span>` highlighting wrappers.
 
 ## [2.1.0] - 2026-08-31

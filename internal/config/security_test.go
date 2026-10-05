@@ -165,3 +165,26 @@ func TestDirectPoolLimitParsing(t *testing.T) {
 		t.Error("expected error for DIRECT_POOL_LIMIT=0, got nil")
 	}
 }
+
+func TestJWTSecretOptional(t *testing.T) {
+	setRequiredTestEnv(t)
+	t.Setenv("JWT_SECRET", "")
+
+	cfg, err := Load("")
+	if err != nil {
+		t.Fatalf("Load without JWT_SECRET should succeed (JWT disabled), got: %v", err)
+	}
+	if cfg.JWTSecret != "" {
+		t.Errorf("JWTSecret = %q; want empty", cfg.JWTSecret)
+	}
+}
+
+func TestJWTExpiryHoursMustBePositive(t *testing.T) {
+	for _, v := range []string{"0", "-1"} {
+		setRequiredTestEnv(t)
+		t.Setenv("JWT_EXPIRY_HOURS", v)
+		if _, err := Load(""); err == nil {
+			t.Errorf("JWT_EXPIRY_HOURS=%s: expected error, got nil", v)
+		}
+	}
+}

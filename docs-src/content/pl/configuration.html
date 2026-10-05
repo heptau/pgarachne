@@ -43,12 +43,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
-	<p><strong>Wymagane zmienne:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>).</p>
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Wymagane zmienne:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
+	<p><code>JWT_SECRET</code> jest opcjonalny. Ustaw go (minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>), aby włączyć sesje JWT przez <code>get_jwt</code> oraz JWT wydawane zewnętrznie. Bez niego obsługa JWT jest wyłączona, a klienci uwierzytelniają się danymi HTTP Basic (nazwa użytkownika i hasło bazy danych) lub długoterminowymi tokenami API.</p>
 
 	<h3>Szybka lista kontrolna walidacji</h3>
 	<ul>
-		<li><code>JWT_SECRET</code> jest długi, losowy i nie jest współdzielony między środowiskami.</li>
+		<li>Jeśli JWT jest włączony, <code>JWT_SECRET</code> jest długi, losowy i nie jest współdzielony między środowiskami.</li>
 		<li><code>DB_USER</code> może przełączać się tylko na oczekiwane role (zweryfikuj przypisania członkostwa w rolach).</li>
 		<li><code>TRUSTED_PROXIES</code> jest ustawione, gdy działasz za reverse proxy.</li>
 		<li><code>LOGIN_RATE_LIMIT</code> jest włączony dla wdrożeń dostępnych z internetu.</li>
@@ -140,18 +142,18 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Security Config -->
 			<tr>
-				<td colspan="3" class="config-table-section">Bezpieczeństwo (JWT)
+				<td colspan="3" class="config-table-section">Bezpieczeństwo (JWT &amp; logowanie)
 				</td>
 			</tr>
-			<tr class="required-row">
+			<tr>
 				<td><code>JWT_SECRET</code></td>
-				<td class="req-col"><span class="req-flag req-yes" title="Wymagane" aria-label="Wymagane">✓</span></td>
-				<td>Długi, losowy ciąg używany do podpisywania tokenów sesji. Minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>.</td>
+				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
+				<td>Długi, losowy ciąg używany do podpisywania tokenów sesji. Minimum 32 bajty; wygeneruj za pomocą <code>openssl rand -hex 32</code>. Jeśli nie jest ustawiony, obsługa JWT jest wyłączona: <code>get_jwt</code> jest niedostępne, a klienci uwierzytelniają się wyłącznie danymi HTTP Basic lub tokenami API.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
-				<td>Ważność sesji w godzinach. Domyślnie: <code>8</code>.</td>
+				<td>Ważność sesji w godzinach (musi być większa od 0). Domyślnie: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_ISSUER</code></td>
@@ -171,12 +173,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
-				<td>Maksymalna liczba prób logowania w oknie czasowym. Domyślnie: <code>5</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
+				<td>Maksymalna liczba prób uwierzytelnienia na IP klienta i nazwę użytkownika w oknie czasowym. Dotyczy wszystkich metod logowania: liczy się każde wywołanie <code>get_jwt</code>, a w przypadku danych HTTP Basic (na wszystkich endpointach) liczą się nieudane próby. Domyślnie: <code>5</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opcjonalne" aria-label="Opcjonalne">○</span></td>
-				<td>Maksymalna liczba prób logowania na IP klienta przy uwzględnieniu wszystkich nazw użytkowników, dzięki czemu zmiana nazwy użytkownika nie pozwala obejść limitu. Domyślnie: 5× <code>LOGIN_RATE_LIMIT</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
+				<td>Maksymalna liczba prób uwierzytelnienia na IP klienta przy uwzględnieniu wszystkich nazw użytkowników, dzięki czemu zmiana nazwy użytkownika nie pozwala obejść limitu. Liczone są także nieudane próby Bearer (nieprawidłowy JWT lub token API). Domyślnie: 5× <code>LOGIN_RATE_LIMIT</code>. Ustaw <code>0</code>, aby wyłączyć.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>

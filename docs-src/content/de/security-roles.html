@@ -25,6 +25,9 @@ menu:
 		JSON-RPC-Methode <code>get_jwt</code>. Bei Erfolg erhalten sie ein kurzlebiges JWT. Nachfolgende Anfragen
 		übermitteln dieses Token im Header <code>Authorization: Bearer &lt;token&gt;</code>, und PgArachne wechselt die
 		aktive Rolle für die Dauer jeder Anfrage zu diesem Benutzer.</p>
+	<p><em>Erfordert <code>JWT_SECRET</code>. Ist es nicht konfiguriert, liefert <code>get_jwt</code> HTTP 404
+		(JSON-RPC <code>-32601</code>), und Clients verwenden stattdessen direkte Zugangsdaten (Methode 4) oder API-Token
+		(Methode 2).</em></p>
 
 	<h3>2. Service-Konten (API-Token)</h3>
 	<p>Für automatisierte Systeme oder Skripte werden langlebige API-Token empfohlen.</p>
@@ -45,8 +48,9 @@ menu:
 			<code>JWT_SECRET</code>, der in PgArachne konfiguriert ist.</li>
 		<li>Pflicht-Claims: <code>db_role</code> (String, nicht leer) und <code>db_name</code> (String, muss
 			mit dem <code>:database</code>-Pfadsegment übereinstimmen).</li>
-		<li>Empfohlener Claim: <code>exp</code> (Unix-Timestamp) für das Ablaufdatum.</li>
+		<li>Pflicht-Claim: <code>exp</code> (Unix-Timestamp) für das Ablaufdatum.</li>
 	</ul>
+	<p><em>Erfordert <code>JWT_SECRET</code>; ohne es werden Bearer-Werte nur als API-Token geprüft.</em></p>
 	<p>Minimales Payload-Beispiel:</p>
 	<pre><code>{
   "db_role": "demo_user",
@@ -86,7 +90,7 @@ menu:
 		<li>Verbindungs-Pools werden pro Benutzer für maximal 5 Minuten vorgehalten. Nach einer
 			Passwortänderung laufen alte Verbindungen innerhalb dieses Zeitfensters ab.</li>
 		<li>Damit Idempotency Keys mit direkten Zugangsdaten funktionieren, erteilen Sie dem Benutzer
-			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)</code>.</li>
 	</ul>
 
 	<div class="warning">
@@ -141,6 +145,39 @@ GRANT demo_user TO pgarachne;</code></pre>
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 id="function-privileges">Welche Funktionen aufrufbar sind</h3>
+	<p>PgArachne hat keine eigene Schema-Allowlist — was eine Rolle aufrufen darf, entscheiden ausschließlich die
+		PostgreSQL-Berechtigungen. Eine Funktion ist aufrufbar (und wird von <code>capabilities</code>, MCP
+		<code>tools/list</code> und dem OpenAPI-Export aufgelistet), wenn sie einen einzigen <code>jsonb</code>-Parameter
+		hat, die Rolle <code>EXECUTE</code> darauf hat und die Rolle <code>USAGE</code> auf ihrem Schema hat. Funktionen in
+		<code>pg_catalog</code>, <code>information_schema</code>, <code>pgarachne</code> sowie Funktionen von Extensions
+		werden der Übersichtlichkeit halber nicht aufgelistet, für sie gelten aber dieselben Berechtigungen.</p>
+	<div class="warning">
+		<h3>Die PostgreSQL-Standardeinstellungen sind freizügig</h3>
+		<p>Standardmäßig gewährt PostgreSQL <code>EXECUTE</code> auf jede neue Funktion an <code>PUBLIC</code>, und jede Rolle
+			hat <code>USAGE</code> auf dem Schema <code>public</code>. Eine Hilfsfunktion <code>public.something(jsonb)</code>
+			ist daher für jede authentifizierte Rolle über die API aufrufbar, solange Sie die Berechtigung nicht entziehen. Empfohlene Einrichtung:</p>
+		<pre><code>-- New functions are not executable by everyone (run as the role that creates them):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Keep API functions in a dedicated schema and grant explicitly:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3 id="rate-limiting">Schutz vor Brute-Force-Angriffen</h3>
+	<p><code>LOGIN_RATE_LIMIT</code> und <code>LOGIN_RATE_LIMIT_PER_IP</code> gelten für jede Authentifizierungsmethode,
+		auf jedem Endpunkt (JSON-RPC, MCP, SSE, OpenAPI):</p>
+	<ul>
+		<li><code>get_jwt</code>: Jeder Versuch zählt gegen das Budget pro (IP, Benutzername) und das Budget pro IP.</li>
+		<li>Direkte Zugangsdaten (Basic Auth): Fehlgeschlagene Versuche zählen gegen das Budget pro (IP, Benutzername) und das Budget pro IP.
+			Erfolgreiche Anfragen werden nicht gezählt, sodass ein legitimer Client, der bei jeder Anfrage Zugangsdaten sendet,
+			nie gedrosselt wird.</li>
+		<li>Bearer-Token (JWT oder API-Token): Fehlgeschlagene Versuche zählen gegen das Budget pro IP.</li>
+	</ul>
+	<p>Ist ein Budget aufgebraucht, werden weitere Versuche mit HTTP <code>429</code> abgewiesen, bis das Zeitfenster
+		(<code>LOGIN_RATE_WINDOW</code>) abgelaufen ist — ohne die Zugangsdaten überhaupt zu prüfen.</p>
 
 	<div class="doc-related">
 		<h3>Verwandte Doku</h3>

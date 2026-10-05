@@ -78,33 +78,42 @@ func maxDirectPools(cfg *config.Config) int {
 // connection health internally (idle timeouts, driver-level reconnects), so
 // we do not Ping on every call — that would add a round-trip to every request.
 // We only Ping when the cached pool has no open connections (see
-// peekHealthyPool) and when promoting a pool under the write lock, where we
-// need to confirm it is truly alive before handing it out to a caller that
-// found the read-path pool absent or stale.
+// peekHealthyPool) and when creating a replacement pool.
+//
+// No network round-trip happens while dbMutex is held: a slow or unreachable
+// server (or a request for a database that does not exist) must not stall
+// requests for every other database, which all take dbMutex on their hot path.
 func GetConnection(cfg *config.Config, dbName string) (*sql.DB, error) {
-	if db, ok := peekHealthyPool(dbName); ok {
-		return db, nil
+	cached, healthy := peekHealthyPool(dbName)
+	if healthy {
+		return cached, nil
+	}
+
+	newDB, err := openSystemPool(cfg, dbName)
+	if err != nil {
+		return nil, err
 	}
 
 	dbMutex.Lock()
 	defer dbMutex.Unlock()
 
-	// Re-check under the write lock: another goroutine may have raced us
-	// here and already created a fresh pool.
-	if db, ok := dbConnections[dbName]; ok {
-		// Ping once under the lock to confirm the pool is reachable. This
-		// is the only place we Ping — not on the hot read path.
-		pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		err := db.PingContext(pingCtx)
-		pingCancel()
-		if err == nil {
-			return db, nil
-		}
-		// Cached pool is dead — drop it and create a fresh one below.
-		_ = db.Close()
-		delete(dbConnections, dbName)
+	if current, ok := dbConnections[dbName]; ok && current != cached {
+		// Another goroutine replaced the pool while we were connecting;
+		// keep theirs so there is only ever one pool per database.
+		_ = newDB.Close()
+		return current, nil
 	}
+	if cached != nil {
+		// The cached pool failed its health check — drop it.
+		_ = cached.Close()
+	}
+	dbConnections[dbName] = newDB
+	slog.Info("Successfully connected to database", "database", dbName)
+	return newDB, nil
+}
 
+// openSystemPool opens and pings a new DB_USER pool for dbName.
+func openSystemPool(cfg *config.Config, dbName string) (*sql.DB, error) {
 	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s %s",
 		cfg.DBHost,
 		cfg.DBPort,
@@ -136,25 +145,25 @@ func GetConnection(cfg *config.Config, dbName string) (*sql.DB, error) {
 		newDB.SetConnMaxIdleTime(cfg.DBConnMaxIdleTime)
 	}
 
-	if err = newDB.Ping(); err != nil {
+	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer pingCancel()
+	if err := newDB.PingContext(pingCtx); err != nil {
 		_ = newDB.Close()
 		return nil, fmt.Errorf("DB ping failed for %s: %w", dbName, err)
 	}
-
-	dbConnections[dbName] = newDB
-	slog.Info("Successfully connected to database", "database", dbName)
 	return newDB, nil
 }
 
-// peekHealthyPool returns the cached pool for dbName under a read lock.
+// peekHealthyPool returns the cached pool for dbName and whether it is
+// healthy. An unhealthy pool is still returned (healthy=false) so that
+// GetConnection can tell whether another goroutine replaced it meanwhile.
 // To keep the hot path free of network round-trips, it Pings only when the
 // pool currently has no open connections: a pool that is actively serving
 // traffic is healthy by definition (database/sql manages per-connection
 // health internally), while a pool with zero open connections is either
 // fresh, fully idle-reaped, or dead (closed pool, restarted server) — the
-// single Ping distinguishes those cases. On Ping failure the pool is
-// reported absent, sending the caller to GetConnection's write-locked path,
-// which drops the dead pool and creates a fresh one.
+// single Ping distinguishes those cases. The Ping runs without holding
+// dbMutex.
 func peekHealthyPool(dbName string) (*sql.DB, bool) {
 	dbMutex.RLock()
 	db, ok := dbConnections[dbName]
@@ -168,7 +177,7 @@ func peekHealthyPool(dbName string) (*sql.DB, bool) {
 	pingCtx, pingCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer pingCancel()
 	if err := db.PingContext(pingCtx); err != nil {
-		return nil, false
+		return db, false
 	}
 	return db, true
 }
@@ -196,30 +205,6 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 	}
 	directPoolsMu.RUnlock()
 
-	directPoolsMu.Lock()
-	defer directPoolsMu.Unlock()
-
-	// Re-check after acquiring the write lock.
-	if entry, ok := directPools[key]; ok {
-		entry.touch()
-		return entry.db, nil
-	}
-
-	if limit := maxDirectPools(cfg); len(directPools) >= limit {
-		// The cap exists to bound memory under a credential-spray attack, but
-		// long-lived deployments legitimately accumulate one entry per past
-		// (user, password) combination — every password rotation leaves its
-		// old pool behind forever, since nothing else ever removes a map
-		// entry. Without this eviction step, enough routine rotations
-		// eventually fill the map and lock out brand-new direct-auth
-		// credentials even though most cached pools have long since gone
-		// idle. Only a pool with zero open connections is evicted, so an
-		// entry actively serving requests is never closed out from under it.
-		if !evictIdleDirectPoolLocked() {
-			return nil, fmt.Errorf("direct connection pool limit reached (max %d distinct credentials)", limit)
-		}
-	}
-
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
 		cfg.DBHost,
 		cfg.DBPort,
@@ -242,6 +227,11 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetConnMaxIdleTime(2 * time.Minute)
 
+	// Authenticate before taking the write lock. The Ping is a network
+	// round-trip (up to 5s against a slow or unreachable server); holding
+	// directPoolsMu across it would stall every other direct-auth request —
+	// cache hits included, since RLock waits for a pending writer — and let
+	// a stream of wrong-password attempts serialise all Basic-Auth traffic.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := db.PingContext(ctx); err != nil {
@@ -249,6 +239,32 @@ func GetUserConnection(cfg *config.Config, dbName, username, password string) (*
 		// Return a generic error — callers must not leak PostgreSQL's auth
 		// error details (which can include the username) in HTTP responses.
 		return nil, fmt.Errorf("direct authentication failed for user %q: %w", username, err)
+	}
+
+	directPoolsMu.Lock()
+	defer directPoolsMu.Unlock()
+
+	// Another request with the same credentials may have won the race.
+	if entry, ok := directPools[key]; ok {
+		_ = db.Close()
+		entry.touch()
+		return entry.db, nil
+	}
+
+	if limit := maxDirectPools(cfg); len(directPools) >= limit {
+		// The cap exists to bound memory under a credential-spray attack, but
+		// long-lived deployments legitimately accumulate one entry per past
+		// (user, password) combination — every password rotation leaves its
+		// old pool behind forever, since nothing else ever removes a map
+		// entry. Without this eviction step, enough routine rotations
+		// eventually fill the map and lock out brand-new direct-auth
+		// credentials even though most cached pools have long since gone
+		// idle. Only a pool with zero open connections is evicted, so an
+		// entry actively serving requests is never closed out from under it.
+		if !evictIdleDirectPoolLocked() {
+			_ = db.Close()
+			return nil, fmt.Errorf("direct connection pool limit reached (max %d distinct credentials)", limit)
+		}
 	}
 
 	entry := &directPoolEntry{db: db}

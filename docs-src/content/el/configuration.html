@@ -43,12 +43,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
-	<p><strong>Απαιτούμενες μεταβλητές:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>).</p>
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Απαιτούμενες μεταβλητές:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
+	<p>Το <code>JWT_SECRET</code> είναι προαιρετικό. Ορίστε το (ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>) για να ενεργοποιήσετε JWT sessions μέσω <code>get_jwt</code> και εξωτερικά εκδιδόμενα JWT. Χωρίς αυτό, η υποστήριξη JWT είναι απενεργοποιημένη και οι clients πιστοποιούνται με διαπιστευτήρια HTTP Basic (όνομα χρήστη και κωδικός πρόσβασης βάσης δεδομένων) ή με μακρόβια API tokens.</p>
 
 	<h3>Λίστα Ελέγχου Ταχείας Επικύρωσης</h3>
 	<ul>
-		<li>Το <code>JWT_SECRET</code> είναι μεγάλο, τυχαίο, και δεν επαναχρησιμοποιείται σε διαφορετικά περιβάλλοντα.</li>
+		<li>Αν το JWT είναι ενεργοποιημένο, το <code>JWT_SECRET</code> είναι μεγάλο, τυχαίο, και δεν επαναχρησιμοποιείται σε διαφορετικά περιβάλλοντα.</li>
 		<li>Ο <code>DB_USER</code> μπορεί να μεταβεί μόνο στους αναμενόμενους ρόλους (επιβεβαιώστε τα role membership grants).</li>
 		<li>Το <code>TRUSTED_PROXIES</code> έχει ρυθμιστεί όταν εκτελείται πίσω από reverse proxy.</li>
 		<li>Το <code>LOGIN_RATE_LIMIT</code> είναι ενεργοποιημένο για deployments προσβάσιμα από το διαδίκτυο.</li>
@@ -140,18 +142,18 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Security Config -->
 			<tr>
-				<td colspan="3" class="config-table-section">Ασφάλεια (JWT)
+				<td colspan="3" class="config-table-section">Ασφάλεια (JWT &amp; σύνδεση)
 				</td>
 			</tr>
-			<tr class="required-row">
+			<tr>
 				<td><code>JWT_SECRET</code></td>
-				<td class="req-col"><span class="req-flag req-yes" title="Απαιτείται" aria-label="Απαιτείται">✓</span></td>
-				<td>Ένα μεγάλο, τυχαίο string που χρησιμοποιείται για την υπογραφή session tokens. Ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>.</td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Ένα μεγάλο, τυχαίο string που χρησιμοποιείται για την υπογραφή session tokens. Ελάχιστο 32 bytes· δημιουργήστε με <code>openssl rand -hex 32</code>. Αν δεν έχει οριστεί, η υποστήριξη JWT είναι απενεργοποιημένη: το <code>get_jwt</code> δεν είναι διαθέσιμο και οι clients πιστοποιούνται μόνο με διαπιστευτήρια HTTP Basic ή API tokens.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
-				<td>Διάρκεια ισχύος session σε ώρες. Προεπιλογή: <code>8</code>.</td>
+				<td>Διάρκεια ισχύος session σε ώρες (πρέπει να είναι μεγαλύτερη από 0). Προεπιλογή: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_ISSUER</code></td>
@@ -171,12 +173,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
-				<td>Μέγιστες προσπάθειες σύνδεσης ανά χρονικό παράθυρο. Προεπιλογή: <code>5</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
+				<td>Μέγιστες προσπάθειες πιστοποίησης ανά IP client και username ανά χρονικό παράθυρο. Ισχύει για κάθε μέθοδο σύνδεσης: μετράει κάθε κλήση <code>get_jwt</code>, ενώ για διαπιστευτήρια HTTP Basic (σε όλα τα endpoints) μετρούν οι αποτυχημένες προσπάθειες. Προεπιλογή: <code>5</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
-				<td>Μέγιστες προσπάθειες σύνδεσης ανά IP client σε όλα τα usernames, ώστε η εναλλαγή usernames να μην παρακάμπτει το όριο. Προεπιλογή: 5× <code>LOGIN_RATE_LIMIT</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
+				<td>Μέγιστες προσπάθειες πιστοποίησης ανά IP client σε όλα τα usernames, ώστε η εναλλαγή usernames να μην παρακάμπτει το όριο. Μετρούν επίσης οι αποτυχημένες προσπάθειες Bearer (μη έγκυρο JWT ή API token). Προεπιλογή: 5× <code>LOGIN_RATE_LIMIT</code>. Ορίστε <code>0</code> για απενεργοποίηση.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>

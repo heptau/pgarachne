@@ -37,7 +37,8 @@ psql -d my_database -f sql/schema.sql</code></pre>
 		<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=$(openssl rand -hex 32)</code></pre>
+# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# JWT_SECRET=...</code></pre>
 		<p>Spusťte server:</p>
 		<pre><code>./pgarachne</code></pre>
 	</div>

@@ -388,6 +388,9 @@ func Load(configPath string) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid JWT_EXPIRY_HOURS value: '%s', must be an integer", jwtExpiryStr)
 		}
+		if hours <= 0 {
+			return nil, fmt.Errorf("invalid JWT_EXPIRY_HOURS value: '%s', must be > 0", jwtExpiryStr)
+		}
 		cfg.JWTExpiryHours = hours
 	} else {
 		cfg.JWTExpiryHours = 8 // Default
@@ -462,15 +465,16 @@ func Load(configPath string) (*Config, error) {
 			cfg.DBMaxIdleConns, cfg.DBMaxOpenConns)
 	}
 
+	// JWT_SECRET is optional. Without it the get_jwt login method is
+	// disabled and clients authenticate with HTTP Basic credentials or
+	// long-lived API tokens only.
 	if cfg.JWTSecret == "" {
-		return nil, fmt.Errorf("jwt_secret not set in config (environment variable JWT_SECRET)")
-	}
-	if cfg.JWTSecret == jwtSecretPlaceholder {
+		slog.Info("JWT_SECRET not set — JWT sessions (get_jwt) are disabled; use HTTP Basic credentials or API tokens")
+	} else if cfg.JWTSecret == jwtSecretPlaceholder {
 		return nil, fmt.Errorf("JWT_SECRET is still the example placeholder; generate a real secret, e.g. with: openssl rand -hex 32")
-	}
-	// HS256 needs a key with at least 256 bits of entropy; anything shorter
-	// is realistically brute-forceable offline from a single captured token.
-	if len(cfg.JWTSecret) < minJWTSecretLength {
+	} else if len(cfg.JWTSecret) < minJWTSecretLength {
+		// HS256 needs a key with at least 256 bits of entropy; anything shorter
+		// is realistically brute-forceable offline from a single captured token.
 		return nil, fmt.Errorf("JWT_SECRET is too short (%d bytes); must be at least %d bytes, e.g. generated with: openssl rand -hex 32",
 			len(cfg.JWTSecret), minJWTSecretLength)
 	}

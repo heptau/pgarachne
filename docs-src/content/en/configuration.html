@@ -43,12 +43,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
-	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (minimum 32 bytes; generate with <code>openssl rand -hex 32</code>).</p>
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
+	<p><code>JWT_SECRET</code> is optional. Set it (minimum 32 bytes; generate with <code>openssl rand -hex 32</code>) to enable JWT sessions via <code>get_jwt</code> and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.</p>
 
 	<h3>Quick Validation Checklist</h3>
 	<ul>
-		<li><code>JWT_SECRET</code> is long, random, and not reused across environments.</li>
+		<li>If JWT is enabled, <code>JWT_SECRET</code> is long, random, and not reused across environments.</li>
 		<li><code>DB_USER</code> can switch only to expected roles (verify role membership grants).</li>
 		<li><code>TRUSTED_PROXIES</code> is set when running behind a reverse proxy.</li>
 		<li><code>LOGIN_RATE_LIMIT</code> is enabled for internet-facing deployments.</li>
@@ -140,18 +142,18 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Security Config -->
 			<tr>
-				<td colspan="3" class="config-table-section">Security (JWT)
+				<td colspan="3" class="config-table-section">Security (JWT &amp; login)
 				</td>
 			</tr>
-			<tr class="required-row">
+			<tr>
 				<td><code>JWT_SECRET</code></td>
-				<td class="req-col"><span class="req-flag req-yes" title="Required" aria-label="Required">✓</span></td>
-				<td>A long, random string used to sign session tokens. Minimum 32 bytes; generate with <code>openssl rand -hex 32</code>.</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>A long, random string used to sign session tokens. Minimum 32 bytes; generate with <code>openssl rand -hex 32</code>. If unset, JWT support is disabled: <code>get_jwt</code> is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Session validity in hours. Default: <code>8</code>.</td>
+				<td>Session validity in hours (must be greater than 0). Default: <code>8</code>.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_ISSUER</code></td>
@@ -171,12 +173,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Max login attempts per window. Default: <code>5</code>. Set <code>0</code> to disable.</td>
+				<td>Max authentication attempts per client IP and username per window. Applies to every login method: each <code>get_jwt</code> call counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: <code>5</code>. Set <code>0</code> to disable.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Max login attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Default: 5× <code>LOGIN_RATE_LIMIT</code>. Set <code>0</code> to disable.</td>
+				<td>Max authentication attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Also counts failed Bearer attempts (invalid JWT or API token). Default: 5× <code>LOGIN_RATE_LIMIT</code>. Set <code>0</code> to disable.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>

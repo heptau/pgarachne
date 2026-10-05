@@ -46,8 +46,10 @@ Thanks for contributing.
 
 ## Adding a New JSON-RPC Function
 
-1. Create the function in the `api` schema (or any schema returned by
-   `pgarachne.allowed_schemas()`).
+1. Create the function in a dedicated schema (by convention `api`). Any schema
+   works: what a role may call — and what `pgarachne.capabilities()` lists —
+   is decided by PostgreSQL privileges alone (`USAGE` on the schema +
+   `EXECUTE` on the function).
 2. Accept a single `jsonb` parameter and return `json`.
 3. Add a comment block with a `--- PARAMS ---` section so it surfaces in
    `pgarachne.capabilities()` output and the OpenAPI generator.

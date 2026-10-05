@@ -21,7 +21,7 @@ menu:
 
 	<div class="card" style="margin-bottom: 2rem;">
 		<h3>🛠️ SQL Functions as Tools</h3>
-		<p>Any SQL function accessible via PgArachne's JSON-RPC 2.0 endpoint automatically becomes a "tool" available to the AI. The default behavior (calling <code>pgarachne.allowed_schemas()</code>) exposes functions stored in the <code>api</code> schema that the authenticated user has access to (via <code>GRANT EXECUTE</code>). The LLM sees the function name, parameters, and description from SQL comments.</p>
+		<p>Any SQL function accessible via PgArachne's JSON-RPC 2.0 endpoint automatically becomes a "tool" available to the AI. Which functions are exposed is decided by PostgreSQL privileges alone: every function with a single <code>jsonb</code> parameter on which the authenticated role has <code>EXECUTE</code> and whose schema it has <code>USAGE</code> on (see <a href="../security-roles/#function-privileges">Function Privileges</a>). The LLM sees the function name, parameters, and description from SQL comments.</p>
 	</div>
 
 	<h3>Connection Guide</h3>

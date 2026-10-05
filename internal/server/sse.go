@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/heptau/pgarachne/internal/config"
-	"github.com/heptau/pgarachne/internal/database"
 	"github.com/lib/pq"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -116,6 +116,16 @@ type dbListener struct {
 	dbName   string
 	listener *pq.Listener
 
+	// Lock ordering: subMu before mu.
+	//
+	// subMu serialises LISTEN/UNLISTEN round-trips and is held across them.
+	// mu guards the maps only and is never held across a network call: the
+	// run() goroutine takes mu in broadcast, and pq's connection loop cannot
+	// deliver the reply to a LISTEN/UNLISTEN while it is blocked handing a
+	// notification to run(). Holding mu across such a call would therefore
+	// deadlock the listener as soon as more notifications arrive than pq's
+	// internal buffer holds.
+	subMu       sync.Mutex
 	mu          sync.Mutex
 	channels    map[string]map[*sseClient]struct{}
 	clients     map[*sseClient]struct{}
@@ -182,20 +192,18 @@ func (h *sseHub) getDBListener(dbName string) (*dbListener, error) {
 
 func (h *sseHub) maybeRemoveListener(dbName string, listener *dbListener) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	current, ok := h.dbs[dbName]
-	if !ok || current != listener {
+	if !ok || current != listener || listener.hasChannels() {
+		h.mu.Unlock()
 		return
 	}
-
-	if listener.hasChannels() {
-		return
-	}
-
 	delete(h.dbs, dbName)
+	h.mu.Unlock()
+
 	// Close() instead of closing the channel directly: closeOnce guarantees
-	// a later hub Shutdown cannot double-close listener.closed.
+	// a later hub Shutdown cannot double-close listener.closed. Called
+	// without h.mu, because closing the pq.Listener talks to the database
+	// and must not block getDBListener for every other database.
 	listener.Close()
 }
 
@@ -222,36 +230,65 @@ func (l *dbListener) hasChannels() bool {
 	return len(l.channels) > 0
 }
 
-func (l *dbListener) addClient(channels []string, client *sseClient, maxClients int) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+// errSSEListenerClosed is returned by addClient when the listener was
+// closed (last client left, or hub shutdown) after the caller obtained it.
+var errSSEListenerClosed = errors.New("SSE listener closed")
 
+func (l *dbListener) isClosed() bool {
+	select {
+	case <-l.closed:
+		return true
+	default:
+		return false
+	}
+}
+
+func (l *dbListener) addClient(channels []string, client *sseClient, maxClients int) error {
+	l.subMu.Lock()
+	defer l.subMu.Unlock()
+
+	if l.isClosed() {
+		return errSSEListenerClosed
+	}
+
+	l.mu.Lock()
 	if maxClients > 0 && len(l.clients) >= maxClients {
+		l.mu.Unlock()
 		return fmt.Errorf("too many SSE clients (max %d)", maxClients)
 	}
+	var missing []string
+	for _, channel := range channels {
+		if l.channels[channel] == nil {
+			missing = append(missing, channel)
+		}
+	}
+	l.mu.Unlock()
 
 	// Subscribe to new channels before registering the client so we can
 	// roll back cleanly if any LISTEN call fails. A client that is never
 	// registered will never receive events, which is safer than registering
 	// it and silently dropping notifications for unsubscribed channels.
+	// subMu guarantees no concurrent add/remove changes which channels are
+	// subscribed while mu is released.
 	var subscribed []string
-	for _, channel := range channels {
-		if l.channels[channel] == nil {
-			if err := l.listener.Listen(channel); err != nil {
-				slog.Error("SSE LISTEN failed", "channel", channel, "database", l.dbName, "error", err)
-				for _, c := range subscribed {
-					if err2 := l.listener.Unlisten(c); err2 != nil {
-						slog.Warn("SSE UNLISTEN failed during rollback", "channel", c, "database", l.dbName, "error", err2)
-					}
-					delete(l.channels, c)
+	for _, channel := range missing {
+		if err := l.listener.Listen(channel); err != nil {
+			slog.Error("SSE LISTEN failed", "channel", channel, "database", l.dbName, "error", err)
+			for _, c := range subscribed {
+				if err2 := l.listener.Unlisten(c); err2 != nil {
+					slog.Warn("SSE UNLISTEN failed during rollback", "channel", c, "database", l.dbName, "error", err2)
 				}
-				return fmt.Errorf("failed to subscribe to channel %q: %w", channel, err)
 			}
-			subscribed = append(subscribed, channel)
-			l.channels[channel] = make(map[*sseClient]struct{})
+			return fmt.Errorf("failed to subscribe to channel %q: %w", channel, err)
 		}
+		subscribed = append(subscribed, channel)
 	}
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for _, channel := range subscribed {
+		l.channels[channel] = make(map[*sseClient]struct{})
+	}
 	l.clients[client] = struct{}{}
 	for _, channel := range channels {
 		l.channels[channel][client] = struct{}{}
@@ -261,9 +298,11 @@ func (l *dbListener) addClient(channels []string, client *sseClient, maxClients 
 }
 
 func (l *dbListener) removeClient(channels []string, client *sseClient) bool {
-	l.mu.Lock()
-	defer l.mu.Unlock()
+	l.subMu.Lock()
+	defer l.subMu.Unlock()
 
+	l.mu.Lock()
+	var emptied []string
 	for _, channel := range channels {
 		clients := l.channels[channel]
 		if clients == nil {
@@ -272,15 +311,23 @@ func (l *dbListener) removeClient(channels []string, client *sseClient) bool {
 		delete(clients, client)
 		if len(clients) == 0 {
 			delete(l.channels, channel)
+			emptied = append(emptied, channel)
+		}
+	}
+	delete(l.clients, client)
+	l.updateMetricsLocked()
+	empty := len(l.channels) == 0
+	l.mu.Unlock()
+
+	// A closed listener has already dropped all its subscriptions.
+	if !l.isClosed() {
+		for _, channel := range emptied {
 			if err := l.listener.Unlisten(channel); err != nil {
 				slog.Warn("SSE UNLISTEN failed", "channel", channel, "database", l.dbName, "error", err)
 			}
 		}
 	}
-
-	delete(l.clients, client)
-	l.updateMetricsLocked()
-	return len(l.channels) == 0
+	return empty
 }
 
 func (l *dbListener) broadcast(channel string, data interface{}) {
@@ -304,10 +351,15 @@ func (l *dbListener) broadcast(channel string, data interface{}) {
 	}
 }
 
+// dropClient signals client to disconnect. It only closes client.done; the
+// client's own handleSSE goroutine then unregisters it (removeClient, which
+// may UNLISTEN). dropClient is called from run() and from pq's event
+// callback, neither of which may block on a LISTEN/UNLISTEN round-trip —
+// pq's connection loop needs both of them to keep draining notifications.
+// Until the handler unregisters it, broadcast skips the client via done.
 func (l *dbListener) dropClient(client *sseClient, reason string) {
 	client.closeOnce.Do(func() {
 		close(client.done)
-		l.removeClient(client.channels, client)
 		if reason != "" {
 			sseDropsCounter.WithLabelValues(l.dbName, reason).Inc()
 		}
@@ -334,11 +386,15 @@ func (l *dbListener) dropAllClients() {
 // underlying listener is closed at most once.
 func (l *dbListener) Close() {
 	l.closeOnce.Do(func() {
+		// Mark closed under subMu so a concurrent addClient either finishes
+		// first or sees the listener closed and retries with a fresh one.
+		l.subMu.Lock()
+		close(l.closed)
+		l.subMu.Unlock()
 		l.dropAllClientsWithReason("shutdown")
 		if err := l.listener.Close(); err != nil {
 			slog.Warn("SSE listener close failed", "database", l.dbName, "error", err)
 		}
-		close(l.closed)
 	})
 }
 
@@ -414,9 +470,6 @@ func (s *Server) handleSSE(c *gin.Context) {
 		return
 	}
 
-	// SSE authentication mirrors the JSON-RPC and MCP endpoints:
-	//   Basic Auth  → direct user pool; channel subscription runs as that user.
-	//   Bearer/API  → system pool; authenticateToken validates JWT or API token.
 	maxChannels := s.Cfg.SSEMaxChannels
 	if maxChannels <= 0 {
 		maxChannels = defaultSSEMaxChannels
@@ -427,41 +480,15 @@ func (s *Server) handleSSE(c *gin.Context) {
 		return
 	}
 
-	if username, password, ok := parseBasicAuth(c.GetHeader("Authorization")); ok {
-		if len(username) == 0 || len(username) > MaxLoginLength || len(password) > MaxPasswordLength {
-			recordAuthResult("direct", "malformed")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-			return
-		}
-		_, err := database.GetUserConnection(s.Cfg, databaseName, username, password)
-		if err != nil {
-			slog.Warn("SSE: direct authentication failed", "user", username, "database", databaseName, "error", err)
-			recordAuthResult("direct", "invalid")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
-			return
-		}
-		recordAuthResult("direct", "success")
-		// For direct auth we only verify credentials; the listener runs as the
-		// pgarachne service user (SSE uses pq.Listener, not per-user connections).
-	} else {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			recordAuthResult("unknown", "missing_header")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
-			return
-		}
-
-		db, err := database.GetConnection(s.Cfg, databaseName)
-		if err != nil {
-			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "Database connection failed"})
-			return
-		}
-
-		_, errMsg, status := s.authenticateToken(c, db, databaseName)
-		if errMsg != "" {
-			c.JSON(status, gin.H{"error": errMsg})
-			return
-		}
+	// SSE authentication is shared with the JSON-RPC and MCP endpoints
+	// (Basic / Bearer JWT / API token, including login rate limiting). The
+	// credentials are only verified here: the listener always runs as the
+	// pgarachne service user (SSE uses one pq.Listener per database).
+	if _, _, authErr := s.authenticateForDatabase(c, databaseName); authErr != nil {
+		var af *authFailure
+		errors.As(authErr, &af)
+		c.JSON(af.status, gin.H{"error": af.message})
+		return
 	}
 
 	listener, err := s.sseHub.getDBListener(databaseName)
@@ -476,7 +503,19 @@ func (s *Server) handleSSE(c *gin.Context) {
 		channels: channels,
 	}
 	maxClients := sseMaxClients(s.Cfg)
-	if err := listener.addClient(channels, client, maxClients); err != nil {
+	err = listener.addClient(channels, client, maxClients)
+	if errors.Is(err, errSSEListenerClosed) {
+		// The listener we got was closed by a concurrent last-client
+		// cleanup before we could subscribe; it is already gone from the
+		// hub, so a second lookup yields a fresh one.
+		listener, err = s.sseHub.getDBListener(databaseName)
+		if err != nil {
+			c.JSON(http.StatusServiceUnavailable, gin.H{"error": "SSE listener unavailable"})
+			return
+		}
+		err = listener.addClient(channels, client, maxClients)
+	}
+	if err != nil {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
 		return
 	}

@@ -45,12 +45,14 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
-	<p><strong>Erforderliche Variablen:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>, <code>JWT_SECRET</code> (mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>).</p>
+# Optional — enables JWT sessions (get_jwt):
+# JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
+	<p><strong>Erforderliche Variablen:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
+	<p><code>JWT_SECRET</code> ist optional. Setzen Sie es (mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>), um JWT-Sitzungen über <code>get_jwt</code> sowie extern ausgestellte JWTs zu aktivieren. Ohne es ist die JWT-Unterstützung deaktiviert, und Clients authentifizieren sich mit HTTP-Basic-Zugangsdaten (Datenbank-Benutzername und -Passwort) oder langlebigen API-Token.</p>
 
 	<h3>Schnelle Validierungs-Checkliste</h3>
 	<ul>
-		<li><code>JWT_SECRET</code> ist lang, zufällig und wird nicht zwischen Umgebungen geteilt.</li>
+		<li>Falls JWT aktiviert ist: <code>JWT_SECRET</code> ist lang, zufällig und wird nicht zwischen Umgebungen geteilt.</li>
 		<li><code>DB_USER</code> kann nur auf erwartete Rollen wechseln (Role-Membership-Grants prüfen).</li>
 		<li><code>TRUSTED_PROXIES</code> ist gesetzt, wenn PgArachne hinter einem Reverse Proxy läuft.</li>
 		<li><code>LOGIN_RATE_LIMIT</code> ist für öffentlich erreichbare Deployments aktiviert.</li>
@@ -142,18 +144,18 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 
 			<!-- Sicherheits-Konfig -->
 			<tr>
-				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Sicherheit (JWT)
+				<td colspan="3" style="background-color: #f9f9f9; font-weight: bold; color: #666;">Sicherheit (JWT &amp; Login)
 				</td>
 			</tr>
-			<tr class="required-row">
+			<tr>
 				<td><code>JWT_SECRET</code></td>
-				<td class="req-col"><span class="req-flag req-yes" title="Erforderlich" aria-label="Erforderlich">✓</span></td>
-				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken. Mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>.</td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken. Mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>. Ist es nicht gesetzt, ist die JWT-Unterstützung deaktiviert: <code>get_jwt</code> ist nicht verfügbar, und Clients authentifizieren sich ausschließlich mit HTTP-Basic-Zugangsdaten oder API-Token.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Gültigkeit der Sitzung in Stunden. Standard: <code>8</code>.</td>
+				<td>Gültigkeit der Sitzung in Stunden (muss größer als 0 sein). Standard: <code>8</code>.</td>
 			</tr>
 				<tr>
 					<td><code>JWT_ISSUER</code></td>
@@ -173,12 +175,12 @@ JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</cod
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Maximale Login-Versuche pro Zeitfenster. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
+				<td>Maximale Authentifizierungsversuche pro Client-IP und Benutzername pro Zeitfenster. Gilt für jede Login-Methode: Jeder <code>get_jwt</code>-Aufruf zählt, bei HTTP-Basic-Zugangsdaten (auf allen Endpunkten) zählen fehlgeschlagene Versuche. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Maximale Login-Versuche pro Client-IP über alle Benutzernamen hinweg, sodass wechselnde Benutzernamen das Limit nicht umgehen. Standard: 5× <code>LOGIN_RATE_LIMIT</code>. <code>0</code> deaktiviert.</td>
+				<td>Maximale Authentifizierungsversuche pro Client-IP über alle Benutzernamen hinweg, sodass wechselnde Benutzernamen das Limit nicht umgehen. Zählt auch fehlgeschlagene Bearer-Versuche (ungültiges JWT oder API-Token). Standard: 5× <code>LOGIN_RATE_LIMIT</code>. <code>0</code> deaktiviert.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_WINDOW</code></td>

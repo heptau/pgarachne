@@ -53,8 +53,8 @@ menu:
 		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Κακοσχηματισμένο payload request ή μορφή method.</td></tr>
 		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Απούσα ή μη έγκυρη authentication.</td></tr>
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Το <code>SET LOCAL ROLE</code> απέτυχε (<code>-32001</code>).</td></tr>
-		<tr><td><code>404</code></td><td>Function does not exist</td><td>Η function-στόχος λείπει.</td></tr>
-		<tr><td><code>429</code></td><td>Too many login attempts</td><td>Υπέρβαση του rate limit σύνδεσης.</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>Η function-στόχος λείπει (<code>-32601</code>), ή κλήθηκε το <code>get_jwt</code> ενώ το <code>JWT_SECRET</code> δεν έχει ρυθμιστεί.</td></tr>
+		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Υπέρβαση του rate limit σύνδεσης ή πιστοποίησης (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Αποτυχία εκτέλεσης ή commit.</td></tr>
 		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Προσωρινή μη διαθεσιμότητα βάσης δεδομένων ή listener.</td></tr>
 	</table>

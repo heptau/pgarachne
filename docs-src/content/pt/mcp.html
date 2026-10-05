@@ -27,9 +27,10 @@ menu:
 	<div class="card" style="margin-bottom: 2rem;">
 		<h3>🛠️ Funções SQL como Ferramentas</h3>
 		<p>Qualquer função SQL acessível através do endpoint JSON-RPC 2.0 do PgArachne torna-se automaticamente
-			uma "ferramenta" disponível para a IA. O comportamento padrão (chamada a
-			<code>pgarachne.allowed_schemas()</code>) expõe as funções armazenadas no schema <code>api</code>
-			às quais o utilizador autenticado tem acesso (via <code>GRANT EXECUTE</code>). O modelo de
+			uma "ferramenta" disponível para a IA. As funções expostas são decididas
+			exclusivamente pelos privilégios do PostgreSQL: todas as funções com um único parâmetro <code>jsonb</code> sobre
+			as quais o papel autenticado tem <code>EXECUTE</code> e sobre cujo schema tem <code>USAGE</code> (consulte
+			<a href="../security-roles/#function-privileges">Que funções podem ser chamadas</a>). O modelo de
 			linguagem vê o nome da função, os parâmetros e a descrição a partir dos comentários SQL.</p>
 	</div>
 

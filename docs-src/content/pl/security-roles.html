@@ -25,6 +25,9 @@ menu:
 		metodę JSON-RPC <code>get_jwt</code>. Jeśli logowanie powiedzie się, otrzymują krótkotrwały JWT. Kolejne żądania
 		przekazują ten token w nagłówku <code>Authorization: Bearer &lt;token&gt;</code>, a PgArachne przełącza
 		aktywną rolę na tego użytkownika na czas trwania każdego żądania.</p>
+	<p><em>Wymaga <code>JWT_SECRET</code>. Gdy nie jest skonfigurowany, <code>get_jwt</code> zwraca HTTP 404
+		(JSON-RPC <code>-32601</code>), a klienci korzystają zamiast tego z bezpośrednich danych logowania (metoda 4)
+		lub tokenów API (metoda 2).</em></p>
 
 	<h3>2. Konta serwisowe (tokeny API)</h3>
 	<p>Dla systemów automatycznych lub skryptów zalecane są długoterminowe tokeny API.</p>
@@ -45,8 +48,9 @@ menu:
 			<code>JWT_SECRET</code> skonfigurowanego w PgArachne.</li>
 		<li>Wymagane claimy: <code>db_role</code> (ciąg znaków, niepusty) oraz <code>db_name</code> (ciąg znaków, musi
 			odpowiadać segmentowi ścieżki <code>:database</code>).</li>
-		<li>Zalecany claim: <code>exp</code> (znacznik czasu Unix) do określenia wygaśnięcia tokenu.</li>
+		<li>Wymagany claim: <code>exp</code> (znacznik czasu Unix) do określenia wygaśnięcia tokenu.</li>
 	</ul>
+	<p><em>Wymaga <code>JWT_SECRET</code>; bez niego wartości Bearer są sprawdzane wyłącznie jako tokeny API.</em></p>
 	<p>Minimalny przykład payloadu:</p>
 	<pre><code>{
   "db_role": "demo_user",
@@ -86,7 +90,7 @@ menu:
 		<li>Poole połączeń są utrzymywane osobno dla każdego użytkownika, z maksymalnym czasem życia 5 minut. Po
 			zmianie hasła stare połączenia wygasają w tym okresie.</li>
 		<li>Aby klucze idempotencji działały z bezpośrednimi danymi logowania, przyznaj użytkownikowi uprawnienie
-			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text)</code>.</li>
+			<code>EXECUTE ON FUNCTION pgarachne.save_idempotency_key(text, text)</code>.</li>
 	</ul>
 
 	<div class="warning">
@@ -141,6 +145,39 @@ GRANT demo_user TO pgarachne;</code></pre>
 			</tr>
 		</tbody>
 	</table>
+
+	<h3 id="function-privileges">Które funkcje można wywołać</h3>
+	<p>PgArachne nie ma własnej listy dozwolonych schematów — o tym, co rola może wywołać, decydują wyłącznie uprawnienia
+		PostgreSQL. Funkcję można wywołać (i jest wymieniana przez <code>capabilities</code>, MCP <code>tools/list</code> oraz
+		eksport OpenAPI), gdy przyjmuje jeden parametr <code>jsonb</code>, rola ma do niej <code>EXECUTE</code>, a rola ma
+		<code>USAGE</code> do jej schematu. Funkcje w <code>pg_catalog</code>, <code>information_schema</code>,
+		<code>pgarachne</code> oraz funkcje należące do rozszerzeń są pomijane na liście dla czytelności, ale obowiązują
+		je te same uprawnienia.</p>
+	<div class="warning">
+		<h3>Domyślne ustawienia PostgreSQL są liberalne</h3>
+		<p>Domyślnie PostgreSQL nadaje <code>EXECUTE</code> do każdej nowej funkcji roli <code>PUBLIC</code>, a każda rola
+			ma <code>USAGE</code> do schematu <code>public</code>. Funkcja pomocnicza <code>public.something(jsonb)</code>
+			może więc zostać wywołana przez API przez dowolną uwierzytelnioną rolę, chyba że odbierzesz uprawnienie. Zalecana konfiguracja:</p>
+		<pre><code>-- Nowe funkcje nie są wykonywalne przez wszystkich (uruchom jako rola, która je tworzy):
+ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+-- Trzymaj funkcje API w dedykowanym schemacie i nadawaj uprawnienia jawnie:
+GRANT USAGE ON SCHEMA api TO demo_user;
+GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+	</div>
+
+	<h3 id="rate-limiting">Ochrona przed atakami brute-force</h3>
+	<p><code>LOGIN_RATE_LIMIT</code> i <code>LOGIN_RATE_LIMIT_PER_IP</code> dotyczą każdej metody uwierzytelniania,
+		na każdym endpoincie (JSON-RPC, MCP, SSE, OpenAPI):</p>
+	<ul>
+		<li><code>get_jwt</code>: każda próba jest wliczana do limitów na (IP, nazwę użytkownika) i na IP.</li>
+		<li>Bezpośrednie dane logowania (Basic Auth): nieudane próby są wliczane do limitów na (IP, nazwę użytkownika)
+			i na IP. Udane żądania nie są liczone, więc prawidłowy klient wysyłający dane logowania w każdym żądaniu
+			nigdy nie zostanie ograniczony.</li>
+		<li>Tokeny Bearer (JWT lub token API): nieudane próby są wliczane do limitu na IP.</li>
+	</ul>
+	<p>Po wyczerpaniu limitu kolejne próby są odrzucane z HTTP <code>429</code> aż do upływu okna
+		(<code>LOGIN_RATE_WINDOW</code>) — bez jakiegokolwiek sprawdzania danych logowania.</p>
 
 	<div class="doc-related">
 		<h3>Powiązana dokumentacja</h3>
