@@ -25,6 +25,9 @@ jobs:
           # pick up upstream stdlib security fixes instead of being stuck on
           # whatever patch was current when this line was last edited.
           go-version: '1.26'
+          # Query go.dev for the newest 1.26.x instead of trusting the runner's
+          # cached manifest, which can lag a fresh security patch release.
+          check-latest: true
           cache: true
 
       - name: Show Go toolchain info
