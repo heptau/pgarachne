@@ -53,7 +53,7 @@ menu:
 		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Payload inválido o formato de método incorrecto.</td></tr>
 		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Autenticación ausente o inválida.</td></tr>
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Falló <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
-		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>El método no existe (<code>-32601</code>), o se llamó a <code>get_jwt</code> sin tener configurado <code>JWT_SECRET</code>.</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist / JWT is disabled / get_jwt was removed</td><td>El método no existe (<code>-32601</code>), se llamó a <code>/token</code> sin tener configurado <code>JWT_SECRET</code>, o se llamó al método JSON-RPC eliminado <code>get_jwt</code> (usa <code>POST /{prefix}/{database}/token</code>).</td></tr>
 		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Se excedió el rate limit de login o de autenticación (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
 		<tr><td><code>413</code></td><td>Request body too large / Response too large / Too many files in response</td><td>La petición supera <code>MAX_REQUEST_BYTES</code>, o una respuesta <a href="../file-download/"><code>/file</code></a> supera <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>.</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Falló la ejecución o el commit.</td></tr>

@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Pole</th><th>Popis</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Povinné. <code>schema.function</code>, nejvýše 256 znaků. Povoleny jsou i uvozené identifikátory (<code>"my schema"."my fn"</code>). Schéma je povinné: samotné <code>hello_world</code> je zamítnuto s kódem 400. Dva názvy jsou speciální: <code>capabilities</code> a <code>get_jwt</code> (sekce 5).</td></tr>
+			<tr><td><code>method</code></td><td>Povinné. <code>schema.function</code>, nejvýše 256 znaků. Povoleny jsou i uvozené identifikátory (<code>"my schema"."my fn"</code>). Schéma je povinné: samotné <code>hello_world</code> je zamítnuto s kódem 400. <code>capabilities</code> je vestavěná metoda (sekce 5).</td></tr>
 			<tr><td><code>params</code></td><td>Libovolná hodnota JSON, která se funkci předá beze změny jako její argument <code>jsonb</code>. Chybějící hodnota nebo <code>null</code> se změní na <code>{}</code>. Zvykem jsou objekty; fungují i pole a skalární hodnoty.</td></tr>
 			<tr><td><code>id</code></td><td>Libovolná hodnota JSON; zkopíruje se do odpovědi. Pokud chybí, odpověď obsahuje <code>"id": null</code> (neexistují notifikace typu „vyšli a zapomeň“).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Obvykle <code>"2.0"</code>; na vstupu se nevaliduje, odpověď vždy obsahuje <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Každá položka obsahuje <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> a
 		<code>kind</code> (<code>rpc</code>, nebo <code>file</code> pro <a href="../file-download/">souborové funkce</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Vymění přihlašovací jméno a heslo PostgreSQL za JWT. Je dostupná jen tehdy, když je nastaveno <code>JWT_SECRET</code>; jinak vrací 404 / <code>-32601</code>.
-		Každý pokus se počítá do limitu přihlášení.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Přihlášení pro získání JWT <em>není</em> metoda JSON-RPC: použijte <code>POST /{prefix}/{database}/token</code> s přihlašovacími údaji HTTP Basic (sekce 6).
+		Původní metoda <code>get_jwt</code>, která přijímala heslo v <code>params</code>, byla odstraněna a odpovídá 404 / <code>-32601</code> s odkazem na nový endpoint.</p>
 
 	<h3>6. Autentizace</h3>
 	<p>Každý požadavek potřebuje hlavičku <code>Authorization</code>; požadavek bez ní je zamítnut s 401 dříve, než se otevře jakékoli připojení k databázi.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Hlavička</th><th>Co se stane</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Pool připojení autentizovaný jako daný uživatel PostgreSQL. Nejjednodušší; žádné tokeny. Posílejte jen přes HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>get_jwt</code> (nebo od vašeho poskytovatele identity). PgArachne přepne na roli z tokenu pomocí <code>SET LOCAL ROLE</code>; servisní role potřebuje <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>POST /{prefix}/{database}/token</code> (nebo od vašeho poskytovatele identity). PgArachne přepne na roli z tokenu pomocí <code>SET LOCAL ROLE</code>; servisní role potřebuje <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Dlouhodobý token vytvořený přes <code>pgarachne.add_api_token(...)</code>, svázaný s rolí. Vhodný pro služby.</td></tr>
 		</tbody>
 	</table>
+	<h4>Získání JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Vymění přihlašovací jméno a heslo PostgreSQL, odeslané pomocí HTTP Basic autentizace, za JWT. Přihlašovací údaje putují v hlavičce <code>Authorization</code>
+		&mdash; nikdy v těle JSON &mdash; a endpoint má vlastní URL, takže reverzní proxy může na přihlášení uplatnit přísnější limity, aniž by četla těla požadavků.
+		Vyžaduje <code>JWT_SECRET</code>; jinak vrací 404. Každý pokus se počítá do limitu přihlášení a odpověď nelze nikdy cachovat.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Neúspěšné pokusy jsou omezovány (HTTP 429). Všechny podrobnosti, platnost tokenů a externí poskytovatel identity jsou na stránce <a href="../security-roles/">Bezpečnost a autentizace</a>.</p>
 
 	<h3>7. Idempotence</h3>

@@ -313,7 +313,7 @@
 		<input type="password" id="password" placeholder="password" onkeydown="if(event.key==='Enter') getJWT()">
 
 		<p style="font-size:0.78rem; color:var(--fg-muted); margin: 10px 0 0;">
-			Calls the <code>get_jwt</code> JSON-RPC method and returns a short-lived JWT.
+			Calls <code>POST /&lt;prefix&gt;/&lt;database&gt;/token</code> with HTTP Basic credentials and returns a short-lived JWT.
 			Requires <code>GRANT &lt;role&gt; TO pgarachne</code> in the database. For passwordless access,
 			use the <a href="../pgarachne-explorer/" style="color:var(--accent);">Explorer</a> or
 			<a href="../test-sse/" style="color:var(--accent);">SSE Tester</a> with direct credentials instead.
@@ -348,11 +348,11 @@
 	<script>
 		var currentToken = null;
 
-		function getJsonRpcUrl() {
+		function getTokenUrl() {
 			var base   = document.getElementById('apiUrl').value.trim().replace(/\/$/, '');
 			var prefix = document.getElementById('urlPrefix').value.trim() || 'db';
 			var db     = document.getElementById('databaseName').value.trim();
-			return base + '/' + prefix + '/' + db + '/jsonrpc';
+			return base + '/' + prefix + '/' + db + '/token';
 		}
 
 		/* ---- JSON highlight ---- */
@@ -429,21 +429,18 @@
 			setLoading(true);
 
 			try {
-				var resp = await fetch(getJsonRpcUrl(), {
+				// Credentials travel in the Authorization header (HTTP Basic).
+				// TextEncoder keeps non-ASCII passwords intact.
+				var bytes = new TextEncoder().encode(login + ':' + password);
+				var resp = await fetch(getTokenUrl(), {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						jsonrpc: '2.0',
-						method: 'get_jwt',
-						params: { login: login, password: password },
-						id: 1
-					})
+					headers: { 'Authorization': 'Basic ' + btoa(String.fromCharCode.apply(null, bytes)) }
 				});
 
 				var data = await resp.json();
 
-				if (resp.ok && data.result && data.result.token) {
-					var token = data.result.token;
+				if (resp.ok && data.token) {
+					var token = data.token;
 					currentToken = token;
 					showToken(token);
 					save('login');

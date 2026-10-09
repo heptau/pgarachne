@@ -21,12 +21,16 @@ menu:
 		prática.</p>
 
 	<h3>1. Login Interativo (JWT)</h3>
-	<p>Os usuários se autenticam usando seu <strong>nome de usuário e senha reais do PostgreSQL</strong> via
-		o método JSON-RPC <code>get_jwt</code>. Em caso de sucesso, recebem um JWT de curta duração. As requisições
+	<p>Os usuários se autenticam usando seu <strong>nome de usuário e senha reais do PostgreSQL</strong> com
+		autenticação HTTP Basic em <code>POST /{prefix}/{database}/token</code>. Em caso de sucesso, recebem um JWT de curta duração. As requisições
 		subsequentes transportam esse token no cabeçalho <code>Authorization: Bearer &lt;token&gt;</code>, e o PgArachne
 		altera o papel ativo para esse usuário durante toda a duração da requisição.</p>
-	<p><em>Requer <code>JWT_SECRET</code>. Quando não está configurado, <code>get_jwt</code> retorna HTTP 404
-		(JSON-RPC <code>-32601</code>) e os clientes usam credenciais diretas (método 4) ou tokens de API (método 2)
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>As credenciais trafegam no cabeçalho <code>Authorization</code>, nunca em um corpo JSON, e o login tem sua própria URL para que um proxy reverso
+		possa limitar sua taxa sem ler corpos de requisição. A resposta nunca pode ser armazenada em cache.</p>
+	<p><em>Requer <code>JWT_SECRET</code>. Quando não está configurado, o endpoint retorna HTTP 404
+		(<code>-32601</code>) e os clientes usam credenciais diretas (método 4) ou tokens de API (método 2)
 		em seu lugar.</em></p>
 
 	<h3>2. Contas de Serviço (Tokens de API)</h3>
@@ -181,7 +185,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> e <code>LOGIN_RATE_LIMIT_PER_IP</code> se aplicam a todos os métodos de autenticação,
 		em todos os endpoints (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: cada tentativa conta para os limites por (IP, nome de usuário) e por IP.</li>
+		<li><code>/token</code>: cada tentativa conta para os limites por (IP, nome de usuário) e por IP.</li>
 		<li>Credenciais diretas (Basic Auth): tentativas falhas contam para os limites por (IP, nome de usuário) e por IP.
 			Requisições bem-sucedidas não são contadas, então um cliente legítimo que envia credenciais em toda
 			requisição nunca é limitado.</li>

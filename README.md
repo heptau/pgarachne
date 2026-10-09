@@ -111,7 +111,7 @@ DB_USER=pgarachne
 # DB_SSLROOTCERT=/path/to/ca.pem
 # DB_SSLCERT=/path/to/client-cert.pem
 # DB_SSLKEY=/path/to/client-key.pem
-# Optional login rate limiting for all auth methods — get_jwt (every attempt),
+# Optional login rate limiting for all auth methods — /token (every attempt),
 # HTTP Basic (failed attempts); default: 5 attempts per 1m, set 0 to disable
 LOGIN_RATE_LIMIT=5
 LOGIN_RATE_WINDOW=1m
@@ -139,7 +139,7 @@ SSE_SEND_TIMEOUT=2s
 SSE_HEARTBEAT=20s
 SSE_IDLE_TIMEOUT=90s
 # Note: Password is read from .pgpass
-# Optional — enables JWT sessions (get_jwt). Without it, clients authenticate
+# Optional — enables JWT sessions (POST /db/<database>/token). Without it, clients authenticate
 # with HTTP Basic credentials or API tokens. Must be at least 32 bytes;
 # generate with: openssl rand -hex 32
 JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
@@ -149,7 +149,7 @@ HTTP_PORT=8080
 # ALLOWED_ORIGINS=https://myapp.example.com
 ```
 
-Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`. `JWT_SECRET` (minimum 32 bytes) is optional: set it to enable JWT sessions via `get_jwt`; without it, clients authenticate with HTTP Basic credentials (`curl -u user:password`) or long-lived API tokens.
+Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`. `JWT_SECRET` (minimum 32 bytes) is optional: set it to enable JWT sessions via `POST /db/:database/token`; without it, clients authenticate with HTTP Basic credentials (`curl -u user:password`) or long-lived API tokens.
 
 If you run PgArachne behind a reverse proxy, set `TRUSTED_PROXIES` so client IPs are resolved correctly and rate limiting cannot be spoofed.
 
@@ -208,17 +208,15 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO app_user;
 
 **2. Login via API**
 
-Use the JSON-RPC `get_jwt` method to obtain a JWT token (requires `JWT_SECRET`; without it, skip this step and call the function with `curl -u app_user:user_password` instead of the `Authorization: Bearer` header):
+Send the user's credentials with HTTP Basic authentication to the token endpoint to obtain a JWT (requires `JWT_SECRET`; without it, skip this step and call the function with `curl -u app_user:user_password` instead of the `Authorization: Bearer` header):
 
 ```bash
-curl -X POST http://localhost:8080/db/my_database/jsonrpc \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"app_user","password":"user_password"},"id":1}'
+curl -X POST http://localhost:8080/db/my_database/token -u app_user:user_password
 ```
 
 Response:
 ```json
-{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}
+{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...","token_type":"Bearer","expires_in":28800}
 ```
 
 **3. Call the Function**
@@ -312,7 +310,8 @@ For AI agents and LLM crawlers, the project exposes a machine-readable index at 
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/db/:database/jsonrpc` | POST | JSON-RPC 2.0 gateway (including `get_jwt`) |
+| `/db/:database/jsonrpc` | POST | JSON-RPC 2.0 gateway |
+| `/db/:database/token` | POST | Exchange HTTP Basic credentials for a JWT (requires `JWT_SECRET`) |
 | `/db/:database/file` | POST | Binary download (single file or ZIP) from a set-returning function |
 | `/db/:database/sse` | GET | SSE stream for PostgreSQL `NOTIFY` channels |
 | `/db/:database/mcp` | POST | MCP (Model Context Protocol) endpoint |

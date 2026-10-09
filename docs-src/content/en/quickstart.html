@@ -52,7 +52,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db/<database>/token); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
 		<p>Start the server (the service role's password is read from <code>PGPASSWORD</code> or <code>~/.pgpass</code>):</p>
 		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
@@ -202,7 +202,7 @@ URL.revokeObjectURL(url);</code></pre>
 		<ul>
 			<li><strong>Use HTTPS.</strong> Basic credentials travel with every request; see <a href="../deployment-https/">Deployment &amp; HTTPS</a>. Change the demo passwords.</li>
 			<li><strong>Keep credentials in memory only</strong> (a JavaScript variable), never in <code>localStorage</code>. To avoid resending the password,
-				set <code>JWT_SECRET</code> and use <code>get_jwt</code> (see <a href="../security-roles/">Security &amp; Authentication</a>).</li>
+				set <code>JWT_SECRET</code> and request a token from <code>POST /db/my_database/token</code> (see <a href="../security-roles/">Security &amp; Authentication</a>).</li>
 			<li><strong>Web page on another origin</strong> (a CDN, another port)? Set <code>ALLOWED_ORIGINS=https://app.example.com</code>; cross-origin requests are blocked by default.</li>
 			<li><strong>Least privilege:</strong> one PostgreSQL role per kind of user, <code>EXECUTE</code> only on the functions they need, Row-Level Security for per-user data, and
 				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code> so new functions are not exposed by accident.</li>

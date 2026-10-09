@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Obligatorio. <code>schema.function</code>, como máximo 256 caracteres. Se permiten identificadores entre comillas (<code>"my schema"."my fn"</code>). El esquema es obligatorio: <code>hello_world</code> solo se rechaza con 400. Dos nombres son especiales: <code>capabilities</code> y <code>get_jwt</code> (sección 5).</td></tr>
+			<tr><td><code>method</code></td><td>Obligatorio. <code>schema.function</code>, como máximo 256 caracteres. Se permiten identificadores entre comillas (<code>"my schema"."my fn"</code>). El esquema es obligatorio: <code>hello_world</code> solo se rechaza con 400. <code>capabilities</code> es un método integrado (sección 5).</td></tr>
 			<tr><td><code>params</code></td><td>Cualquier valor JSON, pasado sin cambios a la función como su argumento <code>jsonb</code>. Si falta o es <code>null</code>, se convierte en <code>{}</code>. Por convención son objetos; los arrays y escalares también funcionan.</td></tr>
 			<tr><td><code>id</code></td><td>Cualquier valor JSON; se copia en la respuesta. Si falta, la respuesta contiene <code>"id": null</code> (no hay notificaciones de tipo «dispara y olvida»).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Por convención <code>"2.0"</code>; no se valida en la entrada, la respuesta siempre lleva <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Cada entrada tiene <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> y
 		<code>kind</code> (<code>rpc</code>, o <code>file</code> para <a href="../file-download/">funciones de archivo</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Intercambia un login y contraseña de PostgreSQL por un JWT. Solo está disponible cuando <code>JWT_SECRET</code> está configurado; en caso contrario devuelve 404 / <code>-32601</code>.
-		Cada intento cuenta para el límite de frecuencia de inicio de sesión.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Iniciar sesión para obtener un JWT <em>no</em> es un método JSON-RPC: usa <code>POST /{prefix}/{database}/token</code> con credenciales HTTP Basic (sección 6).
+		El antiguo método <code>get_jwt</code>, que recibía la contraseña en <code>params</code>, fue eliminado y responde 404 / <code>-32601</code> con una indicación del nuevo endpoint.</p>
 
 	<h3>6. Autenticación</h3>
 	<p>Toda petición necesita una cabecera <code>Authorization</code>; una petición sin ella se rechaza con 401 antes de abrir cualquier conexión a la base de datos.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Cabecera</th><th>Qué ocurre</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Un pool de conexiones autenticado como ese usuario de PostgreSQL. Lo más simple; sin tokens. Envíalo solo por HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token de <code>get_jwt</code> (o de tu propio proveedor de identidad). PgArachne cambia al rol del token con <code>SET LOCAL ROLE</code>; el rol de servicio necesita <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token de <code>POST /{prefix}/{database}/token</code> (o de tu propio proveedor de identidad). PgArachne cambia al rol del token con <code>SET LOCAL ROLE</code>; el rol de servicio necesita <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Token de larga duración creado con <code>pgarachne.add_api_token(...)</code>, vinculado a un rol. Adecuado para servicios.</td></tr>
 		</tbody>
 	</table>
+	<h4>Obtener un JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Intercambia un login y contraseña de PostgreSQL, enviados con autenticación HTTP Basic, por un JWT. Las credenciales viajan en la cabecera <code>Authorization</code>
+		&mdash; nunca en un cuerpo JSON &mdash; y el endpoint tiene su propia URL, de modo que un proxy inverso puede aplicar límites más estrictos a los inicios de sesión sin leer cuerpos de petición.
+		Requiere <code>JWT_SECRET</code>; en caso contrario devuelve 404. Cada intento cuenta para el límite de frecuencia de inicio de sesión y la respuesta nunca se puede almacenar en caché.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Los intentos fallidos tienen límite de frecuencia (HTTP 429). Todos los detalles, la duración de los tokens y un proveedor de identidad externo están en la página <a href="../security-roles/">Seguridad y Autenticación</a>.</p>
 
 	<h3>7. Idempotencia</h3>

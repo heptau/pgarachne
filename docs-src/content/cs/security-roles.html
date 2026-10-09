@@ -21,10 +21,14 @@ menu:
 
 	<h3>1. Interaktivní přihlášení (JWT)</h3>
 	<p>Uživatelé se autentizují pomocí svého <strong>skutečného PostgreSQL uživatelského jména a hesla</strong>
-		přes metodu JSON-RPC <code>get_jwt</code>. Pokud je úspěšná, obdrží krátkodobý JWT. Při použití tohoto tokenu
+		pomocí HTTP Basic autentizace na <code>POST /{prefix}/{database}/token</code>. Pokud je úspěšná, obdrží krátkodobý JWT. Při použití tohoto tokenu
 		přepne PgArachne aktivní roli na tohoto uživatele po dobu trvání každého požadavku.</p>
-	<p><em>Vyžaduje <code>JWT_SECRET</code>. Pokud není nastaven, vrací <code>get_jwt</code> HTTP 404
-		(JSON-RPC <code>-32601</code>) a klienti místo toho použijí přímé přihlášení (metoda 4) nebo API tokeny (metoda 2).</em></p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Přihlašovací údaje putují v hlavičce <code>Authorization</code>, nikdy v těle JSON, a přihlášení má vlastní URL, takže ho reverzní proxy může
+		omezovat bez čtení těl požadavků. Odpověď nelze nikdy cachovat.</p>
+	<p><em>Vyžaduje <code>JWT_SECRET</code>. Pokud není nastaven, vrací endpoint HTTP 404
+		(<code>-32601</code>) a klienti místo toho použijí přímé přihlášení (metoda 4) nebo API tokeny (metoda 2).</em></p>
 
 	<h3>2. Služby (API tokeny)</h3>
 	<p>Pro automatizované systémy nebo skripty lze použít dlouhodobé API tokeny.</p>
@@ -115,7 +119,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 		</thead>
 		<tbody>
 			<tr>
-				<td>JWT (get_jwt)</td>
+				<td>JWT (/token)</td>
 				<td><code>Bearer &lt;jwt&gt;</code></td>
 				<td>✅ Ano</td>
 				<td>Vyžadováno</td>
@@ -169,7 +173,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> a <code>LOGIN_RATE_LIMIT_PER_IP</code> platí pro všechny metody autentizace,
 		na všech endpointech (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: každý pokus se započítává do limitu na (IP, uživatelské jméno) i do limitu na IP.</li>
+		<li><code>/token</code>: každý pokus se započítává do limitu na (IP, uživatelské jméno) i do limitu na IP.</li>
 		<li>Přímé přihlášení (Basic Auth): neúspěšné pokusy se započítávají do limitu na (IP, uživatelské jméno) i do limitu na IP.
 			Úspěšné požadavky se nepočítají, takže legitimní klient, který posílá údaje s každým požadavkem, nikdy
 			není omezen.</li>

@@ -26,7 +26,7 @@ menu:
 
 <div class="card">
 <h3>JWT Getter</h3>
-<p>Vyměňte PostgreSQL uživatelské jméno a heslo za krátkodobý JWT přes metodu <code>get_jwt</code>. Zobrazuje dekódovaný payload i čas expirace — užitečné pro ladění tokenových toků.</p>
+<p>Vyměňte PostgreSQL uživatelské jméno a heslo za krátkodobý JWT přes endpoint <code>/token</code> (přihlašovací údaje HTTP Basic). Zobrazuje dekódovaný payload i čas expirace — užitečné pro ladění tokenových toků.</p>
 <p><a href="get-jwt/" class="btn">Více o JWT Getteru</a></p>
 </div>
 

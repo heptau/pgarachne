@@ -26,7 +26,7 @@ PgArachne is a Go-based HTTP gateway that exposes PostgreSQL functions as JSON-R
   - `capabilities` is handled specially and maps to `pgarachne.capabilities`.
 
 ## Authentication
-- **Login method**: JSON-RPC `get_jwt` on `POST /{prefix}/:database/jsonrpc` connects to the DB using provided credentials. On success issues a JWT with `db_role` and `db_name` claims. Only available when `JWT_SECRET` is set.
+- **Login endpoint**: `POST /{prefix}/:database/token` (`handleToken`) takes HTTP Basic credentials (never JSON params), verifies them with a one-off DB connection (no cached pool) and returns `{token, token_type: "Bearer", expires_in}` with `Cache-Control: no-store`; the JWT carries `db_role` and `db_name` claims. Only available when `JWT_SECRET` is set. It deliberately sends no `WWW-Authenticate` header (it would trigger the browser's login dialog). The old JSON-RPC method `get_jwt` was removed (breaking) — `/jsonrpc` answers it with 404 / `-32601` pointing to `/token`. A dedicated path (not a JSON-RPC method) lets reverse proxies rate-limit logins without reading bodies.
 - **Direct credentials**: `Authorization: Basic …` on any endpoint opens a per-user pool authenticated as that user (no `SET LOCAL ROLE`).
 - All endpoints (JSON-RPC, MCP, SSE, OpenAPI) authenticate through `authenticateForDatabase` in `server.go` — don't add a parallel auth path, or it will miss rate limiting. A request without an `Authorization` header is rejected before any DB connection is opened.
 - **Protected calls**: `POST /{prefix}/:database/jsonrpc` accepts:
@@ -83,7 +83,7 @@ Required:
 - `DB_HOST`, `DB_PORT`, `DB_USER`
 
 Optional JWT:
-- `JWT_SECRET` (minimum 32 bytes, e.g. `openssl rand -hex 32`). When unset, JWT is disabled: `get_jwt` returns HTTP 404 / JSON-RPC `-32601`, Bearer values are only checked as API tokens, and clients use HTTP Basic credentials or API tokens. `Server.jwtEnabled()` is the single switch.
+- `JWT_SECRET` (minimum 32 bytes, e.g. `openssl rand -hex 32`). When unset, JWT is disabled: `/token` returns HTTP 404 / `-32601`, Bearer values are only checked as API tokens, and clients use HTTP Basic credentials or API tokens. `Server.jwtEnabled()` is the single switch.
 
 Common optional:
 - `HTTP_PORT` (default `8080`)
@@ -93,7 +93,7 @@ Common optional:
 - `STATIC_FILES_PATH` (serves files via `NoRoute` fallback; the directory is pinned with `os.OpenRoot` at startup and every request is resolved through that `*os.Root`, so traversal and symlink escapes are refused by the OS — do not reintroduce `filepath.Join` + string containment checks here)
 - `LOG_LEVEL` (`INFO` default), `LOG_OUTPUT` (`stdout` default)
 - `DB_SSLMODE` (default `require`; set `disable` explicitly for local non-TLS PostgreSQL)
-- `LOGIN_RATE_LIMIT` (default `5`) / `LOGIN_RATE_LIMIT_PER_IP` (default 5× `LOGIN_RATE_LIMIT`, `0` disables) / `LOGIN_RATE_WINDOW` (default `1m`) — apply to **all** auth methods on all endpoints: `get_jwt` counts every attempt (`loginLimiter.Allow`); Basic auth counts failed attempts per (IP, username) and per IP, failed Bearer (JWT/API token) attempts per IP (`Blocked`/`RecordFailure`, centralised in `authenticateForDatabase`). Exhausted budget → HTTP 429 before credentials are checked.
+- `LOGIN_RATE_LIMIT` (default `5`) / `LOGIN_RATE_LIMIT_PER_IP` (default 5× `LOGIN_RATE_LIMIT`, `0` disables) / `LOGIN_RATE_WINDOW` (default `1m`) — apply to **all** auth methods on all endpoints: `/token` counts every attempt (`loginLimiter.Allow`); Basic auth counts failed attempts per (IP, username) and per IP, failed Bearer (JWT/API token) attempts per IP (`Blocked`/`RecordFailure`, centralised in `authenticateForDatabase`). Exhausted budget → HTTP 429 before credentials are checked.
 - `MCP_SQL_ERROR_DETAIL` (default `false`; `true` includes raw PostgreSQL error messages in MCP tool errors — helps LLM agents self-correct, but leaks schema details to authenticated callers)
 - `DIRECT_POOL_LIMIT` (default `1000`; max distinct Basic-Auth credential pools)
 - `DB_SSLROOTCERT`, `DB_SSLCERT`, `DB_SSLKEY` (optional TLS cert paths)
@@ -107,7 +107,8 @@ Common optional:
 
 ## HTTP Endpoints
 - `GET /health` — health check
-- `POST /{prefix}/:database/jsonrpc` — JSON-RPC 2.0 gateway (including `get_jwt`)
+- `POST /{prefix}/:database/jsonrpc` — JSON-RPC 2.0 gateway
+- `POST /{prefix}/:database/token` — JWT login with HTTP Basic credentials (see Authentication)
 - `POST /{prefix}/:database/file` — binary download (`internal/server/file.go`). Calls `SELECT * FROM schema.fn($1::jsonb)` on a set-returning function with columns `path`, `content` (required) and `mime_type`, `store_only` (optional). 1 row → served directly; ≥2 rows or `options.force_zip` → ZIP (`archive/zip`, streamed). Same `authenticateForDatabase` + `setupRequestTx` as JSON-RPC. Rows are buffered (caps `FILE_MAX_BYTES` / `FILE_MAX_ENTRIES`); DB never controls headers — always `attachment` + `nosniff` + `CSP: sandbox`; `validateEntryPath` (zip-slip + Windows-hostile names), `claimPath` (case-insensitive/file-vs-dir collisions), `safeMIME` and `sanitizeDownloadName` guard DB-supplied values; an empty result is rolled back (404); only `RETURNS TABLE`/OUT-param set-returning functions are discovered as `kind: file`; errors are JSON (0 rows → 404). `capabilities()` marks such functions `kind: "file"` (set-returning with `path`+`content` OUT columns); they are excluded from the `/jsonrpc` OpenAPI paths and MCP `tools/list`. Planned phase 2 (issue #7): `GET /{prefix}/:database/get/{token}` with dedicated scoped link tokens (hash-stored, bound to role+function+params, read-only) reusing the same response writer.
 - `GET /{prefix}/:database/sse` — SSE stream for PostgreSQL `NOTIFY` channels (`channels` query param required). Authenticates the caller but, unlike every other endpoint here, does **not** `SET LOCAL ROLE` or check per-channel permissions — all SSE clients for a database share one `LISTEN` connection opened as `DB_USER`, so any authenticated caller can subscribe to any channel name. This is by design (Postgres channels aren't objects with their own GRANTs) and documented in `docs-src/content/en/real-time-notifications.html`; don't "fix" it locally without reading that note first.
 - `POST /{prefix}/:database/mcp` — MCP (Model Context Protocol) Streamable HTTP endpoint

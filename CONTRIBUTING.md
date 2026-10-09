@@ -33,7 +33,7 @@ Thanks for contributing.
   transport, protocol version `2026-07-28` — stateless, no `initialize`
   handshake).
 - Authentication is the same Bearer token model across all three endpoints
-  (JWT issued by `get_jwt`, or long-lived API token).
+  (JWT issued by `POST /{prefix}/{database}/token`, or long-lived API token).
 - `make release-local` builds and verifies release artifacts locally (no git, no push). `make release` runs that, then tags, pushes, creates the GitHub release, and updates the Homebrew tap — see `scripts/publish_release.sh`.
 - Homebrew tap artefacts are generated into `dist/homebrew-tap/`.
 - Docs are authored in `docs-src/` and built into `docs/`.

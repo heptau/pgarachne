@@ -22,11 +22,15 @@ menu:
 
 	<h3>1. Інтерактивний вхід (JWT)</h3>
 	<p>Користувачі автентифікуються за допомогою свого <strong>справжнього імені користувача та пароля PostgreSQL</strong> через
-		метод JSON-RPC <code>get_jwt</code>. У разі успіху вони отримують короткостроковий JWT. Наступні запити
+		автентифікацію HTTP Basic на <code>POST /{prefix}/{database}/token</code>. У разі успіху вони отримують короткостроковий JWT. Наступні запити
 		передають цей токен у заголовку <code>Authorization: Bearer &lt;token&gt;</code>, і PgArachne перемикає
 		активну роль на цього користувача на час виконання кожного запиту.</p>
-	<p><em>Потребує <code>JWT_SECRET</code>. Якщо його не налаштовано, <code>get_jwt</code> повертає HTTP 404
-		(JSON-RPC <code>-32601</code>), а клієнти натомість використовують прямі облікові дані (метод 4) або
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Облікові дані передаються в заголовку <code>Authorization</code>, ніколи в тілі JSON, а вхід має власну URL-адресу, тож зворотний проксі
+		може обмежувати його частоту, не читаючи тіла запитів. Відповідь ніколи не кешується.</p>
+	<p><em>Потребує <code>JWT_SECRET</code>. Якщо його не налаштовано, endpoint повертає HTTP 404
+		(<code>-32601</code>), а клієнти натомість використовують прямі облікові дані (метод 4) або
 		API-токени (метод 2).</em></p>
 
 	<h3>2. Сервісні облікові записи (API-токени)</h3>
@@ -116,7 +120,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 		</thead>
 		<tbody>
 			<tr>
-				<td>JWT (get_jwt)</td>
+				<td>JWT (/token)</td>
 				<td><code>Bearer &lt;jwt&gt;</code></td>
 				<td>✅ Так</td>
 				<td>Потрібен</td>
@@ -170,7 +174,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> та <code>LOGIN_RATE_LIMIT_PER_IP</code> застосовуються до кожного методу автентифікації
 		на кожному endpoint-і (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: кожна спроба зараховується до лімітів на (IP, ім'я користувача) та на IP.</li>
+		<li><code>/token</code>: кожна спроба зараховується до лімітів на (IP, ім'я користувача) та на IP.</li>
 		<li>Прямі облікові дані (Basic Auth): невдалі спроби зараховуються до лімітів на (IP, ім'я користувача) та на IP.
 			Успішні запити не враховуються, тож легітимний клієнт, який надсилає облікові дані з кожним запитом,
 			ніколи не буде обмежений.</li>

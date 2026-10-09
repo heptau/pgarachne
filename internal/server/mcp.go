@@ -581,10 +581,7 @@ func (s *Server) handleMCPToolsCall(c *gin.Context, req mcpRequest, db *sql.DB, 
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Tool name is too long"))
 		return
 	}
-	// get_jwt is a JSON-RPC pseudo-method handled in Go, not a database
-	// function; isSafeFunctionName admits it for the JSON-RPC endpoint, but
-	// here it would turn into an unqualified, search_path-resolved call.
-	if functionName == "get_jwt" || !isSafeFunctionName(functionName) {
+	if !isSafeFunctionName(functionName) {
 		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusOK, newMCPError(req.ID, mcpErrParams, "Invalid tool name"))
 		return

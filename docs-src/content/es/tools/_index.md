@@ -26,7 +26,7 @@ menu:
 
 <div class="card">
 <h3>JWT Getter</h3>
-<p>Intercambie un nombre de usuario y contraseña de PostgreSQL por un JWT de corta duración mediante el método <code>get_jwt</code>. Muestra el payload decodificado y el tiempo de expiración.</p>
+<p>Intercambie un nombre de usuario y contraseña de PostgreSQL por un JWT de corta duración mediante el endpoint <code>/token</code> (credenciales HTTP Basic). Muestra el payload decodificado y el tiempo de expiración.</p>
 <p><a href="get-jwt/" class="btn">Más información sobre el JWT Getter</a></p>
 </div>
 

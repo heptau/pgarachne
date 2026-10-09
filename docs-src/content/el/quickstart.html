@@ -52,7 +52,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db/<database>/token); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
 		<p>Ξεκινήστε τον διακομιστή (ο κωδικός του ρόλου υπηρεσίας διαβάζεται από το <code>PGPASSWORD</code> ή το <code>~/.pgpass</code>):</p>
 		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
@@ -202,7 +202,7 @@ URL.revokeObjectURL(url);</code></pre>
 		<ul>
 			<li><strong>Χρησιμοποιήστε HTTPS.</strong> Τα διαπιστευτήρια Basic ταξιδεύουν με κάθε αίτημα· δείτε <a href="../deployment-https/">Deployment &amp; HTTPS</a>. Αλλάξτε τους κωδικούς του παραδείγματος.</li>
 			<li><strong>Κρατήστε τα διαπιστευτήρια μόνο στη μνήμη</strong> (μια μεταβλητή JavaScript), ποτέ στο <code>localStorage</code>. Για να μην στέλνετε ξανά τον κωδικό,
-				ορίστε <code>JWT_SECRET</code> και χρησιμοποιήστε το <code>get_jwt</code> (δείτε <a href="../security-roles/">Ασφάλεια &amp; Πιστοποίηση</a>).</li>
+				ορίστε <code>JWT_SECRET</code> και ζητήστε token από το <code>POST /db/my_database/token</code> (δείτε <a href="../security-roles/">Ασφάλεια &amp; Πιστοποίηση</a>).</li>
 			<li><strong>Ιστοσελίδα σε άλλο origin</strong> (CDN, άλλη θύρα); Ορίστε <code>ALLOWED_ORIGINS=https://app.example.com</code>· τα cross-origin αιτήματα αποκλείονται από προεπιλογή.</li>
 			<li><strong>Ελάχιστα προνόμια:</strong> ένας ρόλος PostgreSQL ανά είδος χρήστη, <code>EXECUTE</code> μόνο στις συναρτήσεις που χρειάζονται, Row-Level Security για δεδομένα ανά χρήστη και
 				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>, ώστε οι νέες συναρτήσεις να μην εκτίθενται κατά λάθος.</li>

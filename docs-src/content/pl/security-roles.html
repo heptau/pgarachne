@@ -21,12 +21,16 @@ menu:
 		praktyce.</p>
 
 	<h3>1. Logowanie interaktywne (JWT)</h3>
-	<p>Użytkownicy uwierzytelniają się za pomocą swojej <strong>rzeczywistej nazwy użytkownika i hasła PostgreSQL</strong> poprzez
-		metodę JSON-RPC <code>get_jwt</code>. Jeśli logowanie powiedzie się, otrzymują krótkotrwały JWT. Kolejne żądania
+	<p>Użytkownicy uwierzytelniają się za pomocą swojej <strong>rzeczywistej nazwy użytkownika i hasła PostgreSQL</strong> przez
+		uwierzytelnianie HTTP Basic w <code>POST /{prefix}/{database}/token</code>. Jeśli logowanie powiedzie się, otrzymują krótkotrwały JWT. Kolejne żądania
 		przekazują ten token w nagłówku <code>Authorization: Bearer &lt;token&gt;</code>, a PgArachne przełącza
 		aktywną rolę na tego użytkownika na czas trwania każdego żądania.</p>
-	<p><em>Wymaga <code>JWT_SECRET</code>. Gdy nie jest skonfigurowany, <code>get_jwt</code> zwraca HTTP 404
-		(JSON-RPC <code>-32601</code>), a klienci korzystają zamiast tego z bezpośrednich danych logowania (metoda 4)
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Dane logowania podróżują w nagłówku <code>Authorization</code>, nigdy w treści JSON, a logowanie ma własny adres URL, więc reverse proxy
+		może ograniczać jego częstotliwość bez odczytywania treści żądań. Odpowiedź nigdy nie może być cache'owana.</p>
+	<p><em>Wymaga <code>JWT_SECRET</code>. Gdy nie jest skonfigurowany, endpoint zwraca HTTP 404
+		(<code>-32601</code>), a klienci korzystają zamiast tego z bezpośrednich danych logowania (metoda 4)
 		lub tokenów API (metoda 2).</em></p>
 
 	<h3>2. Konta serwisowe (tokeny API)</h3>
@@ -116,7 +120,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 		</thead>
 		<tbody>
 			<tr>
-				<td>JWT (get_jwt)</td>
+				<td>JWT (/token)</td>
 				<td><code>Bearer &lt;jwt&gt;</code></td>
 				<td>✅ Tak</td>
 				<td>Wymagane</td>
@@ -170,7 +174,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> i <code>LOGIN_RATE_LIMIT_PER_IP</code> dotyczą każdej metody uwierzytelniania,
 		na każdym endpoincie (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: każda próba jest wliczana do limitów na (IP, nazwę użytkownika) i na IP.</li>
+		<li><code>/token</code>: każda próba jest wliczana do limitów na (IP, nazwę użytkownika) i na IP.</li>
 		<li>Bezpośrednie dane logowania (Basic Auth): nieudane próby są wliczane do limitów na (IP, nazwę użytkownika)
 			i na IP. Udane żądania nie są liczone, więc prawidłowy klient wysyłający dane logowania w każdym żądaniu
 			nigdy nie zostanie ograniczony.</li>

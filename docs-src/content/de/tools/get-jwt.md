@@ -5,7 +5,7 @@ description: "PgArachne JWT Getter - Dokumentation"
 
 <section id="get-jwt">
 <h2>JWT Getter</h2>
-<p>Der <strong>JWT Getter</strong> ist ein minimalistisches Browser-Werkzeug im Verzeichnis <code>tools/get-jwt</code>. Er tauscht PostgreSQL-Benutzername und Passwort gegen ein kurzlebiges JWT über die JSON-RPC-Methode <code>get_jwt</code> — und zeigt den dekodierten Payload sowie die Ablaufzeit an.</p>
+<p>Der <strong>JWT Getter</strong> ist ein minimalistisches Browser-Werkzeug im Verzeichnis <code>tools/get-jwt</code>. Er tauscht PostgreSQL-Benutzername und Passwort gegen ein kurzlebiges JWT durch Aufruf von <code>POST /{prefix}/{database}/token</code> mit HTTP-Basic-Zugangsdaten — und zeigt den dekodierten Payload sowie die Ablaufzeit an.</p>
 
 <h3>Wann verwenden</h3>
 <p>Verwenden Sie den JWT Getter, wenn Sie ein Token für einen dieser Zwecke benötigen:</p>
@@ -16,7 +16,7 @@ description: "PgArachne JWT Getter - Dokumentation"
 </ul>
 
 <div class="tip">
-<strong>Hinweis:</strong> <code>get_jwt</code> erfordert <code>GRANT &lt;Rolle&gt; TO pgarachne</code> in der Datenbank, weil PgArachne das Passwort intern über <code>SET LOCAL ROLE</code> prüft. Um dieses Grant zu vermeiden, verwenden Sie stattdessen direkte Anmeldedaten (HTTP Basic Auth) im <a href="../api-explorer/">Explorer</a> oder <a href="../sse-tester/">SSE Tester</a>.
+<strong>Hinweis:</strong> Ein JWT funktioniert nur, wenn PgArachne zur Rolle des Benutzers wechseln darf. Das erfordert <code>GRANT &lt;Rolle&gt; TO pgarachne</code> in der Datenbank (PgArachne verwendet <code>SET LOCAL ROLE</code> für Token-authentifizierte Anfragen). Um dieses Grant zu vermeiden, verwenden Sie stattdessen direkte Anmeldedaten (HTTP Basic Auth) im <a href="../api-explorer/">Explorer</a> oder <a href="../sse-tester/">SSE Tester</a>.
 </div>
 
 <h3>Funktionen</h3>

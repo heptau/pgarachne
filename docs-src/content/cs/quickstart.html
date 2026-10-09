@@ -52,7 +52,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db/<database>/token); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
 		<p>Spusťte server (heslo servisní role se čte z <code>PGPASSWORD</code> nebo z <code>~/.pgpass</code>):</p>
 		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
@@ -202,7 +202,7 @@ URL.revokeObjectURL(url);</code></pre>
 		<ul>
 			<li><strong>Používejte HTTPS.</strong> Přihlašovací údaje Basic putují s každým požadavkem; viz <a href="../deployment-https/">Nasazení a HTTPS</a>. Změňte demo hesla.</li>
 			<li><strong>Přihlašovací údaje držte jen v paměti</strong> (JavaScriptová proměnná), nikdy v <code>localStorage</code>. Abyste heslo neposílali opakovaně,
-				nastavte <code>JWT_SECRET</code> a použijte <code>get_jwt</code> (viz <a href="../security-roles/">Bezpečnost a autentizace</a>).</li>
+				nastavte <code>JWT_SECRET</code> a požádejte o token na <code>POST /db/my_database/token</code> (viz <a href="../security-roles/">Bezpečnost a autentizace</a>).</li>
 			<li><strong>Webová stránka na jiném originu</strong> (CDN, jiný port)? Nastavte <code>ALLOWED_ORIGINS=https://app.example.com</code>; cross-origin požadavky jsou ve výchozím stavu blokované.</li>
 			<li><strong>Nejmenší oprávnění:</strong> jedna role PostgreSQL pro každý druh uživatele, <code>EXECUTE</code> jen na funkce, které potřebují, Row-Level Security pro data jednotlivých uživatelů a
 				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>, aby nové funkce nebyly zpřístupněny omylem.</li>

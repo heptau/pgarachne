@@ -43,10 +43,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Обов'язкові змінні:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> необов'язковий. Встановіть його (мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>), щоб увімкнути JWT-сесії через <code>get_jwt</code> та JWT, видані зовнішніми системами. Без нього підтримку JWT вимкнено, і клієнти автентифікуються за допомогою облікових даних HTTP Basic (ім'я користувача та пароль бази даних) або довгострокових API-токенів.</p>
+	<p><code>JWT_SECRET</code> необов'язковий. Встановіть його (мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>), щоб увімкнути JWT-сесії через <code>POST /{prefix}/{database}/token</code> та JWT, видані зовнішніми системами. Без нього підтримку JWT вимкнено, і клієнти автентифікуються за допомогою облікових даних HTTP Basic (ім'я користувача та пароль бази даних) або довгострокових API-токенів.</p>
 
 	<h3>Швидкий контрольний список перевірки</h3>
 	<ul>
@@ -148,7 +148,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
-				<td>Довгий випадковий рядок, що використовується для підписання токенів сесії. Мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>. Якщо не встановлено, підтримку JWT вимкнено: <code>get_jwt</code> недоступний, і клієнти автентифікуються лише за допомогою облікових даних HTTP Basic або API-токенів.</td>
+				<td>Довгий випадковий рядок, що використовується для підписання токенів сесії. Мінімум 32 байти; згенеруйте за допомогою <code>openssl rand -hex 32</code>. Якщо не встановлено, підтримку JWT вимкнено: endpoint <code>/token</code> недоступний, і клієнти автентифікуються лише за допомогою облікових даних HTTP Basic або API-токенів.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -173,7 +173,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
-				<td>Максимальна кількість спроб автентифікації на IP-адресу клієнта та ім'я користувача за одне вікно. Застосовується до всіх методів входу: враховується кожен виклик <code>get_jwt</code>, а для облікових даних HTTP Basic (на всіх endpoint-ах) враховуються невдалі спроби. За умовчанням: <code>5</code>. Встановіть <code>0</code>, щоб вимкнути.</td>
+				<td>Максимальна кількість спроб автентифікації на IP-адресу клієнта та ім'я користувача за одне вікно. Застосовується до всіх методів входу: враховується кожен запит до <code>/token</code>, а для облікових даних HTTP Basic (на всіх endpoint-ах) враховуються невдалі спроби. За умовчанням: <code>5</code>. Встановіть <code>0</code>, щоб вимкнути.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

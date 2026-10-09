@@ -487,11 +487,11 @@ func Load(configPath string) (*Config, error) {
 			cfg.DBMaxIdleConns, cfg.DBMaxOpenConns)
 	}
 
-	// JWT_SECRET is optional. Without it the get_jwt login method is
+	// JWT_SECRET is optional. Without it the token endpoint (POST /{prefix}/{database}/token) is
 	// disabled and clients authenticate with HTTP Basic credentials or
 	// long-lived API tokens only.
 	if cfg.JWTSecret == "" {
-		slog.Info("JWT_SECRET not set — JWT sessions (get_jwt) are disabled; use HTTP Basic credentials or API tokens")
+		slog.Info("JWT_SECRET not set — JWT sessions (POST …/token) are disabled; use HTTP Basic credentials or API tokens")
 	} else if cfg.JWTSecret == jwtSecretPlaceholder {
 		return nil, fmt.Errorf("JWT_SECRET is still the example placeholder; generate a real secret, e.g. with: openssl rand -hex 32")
 	} else if len(cfg.JWTSecret) < minJWTSecretLength {

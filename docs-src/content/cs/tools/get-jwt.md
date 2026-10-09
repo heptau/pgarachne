@@ -5,7 +5,7 @@ description: "PgArachne JWT Getter - Dokumentace"
 
 <section id="get-jwt">
 <h2>JWT Getter</h2>
-<p><strong>JWT Getter</strong> je minimalistický nástroj pro prohlížeč umístěný ve složce <code>tools/get-jwt</code>. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním JSON-RPC metody <code>get_jwt</code> — a zobrazuje dekódovaný payload i čas expirace.</p>
+<p><strong>JWT Getter</strong> je minimalistický nástroj pro prohlížeč umístěný ve složce <code>tools/get-jwt</code>. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním <code>POST /{prefix}/{database}/token</code> s přihlašovacími údaji HTTP Basic — a zobrazuje dekódovaný payload i čas expirace.</p>
 
 <h3>Kdy jej použít</h3>
 <ul>
@@ -15,7 +15,7 @@ description: "PgArachne JWT Getter - Dokumentace"
 </ul>
 
 <div class="tip">
-<strong>Poznámka:</strong> <code>get_jwt</code> vyžaduje <code>GRANT &lt;role&gt; TO pgarachne</code>, protože PgArachne ověřuje heslo interně přes <code>SET LOCAL ROLE</code>. Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v <a href="../api-explorer/">Exploreru</a> nebo <a href="../sse-tester/">SSE Testeru</a>.
+<strong>Poznámka:</strong> JWT funguje jen tehdy, když může PgArachne přepnout na roli uživatele, což vyžaduje <code>GRANT &lt;role&gt; TO pgarachne</code> v databázi (PgArachne používá <code>SET LOCAL ROLE</code> pro požadavky autentizované tokenem). Pokud chcete tento grant vynechat, použijte přímé přihlášení heslem (HTTP Basic Auth) v <a href="../api-explorer/">Exploreru</a> nebo <a href="../sse-tester/">SSE Testeru</a>.
 </div>
 
 <h3>Funkce</h3>

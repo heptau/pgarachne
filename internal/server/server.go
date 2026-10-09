@@ -246,6 +246,9 @@ func (s *Server) buildRouter() *gin.Engine {
 	// JSON-RPC 2.0 gateway
 	router.POST("/"+prefix+"/:database/jsonrpc", s.handleFunctionCall)
 	router.POST("/"+prefix+"/:database/jsonrpc/", s.handleFunctionCall)
+	// JWT login: exchanges HTTP Basic credentials for a session token.
+	router.POST("/"+prefix+"/:database/token", s.handleToken)
+	router.POST("/"+prefix+"/:database/token/", s.handleToken)
 	// Binary download (single file or ZIP) from set-returning functions.
 	router.POST("/"+prefix+"/:database/file", s.handleFile)
 	router.POST("/"+prefix+"/:database/file/", s.handleFile)
@@ -383,7 +386,7 @@ func (e *authFailure) Error() string { return e.message }
 //
 // Failed attempts in every mode count against LOGIN_RATE_LIMIT (per IP and
 // username, Basic only) and LOGIN_RATE_LIMIT_PER_IP, the same budgets the
-// get_jwt login method uses. Only failures are counted here, because every
+// login endpoint (POST /{prefix}/{database}/token) uses. Only failures are counted here, because every
 // request carries credentials; once a budget is exhausted the request is
 // rejected with 429 before the credentials are checked at all.
 func (s *Server) authenticateForDatabase(c *gin.Context, databaseName string) (execDB *sql.DB, dbRole string, err error) {
@@ -439,7 +442,7 @@ func (s *Server) authenticateForDatabase(c *gin.Context, databaseName string) (e
 }
 
 // jwtEnabled reports whether JWT sessions are configured. Without
-// JWT_SECRET the get_jwt method is unavailable and Bearer values are only
+// JWT_SECRET the token endpoint is unavailable and Bearer values are only
 // checked as long-lived API tokens.
 func (s *Server) jwtEnabled() bool {
 	return s.Cfg.JWTSecret != ""
@@ -476,6 +479,18 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 		return
 	}
 
+	// get_jwt used to be a JSON-RPC method that took the credentials in the
+	// request body. It was replaced by POST /{prefix}/{database}/token with
+	// HTTP Basic authentication; say so instead of a bare "invalid name".
+	if functionName == "get_jwt" {
+		recordJSONRPC("", "error")
+		c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{
+			Code:    -32601,
+			Message: "get_jwt was removed; request a token with POST /" + s.Cfg.APIPrefix + "/" + databaseName + "/token using HTTP Basic credentials",
+		}, ID: req.ID})
+		return
+	}
+
 	if !isSafeFunctionName(functionName) {
 		recordJSONRPC(functionName, "error")
 		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid function name"}, ID: req.ID})
@@ -483,11 +498,6 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	}
 
 	c.Set("jsonrpc_id", req.ID)
-
-	if functionName == "get_jwt" {
-		s.handleLoginRPC(c, req, databaseName)
-		return
-	}
 
 	// --- Authentication ---
 	// Three modes, checked in order:
@@ -585,36 +595,43 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	})
 }
 
-func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName string) {
+// handleToken implements POST /{prefix}/{database}/token: it exchanges
+// PostgreSQL credentials, sent with HTTP Basic authentication, for a signed
+// JWT. The credentials are only verified here (with a one-off connection, so
+// no pool is cached per user); every later request authenticates with the
+// returned Bearer token.
+//
+// Every attempt counts against the login rate limits (LOGIN_RATE_LIMIT per IP
+// and username, LOGIN_RATE_LIMIT_PER_IP), checked before the credentials are
+// used. The response is never cacheable.
+func (s *Server) handleToken(c *gin.Context) {
+	databaseName := c.Param("database")
+	if !isSafeDatabaseName(databaseName) {
+		jsonError(c, http.StatusBadRequest, 0, "Invalid database name")
+		return
+	}
 	if !s.jwtEnabled() {
-		c.JSON(http.StatusNotFound, JSONRPCResponse{Error: &JSONRPCError{
-			Code:    -32601,
-			Message: "get_jwt is disabled: JWT_SECRET is not configured; authenticate with HTTP Basic credentials or an API token",
-		}, ID: req.ID})
+		jsonError(c, http.StatusNotFound, -32601,
+			"JWT is disabled: JWT_SECRET is not configured; authenticate with HTTP Basic credentials or an API token")
 		return
 	}
 
-	var loginReq LoginRequest
-	params := req.Params
-	if len(params) == 0 || string(params) == "null" {
-		params = json.RawMessage("{}")
-	}
-	if err := json.Unmarshal(params, &loginReq); err != nil {
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid params"}, ID: req.ID})
+	c.Header("Cache-Control", "no-store")
+	c.Header("Pragma", "no-cache")
+
+	login, password, ok := parseBasicAuth(c.GetHeader("Authorization"))
+	if !ok {
+		recordLoginResult("invalid")
+		jsonError(c, http.StatusUnauthorized, 0, "HTTP Basic credentials are required")
 		return
 	}
-	// Reject oversized credentials before they reach the rate limiter or
-	// the connection string. The limits (types.go) are wide enough for any
-	// legitimate user but keep an attacker from blowing up memory with a
-	// single multi-megabyte "password" field.
-	if len(loginReq.Login) > MaxLoginLength {
+	// Reject oversized or empty credentials before they reach the rate limiter
+	// or the connection string. The limits (types.go) are wide enough for any
+	// legitimate user but keep an attacker from blowing up memory with a huge
+	// password.
+	if login == "" || len(login) > MaxLoginLength || len(password) > MaxPasswordLength {
 		recordLoginResult("invalid")
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
-		return
-	}
-	if len(loginReq.Password) > MaxPasswordLength {
-		recordLoginResult("invalid")
-		c.JSON(http.StatusBadRequest, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
+		jsonError(c, http.StatusBadRequest, 0, "Invalid login or password")
 		return
 	}
 
@@ -623,20 +640,20 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	// even when each individual username is below its own limit.
 	if s.ipLoginLimiter != nil && !s.ipLoginLimiter.Allow(c.ClientIP()) {
 		recordLoginResult("rate_limited")
-		c.JSON(http.StatusTooManyRequests, JSONRPCResponse{Error: &JSONRPCError{Message: "Too many login attempts. Please try again later."}, ID: req.ID})
+		jsonError(c, http.StatusTooManyRequests, 0, "Too many login attempts. Please try again later.")
 		return
 	}
-	if s.loginLimiter != nil && !s.loginLimiter.Allow(c.ClientIP()+"|"+loginReq.Login) {
+	if s.loginLimiter != nil && !s.loginLimiter.Allow(c.ClientIP()+"|"+login) {
 		recordLoginResult("rate_limited")
-		c.JSON(http.StatusTooManyRequests, JSONRPCResponse{Error: &JSONRPCError{Message: "Too many login attempts. Please try again later."}, ID: req.ID})
+		jsonError(c, http.StatusTooManyRequests, 0, "Too many login attempts. Please try again later.")
 		return
 	}
 
 	connStr := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s %s",
 		s.Cfg.DBHost,
 		s.Cfg.DBPort,
-		config.QuoteConninfoValue(loginReq.Login),
-		config.QuoteConninfoValue(loginReq.Password),
+		config.QuoteConninfoValue(login),
+		config.QuoteConninfoValue(password),
 		config.QuoteConninfoValue(databaseName),
 		s.Cfg.DBSSLParams(),
 	)
@@ -645,7 +662,7 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	if err != nil {
 		slog.Error("Failed to open verification connection", "error", err)
 		recordLoginResult("error")
-		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Internal authentication error"}, ID: req.ID})
+		jsonError(c, http.StatusInternalServerError, 0, "Internal authentication error")
 		return
 	}
 	defer tempDB.Close()
@@ -654,33 +671,26 @@ func (s *Server) handleLoginRPC(c *gin.Context, req JSONRPCRequest, databaseName
 	defer cancel()
 
 	if err := tempDB.PingContext(ctx); err != nil {
-		slog.Warn("Authentication failed", "user", loginReq.Login, "error", err)
+		slog.Warn("Authentication failed", "user", login, "error", err)
 		recordLoginResult("invalid")
-		c.JSON(http.StatusUnauthorized, JSONRPCResponse{Error: &JSONRPCError{Message: "Invalid login or password"}, ID: req.ID})
+		jsonError(c, http.StatusUnauthorized, 0, "Invalid login or password")
 		return
 	}
 
-	tokenString, err := s.jwtSign.Issue(s.Cfg.JWTSecret, loginReq.Login, databaseName, time.Duration(s.Cfg.JWTExpiryHours)*time.Hour)
+	lifetime := time.Duration(s.Cfg.JWTExpiryHours) * time.Hour
+	tokenString, err := s.jwtSign.Issue(s.Cfg.JWTSecret, login, databaseName, lifetime)
 	if err != nil {
 		slog.Error("Failed to sign JWT", "error", err)
 		recordLoginResult("error")
-		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to create session token"}, ID: req.ID})
-		return
-	}
-
-	resultBytes, err := json.Marshal(map[string]string{"token": tokenString})
-	if err != nil {
-		slog.Error("Failed to marshal login response", "error", err)
-		recordLoginResult("error")
-		c.JSON(http.StatusInternalServerError, JSONRPCResponse{Error: &JSONRPCError{Message: "Failed to encode session response"}, ID: req.ID})
+		jsonError(c, http.StatusInternalServerError, 0, "Failed to create session token")
 		return
 	}
 
 	recordLoginResult("success")
-	c.JSON(http.StatusOK, JSONRPCResponse{
-		JSONRPC: "2.0",
-		Result:  resultBytes,
-		ID:      req.ID,
+	c.JSON(http.StatusOK, gin.H{
+		"token":      tokenString,
+		"token_type": "Bearer",
+		"expires_in": int(lifetime.Seconds()),
 	})
 }
 
@@ -948,7 +958,7 @@ func isSafeFunctionName(name string) bool {
 	if name == "" {
 		return false
 	}
-	if name == "capabilities" || name == "get_jwt" {
+	if name == "capabilities" {
 		return true
 	}
 	return pgFunctionRe.MatchString(name)

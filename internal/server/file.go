@@ -156,7 +156,7 @@ func contentDisposition(name string) string {
 		string(ascii), strings.ReplaceAll(url.QueryEscape(name), "+", "%20"))
 }
 
-func fileError(c *gin.Context, status, code int, msg string) {
+func jsonError(c *gin.Context, status, code int, msg string) {
 	c.JSON(status, JSONRPCResponse{Error: &JSONRPCError{Code: code, Message: msg}})
 }
 
@@ -168,32 +168,32 @@ func isPermissionDeniedError(err error) bool {
 func (s *Server) handleFile(c *gin.Context) {
 	databaseName := c.Param("database")
 	if !isSafeDatabaseName(databaseName) {
-		fileError(c, http.StatusBadRequest, 0, "Invalid database name")
+		jsonError(c, http.StatusBadRequest, 0, "Invalid database name")
 		return
 	}
 
 	var req FileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		fileError(c, http.StatusBadRequest, 0, "Invalid JSON request")
+		jsonError(c, http.StatusBadRequest, 0, "Invalid JSON request")
 		return
 	}
 
 	functionName := strings.TrimSpace(req.Method)
 	if functionName == "" {
 		recordFile("", "error")
-		fileError(c, http.StatusBadRequest, 0, "method is required")
+		jsonError(c, http.StatusBadRequest, 0, "method is required")
 		return
 	}
 	// Unlike /jsonrpc there are no special method names: only a plain
 	// schema.function identifier is accepted.
 	if len(functionName) > MaxMethodLength || !pgFunctionRe.MatchString(functionName) {
 		recordFile("", "error")
-		fileError(c, http.StatusBadRequest, 0, "Invalid function name")
+		jsonError(c, http.StatusBadRequest, 0, "Invalid function name")
 		return
 	}
 	if len(req.IdempotencyKey) > MaxIdempotencyKeyLength {
 		recordFile(functionName, "error")
-		fileError(c, http.StatusBadRequest, 0, "idempotencyKey is too long")
+		jsonError(c, http.StatusBadRequest, 0, "idempotencyKey is too long")
 		return
 	}
 
@@ -202,7 +202,7 @@ func (s *Server) handleFile(c *gin.Context) {
 		level = *req.Options.CompressionLevel
 		if level < 0 || level > 9 {
 			recordFile(functionName, "error")
-			fileError(c, http.StatusBadRequest, 0, "options.compression_level must be 0-9")
+			jsonError(c, http.StatusBadRequest, 0, "options.compression_level must be 0-9")
 			return
 		}
 	}
@@ -211,7 +211,7 @@ func (s *Server) handleFile(c *gin.Context) {
 	if authErr != nil {
 		var af *authFailure
 		errors.As(authErr, &af)
-		fileError(c, af.status, 0, af.message)
+		jsonError(c, af.status, 0, af.message)
 		return
 	}
 
@@ -224,7 +224,7 @@ func (s *Server) handleFile(c *gin.Context) {
 	if err != nil {
 		slog.Error("Failed to begin transaction", "error", err)
 		recordFile(functionName, "error")
-		fileError(c, http.StatusServiceUnavailable, 0, "Database unavailable")
+		jsonError(c, http.StatusServiceUnavailable, 0, "Database unavailable")
 		return
 	}
 	defer rollbackQuietly(tx)
@@ -233,15 +233,15 @@ func (s *Server) handleFile(c *gin.Context) {
 		switch {
 		case errors.Is(err, errIdempotencyDuplicate):
 			recordFile(functionName, "duplicate")
-			fileError(c, http.StatusConflict, -32000, "This request has already been processed")
+			jsonError(c, http.StatusConflict, -32000, "This request has already been processed")
 		case errors.Is(err, errIdempotencyCheckFailed):
 			slog.Error("Idempotency check failed", "key", req.IdempotencyKey, "function", functionName, "error", err)
 			recordFile(functionName, "error")
-			fileError(c, http.StatusInternalServerError, 0, "Idempotency check failed")
+			jsonError(c, http.StatusInternalServerError, 0, "Idempotency check failed")
 		default:
 			slog.Error("Failed to SET ROLE", "role", dbRole, "error", err)
 			recordFile(functionName, "error")
-			fileError(c, http.StatusForbidden, -32001, "Permission denied for the specified role")
+			jsonError(c, http.StatusForbidden, -32001, "Permission denied for the specified role")
 		}
 		return
 	}
@@ -257,7 +257,7 @@ func (s *Server) handleFile(c *gin.Context) {
 	entries, status, msg := s.collectFileEntries(rows)
 	if status != 0 {
 		recordFile(functionName, "error")
-		fileError(c, status, 0, msg)
+		jsonError(c, status, 0, msg)
 		return
 	}
 
@@ -266,14 +266,14 @@ func (s *Server) handleFile(c *gin.Context) {
 	// key and nothing the function did is persisted.
 	if len(entries) == 0 {
 		recordFile(functionName, "empty")
-		fileError(c, http.StatusNotFound, 0, "No file returned")
+		jsonError(c, http.StatusNotFound, 0, "No file returned")
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
 		slog.Error("Transaction commit failed", "error", err)
 		recordFile(functionName, "error")
-		fileError(c, http.StatusInternalServerError, 0, "Transaction commit failed")
+		jsonError(c, http.StatusInternalServerError, 0, "Transaction commit failed")
 		return
 	}
 
@@ -319,11 +319,11 @@ func (s *Server) fileQueryError(c *gin.Context, functionName string, err error) 
 	recordFile(functionName, "error")
 	switch {
 	case isUndefinedFunctionError(err):
-		fileError(c, http.StatusNotFound, -32601, "Function does not exist")
+		jsonError(c, http.StatusNotFound, -32601, "Function does not exist")
 	case isPermissionDeniedError(err):
-		fileError(c, http.StatusForbidden, -32001, "Permission denied")
+		jsonError(c, http.StatusForbidden, -32001, "Permission denied")
 	default:
-		fileError(c, http.StatusInternalServerError, 0, "Function call failed")
+		jsonError(c, http.StatusInternalServerError, 0, "Function call failed")
 	}
 }
 

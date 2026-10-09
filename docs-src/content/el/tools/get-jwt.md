@@ -5,7 +5,7 @@ description: "PgArachne JWT Getter - Τεκμηρίωση"
 
 <section id="get-jwt">
 <h2>JWT Getter</h2>
-<p>Το <strong>JWT Getter</strong> είναι ένα ελάχιστο εργαλείο browser σε ένα αρχείο, που βρίσκεται στο <code>tools/get-jwt</code>. Ανταλλάζει ένα όνομα χρήστη και κωδικό πρόσβασης PostgreSQL για ένα βραχύβιο JWT καλώντας τη μέθοδο JSON-RPC <code>get_jwt</code> — και σας δείχνει το αποκωδικοποιημένο payload και τον χρόνο λήξης.</p>
+<p>Το <strong>JWT Getter</strong> είναι ένα ελάχιστο εργαλείο browser σε ένα αρχείο, που βρίσκεται στο <code>tools/get-jwt</code>. Ανταλλάζει ένα όνομα χρήστη και κωδικό πρόσβασης PostgreSQL για ένα βραχύβιο JWT καλώντας το <code>POST /{prefix}/{database}/token</code> με διαπιστευτήρια HTTP Basic — και σας δείχνει το αποκωδικοποιημένο payload και τον χρόνο λήξης.</p>
 
 <h3>Πότε να το χρησιμοποιήσετε</h3>
 <p>Χρησιμοποιήστε το JWT Getter όταν χρειάζεστε ένα token για έναν από τους ακόλουθους σκοπούς:</p>
@@ -16,7 +16,7 @@ description: "PgArachne JWT Getter - Τεκμηρίωση"
 </ul>
 
 <div class="tip">
-<strong>Σημείωση:</strong> Το <code>get_jwt</code> απαιτεί <code>GRANT &lt;role&gt; TO pgarachne</code> στη βάση δεδομένων επειδή το PgArachne επαληθεύει τον κωδικό πρόσβασης εσωτερικά μέσω <code>SET LOCAL ROLE</code>. Εάν θέλετε να παραλείψετε αυτό το grant, χρησιμοποιήστε άμεσα διαπιστευτήρια (HTTP Basic Auth) στο <a href="../api-explorer/">Explorer</a> ή στο <a href="../sse-tester/">SSE Tester</a> αντ' αυτού.
+<strong>Σημείωση:</strong> Ένα JWT λειτουργεί μόνο αν το PgArachne μπορεί να αλλάξει στον ρόλο του χρήστη, κάτι που απαιτεί <code>GRANT &lt;role&gt; TO pgarachne</code> στη βάση δεδομένων (το PgArachne χρησιμοποιεί <code>SET LOCAL ROLE</code> για αιτήματα πιστοποιημένα με token). Εάν θέλετε να παραλείψετε αυτό το grant, χρησιμοποιήστε άμεσα διαπιστευτήρια (HTTP Basic Auth) στο <a href="../api-explorer/">Explorer</a> ή στο <a href="../sse-tester/">SSE Tester</a> αντ' αυτού.
 </div>
 
 <h3>Λειτουργίες</h3>

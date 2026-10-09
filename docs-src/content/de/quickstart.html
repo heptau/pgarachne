@@ -52,7 +52,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db/<database>/token); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
 		<p>Starten Sie den Server (das Passwort der Service-Rolle wird aus <code>PGPASSWORD</code> oder <code>~/.pgpass</code> gelesen):</p>
 		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
@@ -202,7 +202,7 @@ URL.revokeObjectURL(url);</code></pre>
 		<ul>
 			<li><strong>Verwenden Sie HTTPS.</strong> Basic-Zugangsdaten werden mit jeder Anfrage gesendet; siehe <a href="../deployment-https/">Bereitstellung &amp; HTTPS</a>. Ändern Sie die Demo-Passwörter.</li>
 			<li><strong>Zugangsdaten nur im Arbeitsspeicher halten</strong> (eine JavaScript-Variable), niemals in <code>localStorage</code>. Um das Passwort nicht ständig erneut zu senden,
-				setzen Sie <code>JWT_SECRET</code> und verwenden <code>get_jwt</code> (siehe <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>).</li>
+				setzen Sie <code>JWT_SECRET</code> und fordern ein Token über <code>POST /db/my_database/token</code> an (siehe <a href="../security-roles/">Sicherheit &amp; Authentifizierung</a>).</li>
 			<li><strong>Webseite auf einem anderen Origin</strong> (CDN, anderer Port)? Setzen Sie <code>ALLOWED_ORIGINS=https://app.example.com</code>; Cross-Origin-Anfragen sind standardmäßig blockiert.</li>
 			<li><strong>Minimale Rechte:</strong> eine PostgreSQL-Rolle pro Benutzerart, <code>EXECUTE</code> nur auf die benötigten Funktionen, Row-Level Security für benutzerspezifische Daten und
 				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>, damit neue Funktionen nicht versehentlich freigegeben werden.</li>

@@ -45,10 +45,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Erforderliche Variablen:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> ist optional. Setzen Sie es (mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>), um JWT-Sitzungen über <code>get_jwt</code> sowie extern ausgestellte JWTs zu aktivieren. Ohne es ist die JWT-Unterstützung deaktiviert, und Clients authentifizieren sich mit HTTP-Basic-Zugangsdaten (Datenbank-Benutzername und -Passwort) oder langlebigen API-Token.</p>
+	<p><code>JWT_SECRET</code> ist optional. Setzen Sie es (mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>), um JWT-Sitzungen über <code>POST /{prefix}/{database}/token</code> sowie extern ausgestellte JWTs zu aktivieren. Ohne es ist die JWT-Unterstützung deaktiviert, und Clients authentifizieren sich mit HTTP-Basic-Zugangsdaten (Datenbank-Benutzername und -Passwort) oder langlebigen API-Token.</p>
 
 	<h3>Schnelle Validierungs-Checkliste</h3>
 	<ul>
@@ -150,7 +150,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken. Mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>. Ist es nicht gesetzt, ist die JWT-Unterstützung deaktiviert: <code>get_jwt</code> ist nicht verfügbar, und Clients authentifizieren sich ausschließlich mit HTTP-Basic-Zugangsdaten oder API-Token.</td>
+				<td>Eine lange, zufällige Zeichenfolge zum Signieren von Sitzungstoken. Mindestens 32 Bytes; erzeugen Sie es mit <code>openssl rand -hex 32</code>. Ist es nicht gesetzt, ist die JWT-Unterstützung deaktiviert: der Endpunkt <code>/token</code> ist nicht verfügbar, und Clients authentifizieren sich ausschließlich mit HTTP-Basic-Zugangsdaten oder API-Token.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -175,7 +175,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Maximale Authentifizierungsversuche pro Client-IP und Benutzername pro Zeitfenster. Gilt für jede Login-Methode: Jeder <code>get_jwt</code>-Aufruf zählt, bei HTTP-Basic-Zugangsdaten (auf allen Endpunkten) zählen fehlgeschlagene Versuche. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
+				<td>Maximale Authentifizierungsversuche pro Client-IP und Benutzername pro Zeitfenster. Gilt für jede Login-Methode: Jede <code>/token</code>-Anfrage zählt, bei HTTP-Basic-Zugangsdaten (auf allen Endpunkten) zählen fehlgeschlagene Versuche. Standard: <code>5</code>. <code>0</code> deaktiviert.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

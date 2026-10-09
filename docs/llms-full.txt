@@ -382,7 +382,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db//token); generate with openssl rand -hex 32
 # JWT_SECRET=...
 ```
 
@@ -557,7 +557,7 @@ More in File Download.
 - Use HTTPS. Basic credentials travel with every request; see Deployment & HTTPS. Change the demo passwords.
 
 - Keep credentials in memory only (a JavaScript variable), never in `localStorage`. To avoid resending the password,
-set `JWT_SECRET` and use `get_jwt` (see Security & Authentication).
+set `JWT_SECRET` and request a token from `POST /db/my_database/token` (see Security & Authentication).
 
 - Web page on another origin (a CDN, another port)? Set `ALLOWED_ORIGINS=https://app.example.com`; cross-origin requests are blocked by default.
 
@@ -708,13 +708,13 @@ This is all you need to get started:
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db//token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 Required variables: `DB_HOST`, `DB_PORT`, `DB_USER`.
 
-`JWT_SECRET` is optional. Set it (minimum 32 bytes; generate with `openssl rand -hex 32`) to enable JWT sessions via `get_jwt` and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.
+`JWT_SECRET` is optional. Set it (minimum 32 bytes; generate with `openssl rand -hex 32`) to enable JWT sessions via `POST /{prefix}/{database}/token` and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.
 
 ### Quick Validation Checklist
 
@@ -764,7 +764,7 @@ Default: unset — cross-origin browser requests are disabled. Set `*` explicitl
 
 Security (JWT & login)
 
-`JWT_SECRET` | ○ | A long, random string used to sign session tokens. Minimum 32 bytes; generate with `openssl rand -hex 32`. If unset, JWT support is disabled: `get_jwt` is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.
+`JWT_SECRET` | ○ | A long, random string used to sign session tokens. Minimum 32 bytes; generate with `openssl rand -hex 32`. If unset, JWT support is disabled: the `/token` endpoint is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.
 
 `JWT_EXPIRY_HOURS` | ○ | Session validity in hours (must be greater than 0). Default: `8`.
 
@@ -774,7 +774,7 @@ Security (JWT & login)
 
 `JWT_LEEWAY` | ○ | Clock-skew tolerance for `exp`/`nbf`/`iat` validation (e.g. `30s`). Default: `30s`.
 
-`LOGIN_RATE_LIMIT` | ○ | Max authentication attempts per client IP and username per window. Applies to every login method: each `get_jwt` call counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: `5`. Set `0` to disable.
+`LOGIN_RATE_LIMIT` | ○ | Max authentication attempts per client IP and username per window. Applies to every login method: each `/token` request counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: `5`. Set `0` to disable.
 
 `LOGIN_RATE_LIMIT_PER_IP` | ○ | Max authentication attempts per client IP across all usernames, so rotating usernames does not bypass the limit. Also counts failed Bearer attempts (invalid JWT or API token). Default: 5× `LOGIN_RATE_LIMIT`. Set `0` to disable.
 
@@ -858,7 +858,7 @@ Content-Type: application/json
 
 Field | Description
 
-`method` | Required. `schema.function`, at most 256 characters. Quoted identifiers (`"my schema"."my fn"`) are allowed. The schema is mandatory: `hello_world` alone is rejected with 400. Two names are special: `capabilities` and `get_jwt` (section 5).
+`method` | Required. `schema.function`, at most 256 characters. Quoted identifiers (`"my schema"."my fn"`) are allowed. The schema is mandatory: `hello_world` alone is rejected with 400. `capabilities` is a built-in method (section 5).
 
 `params` | Any JSON value, passed to the function unchanged as its `jsonb` argument. Missing or `null` becomes `{}`. Objects are the convention; arrays and scalars also work.
 
@@ -942,15 +942,8 @@ Each entry has `method`, `description`, `parameters`, `http_method`, `endpoint` 
 {"jsonrpc":"2.0","method":"capabilities","id":1}
 ```
 
-#### `get_jwt`
-
-Exchanges a PostgreSQL login and password for a JWT. It is only available when `JWT_SECRET` is configured; otherwise it returns 404 / `-32601`.
-Every attempt counts against the login rate limit.
-
-```
-{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}
-```
+Logging in for a JWT is not a JSON-RPC method: use `POST /{prefix}/{database}/token` with HTTP Basic credentials (section 6).
+The old method `get_jwt`, which took the password in `params`, was removed and answers 404 / `-32601` with a pointer to the new endpoint.
 
 ### 6. Authentication
 
@@ -960,9 +953,23 @@ Header | What happens
 
 `Basic <base64(user:password)>` | A connection pool authenticated as that PostgreSQL user. Simplest; no tokens. Send it over HTTPS only.
 
-`Bearer <jwt>` | Token from `get_jwt` (or your own identity provider). PgArachne switches to the token's role with `SET LOCAL ROLE`; the service role needs `GRANT user TO pgarachne`.
+`Bearer <jwt>` | Token from `POST /{prefix}/{database}/token` (or your own identity provider). PgArachne switches to the token's role with `SET LOCAL ROLE`; the service role needs `GRANT user TO pgarachne`.
 
 `Bearer <api token>` | Long-lived token minted with `pgarachne.add_api_token(...)`, bound to a role. Good for services.
+
+#### Getting a JWT: `POST /{prefix}/{database}/token`
+
+Exchanges a PostgreSQL login and password, sent with HTTP Basic authentication, for a JWT. The credentials travel in the `Authorization`
+header — never in a JSON body — and the endpoint has its own URL, so a reverse proxy can apply stricter limits to logins without reading request bodies.
+It requires `JWT_SECRET`; otherwise it returns 404. Every attempt counts against the login rate limit and the response is never cacheable.
+
+```
+curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'
+```
 
 Failed attempts are rate limited (HTTP 429). All details, token lifetimes and an external identity provider are on the Security & Authentication page.
 
@@ -1387,7 +1394,7 @@ Learn more about SSE Tester
 
 ### JWT Getter
 
-Exchange a PostgreSQL username and password for a short-lived JWT via the `get_jwt` method. Shows the decoded payload and expiry time — useful for debugging token-based flows.
+Exchange a PostgreSQL username and password for a short-lived JWT via the `/token` endpoint (HTTP Basic credentials). Shows the decoded payload and expiry time — useful for debugging token-based flows.
 
 Learn more about JWT Getter
 
@@ -1406,7 +1413,7 @@ URL: https://www.pgarachne.com/en/tools/get-jwt/
 
 ## JWT Getter
 
-The JWT Getter is a minimal single-file browser tool located in `tools/get-jwt`. It exchanges a PostgreSQL username and password for a short-lived JWT by calling the `get_jwt` JSON-RPC method — and shows you the decoded payload and expiry time.
+The JWT Getter is a minimal single-file browser tool located in `tools/get-jwt`. It exchanges a PostgreSQL username and password for a short-lived JWT by calling `POST /{prefix}/{database}/token` with HTTP Basic credentials — and shows you the decoded payload and expiry time.
 
 ### When to use it
 
@@ -1418,7 +1425,7 @@ Use the JWT Getter when you need a token for one of these purposes:
 
 - Quickly verifying that the `pgarachne` system user can switch to a given role (`GRANT <role> TO pgarachne` must be in place).
 
-Note: `get_jwt` requires `GRANT <role> TO pgarachne` in the database because PgArachne verifies the password internally via `SET LOCAL ROLE`. If you want to skip that grant, use direct credentials (HTTP Basic Auth) in the Explorer or SSE Tester instead.
+Note: a JWT only works if PgArachne may switch to the user's role, which requires `GRANT <role> TO pgarachne` in the database (PgArachne uses `SET LOCAL ROLE` for token-authenticated requests). If you want to skip that grant, use direct credentials (HTTP Basic Auth) in the Explorer or SSE Tester instead.
 
 ### Features
 
@@ -1580,13 +1587,21 @@ their own `GRANT`s to enforce. See the SSE page for what that means in practice.
 
 ### 1. Interactive Login (JWT)
 
-Users authenticate using their real PostgreSQL username and password via the
-`get_jwt` JSON-RPC method. If successful, they receive a short-lived JWT. Subsequent requests
+Users authenticate using their real PostgreSQL username and password with
+HTTP Basic authentication at `POST /{prefix}/{database}/token`. If successful, they receive a short-lived JWT. Subsequent requests
 carry this token in the `Authorization: Bearer <token>` header, and PgArachne switches the
 active role to that user for the duration of each request.
 
-Requires `JWT_SECRET`. When it is not configured, `get_jwt` returns HTTP 404
-(JSON-RPC `-32601`) and clients use direct credentials (method 4) or API tokens (method 2)
+```
+curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+```
+
+The credentials travel in the `Authorization` header, never in a JSON body, and the login has its own URL so a reverse proxy
+can rate-limit it without reading request bodies. The response is never cacheable.
+
+Requires `JWT_SECRET`. When it is not configured, the endpoint returns HTTP 404
+(`-32601`) and clients use direct credentials (method 4) or API tokens (method 2)
 instead.
 
 ### 2. Service Accounts (API Tokens)
@@ -1689,7 +1704,7 @@ This grant is not needed when using direct credentials (method 4).
 
 Method | Header | SET LOCAL ROLE | GRANT … TO pgarachne | Best for
 
-JWT (get_jwt) | `Bearer <jwt>` | ✅ Yes | Required | End-user sessions
+JWT (/token) | `Bearer <jwt>` | ✅ Yes | Required | End-user sessions
 
 API Token | `Bearer <token>` | ✅ Yes | Required | Automated services
 
@@ -1726,7 +1741,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 `LOGIN_RATE_LIMIT` and `LOGIN_RATE_LIMIT_PER_IP` apply to every authentication method,
 on every endpoint (JSON-RPC, MCP, SSE, OpenAPI):
 
-- `get_jwt`: every attempt counts against the per-(IP, username) and per-IP budgets.
+- `/token`: every attempt counts against the per-(IP, username) and per-IP budgets.
 
 - Direct credentials (Basic Auth): failed attempts count against the per-(IP, username) and per-IP budgets.
 Successful requests are not counted, so a legitimate client sending credentials on every request is never
@@ -1897,7 +1912,7 @@ HTTP | Typical message | When it happens
 
 `403` | Permission denied for the specified role | `SET LOCAL ROLE` failed (`-32001`).
 
-`404` | Function does not exist / get_jwt is disabled | Target method is missing (`-32601`), or `get_jwt` was called while `JWT_SECRET` is not configured.
+`404` | Function does not exist / JWT is disabled / get_jwt was removed | Target method is missing (`-32601`), `/token` was called while `JWT_SECRET` is not configured, or the removed JSON-RPC method `get_jwt` was called (use `POST /{prefix}/{database}/token`).
 
 `429` | Too many login attempts / Too many failed authentication attempts | Login or authentication rate limit exceeded (`LOGIN_RATE_LIMIT`, `LOGIN_RATE_LIMIT_PER_IP`).
 

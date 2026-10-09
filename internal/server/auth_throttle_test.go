@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -128,7 +129,25 @@ func TestBasicAuthFailuresAreRateLimited(t *testing.T) {
 	}
 }
 
-func TestGetJWTDisabledWithoutSecret(t *testing.T) {
+func TestTokenDisabledWithoutSecret(t *testing.T) {
+	ts := newThrottleTestServer(t, "")
+	resp := postJSONRPC(t, ts.URL+"/db/mydb/token", "Basic YTpi", "")
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", resp.StatusCode)
+	}
+	var out JSONRPCResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		t.Fatal(err)
+	}
+	if out.Error == nil || out.Error.Code != -32601 || !strings.Contains(out.Error.Message, "JWT_SECRET") {
+		t.Fatalf("error = %+v, want -32601 mentioning JWT_SECRET", out.Error)
+	}
+}
+
+// The credentials-in-body JSON-RPC method is gone; the error points to the
+// replacement instead of a bare "invalid function name".
+func TestGetJWTMethodRemoved(t *testing.T) {
 	ts := newThrottleTestServer(t, "")
 	resp := postJSONRPC(t, ts.URL+"/db/mydb/jsonrpc", "",
 		`{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"a","password":"b"},"id":1}`)
@@ -140,8 +159,58 @@ func TestGetJWTDisabledWithoutSecret(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
 		t.Fatal(err)
 	}
-	if out.Error == nil || out.Error.Code != -32601 || !strings.Contains(out.Error.Message, "JWT_SECRET") {
-		t.Fatalf("error = %+v, want -32601 mentioning JWT_SECRET", out.Error)
+	if out.Error == nil || out.Error.Code != -32601 || !strings.Contains(out.Error.Message, "/db/mydb/token") {
+		t.Fatalf("error = %+v, want -32601 pointing to /db/mydb/token", out.Error)
+	}
+}
+
+func TestTokenRequiresBasicCredentials(t *testing.T) {
+	ts := newThrottleTestServer(t, "0123456789abcdef0123456789abcdef")
+	for name, header := range map[string]string{
+		"no header":     "",
+		"bearer":        "Bearer abc",
+		"malformed b64": "Basic !!!",
+	} {
+		resp := postJSONRPC(t, ts.URL+"/db/mydb/token", header, "")
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Errorf("%s: status = %d, want 401", name, resp.StatusCode)
+		}
+		if resp.Header.Get("Www-Authenticate") != "" {
+			t.Errorf("%s: must not send WWW-Authenticate (would trigger the browser login dialog)", name)
+		}
+	}
+	// Oversized credentials are rejected before any database work.
+	big := "Basic " + base64.StdEncoding.EncodeToString([]byte(strings.Repeat("a", MaxLoginLength+1)+":x"))
+	resp := postJSONRPC(t, ts.URL+"/db/mydb/token", big, "")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("oversized login: status = %d, want 400", resp.StatusCode)
+	}
+	// Wrong credentials (the database is unreachable) → 401, never cacheable.
+	resp = postJSONRPC(t, ts.URL+"/db/mydb/token", "Basic YWxpY2U6d3Jvbmc=", "")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("bad credentials: status = %d, want 401", resp.StatusCode)
+	}
+	if resp.Header.Get("Cache-Control") != "no-store" {
+		t.Errorf("Cache-Control = %q, want no-store", resp.Header.Get("Cache-Control"))
+	}
+}
+
+func TestTokenRateLimited(t *testing.T) {
+	ts := newThrottleTestServer(t, "0123456789abcdef0123456789abcdef") // LoginRateLimit = 2
+	for i := 1; i <= 2; i++ {
+		resp := postJSONRPC(t, ts.URL+"/db/mydb/token", "Basic YWxpY2U6d3Jvbmc=", "")
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: status = %d, want 401", i, resp.StatusCode)
+		}
+	}
+	resp := postJSONRPC(t, ts.URL+"/db/mydb/token", "Basic YWxpY2U6d3Jvbmc=", "")
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("attempt after limit: status = %d, want 429", resp.StatusCode)
 	}
 }
 

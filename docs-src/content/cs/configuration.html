@@ -44,10 +44,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Povinné proměnné:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> je volitelný. Nastavte ho (minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>), pokud chcete povolit JWT relace přes <code>get_jwt</code> a externě vydané JWT. Bez něj je podpora JWT vypnutá a klienti se autentizují pomocí HTTP Basic údajů (databázové uživatelské jméno a heslo) nebo dlouhodobých API tokenů.</p>
+	<p><code>JWT_SECRET</code> je volitelný. Nastavte ho (minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>), pokud chcete povolit JWT relace přes <code>POST /{prefix}/{database}/token</code> a externě vydané JWT. Bez něj je podpora JWT vypnutá a klienti se autentizují pomocí HTTP Basic údajů (databázové uživatelské jméno a heslo) nebo dlouhodobých API tokenů.</p>
 
 	<h3>Rychlý validační checklist</h3>
 	<ul>
@@ -151,7 +151,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů. Minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>. Pokud není nastaven, je podpora JWT vypnutá: <code>get_jwt</code> není k dispozici a klienti se autentizují pouze pomocí HTTP Basic údajů nebo API tokenů.</td>
+				<td>Dlouhý náhodný řetězec používaný k podepisování relačních tokenů. Minimálně 32 bajtů; vygenerujte pomocí <code>openssl rand -hex 32</code>. Pokud není nastaven, je podpora JWT vypnutá: endpoint <code>/token</code> není k dispozici a klienti se autentizují pouze pomocí HTTP Basic údajů nebo API tokenů.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -176,7 +176,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>Max. počet pokusů o autentizaci na IP klienta a uživatelské jméno v okně. Platí pro všechny způsoby přihlášení: počítá se každé volání <code>get_jwt</code> a u HTTP Basic údajů (na všech endpointech) neúspěšné pokusy. Výchozí: <code>5</code>. Pro vypnutí nastavte <code>0</code>.</td>
+				<td>Max. počet pokusů o autentizaci na IP klienta a uživatelské jméno v okně. Platí pro všechny způsoby přihlášení: počítá se každý požadavek na <code>/token</code> a u HTTP Basic údajů (na všech endpointech) neúspěšné pokusy. Výchozí: <code>5</code>. Pro vypnutí nastavte <code>0</code>.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

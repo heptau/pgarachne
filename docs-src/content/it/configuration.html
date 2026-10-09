@@ -43,10 +43,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Variabili obbligatorie:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> è opzionale. Impostalo (minimo 32 byte; generalo con <code>openssl rand -hex 32</code>) per abilitare le sessioni JWT tramite <code>get_jwt</code> e i JWT emessi esternamente. Senza di esso il supporto JWT è disabilitato e i client si autenticano con credenziali HTTP Basic (nome utente e password del database) o con token API a lunga durata.</p>
+	<p><code>JWT_SECRET</code> è opzionale. Impostalo (minimo 32 byte; generalo con <code>openssl rand -hex 32</code>) per abilitare le sessioni JWT tramite <code>POST /{prefix}/{database}/token</code> e i JWT emessi esternamente. Senza di esso il supporto JWT è disabilitato e i client si autenticano con credenziali HTTP Basic (nome utente e password del database) o con token API a lunga durata.</p>
 
 	<h3>Checklist di Validazione Rapida</h3>
 	<ul>
@@ -147,7 +147,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Una stringa lunga e casuale usata per firmare i token di sessione. Minimo 32 byte; generalo con <code>openssl rand -hex 32</code>. Se non impostato, il supporto JWT è disabilitato: <code>get_jwt</code> non è disponibile e i client si autenticano solo con credenziali HTTP Basic o token API.</td>
+				<td>Una stringa lunga e casuale usata per firmare i token di sessione. Minimo 32 byte; generalo con <code>openssl rand -hex 32</code>. Se non impostato, il supporto JWT è disabilitato: l'endpoint <code>/token</code> non è disponibile e i client si autenticano solo con credenziali HTTP Basic o token API.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -172,7 +172,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Opzionale" aria-label="Opzionale">○</span></td>
-				<td>Numero massimo di tentativi di autenticazione per IP client e nome utente per finestra. Si applica a ogni metodo di login: ogni chiamata a <code>get_jwt</code> viene conteggiata e, per le credenziali HTTP Basic (su tutti gli endpoint), vengono conteggiati i tentativi falliti. Predefinito: <code>5</code>. <code>0</code> disabilita.</td>
+				<td>Numero massimo di tentativi di autenticazione per IP client e nome utente per finestra. Si applica a ogni metodo di login: ogni richiesta a <code>/token</code> viene conteggiata e, per le credenziali HTTP Basic (su tutti gli endpoint), vengono conteggiati i tentativi falliti. Predefinito: <code>5</code>. <code>0</code> disabilita.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

@@ -411,7 +411,7 @@ func TestMaxRequestBodySize(t *testing.T) {
 
 	// Create an oversized JSON-RPC payload
 	oversized := bytes.Repeat([]byte("a"), 256)
-	body := append([]byte(`{"jsonrpc":"2.0","id":1,"method":"get_jwt","params":{"login":"x","password":"`), oversized...)
+	body := append([]byte(`{"jsonrpc":"2.0","id":1,"method":"api.hello_world","params":{"text":"`), oversized...)
 	body = append(body, []byte(`"}}`)...)
 
 	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
@@ -1059,7 +1059,7 @@ func TestLegacyAPIPathRemoved(t *testing.T) {
 	env := requireTestEnv(t)
 	defer env.close()
 
-	body := []byte(`{"jsonrpc":"2.0","method":"get_jwt","params":{},"id":1}`)
+	body := []byte(`{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}`)
 	req, err := http.NewRequest(http.MethodPost, env.httpServer.URL+"/api/"+env.dbName, bytes.NewReader(body))
 	if err != nil {
 		t.Fatalf("new request: %v", err)
@@ -1412,25 +1412,23 @@ func containsMethod(methods []string, target string) bool {
 	return false
 }
 
-func loginAndGetToken(env *testEnv, login, password string) (string, error) {
-	loginPayload := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"method":  "get_jwt",
-		"params": map[string]string{
-			"login":    login,
-			"password": password,
-		},
-		"id": 1,
-	}
-	body, _ := json.Marshal(loginPayload)
+// tokenURL returns the JWT login endpoint URL for the test database.
+func (e *testEnv) tokenURL() string {
+	return e.httpServer.URL + "/" + e.cfg.APIPrefix + "/" + e.dbName + "/token"
+}
 
-	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
+// requestToken calls POST /token with HTTP Basic credentials.
+func requestToken(env *testEnv, login, password string) (*http.Response, error) {
+	req, err := http.NewRequest(http.MethodPost, env.tokenURL(), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth(login, password)
+	return http.DefaultClient.Do(req)
+}
 
-	resp, err := http.DefaultClient.Do(req)
+func loginAndGetToken(env *testEnv, login, password string) (string, error) {
+	resp, err := requestToken(env, login, password)
 	if err != nil {
 		return "", err
 	}
@@ -1440,45 +1438,25 @@ func loginAndGetToken(env *testEnv, login, password string) (string, error) {
 		return "", fmt.Errorf("login status = %d", resp.StatusCode)
 	}
 
-	var loginResp struct {
-		Result struct {
-			Token string `json:"token"`
-		} `json:"result"`
-		Error *struct {
-			Message string `json:"message"`
-		} `json:"error"`
+	var tokenResp struct {
+		Token     string `json:"token"`
+		TokenType string `json:"token_type"`
+		ExpiresIn int    `json:"expires_in"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&loginResp); err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&tokenResp); err != nil {
 		return "", err
 	}
-	if loginResp.Error != nil {
-		return "", fmt.Errorf("json-rpc error: %s", loginResp.Error.Message)
-	}
-	if loginResp.Result.Token == "" {
+	if tokenResp.Token == "" {
 		return "", fmt.Errorf("empty token")
 	}
-	return loginResp.Result.Token, nil
+	if tokenResp.TokenType != "Bearer" || tokenResp.ExpiresIn <= 0 {
+		return "", fmt.Errorf("unexpected token response: %+v", tokenResp)
+	}
+	return tokenResp.Token, nil
 }
 
 func loginAndGetStatus(env *testEnv, login, password string) int {
-	loginPayload := map[string]interface{}{
-		"jsonrpc": "2.0",
-		"method":  "get_jwt",
-		"params": map[string]string{
-			"login":    login,
-			"password": password,
-		},
-		"id": 1,
-	}
-	body, _ := json.Marshal(loginPayload)
-
-	req, err := http.NewRequest(http.MethodPost, env.apiURL(), bytes.NewReader(body))
-	if err != nil {
-		return 0
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := requestToken(env, login, password)
 	if err != nil {
 		return 0
 	}

@@ -22,11 +22,15 @@ menu:
 
 	<h3>1. Διαδραστική Σύνδεση (JWT)</h3>
 	<p>Οι χρήστες πιστοποιούνται χρησιμοποιώντας το <strong>πραγματικό όνομα χρήστη και τον κωδικό πρόσβασης PostgreSQL</strong> τους μέσω
-		της μεθόδου JSON-RPC <code>get_jwt</code>. Εάν είναι επιτυχής, λαμβάνουν ένα βραχύβιο JWT. Τα επόμενα αιτήματα
+		πιστοποίησης HTTP Basic στο <code>POST /{prefix}/{database}/token</code>. Εάν είναι επιτυχής, λαμβάνουν ένα βραχύβιο JWT. Τα επόμενα αιτήματα
 		φέρουν αυτό το token στην κεφαλίδα <code>Authorization: Bearer &lt;token&gt;</code>, και το PgArachne εναλλάσσει τον
 		ενεργό ρόλο σε αυτόν τον χρήστη για τη διάρκεια κάθε αιτήματος.</p>
-	<p><em>Απαιτεί <code>JWT_SECRET</code>. Όταν δεν έχει ρυθμιστεί, το <code>get_jwt</code> επιστρέφει HTTP 404
-		(JSON-RPC <code>-32601</code>) και οι clients χρησιμοποιούν αντί αυτού άμεσα διαπιστευτήρια (μέθοδος 4) ή API tokens
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Τα διαπιστευτήρια ταξιδεύουν στην κεφαλίδα <code>Authorization</code>, ποτέ σε σώμα JSON, και η σύνδεση έχει δικό της URL, ώστε ένας reverse proxy
+		να μπορεί να περιορίζει τον ρυθμό της χωρίς να διαβάζει τα σώματα των αιτημάτων. Η απάντηση δεν αποθηκεύεται ποτέ στην κρυφή μνήμη.</p>
+	<p><em>Απαιτεί <code>JWT_SECRET</code>. Όταν δεν έχει ρυθμιστεί, το endpoint επιστρέφει HTTP 404
+		(<code>-32601</code>) και οι clients χρησιμοποιούν αντί αυτού άμεσα διαπιστευτήρια (μέθοδος 4) ή API tokens
 		(μέθοδος 2).</em></p>
 
 	<h3>2. Λογαριασμοί Υπηρεσιών (API Tokens)</h3>
@@ -116,7 +120,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 		</thead>
 		<tbody>
 			<tr>
-				<td>JWT (get_jwt)</td>
+				<td>JWT (/token)</td>
 				<td><code>Bearer &lt;jwt&gt;</code></td>
 				<td>✅ Ναι</td>
 				<td>Απαιτείται</td>
@@ -170,7 +174,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p>Τα <code>LOGIN_RATE_LIMIT</code> και <code>LOGIN_RATE_LIMIT_PER_IP</code> ισχύουν για κάθε μέθοδο πιστοποίησης,
 		σε κάθε endpoint (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: κάθε προσπάθεια μετράει στο όριο ανά (IP, username) και στο όριο ανά IP.</li>
+		<li><code>/token</code>: κάθε προσπάθεια μετράει στο όριο ανά (IP, username) και στο όριο ανά IP.</li>
 		<li>Άμεσα διαπιστευτήρια (Basic Auth): οι αποτυχημένες προσπάθειες μετρούν στο όριο ανά (IP, username) και στο όριο ανά IP.
 			Τα επιτυχή αιτήματα δεν μετρούν, οπότε ένας νόμιμος client που στέλνει διαπιστευτήρια σε κάθε αίτημα δεν
 			περιορίζεται ποτέ.</li>

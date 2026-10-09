@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Field</th><th>Description</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Required. <code>schema.function</code>, at most 256 characters. Quoted identifiers (<code>"my schema"."my fn"</code>) are allowed. The schema is mandatory: <code>hello_world</code> alone is rejected with 400. Two names are special: <code>capabilities</code> and <code>get_jwt</code> (section 5).</td></tr>
+			<tr><td><code>method</code></td><td>Required. <code>schema.function</code>, at most 256 characters. Quoted identifiers (<code>"my schema"."my fn"</code>) are allowed. The schema is mandatory: <code>hello_world</code> alone is rejected with 400. <code>capabilities</code> is a built-in method (section 5).</td></tr>
 			<tr><td><code>params</code></td><td>Any JSON value, passed to the function unchanged as its <code>jsonb</code> argument. Missing or <code>null</code> becomes <code>{}</code>. Objects are the convention; arrays and scalars also work.</td></tr>
 			<tr><td><code>id</code></td><td>Any JSON value; it is copied into the response. If it is missing the response contains <code>"id": null</code> (there are no fire-and-forget notifications).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Conventionally <code>"2.0"</code>; it is not validated on input, the response always carries <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Each entry has <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> and
 		<code>kind</code> (<code>rpc</code>, or <code>file</code> for <a href="../file-download/">file functions</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Exchanges a PostgreSQL login and password for a JWT. It is only available when <code>JWT_SECRET</code> is configured; otherwise it returns 404 / <code>-32601</code>.
-		Every attempt counts against the login rate limit.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Logging in for a JWT is <em>not</em> a JSON-RPC method: use <code>POST /{prefix}/{database}/token</code> with HTTP Basic credentials (section 6).
+		The old method <code>get_jwt</code>, which took the password in <code>params</code>, was removed and answers 404 / <code>-32601</code> with a pointer to the new endpoint.</p>
 
 	<h3>6. Authentication</h3>
 	<p>Every request needs an <code>Authorization</code> header; a request without one is rejected with 401 before any database connection is opened.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Header</th><th>What happens</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>A connection pool authenticated as that PostgreSQL user. Simplest; no tokens. Send it over HTTPS only.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token from <code>get_jwt</code> (or your own identity provider). PgArachne switches to the token's role with <code>SET LOCAL ROLE</code>; the service role needs <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token from <code>POST /{prefix}/{database}/token</code> (or your own identity provider). PgArachne switches to the token's role with <code>SET LOCAL ROLE</code>; the service role needs <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Long-lived token minted with <code>pgarachne.add_api_token(...)</code>, bound to a role. Good for services.</td></tr>
 		</tbody>
 	</table>
+	<h4>Getting a JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Exchanges a PostgreSQL login and password, sent with HTTP Basic authentication, for a JWT. The credentials travel in the <code>Authorization</code>
+		header &mdash; never in a JSON body &mdash; and the endpoint has its own URL, so a reverse proxy can apply stricter limits to logins without reading request bodies.
+		It requires <code>JWT_SECRET</code>; otherwise it returns 404. Every attempt counts against the login rate limit and the response is never cacheable.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Failed attempts are rate limited (HTTP 429). All details, token lifetimes and an external identity provider are on the <a href="../security-roles/">Security &amp; Authentication</a> page.</p>
 
 	<h3>7. Idempotency</h3>

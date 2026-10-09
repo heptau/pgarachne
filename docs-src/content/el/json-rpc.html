@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Πεδίο</th><th>Περιγραφή</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Υποχρεωτικό. <code>schema.function</code>, το πολύ 256 χαρακτήρες. Επιτρέπονται αναγνωριστικά σε εισαγωγικά (<code>"my schema"."my fn"</code>). Το σχήμα είναι υποχρεωτικό: το <code>hello_world</code> μόνο του απορρίπτεται με 400. Δύο ονόματα είναι ειδικά: <code>capabilities</code> και <code>get_jwt</code> (ενότητα 5).</td></tr>
+			<tr><td><code>method</code></td><td>Υποχρεωτικό. <code>schema.function</code>, το πολύ 256 χαρακτήρες. Επιτρέπονται αναγνωριστικά σε εισαγωγικά (<code>"my schema"."my fn"</code>). Το σχήμα είναι υποχρεωτικό: το <code>hello_world</code> μόνο του απορρίπτεται με 400. Το <code>capabilities</code> είναι ενσωματωμένη μέθοδος (ενότητα 5).</td></tr>
 			<tr><td><code>params</code></td><td>Οποιαδήποτε τιμή JSON, που περνά αμετάβλητη στη συνάρτηση ως όρισμα <code>jsonb</code>. Αν λείπει ή είναι <code>null</code> γίνεται <code>{}</code>. Η σύμβαση είναι αντικείμενα· λειτουργούν και πίνακες και βαθμωτές τιμές.</td></tr>
 			<tr><td><code>id</code></td><td>Οποιαδήποτε τιμή JSON· αντιγράφεται στην απάντηση. Αν λείπει, η απάντηση περιέχει <code>"id": null</code> (δεν υπάρχουν ειδοποιήσεις τύπου fire-and-forget).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Συμβατικά <code>"2.0"</code>· δεν ελέγχεται στην είσοδο, η απάντηση φέρει πάντα <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Κάθε εγγραφή έχει <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> και
 		<code>kind</code> (<code>rpc</code>, ή <code>file</code> για <a href="../file-download/">συναρτήσεις αρχείων</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Ανταλλάσσει ένα login και κωδικό PostgreSQL με ένα JWT. Είναι διαθέσιμη μόνο όταν έχει ρυθμιστεί το <code>JWT_SECRET</code>· διαφορετικά επιστρέφει 404 / <code>-32601</code>.
-		Κάθε απόπειρα προσμετράται στο όριο προσπαθειών σύνδεσης.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Η λήψη JWT <em>δεν</em> είναι μέθοδος JSON-RPC: χρησιμοποιήστε <code>POST /{prefix}/{database}/token</code> με διαπιστευτήρια HTTP Basic (ενότητα 6).
+		Η παλιά μέθοδος <code>get_jwt</code>, που δεχόταν τον κωδικό στο <code>params</code>, αφαιρέθηκε και απαντά με 404 / <code>-32601</code> υποδεικνύοντας το νέο endpoint.</p>
 
 	<h3>6. Πιστοποίηση</h3>
 	<p>Κάθε αίτημα χρειάζεται κεφαλίδα <code>Authorization</code>· ένα αίτημα χωρίς αυτήν απορρίπτεται με 401 πριν ανοίξει οποιαδήποτε σύνδεση με τη βάση δεδομένων.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Κεφαλίδα</th><th>Τι συμβαίνει</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Μια δεξαμενή συνδέσεων πιστοποιημένη ως αυτός ο χρήστης PostgreSQL. Το απλούστερο· χωρίς tokens. Στείλτε το μόνο μέσω HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token από το <code>get_jwt</code> (ή από τον δικό σας πάροχο ταυτότητας). Το PgArachne αλλάζει στον ρόλο του token με <code>SET LOCAL ROLE</code>· ο ρόλος υπηρεσίας χρειάζεται <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token από το <code>POST /{prefix}/{database}/token</code> (ή από τον δικό σας πάροχο ταυτότητας). Το PgArachne αλλάζει στον ρόλο του token με <code>SET LOCAL ROLE</code>· ο ρόλος υπηρεσίας χρειάζεται <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Μακράς διάρκειας token που δημιουργείται με <code>pgarachne.add_api_token(...)</code>, δεμένο σε έναν ρόλο. Κατάλληλο για υπηρεσίες.</td></tr>
 		</tbody>
 	</table>
+	<h4>Λήψη JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Ανταλλάσσει ένα login και κωδικό PostgreSQL, που στέλνονται με πιστοποίηση HTTP Basic, με ένα JWT. Τα διαπιστευτήρια ταξιδεύουν στην κεφαλίδα <code>Authorization</code>
+		&mdash; ποτέ σε σώμα JSON &mdash; και το endpoint έχει δικό του URL, ώστε ένας reverse proxy να μπορεί να εφαρμόζει αυστηρότερα όρια στις συνδέσεις χωρίς να διαβάζει τα σώματα των αιτημάτων.
+		Απαιτεί <code>JWT_SECRET</code>· διαφορετικά επιστρέφει 404. Κάθε απόπειρα προσμετράται στο όριο προσπαθειών σύνδεσης και η απάντηση δεν αποθηκεύεται ποτέ στην κρυφή μνήμη.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Οι αποτυχημένες απόπειρες περιορίζονται (HTTP 429). Όλες οι λεπτομέρειες, η διάρκεια ζωής των tokens και ένας εξωτερικός πάροχος ταυτότητας βρίσκονται στη σελίδα <a href="../security-roles/">Ασφάλεια & Πιστοποίηση</a>.</p>
 
 	<h3>7. Ιδεμποτεντία</h3>

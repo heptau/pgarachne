@@ -52,7 +52,7 @@ DB_PORT=5432
 DB_USER=pgarachne
 DB_SSLMODE=disable                         # local PostgreSQL without TLS only
 STATIC_FILES_PATH=/path/to/web             # folder with your index.html
-# Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
+# Optional: enables JWT sessions (POST /db/<database>/token); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
 		<p>Запустіть сервер (пароль службової ролі зчитується з <code>PGPASSWORD</code> або <code>~/.pgpass</code>):</p>
 		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
@@ -202,7 +202,7 @@ URL.revokeObjectURL(url);</code></pre>
 		<ul>
 			<li><strong>Використовуйте HTTPS.</strong> Облікові дані Basic передаються з кожним запитом; див. <a href="../deployment-https/">Розгортання та HTTPS</a>. Змініть демонстраційні паролі.</li>
 			<li><strong>Зберігайте облікові дані лише в пам'яті</strong> (змінна JavaScript), ніколи в <code>localStorage</code>. Щоб не надсилати пароль повторно,
-				задайте <code>JWT_SECRET</code> і використовуйте <code>get_jwt</code> (див. <a href="../security-roles/">Безпека та автентифікація</a>).</li>
+				задайте <code>JWT_SECRET</code> і отримуйте токен із <code>POST /db/my_database/token</code> (див. <a href="../security-roles/">Безпека та автентифікація</a>).</li>
 			<li><strong>Веб-сторінка на іншому origin</strong> (CDN, інший порт)? Задайте <code>ALLOWED_ORIGINS=https://app.example.com</code>; міждоменні запити за замовчуванням блокуються.</li>
 			<li><strong>Найменші привілеї:</strong> одна роль PostgreSQL на кожен тип користувачів, <code>EXECUTE</code> лише на потрібні їм функції, Row-Level Security для даних окремих користувачів та
 				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>, щоб нові функції не відкривалися випадково.</li>

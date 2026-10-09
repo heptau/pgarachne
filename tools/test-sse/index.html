@@ -498,7 +498,7 @@
 				<label for="bearerToken">JWT or API Token</label>
 				<input type="text" id="bearerToken" placeholder="Paste a JWT or long-lived API token" autocapitalize="off" autocorrect="off">
 				<p style="font-size:0.78rem; color:var(--fg-muted); margin: 8px 0 0;">
-					Sent as <code>Authorization: Bearer &hellip;</code>. Obtain a JWT via <code>get_jwt</code> or use a long-lived API token created with <code>pgarachne.add_api_token()</code>.
+					Sent as <code>Authorization: Bearer &hellip;</code>. Obtain a JWT from <code>POST /&lt;prefix&gt;/&lt;database&gt;/token</code> (HTTP Basic credentials) or use a long-lived API token created with <code>pgarachne.add_api_token()</code>.
 				</p>
 			</div>
 		</div>

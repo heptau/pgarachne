@@ -53,7 +53,7 @@ menu:
 		<tr><td><code>400</code></td><td>Invalid JSON request / Invalid function name</td><td>Некоректний payload запиту або формат методу.</td></tr>
 		<tr><td><code>401</code></td><td>Authorization header is missing / Invalid or expired token</td><td>Відсутня або недійсна автентифікація.</td></tr>
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Не вдалося виконати <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
-		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>Цільовий метод відсутній (<code>-32601</code>) або <code>get_jwt</code> викликано, коли <code>JWT_SECRET</code> не налаштовано.</td></tr>
+		<tr><td><code>404</code></td><td>Function does not exist / JWT is disabled / get_jwt was removed</td><td>Цільовий метод відсутній (<code>-32601</code>), <code>/token</code> викликано, коли <code>JWT_SECRET</code> не налаштовано, або викликано видалений метод JSON-RPC <code>get_jwt</code> (використовуйте <code>POST /{prefix}/{database}/token</code>).</td></tr>
 		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Перевищено ліміт спроб входу або автентифікації (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
 		<tr><td><code>413</code></td><td>Request body too large / Response too large / Too many files in response</td><td>Запит перевищує <code>MAX_REQUEST_BYTES</code>, або відповідь <a href="../file-download/"><code>/file</code></a> перевищує <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>.</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Помилка виконання або commit.</td></tr>

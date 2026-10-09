@@ -22,11 +22,15 @@ menu:
 
 	<h3>1. Interaktives Login (JWT)</h3>
 	<p>Benutzer authentifizieren sich mit ihrem <strong>echten PostgreSQL-Benutzernamen und -Passwort</strong> über die
-		JSON-RPC-Methode <code>get_jwt</code>. Bei Erfolg erhalten sie ein kurzlebiges JWT. Nachfolgende Anfragen
+		HTTP-Basic-Authentifizierung bei <code>POST /{prefix}/{database}/token</code>. Bei Erfolg erhalten sie ein kurzlebiges JWT. Nachfolgende Anfragen
 		übermitteln dieses Token im Header <code>Authorization: Bearer &lt;token&gt;</code>, und PgArachne wechselt die
 		aktive Rolle für die Dauer jeder Anfrage zu diesem Benutzer.</p>
-	<p><em>Erfordert <code>JWT_SECRET</code>. Ist es nicht konfiguriert, liefert <code>get_jwt</code> HTTP 404
-		(JSON-RPC <code>-32601</code>), und Clients verwenden stattdessen direkte Zugangsdaten (Methode 4) oder API-Token
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Die Zugangsdaten reisen im <code>Authorization</code>-Header, nie in einem JSON-Body, und das Login hat eine eigene URL, sodass ein Reverse-Proxy es
+		ohne Lesen der Request-Bodies ratenbegrenzen kann. Die Antwort ist nie cachebar.</p>
+	<p><em>Erfordert <code>JWT_SECRET</code>. Ist es nicht konfiguriert, liefert der Endpunkt HTTP 404
+		(<code>-32601</code>), und Clients verwenden stattdessen direkte Zugangsdaten (Methode 4) oder API-Token
 		(Methode 2).</em></p>
 
 	<h3>2. Service-Konten (API-Token)</h3>
@@ -116,7 +120,7 @@ GRANT demo_user TO pgarachne;</code></pre>
 		</thead>
 		<tbody>
 			<tr>
-				<td>JWT (get_jwt)</td>
+				<td>JWT (/token)</td>
 				<td><code>Bearer &lt;jwt&gt;</code></td>
 				<td>✅ Ja</td>
 				<td>Erforderlich</td>
@@ -170,7 +174,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> und <code>LOGIN_RATE_LIMIT_PER_IP</code> gelten für jede Authentifizierungsmethode,
 		auf jedem Endpunkt (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: Jeder Versuch zählt gegen das Budget pro (IP, Benutzername) und das Budget pro IP.</li>
+		<li><code>/token</code>: Jeder Versuch zählt gegen das Budget pro (IP, Benutzername) und das Budget pro IP.</li>
 		<li>Direkte Zugangsdaten (Basic Auth): Fehlgeschlagene Versuche zählen gegen das Budget pro (IP, Benutzername) und das Budget pro IP.
 			Erfolgreiche Anfragen werden nicht gezählt, sodass ein legitimer Client, der bei jeder Anfrage Zugangsdaten sendet,
 			nie gedrosselt wird.</li>

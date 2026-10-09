@@ -43,10 +43,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Variables requises :</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> est optionnel. Définissez-le (minimum 32 octets ; générez-le avec <code>openssl rand -hex 32</code>) pour activer les sessions JWT via <code>get_jwt</code> ainsi que les JWT émis par un service externe. Sans lui, la prise en charge des JWT est désactivée et les clients s'authentifient avec des identifiants HTTP Basic (nom d'utilisateur et mot de passe de la base de données) ou des tokens API longue durée.</p>
+	<p><code>JWT_SECRET</code> est optionnel. Définissez-le (minimum 32 octets ; générez-le avec <code>openssl rand -hex 32</code>) pour activer les sessions JWT via <code>POST /{prefix}/{database}/token</code> ainsi que les JWT émis par un service externe. Sans lui, la prise en charge des JWT est désactivée et les clients s'authentifient avec des identifiants HTTP Basic (nom d'utilisateur et mot de passe de la base de données) ou des tokens API longue durée.</p>
 
 	<h3>Checklist rapide de validation</h3>
 	<ul>
@@ -147,7 +147,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Une longue chaîne aléatoire utilisée pour signer les jetons de session. Au moins 32 octets ; générez-le avec <code>openssl rand -hex 32</code>. S'il n'est pas défini, la prise en charge des JWT est désactivée : <code>get_jwt</code> n'est pas disponible et les clients s'authentifient uniquement avec des identifiants HTTP Basic ou des tokens API.</td>
+				<td>Une longue chaîne aléatoire utilisée pour signer les jetons de session. Au moins 32 octets ; générez-le avec <code>openssl rand -hex 32</code>. S'il n'est pas défini, la prise en charge des JWT est désactivée : l'endpoint <code>/token</code> n'est pas disponible et les clients s'authentifient uniquement avec des identifiants HTTP Basic ou des tokens API.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -172,7 +172,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optionnel" aria-label="Optionnel">○</span></td>
-				<td>Nombre maximum de tentatives d'authentification par IP client et par nom d'utilisateur, par fenêtre. S'applique à toutes les méthodes de connexion : chaque appel à <code>get_jwt</code> compte et, pour les identifiants HTTP Basic (sur tous les endpoints), les tentatives échouées comptent. Par défaut : <code>5</code>. <code>0</code> désactive.</td>
+				<td>Nombre maximum de tentatives d'authentification par IP client et par nom d'utilisateur, par fenêtre. S'applique à toutes les méthodes de connexion : chaque requête vers <code>/token</code> compte et, pour les identifiants HTTP Basic (sur tous les endpoints), les tentatives échouées comptent. Par défaut : <code>5</code>. <code>0</code> désactive.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

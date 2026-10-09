@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Pole</th><th>Opis</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Wymagane. <code>schema.function</code>, najwyżej 256 znaków. Dozwolone są identyfikatory w cudzysłowie (<code>"my schema"."my fn"</code>). Schemat jest obowiązkowy: samo <code>hello_world</code> jest odrzucane kodem 400. Dwie nazwy są specjalne: <code>capabilities</code> i <code>get_jwt</code> (sekcja 5).</td></tr>
+			<tr><td><code>method</code></td><td>Wymagane. <code>schema.function</code>, najwyżej 256 znaków. Dozwolone są identyfikatory w cudzysłowie (<code>"my schema"."my fn"</code>). Schemat jest obowiązkowy: samo <code>hello_world</code> jest odrzucane kodem 400. <code>capabilities</code> to metoda wbudowana (sekcja 5).</td></tr>
 			<tr><td><code>params</code></td><td>Dowolna wartość JSON, przekazywana funkcji bez zmian jako jej argument <code>jsonb</code>. Brak lub <code>null</code> staje się <code>{}</code>. Konwencją są obiekty; tablice i wartości skalarne również działają.</td></tr>
 			<tr><td><code>id</code></td><td>Dowolna wartość JSON; jest kopiowana do odpowiedzi. Jeśli jej brak, odpowiedź zawiera <code>"id": null</code> (nie ma powiadomień typu fire-and-forget).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Zwykle <code>"2.0"</code>; nie jest walidowane na wejściu, odpowiedź zawsze niesie <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Każdy wpis ma <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> oraz
 		<code>kind</code> (<code>rpc</code> lub <code>file</code> dla <a href="../file-download/">funkcji plikowych</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Wymienia login i hasło PostgreSQL na JWT. Jest dostępna tylko wtedy, gdy skonfigurowano <code>JWT_SECRET</code>; w przeciwnym razie zwraca 404 / <code>-32601</code>.
-		Każda próba wlicza się do limitu prób logowania.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Logowanie po JWT <em>nie</em> jest metodą JSON-RPC: użyj <code>POST /{prefix}/{database}/token</code> z danymi HTTP Basic (sekcja 6).
+		Dawna metoda <code>get_jwt</code>, która przyjmowała hasło w <code>params</code>, została usunięta i odpowiada 404 / <code>-32601</code> ze wskazaniem nowego endpointu.</p>
 
 	<h3>6. Uwierzytelnianie</h3>
 	<p>Każde żądanie wymaga nagłówka <code>Authorization</code>; żądanie bez niego jest odrzucane kodem 401, zanim zostanie otwarte jakiekolwiek połączenie z bazą danych.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Nagłówek</th><th>Co się dzieje</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Pula połączeń uwierzytelniona jako ten użytkownik PostgreSQL. Najprostsze; bez tokenów. Wysyłaj tylko przez HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>get_jwt</code> (lub z własnego dostawcy tożsamości). PgArachne przełącza się na rolę z tokenu przez <code>SET LOCAL ROLE</code>; rola serwisowa potrzebuje <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>POST /{prefix}/{database}/token</code> (lub z własnego dostawcy tożsamości). PgArachne przełącza się na rolę z tokenu przez <code>SET LOCAL ROLE</code>; rola serwisowa potrzebuje <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Długotrwały token utworzony przez <code>pgarachne.add_api_token(...)</code>, powiązany z rolą. Dobry dla usług.</td></tr>
 		</tbody>
 	</table>
+	<h4>Pobieranie JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Wymienia login i hasło PostgreSQL, wysłane przez uwierzytelnianie HTTP Basic, na JWT. Dane logowania podróżują w nagłówku <code>Authorization</code>
+		&mdash; nigdy w treści JSON &mdash; a endpoint ma własny adres URL, więc reverse proxy może stosować surowsze limity dla logowań bez odczytywania treści żądań.
+		Wymaga <code>JWT_SECRET</code>; w przeciwnym razie zwraca 404. Każda próba wlicza się do limitu prób logowania, a odpowiedź nigdy nie może być cache'owana.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Nieudane próby są ograniczane limitem (HTTP 429). Wszystkie szczegóły, czasy życia tokenów i zewnętrzny dostawca tożsamości są na stronie <a href="../security-roles/">Bezpieczeństwo i uwierzytelnianie</a>.</p>
 
 	<h3>7. Idempotencja</h3>

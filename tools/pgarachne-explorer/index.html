@@ -664,7 +664,7 @@
 			}
 
 			// Authenticate directly as the database user via HTTP Basic Auth.
-			// No get_jwt call needed, no GRANT … TO pgarachne required.
+			// No token request needed, no GRANT … TO pgarachne required.
 			const b64 = btoa(login + ':' + password);
 			const candidate = 'Basic ' + b64;
 

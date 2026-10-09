@@ -61,7 +61,7 @@ func NewSigner(opts *Options) *Signer {
 }
 
 // Issue signs a short-lived HS256 JWT carrying the database role and database
-// name. The token is intended to be returned from the JSON-RPC get_jwt (login)
+// name. The token is intended to be returned from the POST /{prefix}/{database}/token (login)
 // // method and presented as "Authorization: Bearer <token>" on subsequent calls.
 func (s *Signer) Issue(secret, dbRole, dbName string, ttl time.Duration) (string, error) {
 	if secret == "" {

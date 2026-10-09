@@ -43,10 +43,10 @@ menu:
 	<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
-# Optional — enables JWT sessions (get_jwt):
+# Optional — enables JWT sessions (POST /db/<database>/token):
 # JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef</code></pre>
 	<p><strong>Required variables:</strong> <code>DB_HOST</code>, <code>DB_PORT</code>, <code>DB_USER</code>.</p>
-	<p><code>JWT_SECRET</code> is optional. Set it (minimum 32 bytes; generate with <code>openssl rand -hex 32</code>) to enable JWT sessions via <code>get_jwt</code> and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.</p>
+	<p><code>JWT_SECRET</code> is optional. Set it (minimum 32 bytes; generate with <code>openssl rand -hex 32</code>) to enable JWT sessions via <code>POST /{prefix}/{database}/token</code> and externally issued JWTs. Without it, JWT support is disabled and clients authenticate with HTTP Basic credentials (database username and password) or long-lived API tokens.</p>
 
 	<h3>Quick Validation Checklist</h3>
 	<ul>
@@ -148,7 +148,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>JWT_SECRET</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>A long, random string used to sign session tokens. Minimum 32 bytes; generate with <code>openssl rand -hex 32</code>. If unset, JWT support is disabled: <code>get_jwt</code> is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.</td>
+				<td>A long, random string used to sign session tokens. Minimum 32 bytes; generate with <code>openssl rand -hex 32</code>. If unset, JWT support is disabled: the <code>/token</code> endpoint is unavailable and clients authenticate with HTTP Basic credentials or API tokens only.</td>
 			</tr>
 			<tr>
 				<td><code>JWT_EXPIRY_HOURS</code></td>
@@ -173,7 +173,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>Max authentication attempts per client IP and username per window. Applies to every login method: each <code>get_jwt</code> call counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: <code>5</code>. Set <code>0</code> to disable.</td>
+				<td>Max authentication attempts per client IP and username per window. Applies to every login method: each <code>/token</code> request counts, and for HTTP Basic credentials (on all endpoints) failed attempts count. Default: <code>5</code>. Set <code>0</code> to disable.</td>
 			</tr>
 			<tr>
 				<td><code>LOGIN_RATE_LIMIT_PER_IP</code></td>

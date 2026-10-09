@@ -21,12 +21,16 @@ menu:
 
 	<h3>1. Inicio de Sesión Interactivo (JWT)</h3>
 	<p>Los usuarios se autentican usando su <strong>nombre de usuario y contraseña reales de PostgreSQL</strong>
-		a través del método JSON-RPC <code>get_jwt</code>.
+		mediante autenticación HTTP Basic en <code>POST /{prefix}/{database}/token</code>.
 		Si tiene éxito, reciben un JWT de corta duración. Las peticiones posteriores incluyen este token en el
 		encabezado <code>Authorization: Bearer &lt;token&gt;</code>, y PgArachne cambia el rol activo a ese
 		usuario durante la duración de cada petición.</p>
-	<p><em>Requiere <code>JWT_SECRET</code>. Si no está configurado, <code>get_jwt</code> devuelve HTTP 404
-		(JSON-RPC <code>-32601</code>) y los clientes usan credenciales directas (método 4) o tokens de API
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u demo_user:user_password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}</code></pre>
+	<p>Las credenciales viajan en la cabecera <code>Authorization</code>, nunca en un cuerpo JSON, y el inicio de sesión tiene su propia URL para que un proxy inverso
+		pueda limitar su frecuencia sin leer cuerpos de petición. La respuesta nunca se puede almacenar en caché.</p>
+	<p><em>Requiere <code>JWT_SECRET</code>. Si no está configurado, el endpoint devuelve HTTP 404
+		(<code>-32601</code>) y los clientes usan credenciales directas (método 4) o tokens de API
 		(método 2) en su lugar.</em></p>
 
 	<h3>2. Cuentas de Servicio (Tokens de API)</h3>
@@ -172,7 +176,7 @@ GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
 	<p><code>LOGIN_RATE_LIMIT</code> y <code>LOGIN_RATE_LIMIT_PER_IP</code> se aplican a todos los métodos de
 		autenticación, en todos los endpoints (JSON-RPC, MCP, SSE, OpenAPI):</p>
 	<ul>
-		<li><code>get_jwt</code>: cada intento cuenta contra los límites por (IP, usuario) y por IP.</li>
+		<li><code>/token</code>: cada intento cuenta contra los límites por (IP, usuario) y por IP.</li>
 		<li>Credenciales directas (Basic Auth): los intentos fallidos cuentan contra los límites por (IP, usuario)
 			y por IP. Las peticiones exitosas no se cuentan, por lo que un cliente legítimo que envía credenciales
 			en cada petición nunca es limitado.</li>

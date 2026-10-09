@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Поле</th><th>Опис</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Обов'язкове. <code>schema.function</code>, не більше 256 символів. Допускаються ідентифікатори в лапках (<code>"my schema"."my fn"</code>). Схема обов'язкова: самотнє <code>hello_world</code> відхиляється з кодом 400. Два імені особливі: <code>capabilities</code> і <code>get_jwt</code> (розділ 5).</td></tr>
+			<tr><td><code>method</code></td><td>Обов'язкове. <code>schema.function</code>, не більше 256 символів. Допускаються ідентифікатори в лапках (<code>"my schema"."my fn"</code>). Схема обов'язкова: самотнє <code>hello_world</code> відхиляється з кодом 400. <code>capabilities</code> — вбудований метод (розділ 5).</td></tr>
 			<tr><td><code>params</code></td><td>Будь-яке значення JSON, яке передається функції без змін як її аргумент <code>jsonb</code>. Відсутнє або <code>null</code> стає <code>{}</code>. Загальноприйняті об'єкти; масиви та скалярні значення також працюють.</td></tr>
 			<tr><td><code>id</code></td><td>Будь-яке значення JSON; копіюється у відповідь. Якщо його немає, відповідь містить <code>"id": null</code> (сповіщень типу fire-and-forget не існує).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Зазвичай <code>"2.0"</code>; на вході не перевіряється, відповідь завжди містить <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Кожен запис містить <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> і
 		<code>kind</code> (<code>rpc</code>, або <code>file</code> для <a href="../file-download/">файлових функцій</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Обмінює логін і пароль PostgreSQL на JWT. Доступний лише за наявності налаштованого <code>JWT_SECRET</code>; інакше повертає 404 / <code>-32601</code>.
-		Кожна спроба враховується в ліміті спроб входу.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>Отримання JWT <em>не</em> є методом JSON-RPC: використовуйте <code>POST /{prefix}/{database}/token</code> з обліковими даними HTTP Basic (розділ 6).
+		Старий метод <code>get_jwt</code>, що приймав пароль у <code>params</code>, видалено; він відповідає 404 / <code>-32601</code> із вказівкою на новий endpoint.</p>
 
 	<h3>6. Автентифікація</h3>
 	<p>Кожен запит потребує заголовка <code>Authorization</code>; запит без нього відхиляється з кодом 401 ще до відкриття будь-якого з'єднання з базою даних.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>Заголовок</th><th>Що відбувається</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Пул з'єднань, автентифікований як цей користувач PostgreSQL. Найпростіше; без токенів. Надсилайте лише через HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Токен із <code>get_jwt</code> (або від вашого провайдера ідентичності). PgArachne перемикається на роль із токена через <code>SET LOCAL ROLE</code>; службовій ролі потрібен <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Токен із <code>POST /{prefix}/{database}/token</code> (або від вашого провайдера ідентичності). PgArachne перемикається на роль із токена через <code>SET LOCAL ROLE</code>; службовій ролі потрібен <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Довготривалий токен, створений через <code>pgarachne.add_api_token(...)</code> і прив'язаний до ролі. Добре підходить для сервісів.</td></tr>
 		</tbody>
 	</table>
+	<h4>Отримання JWT: <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Обмінює логін і пароль PostgreSQL, надіслані через автентифікацію HTTP Basic, на JWT. Облікові дані передаються в заголовку <code>Authorization</code>
+		&mdash; ніколи в тілі JSON &mdash; а endpoint має власну URL-адресу, тож зворотний проксі може застосовувати суворіші ліміти до входів, не читаючи тіла запитів.
+		Потребує <code>JWT_SECRET</code>; інакше повертає 404. Кожна спроба враховується в ліміті спроб входу, а відповідь ніколи не кешується.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Невдалі спроби обмежуються лімітом (HTTP 429). Усі подробиці, строки дії токенів і зовнішній провайдер ідентичності описані на сторінці <a href="../security-roles/">Безпека та автентифікація</a>.</p>
 
 	<h3>7. Ідемпотентність</h3>

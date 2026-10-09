@@ -26,7 +26,7 @@ Content-Type: application/json
 	<table>
 		<thead><tr><th>Champ</th><th>Description</th></tr></thead>
 		<tbody>
-			<tr><td><code>method</code></td><td>Obligatoire. <code>schema.function</code>, 256 caractères au maximum. Les identifiants entre guillemets (<code>"my schema"."my fn"</code>) sont autorisés. Le schéma est obligatoire : <code>hello_world</code> seul est rejeté avec 400. Deux noms sont spéciaux : <code>capabilities</code> et <code>get_jwt</code> (section 5).</td></tr>
+			<tr><td><code>method</code></td><td>Obligatoire. <code>schema.function</code>, 256 caractères au maximum. Les identifiants entre guillemets (<code>"my schema"."my fn"</code>) sont autorisés. Le schéma est obligatoire : <code>hello_world</code> seul est rejeté avec 400. <code>capabilities</code> est une méthode intégrée (section 5).</td></tr>
 			<tr><td><code>params</code></td><td>Toute valeur JSON, transmise telle quelle à la fonction comme argument <code>jsonb</code>. Une valeur absente ou <code>null</code> devient <code>{}</code>. Les objets sont la convention ; les tableaux et les scalaires fonctionnent aussi.</td></tr>
 			<tr><td><code>id</code></td><td>Toute valeur JSON ; elle est recopiée dans la réponse. Si elle est absente, la réponse contient <code>"id": null</code> (il n'existe pas de notifications « envoyer et oublier »).</td></tr>
 			<tr><td><code>jsonrpc</code></td><td>Par convention <code>"2.0"</code> ; il n'est pas validé en entrée, la réponse contient toujours <code>"2.0"</code>.</td></tr>
@@ -86,11 +86,8 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		Chaque entrée comporte <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> et
 		<code>kind</code> (<code>rpc</code>, ou <code>file</code> pour les <a href="../file-download/">fonctions de fichier</a>).</p>
 	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
-	<h4><code>get_jwt</code></h4>
-	<p>Échange un identifiant et un mot de passe PostgreSQL contre un JWT. Elle n'est disponible que lorsque <code>JWT_SECRET</code> est configuré ; sinon elle renvoie 404 / <code>-32601</code>.
-		Chaque tentative compte dans la limite de débit de connexion.</p>
-	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
-→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+	<p>La connexion pour obtenir un JWT n'est <em>pas</em> une méthode JSON-RPC : utilisez <code>POST /{prefix}/{database}/token</code> avec des identifiants HTTP Basic (section 6).
+		L'ancienne méthode <code>get_jwt</code>, qui recevait le mot de passe dans <code>params</code>, a été supprimée et répond 404 / <code>-32601</code> avec un renvoi vers le nouvel endpoint.</p>
 
 	<h3>6. Authentification</h3>
 	<p>Chaque requête nécessite un en-tête <code>Authorization</code> ; une requête sans cet en-tête est rejetée avec 401 avant qu'aucune connexion à la base de données ne soit ouverte.</p>
@@ -98,10 +95,19 @@ GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
 		<thead><tr><th>En-tête</th><th>Ce qui se passe</th></tr></thead>
 		<tbody>
 			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Un pool de connexions authentifié comme cet utilisateur PostgreSQL. Le plus simple ; pas de jetons. À envoyer uniquement en HTTPS.</td></tr>
-			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Jeton issu de <code>get_jwt</code> (ou de votre fournisseur d'identité). PgArachne bascule vers le rôle du jeton avec <code>SET LOCAL ROLE</code> ; le rôle de service a besoin de <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Jeton issu de <code>POST /{prefix}/{database}/token</code> (ou de votre fournisseur d'identité). PgArachne bascule vers le rôle du jeton avec <code>SET LOCAL ROLE</code> ; le rôle de service a besoin de <code>GRANT user TO pgarachne</code>.</td></tr>
 			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Jeton longue durée créé avec <code>pgarachne.add_api_token(...)</code>, lié à un rôle. Adapté aux services.</td></tr>
 		</tbody>
 	</table>
+	<h4>Obtenir un JWT : <code>POST /{prefix}/{database}/token</code></h4>
+	<p>Échange un identifiant et un mot de passe PostgreSQL, envoyés par authentification HTTP Basic, contre un JWT. Les identifiants voyagent dans l'en-tête <code>Authorization</code>
+		&mdash; jamais dans un corps JSON &mdash; et l'endpoint a sa propre URL, de sorte qu'un reverse proxy peut appliquer des limites plus strictes aux connexions sans lire les corps de requête.
+		Il nécessite <code>JWT_SECRET</code> ; sinon il renvoie 404. Chaque tentative compte dans la limite de débit de connexion et la réponse n'est jamais mise en cache.</p>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/token -u web_user:password
+→ {"token":"eyJhbGciOi...","token_type":"Bearer","expires_in":28800}
+
+curl http://localhost:8080/db/my_database/jsonrpc -H "Authorization: Bearer eyJhbGciOi..." \
+  -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"capabilities","id":1}'</code></pre>
 	<p>Les tentatives échouées sont limitées en débit (HTTP 429). Tous les détails, les durées de vie des jetons et un fournisseur d'identité externe sont décrits sur la page <a href="../security-roles/">Sécurité &amp; Authentification</a>.</p>
 
 	<h3>7. Idempotence</h3>
