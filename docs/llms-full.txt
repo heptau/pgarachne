@@ -1265,8 +1265,22 @@ LANGUAGE sql AS $$
 $$;
 ```
 
-- `path` must be a plain relative path: no empty or `..` segments, no leading `/`,
-no backslashes or control characters, unique within the response. Otherwise the request fails with 500.
+- `path` must be a plain relative path that is safe to extract on every operating system. A path is
+rejected (the request fails with 500 and the problem is logged) if it:
+
+- is empty, longer than 512 bytes, not valid UTF-8, or contains control characters;
+
+- is absolute (`/…`, `C:…`) or contains a backslash;
+
+- has an empty, `.` or `..` segment;
+
+- has a segment ending in a dot or a space (Windows strips them, so `".. "` would become `..`);
+
+- contains `:` (NTFS alternate data stream) or any of `< > " | ? *`;
+
+- uses a reserved Windows device name as a segment, with or without an extension (`CON`, `PRN`, `AUX`, `NUL`, `COM0`–`COM9`, `LPT0`–`LPT9`);
+
+- collides with another path in the same response: names are compared case-insensitively (`a.txt` and `A.TXT` clash on macOS/Windows), and a file cannot also be a directory (`a` and `a/b`).
 
 - `content` `NULL` is an empty file.
 
@@ -1279,7 +1293,7 @@ no backslashes or control characters, unique within the response. Otherwise the 
 
 Rows | `force_zip` | Result
 
-0 | any | 404 (JSON error)
+0 | any | 404 (JSON error); the transaction is rolled back, so nothing the function did is persisted and an `idempotencyKey` is not consumed
 
 1 | false | the file itself, with its media type
 
@@ -1293,6 +1307,10 @@ curl -X POST http://localhost:8080/db/my_database/file \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ
 ```
 
+The download name (`options.filename`, or the file's own name) is sanitised: path separators, quotes
+and reserved characters become `_`, and control, bidirectional-override, zero-width and
+line-separator characters are removed, so a name cannot be disguised as another file type.
+
 Errors are always JSON, never binary: `400` invalid request, `401` unauthenticated,
 `403` no permission, `404` unknown function or no rows, `413` the response
 exceeds `FILE_MAX_BYTES` / `FILE_MAX_ENTRIES`, `500` function failed or
@@ -1304,11 +1322,12 @@ The database controls only file names, contents and media types — never HTTP h
 `Content-Disposition: attachment` with `X-Content-Type-Options: nosniff`,
 `Content-Security-Policy: sandbox` and `Cache-Control: no-store`, so a function
 returning `text/html` or SVG cannot run script in the API's origin. File names are sanitised.
-The whole result is buffered in memory (capped by `FILE_MAX_BYTES`); the ZIP itself is streamed.
+The whole result is buffered in memory: the real bound per request is `FILE_MAX_BYTES` plus the largest single row, because the database driver reads a row completely before the limit can be checked — keep the number of concurrent downloads in mind. The ZIP itself is streamed.
 
 ### Discovery
 
-A set-returning function with `path` and `content` result columns is reported by
+A set-returning function declared with `RETURNS TABLE (…)` or `OUT` parameters that
+include `path` and `content` columns is reported by
 `capabilities` with `"kind": "file"` and endpoint `/file`. The OpenAPI spec
 documents a real `POST /{prefix}/{database}/file` operation (only for roles that can execute a file
 function); file functions are not exposed as MCP tools.
@@ -1818,7 +1837,7 @@ colleagues instantly.
 
 - Expose metrics only internally (default `127.0.0.1:9090`) and scrape from your monitoring network.
 
-### Nginx hardening example (SSE + forwarded headers)
+### Nginx hardening example (SSE, file downloads, forwarded headers)
 
 ```
 location / {
@@ -1828,14 +1847,47 @@ location / {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
 }
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
+}
 ```
+
+Replace `db` with your `API_PREFIX` if you changed it.
+
+### Large downloads (`/file`) behind a reverse proxy
+
+- Disable response buffering (`proxy_buffering off` in Nginx). A single file is sent with a
+`Content-Length`, a ZIP archive is streamed without one. With buffering on, Nginx first spools the
+whole response to a temporary file, which delays the start of the download and costs disk space.
+
+- Raise the read timeout (`proxy_read_timeout`, default 60 s) if the database function that
+builds the files can run longer — PgArachne sends nothing until the function has returned all rows.
+
+- Do not compress `application/zip` or already compressed media types (`gzip` on a ZIP only burns CPU).
+
+- Memory limit: PgArachne buffers the rows of one response in memory (capped by `FILE_MAX_BYTES`,
+default 64 MiB, and `FILE_MAX_ENTRIES`); size the limits for the number of concurrent downloads you expect.
+`client_max_body_size` only concerns the small JSON request, not the download.
+
+- Caddy streams responses by default; no extra configuration is needed.
 
 
 ---

@@ -39,7 +39,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> deve ser um caminho relativo simples: sem segmentos vazios ou <code>..</code>, sem <code>/</code> inicial, sem barras invertidas ou caracteres de controle, único dentro da resposta. Caso contrário, a requisição falha com 500.</li>
+		<li><code>path</code> deve ser um caminho relativo simples que possa ser extraído com segurança em qualquer sistema operacional. Um caminho é
+			rejeitado (a requisição falha com 500 e o problema é registrado no log) se:
+			<ul>
+				<li>for vazio, tiver mais de 512 bytes, não for UTF-8 válido ou contiver caracteres de controle;</li>
+				<li>for absoluto (<code>/…</code>, <code>C:…</code>) ou contiver uma barra invertida;</li>
+				<li>tiver um segmento vazio, <code>.</code> ou <code>..</code>;</li>
+				<li>tiver um segmento terminando em ponto ou espaço (o Windows os remove, então <code>".. "</code> viraria <code>..</code>);</li>
+				<li>contiver <code>:</code> (alternate data stream do NTFS) ou algum de <code>&lt; &gt; " | ? *</code>;</li>
+				<li>usar como segmento um nome de dispositivo reservado do Windows, com ou sem extensão (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>colidir com outro caminho na mesma resposta: os nomes são comparados <em>sem diferenciar maiúsculas de minúsculas</em> (<code>a.txt</code> e <code>A.TXT</code> entram em conflito no macOS/Windows), e um arquivo não pode ser também um diretório (<code>a</code> e <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> é um arquivo vazio.</li>
 		<li><code>mime_type</code> é usado apenas se for um media type bem formado; caso contrário, é deduzido da extensão (fallback <code>application/octet-stream</code>).</li>
 		<li><code>store_only = true</code> armazena a entrada do ZIP sem compressão (necessário, por exemplo, para o arquivo <code>mimetype</code> do EPUB).</li>
@@ -49,7 +59,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Linhas</th><th><code>force_zip</code></th><th>Resultado</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>qualquer</td><td>404 (erro JSON)</td></tr>
+			<tr><td>0</td><td>qualquer</td><td>404 (erro JSON); a transação sofre rollback, portanto nada do que a função fez é persistido e um <code>idempotencyKey</code> não é consumido</td></tr>
 			<tr><td>1</td><td>false</td><td>o próprio arquivo, com seu media type</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP com uma entrada</td></tr>
 			<tr><td>≥ 2</td><td>qualquer</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -58,13 +68,17 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>O nome de download (<code>options.filename</code> ou o nome do próprio arquivo) é sanitizado: separadores de caminho, aspas
+		e caracteres reservados viram <code>_</code>, e caracteres de controle, de substituição bidirecional, de largura zero
+		e separadores de linha são removidos, de modo que um nome não possa ser disfarçado de outro tipo de arquivo.</p>
 	<p>Os erros são sempre JSON, nunca binário: <code>400</code> requisição inválida, <code>401</code> não autenticado, <code>403</code> sem permissão, <code>404</code> função desconhecida ou nenhuma linha, <code>413</code> a resposta excede <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> a função falhou ou retornou uma estrutura inválida.</p>
 
 	<div class="warning">
 		<h3>Seguro por construção</h3>
-		<p>O banco de dados controla apenas nomes de arquivos, conteúdos e media types — nunca cabeçalhos HTTP. As respostas são sempre <code>Content-Disposition: attachment</code> com <code>X-Content-Type-Options: nosniff</code>, <code>Content-Security-Policy: sandbox</code> e <code>Cache-Control: no-store</code>, de modo que uma função que retorna <code>text/html</code> ou SVG não pode executar script na origem da API. Os nomes de arquivo são sanitizados. O resultado inteiro é mantido em memória (limitado por <code>FILE_MAX_BYTES</code>); o ZIP em si é transmitido por streaming.</p>
+		<p>O banco de dados controla apenas nomes de arquivos, conteúdos e media types — nunca cabeçalhos HTTP. As respostas são sempre <code>Content-Disposition: attachment</code> com <code>X-Content-Type-Options: nosniff</code>, <code>Content-Security-Policy: sandbox</code> e <code>Cache-Control: no-store</code>, de modo que uma função que retorna <code>text/html</code> ou SVG não pode executar script na origem da API. Os nomes de arquivo são sanitizados. O resultado inteiro é mantido em memória: o limite real por requisição é <code>FILE_MAX_BYTES</code> mais a maior linha individual, porque o driver do banco de dados lê uma linha por completo antes que o limite possa ser verificado &mdash; tenha em mente o número de downloads simultâneos. O ZIP em si é transmitido por streaming.</p>
 	</div>
 
 	<h3>Descoberta</h3>
-	<p>Uma função set-returning com as colunas de resultado <code>path</code> e <code>content</code> é reportada por <code>capabilities</code> com <code>"kind": "file"</code> e endpoint <code>/file</code>. A especificação OpenAPI documenta uma operação real <code>POST /{prefixo}/{banco_de_dados}/file</code> (apenas para papéis que podem executar uma função de arquivo); as funções de arquivo não são expostas como ferramentas MCP.</p>
+	<p>Uma função set-returning declarada com <code>RETURNS TABLE (&hellip;)</code> ou parâmetros <code>OUT</code> que
+		inclua as colunas <code>path</code> e <code>content</code> é reportada por <code>capabilities</code> com <code>"kind": "file"</code> e endpoint <code>/file</code>. A especificação OpenAPI documenta uma operação real <code>POST /{prefixo}/{banco_de_dados}/file</code> (apenas para papéis que podem executar uma função de arquivo); as funções de arquivo não são expostas como ferramentas MCP.</p>
 </section>

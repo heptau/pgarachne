@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> doit être un simple chemin relatif : pas de segments vides ou <code>..</code>, pas de <code>/</code> initial,
-			pas d'antislash ni de caractères de contrôle, unique dans la réponse. Sinon la requête échoue avec une erreur 500.</li>
+		<li><code>path</code> doit être un simple chemin relatif pouvant être extrait en toute sécurité sur tous les systèmes d'exploitation.
+			Un chemin est rejeté (la requête échoue avec une erreur 500 et le problème est journalisé) s'il :
+			<ul>
+				<li>est vide, dépasse 512 octets, n'est pas de l'UTF-8 valide ou contient des caractères de contrôle ;</li>
+				<li>est absolu (<code>/…</code>, <code>C:…</code>) ou contient un antislash ;</li>
+				<li>a un segment vide, <code>.</code> ou <code>..</code> ;</li>
+				<li>a un segment se terminant par un point ou une espace (Windows les supprime, de sorte que <code>".. "</code> deviendrait <code>..</code>) ;</li>
+				<li>contient <code>:</code> (flux de données alternatif NTFS) ou l'un des caractères <code>&lt; &gt; " | ? *</code> ;</li>
+				<li>utilise comme segment un nom de périphérique Windows réservé, avec ou sans extension (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>) ;</li>
+				<li>entre en collision avec un autre chemin de la même réponse : les noms sont comparés <em>sans tenir compte de la casse</em> (<code>a.txt</code> et <code>A.TXT</code> entrent en conflit sous macOS/Windows), et un fichier ne peut pas être aussi un répertoire (<code>a</code> et <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> correspond à un fichier vide.</li>
 		<li><code>mime_type</code> n'est utilisé que s'il s'agit d'un type de média bien formé, sinon il est déduit de l'extension
 			(repli sur <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Lignes</th><th><code>force_zip</code></th><th>Résultat</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>indifférent</td><td>404 (erreur JSON)</td></tr>
+			<tr><td>0</td><td>indifférent</td><td>404 (erreur JSON) ; la transaction est annulée (rollback), donc rien de ce que la fonction a fait n'est conservé et une <code>idempotencyKey</code> n'est pas consommée</td></tr>
 			<tr><td>1</td><td>false</td><td>le fichier lui-même, avec son type de média</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP avec une seule entrée</td></tr>
 			<tr><td>≥ 2</td><td>indifférent</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,9 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Le nom de téléchargement (<code>options.filename</code> ou le nom propre du fichier) est assaini : les séparateurs de chemin, les guillemets
+		et les caractères réservés deviennent <code>_</code>, et les caractères de contrôle, de forçage de direction du texte, de largeur nulle
+		et les séparateurs de ligne sont supprimés, de sorte qu'un nom ne peut pas être déguisé en un autre type de fichier.</p>
 	<p>Les erreurs sont toujours en JSON, jamais en binaire : <code>400</code> requête invalide, <code>401</code> non authentifié,
 		<code>403</code> permission refusée, <code>404</code> fonction inconnue ou aucune ligne, <code>413</code> la réponse
 		dépasse <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> échec de la fonction ou
@@ -74,11 +86,12 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> avec <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> et <code>Cache-Control: no-store</code>, de sorte qu'une fonction
 			retournant <code>text/html</code> ou du SVG ne peut pas exécuter de script dans l'origine de l'API. Les noms de fichiers sont assainis.
-			Le résultat complet est mis en tampon en mémoire (plafonné par <code>FILE_MAX_BYTES</code>) ; le ZIP lui-même est diffusé en flux.</p>
+			Le résultat complet est mis en tampon en mémoire : la borne réelle par requête est <code>FILE_MAX_BYTES</code> plus la plus grande ligne individuelle, car le pilote de base de données lit une ligne entièrement avant que la limite puisse être vérifiée &mdash; tenez compte du nombre de téléchargements simultanés. Le ZIP lui-même est diffusé en flux.</p>
 	</div>
 
 	<h3>Découverte</h3>
-	<p>Une fonction retournant un ensemble avec les colonnes de résultat <code>path</code> et <code>content</code> est signalée par
+	<p>Une fonction retournant un ensemble, déclarée avec <code>RETURNS TABLE (&hellip;)</code> ou des paramètres <code>OUT</code>
+		incluant les colonnes <code>path</code> et <code>content</code>, est signalée par
 		<code>capabilities</code> avec <code>"kind": "file"</code> et l'endpoint <code>/file</code>. La spécification OpenAPI
 		documente une véritable opération <code>POST /{prefix}/{database}/file</code> (uniquement pour les rôles pouvant exécuter une fonction
 		de fichier) ; les fonctions de fichier ne sont pas exposées comme outils MCP.</p>

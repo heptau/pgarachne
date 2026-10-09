@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> muss ein einfacher relativer Pfad sein: keine leeren oder <code>..</code>-Segmente, kein führendes <code>/</code>,
-			keine Backslashes oder Steuerzeichen, innerhalb der Antwort eindeutig. Andernfalls schlägt der Request mit 500 fehl.</li>
+		<li><code>path</code> muss ein einfacher relativer Pfad sein, der auf jedem Betriebssystem sicher entpackt werden kann.
+			Ein Pfad wird abgelehnt (der Request schlägt mit 500 fehl und das Problem wird geloggt), wenn er:
+			<ul>
+				<li>leer ist, länger als 512 Bytes, kein gültiges UTF-8 ist oder Steuerzeichen enthält;</li>
+				<li>absolut ist (<code>/…</code>, <code>C:…</code>) oder einen Backslash enthält;</li>
+				<li>ein leeres Segment, ein Segment <code>.</code> oder <code>..</code> hat;</li>
+				<li>ein Segment hat, das auf einen Punkt oder ein Leerzeichen endet (Windows entfernt sie, sodass aus <code>".. "</code> dann <code>..</code> würde);</li>
+				<li><code>:</code> (NTFS Alternate Data Stream) oder eines der Zeichen <code>&lt; &gt; " | ? *</code> enthält;</li>
+				<li>einen reservierten Windows-Gerätenamen als Segment verwendet, mit oder ohne Erweiterung (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>mit einem anderen Pfad in derselben Antwort kollidiert: Namen werden <em>ohne Beachtung der Groß-/Kleinschreibung</em> verglichen (<code>a.txt</code> und <code>A.TXT</code> kollidieren unter macOS/Windows), und eine Datei kann nicht zugleich ein Verzeichnis sein (<code>a</code> und <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> ist eine leere Datei.</li>
 		<li><code>mime_type</code> wird nur verwendet, wenn es ein wohlgeformter Media-Type ist, andernfalls wird er anhand der Erweiterung
 			ermittelt (Fallback <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Zeilen</th><th><code>force_zip</code></th><th>Ergebnis</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>beliebig</td><td>404 (JSON-Fehler)</td></tr>
+			<tr><td>0</td><td>beliebig</td><td>404 (JSON-Fehler); die Transaktion wird zurückgerollt, sodass nichts, was die Funktion getan hat, persistiert wird und ein <code>idempotencyKey</code> nicht verbraucht wird</td></tr>
 			<tr><td>1</td><td>false</td><td>die Datei selbst, mit ihrem Media-Type</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP mit einem Eintrag</td></tr>
 			<tr><td>≥ 2</td><td>beliebig</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,9 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Der Download-Name (<code>options.filename</code> oder der eigene Dateiname) wird bereinigt: Pfadtrenner, Anführungszeichen
+		und reservierte Zeichen werden zu <code>_</code>, Steuerzeichen, Zeichen zur Umkehrung der Schreibrichtung, Zeichen ohne Breite
+		und Zeilentrenner werden entfernt, sodass ein Name nicht als anderer Dateityp getarnt werden kann.</p>
 	<p>Fehler sind immer JSON, niemals binär: <code>400</code> ungültiger Request, <code>401</code> nicht authentifiziert,
 		<code>403</code> keine Berechtigung, <code>404</code> unbekannte Funktion oder keine Zeilen, <code>413</code> die Antwort
 		überschreitet <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> Funktion fehlgeschlagen oder
@@ -74,11 +86,12 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> mit <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> und <code>Cache-Control: no-store</code>, sodass eine Funktion,
 			die <code>text/html</code> oder SVG zurückgibt, im Origin der API keinen Skriptcode ausführen kann. Dateinamen werden bereinigt.
-			Das gesamte Ergebnis wird im Speicher gepuffert (begrenzt durch <code>FILE_MAX_BYTES</code>); das ZIP selbst wird gestreamt.</p>
+			Das gesamte Ergebnis wird im Speicher gepuffert: Die reale Obergrenze pro Request ist <code>FILE_MAX_BYTES</code> plus die größte einzelne Zeile, da der Datenbanktreiber eine Zeile vollständig liest, bevor das Limit geprüft werden kann &mdash; beachten Sie die Zahl gleichzeitiger Downloads. Das ZIP selbst wird gestreamt.</p>
 	</div>
 
 	<h3>Discovery</h3>
-	<p>Eine mengenzurückgebende Funktion mit den Ergebnisspalten <code>path</code> und <code>content</code> wird von
+	<p>Eine mengenzurückgebende Funktion, deklariert mit <code>RETURNS TABLE (&hellip;)</code> oder <code>OUT</code>-Parametern,
+		die die Spalten <code>path</code> und <code>content</code> enthalten, wird von
 		<code>capabilities</code> mit <code>"kind": "file"</code> und dem Endpunkt <code>/file</code> gemeldet. Die OpenAPI-Spezifikation
 		dokumentiert eine echte Operation <code>POST /{prefix}/{database}/file</code> (nur für Rollen, die eine Datei-Funktion
 		ausführen können); Datei-Funktionen werden nicht als MCP-Tools bereitgestellt.</p>

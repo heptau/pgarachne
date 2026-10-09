@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li>Το <code>path</code> πρέπει να είναι απλή σχετική διαδρομή: χωρίς κενά τμήματα ή <code>..</code>, χωρίς αρχικό <code>/</code>,
-			χωρίς backslashes ή χαρακτήρες ελέγχου, μοναδική μέσα στην απάντηση. Διαφορετικά το request αποτυγχάνει με 500.</li>
+		<li>Το <code>path</code> πρέπει να είναι απλή σχετική διαδρομή, ασφαλής για εξαγωγή σε κάθε λειτουργικό σύστημα. Μια διαδρομή
+			απορρίπτεται (το request αποτυγχάνει με 500 και το πρόβλημα καταγράφεται στο log) αν:
+			<ul>
+				<li>είναι κενή, μεγαλύτερη από 512 bytes, δεν είναι έγκυρο UTF-8 ή περιέχει χαρακτήρες ελέγχου·</li>
+				<li>είναι απόλυτη (<code>/…</code>, <code>C:…</code>) ή περιέχει backslash·</li>
+				<li>έχει κενό τμήμα ή τμήμα <code>.</code> ή <code>..</code>·</li>
+				<li>έχει τμήμα που τελειώνει με τελεία ή κενό (τα Windows τα αφαιρούν, οπότε το <code>".. "</code> θα γινόταν <code>..</code>)·</li>
+				<li>περιέχει <code>:</code> (εναλλακτική ροή δεδομένων NTFS) ή οποιονδήποτε από τους χαρακτήρες <code>&lt; &gt; " | ? *</code>·</li>
+				<li>χρησιμοποιεί ως τμήμα δεσμευμένο όνομα συσκευής των Windows, με ή χωρίς επέκταση (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>)·</li>
+				<li>συγκρούεται με άλλη διαδρομή στην ίδια απάντηση: τα ονόματα συγκρίνονται <em>χωρίς διάκριση πεζών-κεφαλαίων</em> (τα <code>a.txt</code> και <code>A.TXT</code> συγκρούονται σε macOS/Windows) και ένα αρχείο δεν μπορεί να είναι ταυτόχρονα και φάκελος (<code>a</code> και <code>a/b</code>).</li>
+			</ul></li>
 		<li>Το <code>content</code> με τιμή <code>NULL</code> σημαίνει κενό αρχείο.</li>
 		<li>Το <code>mime_type</code> χρησιμοποιείται μόνο αν είναι έγκυρος τύπος μέσου, αλλιώς προκύπτει από την επέκταση
 			(εφεδρικά <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Γραμμές</th><th><code>force_zip</code></th><th>Αποτέλεσμα</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>οποιοδήποτε</td><td>404 (σφάλμα JSON)</td></tr>
+			<tr><td>0</td><td>οποιοδήποτε</td><td>404 (σφάλμα JSON)· η συναλλαγή αναιρείται (rollback), άρα τίποτα από όσα έκανε η συνάρτηση δεν διατηρείται και το <code>idempotencyKey</code> δεν καταναλώνεται</td></tr>
 			<tr><td>1</td><td>false</td><td>το ίδιο το αρχείο, με τον τύπο μέσου του</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP με μία εγγραφή</td></tr>
 			<tr><td>≥ 2</td><td>οποιοδήποτε</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,7 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Το όνομα λήψης (<code>options.filename</code> ή το όνομα του ίδιου του αρχείου) καθαρίζεται (sanitised): οι διαχωριστές διαδρομής, τα εισαγωγικά και οι δεσμευμένοι χαρακτήρες γίνονται <code>_</code>, ενώ οι χαρακτήρες ελέγχου, παράκαμψης κατεύθυνσης κειμένου, μηδενικού πλάτους και διαχωρισμού γραμμής αφαιρούνται, ώστε ένα όνομα να μη μπορεί να μεταμφιεστεί σε αρχείο άλλου τύπου.</p>
 	<p>Τα σφάλματα επιστρέφονται πάντα ως JSON, ποτέ ως δυαδικά δεδομένα: <code>400</code> μη έγκυρο request, <code>401</code> μη πιστοποιημένος,
 		<code>403</code> χωρίς δικαίωμα, <code>404</code> άγνωστη συνάρτηση ή καθόλου γραμμές, <code>413</code> η απάντηση
 		υπερβαίνει το <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> η συνάρτηση απέτυχε ή
@@ -74,11 +84,11 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> μαζί με <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> και <code>Cache-Control: no-store</code>, έτσι ώστε μια συνάρτηση
 			που επιστρέφει <code>text/html</code> ή SVG να μην μπορεί να εκτελέσει script στο origin του API. Τα ονόματα αρχείων καθαρίζονται (sanitised).
-			Ολόκληρο το αποτέλεσμα αποθηκεύεται προσωρινά στη μνήμη (με όριο το <code>FILE_MAX_BYTES</code>)· το ίδιο το ZIP αποστέλλεται σε ροή.</p>
+			Ολόκληρο το αποτέλεσμα αποθηκεύεται προσωρινά στη μνήμη: το πραγματικό όριο ανά request είναι το <code>FILE_MAX_BYTES</code> συν η μεγαλύτερη μεμονωμένη γραμμή, επειδή ο driver της βάσης διαβάζει μια γραμμή ολόκληρη πριν ελεγχθεί το όριο &mdash; λάβετε υπόψη τον αριθμό των ταυτόχρονων λήψεων. Το ίδιο το ZIP αποστέλλεται σε ροή.</p>
 	</div>
 
 	<h3>Ανακάλυψη</h3>
-	<p>Μια συνάρτηση που επιστρέφει σύνολο γραμμών με στήλες αποτελέσματος <code>path</code> και <code>content</code> αναφέρεται από το
+	<p>Μια συνάρτηση που επιστρέφει σύνολο γραμμών, δηλωμένη με <code>RETURNS TABLE (&hellip;)</code> ή παραμέτρους <code>OUT</code> που περιλαμβάνουν στήλες <code>path</code> και <code>content</code>, αναφέρεται από το
 		<code>capabilities</code> με <code>"kind": "file"</code> και endpoint <code>/file</code>. Η προδιαγραφή OpenAPI
 		τεκμηριώνει μια πραγματική λειτουργία <code>POST /{prefix}/{database}/file</code> (μόνο για ρόλους που μπορούν να εκτελέσουν
 		συνάρτηση αρχείου)· οι συναρτήσεις αρχείων δεν εκτίθενται ως εργαλεία MCP.</p>

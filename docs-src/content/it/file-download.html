@@ -39,7 +39,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> deve essere un semplice percorso relativo: nessun segmento vuoto o <code>..</code>, nessun <code>/</code> iniziale, nessun backslash o carattere di controllo, univoco all'interno della risposta. Altrimenti la richiesta fallisce con 500.</li>
+		<li><code>path</code> deve essere un semplice percorso relativo che sia sicuro da estrarre su qualsiasi sistema operativo. Un percorso viene
+			rifiutato (la richiesta fallisce con 500 e il problema viene registrato nel log) se:
+			<ul>
+				<li>è vuoto, più lungo di 512 byte, non è UTF-8 valido o contiene caratteri di controllo;</li>
+				<li>è assoluto (<code>/…</code>, <code>C:…</code>) o contiene un backslash;</li>
+				<li>ha un segmento vuoto, <code>.</code> o <code>..</code>;</li>
+				<li>ha un segmento che termina con un punto o uno spazio (Windows li rimuove, quindi <code>".. "</code> diventerebbe <code>..</code>);</li>
+				<li>contiene <code>:</code> (alternate data stream di NTFS) o uno tra <code>&lt; &gt; " | ? *</code>;</li>
+				<li>usa come segmento un nome di dispositivo riservato di Windows, con o senza estensione (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>collide con un altro percorso nella stessa risposta: i nomi vengono confrontati <em>senza distinzione tra maiuscole e minuscole</em> (<code>a.txt</code> e <code>A.TXT</code> entrano in conflitto su macOS/Windows) e un file non può essere anche una directory (<code>a</code> e <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> è un file vuoto.</li>
 		<li><code>mime_type</code> viene usato solo se è un media type ben formato, altrimenti viene dedotto dall'estensione (fallback <code>application/octet-stream</code>).</li>
 		<li><code>store_only = true</code> memorizza la voce ZIP senza compressione (necessario ad es. per il file <code>mimetype</code> di EPUB).</li>
@@ -49,7 +59,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Righe</th><th><code>force_zip</code></th><th>Risultato</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>qualsiasi</td><td>404 (errore JSON)</td></tr>
+			<tr><td>0</td><td>qualsiasi</td><td>404 (errore JSON); la transazione viene annullata (rollback), quindi nulla di ciò che la funzione ha fatto viene mantenuto e un <code>idempotencyKey</code> non viene consumato</td></tr>
 			<tr><td>1</td><td>false</td><td>il file stesso, con il suo media type</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP con una voce</td></tr>
 			<tr><td>≥ 2</td><td>qualsiasi</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -58,13 +68,17 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Il nome di download (<code>options.filename</code> o il nome del file stesso) viene sanificato: i separatori di percorso, le virgolette
+		e i caratteri riservati diventano <code>_</code>, e i caratteri di controllo, di override bidirezionale, a larghezza zero
+		e i separatori di riga vengono rimossi, così un nome non può essere camuffato da un altro tipo di file.</p>
 	<p>Gli errori sono sempre JSON, mai binari: <code>400</code> richiesta non valida, <code>401</code> non autenticato, <code>403</code> nessun permesso, <code>404</code> funzione sconosciuta o nessuna riga, <code>413</code> la risposta supera <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> funzione fallita o struttura restituita non valida.</p>
 
 	<div class="warning">
 		<h3>Sicuro per costruzione</h3>
-		<p>Il database controlla solo i nomi dei file, i contenuti e i media type — mai gli header HTTP. Le risposte hanno sempre <code>Content-Disposition: attachment</code> con <code>X-Content-Type-Options: nosniff</code>, <code>Content-Security-Policy: sandbox</code> e <code>Cache-Control: no-store</code>, quindi una funzione che restituisce <code>text/html</code> o SVG non può eseguire script nell'origine dell'API. I nomi dei file vengono sanificati. L'intero risultato viene tenuto in memoria (limitato da <code>FILE_MAX_BYTES</code>); lo ZIP stesso viene trasmesso in streaming.</p>
+		<p>Il database controlla solo i nomi dei file, i contenuti e i media type — mai gli header HTTP. Le risposte hanno sempre <code>Content-Disposition: attachment</code> con <code>X-Content-Type-Options: nosniff</code>, <code>Content-Security-Policy: sandbox</code> e <code>Cache-Control: no-store</code>, quindi una funzione che restituisce <code>text/html</code> o SVG non può eseguire script nell'origine dell'API. I nomi dei file vengono sanificati. L'intero risultato viene tenuto in memoria: il limite reale per richiesta è <code>FILE_MAX_BYTES</code> più la singola riga più grande, perché il driver del database legge una riga per intero prima che il limite possa essere verificato &mdash; tenere presente il numero di download simultanei. Lo ZIP stesso viene trasmesso in streaming.</p>
 	</div>
 
 	<h3>Discovery</h3>
-	<p>Una funzione set-returning con le colonne di risultato <code>path</code> e <code>content</code> viene riportata da <code>capabilities</code> con <code>"kind": "file"</code> e endpoint <code>/file</code>. La specifica OpenAPI documenta una vera operazione <code>POST /{prefisso}/{database}/file</code> (solo per i ruoli che possono eseguire una funzione file); le funzioni file non sono esposte come tool MCP.</p>
+	<p>Una funzione set-returning dichiarata con <code>RETURNS TABLE (&hellip;)</code> o parametri <code>OUT</code> che
+		include le colonne <code>path</code> e <code>content</code> viene riportata da <code>capabilities</code> con <code>"kind": "file"</code> e endpoint <code>/file</code>. La specifica OpenAPI documenta una vera operazione <code>POST /{prefisso}/{database}/file</code> (solo per i ruoli che possono eseguire una funzione file); le funzioni file non sono esposte come tool MCP.</p>
 </section>

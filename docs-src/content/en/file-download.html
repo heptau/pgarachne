@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> must be a plain relative path: no empty or <code>..</code> segments, no leading <code>/</code>,
-			no backslashes or control characters, unique within the response. Otherwise the request fails with 500.</li>
+		<li><code>path</code> must be a plain relative path that is safe to extract on every operating system. A path is
+			rejected (the request fails with 500 and the problem is logged) if it:
+			<ul>
+				<li>is empty, longer than 512 bytes, not valid UTF-8, or contains control characters;</li>
+				<li>is absolute (<code>/…</code>, <code>C:…</code>) or contains a backslash;</li>
+				<li>has an empty, <code>.</code> or <code>..</code> segment;</li>
+				<li>has a segment ending in a dot or a space (Windows strips them, so <code>".. "</code> would become <code>..</code>);</li>
+				<li>contains <code>:</code> (NTFS alternate data stream) or any of <code>&lt; &gt; " | ? *</code>;</li>
+				<li>uses a reserved Windows device name as a segment, with or without an extension (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>collides with another path in the same response: names are compared <em>case-insensitively</em> (<code>a.txt</code> and <code>A.TXT</code> clash on macOS/Windows), and a file cannot also be a directory (<code>a</code> and <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> is an empty file.</li>
 		<li><code>mime_type</code> is used only if it is a well-formed media type, otherwise guessed from the extension
 			(fallback <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Rows</th><th><code>force_zip</code></th><th>Result</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>any</td><td>404 (JSON error)</td></tr>
+			<tr><td>0</td><td>any</td><td>404 (JSON error); the transaction is rolled back, so nothing the function did is persisted and an <code>idempotencyKey</code> is not consumed</td></tr>
 			<tr><td>1</td><td>false</td><td>the file itself, with its media type</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP with one entry</td></tr>
 			<tr><td>≥ 2</td><td>any</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,9 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>The download name (<code>options.filename</code>, or the file's own name) is sanitised: path separators, quotes
+		and reserved characters become <code>_</code>, and control, bidirectional-override, zero-width and
+		line-separator characters are removed, so a name cannot be disguised as another file type.</p>
 	<p>Errors are always JSON, never binary: <code>400</code> invalid request, <code>401</code> unauthenticated,
 		<code>403</code> no permission, <code>404</code> unknown function or no rows, <code>413</code> the response
 		exceeds <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> function failed or
@@ -74,11 +86,12 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> with <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> and <code>Cache-Control: no-store</code>, so a function
 			returning <code>text/html</code> or SVG cannot run script in the API's origin. File names are sanitised.
-			The whole result is buffered in memory (capped by <code>FILE_MAX_BYTES</code>); the ZIP itself is streamed.</p>
+			The whole result is buffered in memory: the real bound per request is <code>FILE_MAX_BYTES</code> plus the largest single row, because the database driver reads a row completely before the limit can be checked &mdash; keep the number of concurrent downloads in mind. The ZIP itself is streamed.</p>
 	</div>
 
 	<h3>Discovery</h3>
-	<p>A set-returning function with <code>path</code> and <code>content</code> result columns is reported by
+	<p>A set-returning function declared with <code>RETURNS TABLE (&hellip;)</code> or <code>OUT</code> parameters that
+		include <code>path</code> and <code>content</code> columns is reported by
 		<code>capabilities</code> with <code>"kind": "file"</code> and endpoint <code>/file</code>. The OpenAPI spec
 		documents a real <code>POST /{prefix}/{database}/file</code> operation (only for roles that can execute a file
 		function); file functions are not exposed as MCP tools.</p>

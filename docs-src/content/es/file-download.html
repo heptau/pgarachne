@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> debe ser una ruta relativa simple: sin segmentos vacíos ni <code>..</code>, sin <code>/</code> inicial,
-			sin barras invertidas ni caracteres de control, y única dentro de la respuesta. De lo contrario, la petición falla con 500.</li>
+		<li><code>path</code> debe ser una ruta relativa simple que se pueda extraer con seguridad en cualquier sistema operativo. Una ruta se
+			rechaza (la petición falla con 500 y el problema se registra en el log) si:
+			<ul>
+				<li>está vacía, supera los 512 bytes, no es UTF-8 válido o contiene caracteres de control;</li>
+				<li>es absoluta (<code>/…</code>, <code>C:…</code>) o contiene una barra invertida;</li>
+				<li>tiene un segmento vacío, <code>.</code> o <code>..</code>;</li>
+				<li>tiene un segmento que termina en punto o espacio (Windows los elimina, así que <code>".. "</code> se convertiría en <code>..</code>);</li>
+				<li>contiene <code>:</code> (flujo de datos alternativo de NTFS) o alguno de <code>&lt; &gt; " | ? *</code>;</li>
+				<li>usa como segmento un nombre de dispositivo reservado de Windows, con o sin extensión (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>colisiona con otra ruta de la misma respuesta: los nombres se comparan <em>sin distinguir mayúsculas y minúsculas</em> (<code>a.txt</code> y <code>A.TXT</code> chocan en macOS/Windows), y un archivo no puede ser también un directorio (<code>a</code> y <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> es un archivo vacío.</li>
 		<li><code>mime_type</code> se usa solo si es un tipo de medio bien formado; en caso contrario se deduce de la extensión
 			(alternativa <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Filas</th><th><code>force_zip</code></th><th>Resultado</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>cualquiera</td><td>404 (error JSON)</td></tr>
+			<tr><td>0</td><td>cualquiera</td><td>404 (error JSON); la transacción se revierte, por lo que no se conserva nada de lo que hizo la función y no se consume un <code>idempotencyKey</code></td></tr>
 			<tr><td>1</td><td>false</td><td>el propio archivo, con su tipo de medio</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP con una entrada</td></tr>
 			<tr><td>≥ 2</td><td>cualquiera</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,9 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>El nombre de descarga (<code>options.filename</code> o el nombre del propio archivo) se sanea: los separadores de ruta, las comillas
+		y los caracteres reservados se convierten en <code>_</code>, y se eliminan los caracteres de control, de anulación bidireccional,
+		de ancho cero y separadores de línea, de modo que un nombre no pueda disfrazarse de otro tipo de archivo.</p>
 	<p>Los errores son siempre JSON, nunca binarios: <code>400</code> petición no válida, <code>401</code> no autenticado,
 		<code>403</code> sin permiso, <code>404</code> función desconocida o sin filas, <code>413</code> la respuesta
 		supera <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> la función falló o
@@ -74,11 +86,12 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> con <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> y <code>Cache-Control: no-store</code>, de modo que una función
 			que devuelva <code>text/html</code> o SVG no pueda ejecutar scripts en el origen de la API. Los nombres de archivo se sanean.
-			El resultado completo se almacena en búfer en memoria (limitado por <code>FILE_MAX_BYTES</code>); el ZIP en sí se transmite en streaming.</p>
+			El resultado completo se almacena en búfer en memoria: el límite real por petición es <code>FILE_MAX_BYTES</code> más la fila individual más grande, porque el controlador de la base de datos lee una fila completa antes de que se pueda comprobar el límite &mdash; tenga en cuenta el número de descargas simultáneas. El ZIP en sí se transmite en streaming.</p>
 	</div>
 
 	<h3>Descubrimiento</h3>
-	<p>Una función que devuelve un conjunto con las columnas de resultado <code>path</code> y <code>content</code> es reportada por
+	<p>Una función que devuelve un conjunto, declarada con <code>RETURNS TABLE (&hellip;)</code> o parámetros <code>OUT</code> que
+		incluyan las columnas <code>path</code> y <code>content</code>, es reportada por
 		<code>capabilities</code> con <code>"kind": "file"</code> y el endpoint <code>/file</code>. La especificación OpenAPI
 		documenta una operación real <code>POST /{prefix}/{database}/file</code> (solo para roles que pueden ejecutar una función
 		de archivo); las funciones de archivo no se exponen como herramientas MCP.</p>

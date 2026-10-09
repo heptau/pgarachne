@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> musí být obyčejná relativní cesta: žádné prázdné ani <code>..</code> segmenty, žádné
-			počáteční <code>/</code>, zpětná lomítka ani řídicí znaky, unikátní v rámci odpovědi. Jinak požadavek skončí chybou 500.</li>
+		<li><code>path</code> musí být obyčejná relativní cesta, kterou lze bezpečně rozbalit na každém operačním systému.
+			Cesta je odmítnuta (požadavek skončí chybou 500 a problém se zaloguje), pokud:
+			<ul>
+				<li>je prázdná, delší než 512 bajtů, není platné UTF-8 nebo obsahuje řídicí znaky;</li>
+				<li>je absolutní (<code>/…</code>, <code>C:…</code>) nebo obsahuje zpětné lomítko;</li>
+				<li>má prázdný segment, segment <code>.</code> nebo <code>..</code>;</li>
+				<li>má segment končící tečkou nebo mezerou (Windows je odstraní, takže <code>".. "</code> by se stalo <code>..</code>);</li>
+				<li>obsahuje <code>:</code> (alternativní datový proud NTFS) nebo některý ze znaků <code>&lt; &gt; " | ? *</code>;</li>
+				<li>používá jako segment rezervovaný název zařízení Windows, s příponou i bez ní (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>koliduje s jinou cestou ve stejné odpovědi: názvy se porovnávají <em>bez ohledu na velikost písmen</em> (<code>a.txt</code> a <code>A.TXT</code> se na macOS/Windows střetnou) a soubor nemůže být zároveň adresářem (<code>a</code> a <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> <code>NULL</code> je prázdný soubor.</li>
 		<li><code>mime_type</code> se použije jen jako validní media type, jinak se odhadne z přípony
 			(záloha <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Řádků</th><th><code>force_zip</code></th><th>Výsledek</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>jakékoli</td><td>404 (JSON chyba)</td></tr>
+			<tr><td>0</td><td>jakékoli</td><td>404 (JSON chyba); transakce se vrátí zpět, takže se nic z toho, co funkce udělala, neuloží a <code>idempotencyKey</code> se nespotřebuje</td></tr>
 			<tr><td>1</td><td>false</td><td>samotný soubor s jeho media type</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP s jednou položkou</td></tr>
 			<tr><td>≥ 2</td><td>jakékoli</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,9 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Název stahovaného souboru (<code>options.filename</code> nebo vlastní název souboru) se sanitizuje: oddělovače cest,
+		uvozovky a rezervované znaky se změní na <code>_</code> a řídicí znaky, znaky pro přepsání směru textu, znaky nulové šířky
+		a oddělovače řádků se odstraní, takže se název nemůže maskovat jako jiný typ souboru.</p>
 	<p>Chyby jsou vždy JSON, nikdy binární data: <code>400</code> neplatný požadavek, <code>401</code> nepřihlášen,
 		<code>403</code> chybí oprávnění, <code>404</code> neexistující funkce nebo žádné řádky, <code>413</code> odpověď
 		překračuje <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> funkce selhala nebo vrátila
@@ -74,11 +86,12 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code>, <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> a <code>Cache-Control: no-store</code>, takže funkce vracející
 			<code>text/html</code> nebo SVG nemůže spustit skript v originu API. Názvy souborů se sanitizují.
-			Celý výsledek se drží v paměti (limit <code>FILE_MAX_BYTES</code>); samotný ZIP se streamuje.</p>
+			Celý výsledek se drží v paměti: skutečná horní hranice na požadavek je <code>FILE_MAX_BYTES</code> plus největší jednotlivý řádek, protože databázový ovladač načte řádek celý dříve, než lze limit zkontrolovat &mdash; pamatujte na počet souběžných stahování. Samotný ZIP se streamuje.</p>
 	</div>
 
 	<h3>Objevování</h3>
-	<p>Funkce vracející sadu řádků se sloupci <code>path</code> a <code>content</code> je v <code>capabilities</code>
+	<p>Funkce vracející sadu řádků, deklarovaná s <code>RETURNS TABLE (&hellip;)</code> nebo s parametry <code>OUT</code>,
+		které zahrnují sloupce <code>path</code> a <code>content</code>, je v <code>capabilities</code>
 		uvedena jako <code>"kind": "file"</code> s endpointem <code>/file</code>. OpenAPI spec obsahuje skutečnou operaci
 		<code>POST /{prefix}/{database}/file</code> (jen pro role, které smí některou file funkci spustit); file funkce se
 		nenabízejí jako MCP nástroje.</p>

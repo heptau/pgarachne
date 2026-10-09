@@ -57,7 +57,7 @@ example.com {
 	</div>
 
 	<div class="deployment-option">
-		<h3>Παράδειγμα ενίσχυσης Nginx (SSE + forwarded headers)</h3>
+		<h3>Παράδειγμα ενίσχυσης Nginx (SSE, λήψεις αρχείων, forwarded headers)</h3>
 		<pre><code>location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
@@ -65,12 +65,38 @@ example.com {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
+}
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
 }</code></pre>
+		<p>Αντικαταστήστε το <code>db</code> με το <code>API_PREFIX</code> σας, αν το έχετε αλλάξει.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Μεγάλες λήψεις (<code>/file</code>) πίσω από reverse proxy</h3>
+		<ul>
+			<li><strong>Απενεργοποιήστε το buffering των απαντήσεων</strong> (<code>proxy_buffering off</code> στο Nginx). Ένα μεμονωμένο αρχείο στέλνεται με <code>Content-Length</code>, ενώ ένα αρχείο ZIP μεταδίδεται (streaming) χωρίς αυτό. Με ενεργό buffering, το Nginx γράφει πρώτα ολόκληρη την απάντηση σε προσωρινό αρχείο, κάτι που καθυστερεί την έναρξη της λήψης και καταναλώνει χώρο στον δίσκο.</li>
+			<li><strong>Αυξήστε το read timeout</strong> (<code>proxy_read_timeout</code>, προεπιλογή 60&nbsp;s) αν η συνάρτηση της βάσης που δημιουργεί τα αρχεία μπορεί να τρέχει περισσότερο &mdash; το PgArachne δεν στέλνει τίποτα μέχρι η συνάρτηση να επιστρέψει όλες τις γραμμές.</li>
+			<li><strong>Μη συμπιέζετε</strong> το <code>application/zip</code> ή τύπους μέσων που είναι ήδη συμπιεσμένοι (το <code>gzip</code> σε ZIP απλώς σπαταλά CPU).</li>
+			<li><strong>Όριο μνήμης:</strong> το PgArachne αποθηκεύει προσωρινά στη μνήμη τις γραμμές μίας απάντησης (με όριο το <code>FILE_MAX_BYTES</code>, προεπιλογή 64&nbsp;MiB, και το <code>FILE_MAX_ENTRIES</code>)· ρυθμίστε τα όρια ανάλογα με τον αναμενόμενο αριθμό ταυτόχρονων λήψεων. Το <code>client_max_body_size</code> αφορά μόνο το μικρό αίτημα JSON, όχι τη λήψη.</li>
+			<li><strong>Το Caddy</strong> κάνει streaming των απαντήσεων από προεπιλογή· δεν χρειάζεται επιπλέον ρύθμιση.</li>
+		</ul>
 	</div>
 </section>

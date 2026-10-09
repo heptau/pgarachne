@@ -57,7 +57,7 @@ example.com {
 	</div>
 
 	<div class="deployment-option">
-		<h3>Exemple de durcissement Nginx (SSE + en-têtes transférés)</h3>
+		<h3>Exemple de durcissement Nginx (SSE, téléchargements de fichiers, en-têtes transférés)</h3>
 		<pre><code>location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
@@ -65,12 +65,38 @@ example.com {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
+}
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
 }</code></pre>
+		<p>Remplacez <code>db</code> par votre <code>API_PREFIX</code> si vous l'avez modifié.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Gros téléchargements (<code>/file</code>) derrière un reverse proxy</h3>
+		<ul>
+			<li><strong>Désactivez la mise en tampon des réponses</strong> (<code>proxy_buffering off</code> dans Nginx). Un fichier seul est envoyé avec un <code>Content-Length</code>, une archive ZIP est transmise en flux sans celui-ci. Avec la mise en tampon activée, Nginx écrit d'abord toute la réponse dans un fichier temporaire, ce qui retarde le début du téléchargement et consomme de l'espace disque.</li>
+			<li><strong>Augmentez le délai de lecture</strong> (<code>proxy_read_timeout</code>, 60&nbsp;s par défaut) si la fonction de base de données qui construit les fichiers peut s'exécuter plus longtemps &mdash; PgArachne n'envoie rien tant que la fonction n'a pas renvoyé toutes les lignes.</li>
+			<li><strong>Ne compressez pas</strong> <code>application/zip</code> ni les autres types de médias déjà compressés (<code>gzip</code> sur un ZIP ne fait que consommer du CPU).</li>
+			<li><strong>Limite mémoire :</strong> PgArachne garde en mémoire les lignes d'une réponse (plafonnées par <code>FILE_MAX_BYTES</code>, 64&nbsp;MiB par défaut, et <code>FILE_MAX_ENTRIES</code>) ; dimensionnez les limites selon le nombre de téléchargements simultanés attendus. <code>client_max_body_size</code> ne concerne que la petite requête JSON, pas le téléchargement.</li>
+			<li><strong>Caddy</strong> transmet les réponses en flux par défaut ; aucune configuration supplémentaire n'est nécessaire.</li>
+		</ul>
 	</div>
 </section>

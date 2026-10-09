@@ -57,7 +57,7 @@ example.com {
 	</div>
 
 	<div class="deployment-option">
-		<h3>Nginx hardening example (SSE + forwarded headers)</h3>
+		<h3>Nginx hardening example (SSE, file downloads, forwarded headers)</h3>
 		<pre><code>location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
@@ -65,12 +65,43 @@ example.com {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
+}
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
 }</code></pre>
+		<p>Replace <code>db</code> with your <code>API_PREFIX</code> if you changed it.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Large downloads (<code>/file</code>) behind a reverse proxy</h3>
+		<ul>
+			<li><strong>Disable response buffering</strong> (<code>proxy_buffering off</code> in Nginx). A single file is sent with a
+				<code>Content-Length</code>, a ZIP archive is streamed without one. With buffering on, Nginx first spools the
+				whole response to a temporary file, which delays the start of the download and costs disk space.</li>
+			<li><strong>Raise the read timeout</strong> (<code>proxy_read_timeout</code>, default 60&nbsp;s) if the database function that
+				builds the files can run longer &mdash; PgArachne sends nothing until the function has returned all rows.</li>
+			<li><strong>Do not compress</strong> <code>application/zip</code> or already compressed media types (<code>gzip</code> on a ZIP only burns CPU).</li>
+			<li><strong>Memory limit:</strong> PgArachne buffers the rows of one response in memory (capped by <code>FILE_MAX_BYTES</code>,
+				default 64&nbsp;MiB, and <code>FILE_MAX_ENTRIES</code>); size the limits for the number of concurrent downloads you expect.
+				<code>client_max_body_size</code> only concerns the small JSON request, not the download.</li>
+			<li><strong>Caddy</strong> streams responses by default; no extra configuration is needed.</li>
+		</ul>
 	</div>
 </section>

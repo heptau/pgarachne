@@ -19,11 +19,25 @@ func TestValidateEntryPath(t *testing.T) {
 	}
 	bad := []string{
 		"", "/etc/passwd", "../x", "a/../b", "a/./b", "a//b", "a/", `a\b`, `..\x`,
-		"C:/x", "c:x", "a\x00b", "a\nb", "\xff\xfe", strings.Repeat("a", maxFilePathLength+1),
+		"C:/x", "c:x", "a/.. /x", "a/.../x", "dir /a", "a./b", "file.txt:stream", "a/b*c", "CON", "nul.txt", "a/COM1.log", "a\x00b", "a\nb", "\xff\xfe", strings.Repeat("a", maxFilePathLength+1),
 	}
 	for _, p := range bad {
 		if err := validateEntryPath(p); err == nil {
 			t.Errorf("validateEntryPath(%q) = nil; want error", p)
+		}
+	}
+}
+
+func TestClaimPath(t *testing.T) {
+	seen := map[string]string{}
+	for _, p := range []string{"a.txt", "dir/b.txt", "dir/sub/c.txt"} {
+		if err := claimPath(seen, p); err != nil {
+			t.Fatalf("claimPath(%q) = %v", p, err)
+		}
+	}
+	for _, p := range []string{"a.txt", "A.TXT", "DIR/B.txt", "a.txt/x", "dir", "dir/sub"} {
+		if err := claimPath(seen, p); err == nil {
+			t.Errorf("claimPath(%q) = nil; want conflict", p)
 		}
 	}
 }
@@ -67,6 +81,8 @@ func TestSanitizeDownloadName(t *testing.T) {
 		"a\"b\r\nX: y.txt":       "a_bX_ y.txt",
 		"  ..hidden  ":           "hidden",
 		"":                       "",
+		"invoice\u202efdp.exe":   "invoicefdp.exe",
+		"a\u200bb\u2028c\u0085d": "abcd",
 		strings.Repeat("é", 300): strings.Repeat("é", 100),
 	}
 	for in, want := range cases {
@@ -247,6 +263,24 @@ func TestFileEndpoint(t *testing.T) {
 			if resp, _ := postFile(t, env, token, body); resp.StatusCode != http.StatusBadRequest {
 				t.Errorf("%s: status = %d; want 400", name, resp.StatusCode)
 			}
+		}
+	})
+
+	t.Run("conflicting paths", func(t *testing.T) {
+		// count=2 with a fixed bad_path yields two rows with the same path.
+		resp, _ := postFile(t, env, token, map[string]any{"method": "api.export_documents", "params": map[string]any{"count": 2, "bad_path": "dup.txt"}})
+		if resp.StatusCode != http.StatusInternalServerError {
+			t.Errorf("status = %d; want 500", resp.StatusCode)
+		}
+	})
+
+	t.Run("entries cap", func(t *testing.T) {
+		old := env.server.Cfg.FileMaxEntries
+		env.server.Cfg.FileMaxEntries = 2
+		defer func() { env.server.Cfg.FileMaxEntries = old }()
+		resp, _ := postFile(t, env, token, map[string]any{"method": "api.export_documents", "params": map[string]any{"count": 3}})
+		if resp.StatusCode != http.StatusRequestEntityTooLarge {
+			t.Errorf("status = %d; want 413", resp.StatusCode)
 		}
 	})
 

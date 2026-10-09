@@ -42,8 +42,17 @@ LANGUAGE sql AS $$
   SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
 $$;</code></pre>
 	<ul>
-		<li><code>path</code> має бути простим відносним шляхом: без порожніх сегментів і <code>..</code>, без початкового <code>/</code>,
-			без зворотних скісних рисок і керівних символів, унікальним у межах відповіді. Інакше запит завершується помилкою 500.</li>
+		<li><code>path</code> має бути простим відносним шляхом, безпечним для розпакування в будь-якій операційній системі. Шлях
+			відхиляється (запит завершується помилкою 500, а проблема логується), якщо він:
+			<ul>
+				<li>порожній, довший за 512 байтів, не є коректним UTF-8 або містить керівні символи;</li>
+				<li>абсолютний (<code>/…</code>, <code>C:…</code>) або містить зворотну скісну риску;</li>
+				<li>має порожній сегмент, або сегмент <code>.</code> чи <code>..</code>;</li>
+				<li>має сегмент, що закінчується крапкою або пробілом (Windows їх відкидає, тож <code>".. "</code> став би <code>..</code>);</li>
+				<li>містить <code>:</code> (альтернативний потік даних NTFS) або будь-який із символів <code>&lt; &gt; " | ? *</code>;</li>
+				<li>використовує зарезервоване ім'я пристрою Windows як сегмент, з розширенням або без (<code>CON</code>, <code>PRN</code>, <code>AUX</code>, <code>NUL</code>, <code>COM0</code>&ndash;<code>COM9</code>, <code>LPT0</code>&ndash;<code>LPT9</code>);</li>
+				<li>збігається з іншим шляхом у тій самій відповіді: імена порівнюються <em>без урахування регістру</em> (<code>a.txt</code> і <code>A.TXT</code> конфліктують у macOS/Windows), а файл не може одночасно бути каталогом (<code>a</code> і <code>a/b</code>).</li>
+			</ul></li>
 		<li><code>content</code> зі значенням <code>NULL</code> означає порожній файл.</li>
 		<li><code>mime_type</code> використовується лише якщо це коректний медіатип, інакше визначається за розширенням
 			(запасне значення <code>application/octet-stream</code>).</li>
@@ -54,7 +63,7 @@ $$;</code></pre>
 	<table>
 		<thead><tr><th>Рядки</th><th><code>force_zip</code></th><th>Результат</th></tr></thead>
 		<tbody>
-			<tr><td>0</td><td>будь-яке</td><td>404 (помилка JSON)</td></tr>
+			<tr><td>0</td><td>будь-яке</td><td>404 (помилка JSON); транзакція відкочується, тож нічого, що зробила функція, не зберігається, а <code>idempotencyKey</code> не витрачається</td></tr>
 			<tr><td>1</td><td>false</td><td>сам файл з його медіатипом</td></tr>
 			<tr><td>1</td><td>true</td><td>ZIP з одним записом</td></tr>
 			<tr><td>≥ 2</td><td>будь-яке</td><td>ZIP (<code>application/zip</code>)</td></tr>
@@ -63,6 +72,7 @@ $$;</code></pre>
 	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Ім'я завантажуваного файлу (<code>options.filename</code> або власне ім'я файлу) санітизується: роздільники шляху, лапки та зарезервовані символи замінюються на <code>_</code>, а керівні символи, символи перевизначення напрямку тексту, символи нульової ширини та роздільники рядків видаляються, тож ім'я не може маскуватися під файл іншого типу.</p>
 	<p>Помилки завжди повертаються у форматі JSON, ніколи як бінарні дані: <code>400</code> некоректний запит, <code>401</code> не автентифіковано,
 		<code>403</code> немає дозволу, <code>404</code> невідома функція або немає рядків, <code>413</code> відповідь
 		перевищує <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> функція завершилася помилкою або
@@ -74,11 +84,11 @@ $$;</code></pre>
 			<code>Content-Disposition: attachment</code> разом з <code>X-Content-Type-Options: nosniff</code>,
 			<code>Content-Security-Policy: sandbox</code> і <code>Cache-Control: no-store</code>, тож функція,
 			що повертає <code>text/html</code> або SVG, не може виконати скрипт в origin API. Імена файлів санітизуються.
-			Весь результат буферизується в пам'яті (обмежений <code>FILE_MAX_BYTES</code>); сам ZIP передається потоком.</p>
+			Весь результат буферизується в пам'яті: реальна межа на запит — це <code>FILE_MAX_BYTES</code> плюс найбільший окремий рядок, оскільки драйвер бази даних читає рядок повністю, перш ніж можна перевірити ліміт &mdash; зважайте на кількість одночасних завантажень. Сам ZIP передається потоком.</p>
 	</div>
 
 	<h3>Виявлення</h3>
-	<p>Функція, що повертає набір рядків зі стовпцями результату <code>path</code> і <code>content</code>, відображається в
+	<p>Функція, що повертає набір рядків, оголошена з <code>RETURNS TABLE (&hellip;)</code> або параметрами <code>OUT</code>, які містять стовпці <code>path</code> і <code>content</code>, відображається в
 		<code>capabilities</code> з <code>"kind": "file"</code> та ендпоінтом <code>/file</code>. Специфікація OpenAPI
 		описує реальну операцію <code>POST /{prefix}/{database}/file</code> (лише для ролей, які можуть виконувати файлову
 		функцію); файлові функції не відкриваються як інструменти MCP.</p>

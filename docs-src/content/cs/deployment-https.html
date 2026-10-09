@@ -57,7 +57,7 @@ example.com {
 	</div>
 
 	<div class="deployment-option">
-		<h3>Ukázka hardeningu Nginx (SSE + forwarded hlavičky)</h3>
+		<h3>Ukázka hardeningu Nginx (SSE, stahování souborů, forwarded hlavičky)</h3>
 		<pre><code>location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
@@ -65,12 +65,38 @@ example.com {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
+}
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
 }</code></pre>
+		<p>Pokud jste změnili <code>API_PREFIX</code>, nahraďte <code>db</code> svou hodnotou.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Velká stahování (<code>/file</code>) za reverzní proxy</h3>
+		<ul>
+			<li><strong>Vypněte buffering odpovědí</strong> (<code>proxy_buffering off</code> v Nginxu). Jeden soubor se odesílá s hlavičkou <code>Content-Length</code>, ZIP archiv se streamuje bez ní. Se zapnutým bufferingem Nginx nejprve celou odpověď uloží do dočasného souboru, což zpozdí začátek stahování a spotřebovává místo na disku.</li>
+			<li><strong>Zvyšte read timeout</strong> (<code>proxy_read_timeout</code>, výchozí 60&nbsp;s), pokud databázová funkce, která soubory sestavuje, může běžet déle &mdash; PgArachne neodešle nic, dokud funkce nevrátí všechny řádky.</li>
+			<li><strong>Nekomprimujte</strong> <code>application/zip</code> ani jiné již komprimované typy médií (<code>gzip</code> na ZIPu jen zbytečně zatěžuje CPU).</li>
+			<li><strong>Limit paměti:</strong> PgArachne drží řádky jedné odpovědi v paměti (omezeno <code>FILE_MAX_BYTES</code>, výchozí 64&nbsp;MiB, a <code>FILE_MAX_ENTRIES</code>); limity nastavte podle očekávaného počtu souběžných stahování. <code>client_max_body_size</code> se týká jen malého JSON požadavku, nikoli stahování.</li>
+			<li><strong>Caddy</strong> odpovědi streamuje ve výchozím nastavení; žádná další konfigurace není potřeba.</li>
+		</ul>
 	</div>
 </section>

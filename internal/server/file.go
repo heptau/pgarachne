@@ -16,6 +16,7 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
@@ -57,6 +58,10 @@ type fileEntry struct {
 // else, so a value coming from the database can never inject header content.
 var mimeRe = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&^_.+-]{0,126}(; ?charset=[A-Za-z0-9._-]{1,40})?$`)
 
+// windowsReservedRe matches DOS device names (CON, NUL, COM1, …), with or
+// without an extension, which Windows cannot create as ordinary files.
+var windowsReservedRe = regexp.MustCompile(`(?i)^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$`)
+
 var driveLetterRe = regexp.MustCompile(`^[A-Za-z]:`)
 
 // validateEntryPath rejects anything that could escape the extraction
@@ -85,6 +90,19 @@ func validateEntryPath(p string) error {
 		if seg == "" || seg == "." || seg == ".." {
 			return errors.New("invalid path segment")
 		}
+		// Windows extractors drop trailing dots and spaces, so "a/.. /x"
+		// would become "a/../x".
+		if strings.HasSuffix(seg, ".") || strings.HasSuffix(seg, " ") {
+			return errors.New("segment ends with a dot or space")
+		}
+		// ':' would select an NTFS alternate data stream; the rest are
+		// reserved on Windows.
+		if strings.ContainsAny(seg, `:<>"|?*`) {
+			return errors.New("reserved character in path")
+		}
+		if windowsReservedRe.MatchString(seg) {
+			return errors.New("reserved device name")
+		}
 	}
 	return nil
 }
@@ -105,6 +123,9 @@ func sanitizeDownloadName(name string) string {
 	for _, r := range name {
 		switch {
 		case r < 0x20 || r == 0x7f:
+		// Bidi overrides, zero-width and line/paragraph separators would let a
+		// name like "invoice\u202efdp.exe" display as something else.
+		case unicode.Is(unicode.Cf, r) || unicode.Is(unicode.Zl, r) || unicode.Is(unicode.Zp, r) || r == 0x85:
 		case strings.ContainsRune(`"\/:*?<>|;`, r):
 			b.WriteRune('_')
 		default:
@@ -240,16 +261,19 @@ func (s *Server) handleFile(c *gin.Context) {
 		return
 	}
 
+	// "No file" is reported as 404 and the transaction is rolled back (the
+	// deferred rollback), so a retry is not blocked by a consumed idempotency
+	// key and nothing the function did is persisted.
+	if len(entries) == 0 {
+		recordFile(functionName, "empty")
+		fileError(c, http.StatusNotFound, 0, "No file returned")
+		return
+	}
+
 	if err := tx.Commit(); err != nil {
 		slog.Error("Transaction commit failed", "error", err)
 		recordFile(functionName, "error")
 		fileError(c, http.StatusInternalServerError, 0, "Transaction commit failed")
-		return
-	}
-
-	if len(entries) == 0 {
-		recordFile(functionName, "empty")
-		fileError(c, http.StatusNotFound, 0, "No file returned")
 		return
 	}
 
@@ -336,7 +360,7 @@ func (s *Server) collectFileEntries(rows *sql.Rows) (entries []fileEntry, status
 	}
 
 	var total int64
-	seen := map[string]struct{}{}
+	seen := map[string]string{}
 	for rows.Next() {
 		if len(entries) >= maxEntries {
 			return nil, http.StatusRequestEntityTooLarge, "Too many files in response"
@@ -362,11 +386,10 @@ func (s *Server) collectFileEntries(rows *sql.Rows) (entries []fileEntry, status
 			slog.Error("File function returned an invalid path", "path", e.path, "error", err)
 			return nil, http.StatusInternalServerError, "Function returned an invalid file path"
 		}
-		if _, dup := seen[e.path]; dup {
-			slog.Error("File function returned a duplicate path", "path", e.path)
+		if err := claimPath(seen, e.path); err != nil {
+			slog.Error("File function returned conflicting paths", "path", e.path, "error", err)
 			return nil, http.StatusInternalServerError, "Function returned a duplicate file path"
 		}
-		seen[e.path] = struct{}{}
 
 		switch v := vals[contentIdx].(type) {
 		case []byte:
@@ -398,6 +421,31 @@ func (s *Server) collectFileEntries(rows *sql.Rows) (entries []fileEntry, status
 		return nil, http.StatusInternalServerError, "Function call failed"
 	}
 	return entries, 0, ""
+}
+
+// claimPath registers p in seen and fails if it collides with an earlier path:
+// the same name (compared case-insensitively, because macOS and Windows
+// extract onto case-insensitive filesystems), or a file that is also used as a
+// directory ("a" and "a/b").
+func claimPath(seen map[string]string, p string) error {
+	key := strings.ToLower(p)
+	if _, dup := seen[key]; dup {
+		return errors.New("duplicate path")
+	}
+	parts := strings.Split(key, "/")
+	for i := 1; i < len(parts); i++ {
+		if kind, ok := seen[strings.Join(parts[:i], "/")]; ok && kind == "file" {
+			return errors.New("path is nested under a file")
+		}
+	}
+	if kind := seen[key+"/"]; kind == "dir" {
+		return errors.New("path is also a directory")
+	}
+	seen[key] = "file"
+	for i := 1; i < len(parts); i++ {
+		seen[strings.Join(parts[:i], "/")+"/"] = "dir"
+	}
+	return nil
 }
 
 // entryMIME picks the Content-Type for a single-file response: the sanitized

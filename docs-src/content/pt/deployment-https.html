@@ -58,7 +58,7 @@ example.com {
 	</div>
 
 	<div class="deployment-option">
-		<h3>Exemplo de hardening Nginx (SSE + cabeçalhos encaminhados)</h3>
+		<h3>Exemplo de hardening Nginx (SSE, downloads de arquivos, cabeçalhos encaminhados)</h3>
 		<pre><code>location / {
     proxy_pass http://127.0.0.1:8080;
     proxy_set_header Host $host;
@@ -66,12 +66,38 @@ example.com {
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
 
-location /sse/ {
+# SSE: /{API_PREFIX}/{database}/sse — long-lived stream, must not be buffered
+location ~ ^/db/[^/]+/sse$ {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
     proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_buffering off;
     proxy_read_timeout 1h;
+}
+
+# File downloads: /{API_PREFIX}/{database}/file — large files and ZIP archives
+location ~ ^/db/[^/]+/file/?$ {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Connection "";
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_buffering off;
+    proxy_read_timeout 300s;
 }</code></pre>
+		<p>Substitua <code>db</code> pelo seu <code>API_PREFIX</code> caso o tenha alterado.</p>
+	</div>
+
+	<div class="deployment-option">
+		<h3>Downloads grandes (<code>/file</code>) atrás de um reverse proxy</h3>
+		<ul>
+			<li><strong>Desative o buffering de respostas</strong> (<code>proxy_buffering off</code> no Nginx). Um único arquivo é enviado com <code>Content-Length</code>; um arquivo ZIP é transmitido em streaming sem ele. Com o buffering ativado, o Nginx primeiro grava toda a resposta em um arquivo temporário, o que atrasa o início do download e consome espaço em disco.</li>
+			<li><strong>Aumente o timeout de leitura</strong> (<code>proxy_read_timeout</code>, padrão 60&nbsp;s) se a função do banco de dados que gera os arquivos puder demorar mais &mdash; o PgArachne não envia nada até que a função tenha retornado todas as linhas.</li>
+			<li><strong>Não comprima</strong> <code>application/zip</code> nem tipos de mídia já comprimidos (<code>gzip</code> em um ZIP apenas gasta CPU).</li>
+			<li><strong>Limite de memória:</strong> o PgArachne mantém em memória as linhas de uma resposta (limitadas por <code>FILE_MAX_BYTES</code>, padrão 64&nbsp;MiB, e <code>FILE_MAX_ENTRIES</code>); dimensione os limites conforme o número de downloads simultâneos esperado. <code>client_max_body_size</code> diz respeito apenas à pequena requisição JSON, não ao download.</li>
+			<li><strong>Caddy</strong> transmite as respostas em streaming por padrão; nenhuma configuração adicional é necessária.</li>
+		</ul>
 	</div>
 </section>
