@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PgArachne Quick Start</title>
+<style>
+  body { font: 16px/1.5 system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; }
+  fieldset { margin: 1rem 0; } label { display: block; margin: .4rem 0; }
+  input { padding: .3rem; } button { padding: .4rem .8rem; }
+  pre { background: #f3f3f3; padding: .6rem; overflow: auto; min-height: 2.5rem; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>PgArachne Quick Start</h1>
+
+<fieldset>
+  <legend>Connection (HTTP Basic = PostgreSQL user and password)</legend>
+  <label>Database <input id="db" value="my_database"></label>
+  <label>User <input id="user" value="demo_user"></label>
+  <label>Password <input id="pass" type="password" value="user_password"></label>
+</fieldset>
+
+<fieldset>
+  <legend>1. Hello World (JSON-RPC)</legend>
+  <label>Name <input id="name" value="Alice"></label>
+  <button id="helloBtn">Say hello</button>
+  <pre id="helloOut"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>2. Real-time notification (SSE)</legend>
+  <button id="laterBtn">Say hello and notify</button>
+  <pre id="laterOut"></pre>
+</fieldset>
+
+<fieldset>
+  <legend>3. File (hello-world.md)</legend>
+  <button id="showBtn">Show</button>
+  <button id="downloadBtn">Download</button>
+  <pre id="fileOut"></pre>
+</fieldset>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const log = (id, text) => { $(id).textContent += text + "\n"; };
+
+// HTTP Basic header (TextEncoder makes non-ASCII passwords work).
+function authHeader() {
+  const bytes = new TextEncoder().encode($("user").value + ":" + $("pass").value);
+  return "Basic " + btoa(String.fromCharCode(...bytes));
+}
+const base = () => location.origin + "/db/" + encodeURIComponent($("db").value);
+
+// ---- JSON-RPC: call a PostgreSQL function -------------------------------
+async function rpc(method, params) {
+  const res = await fetch(base() + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error ? body.error.message : res.statusText);
+  return body.result;
+}
+
+$("helloBtn").onclick = async () => {
+  try {
+    const result = await rpc("api.hello_world", { name: $("name").value });
+    $("helloOut").textContent = result.message;
+  } catch (e) { $("helloOut").textContent = "Error: " + e.message; }
+};
+
+// ---- SSE: read the event stream with fetch() ----------------------------
+// (EventSource cannot send an Authorization header.)
+async function listen(channels, onMessage) {
+  const res = await fetch(base() + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": authHeader() },
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) >= 0) {        // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));
+    }
+  }
+}
+
+let listening = false;
+$("laterBtn").onclick = async () => {
+  try {
+    if (!listening) {                                    // subscribe once, before the call
+      listening = true;
+      listen("hello", (m) => log("laterOut", `${new Date().toLocaleTimeString()}  event: ${m.data.message}`))
+        .catch((e) => log("laterOut", "Stream error: " + e.message));
+      await new Promise((r) => setTimeout(r, 300));      // give the subscription a moment
+    }
+    log("laterOut", `${new Date().toLocaleTimeString()}  request sent`);
+    rpc("api.hello_world", { name: $("name").value, notify: true })
+      .then((r) => log("laterOut", `${new Date().toLocaleTimeString()}  response: ${r.message}`))
+      .catch((e) => log("laterOut", "Error: " + e.message));
+  } catch (e) { log("laterOut", "Error: " + e.message); }
+};
+
+// ---- File: POST /file returns the raw bytes ------------------------------
+async function getFile() {
+  const res = await fetch(base() + "/file", {
+    method: "POST",
+    headers: { "Authorization": authHeader(), "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "api.hello_world_file", params: { name: $("name").value } }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+  return res.blob();
+}
+
+$("showBtn").onclick = async () => {
+  try { $("fileOut").textContent = await (await getFile()).text(); }
+  catch (e) { $("fileOut").textContent = "Error: " + e.message; }
+};
+
+$("downloadBtn").onclick = async () => {
+  try {
+    const url = URL.createObjectURL(await getFile());
+    const a = Object.assign(document.createElement("a"), { href: url, download: "hello-world.md" });
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) { $("fileOut").textContent = "Error: " + e.message; }
+};
+</script>
+</body>
+</html>

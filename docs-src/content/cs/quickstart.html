@@ -1,6 +1,8 @@
 ---
 title: "Rychlý start"
 description: "Rychlý start - PgArachne spuštěný za 60 sekund - PgArachne"
+aliases:
+  - /browser-tutorial/
 menu:
   main:
     name: "Rychlý start"
@@ -10,77 +12,218 @@ menu:
 <section id="quickstart">
 	<h2>Rychlý start</h2>
 	<p class="section-intro">
-		Rozběhněte JSON-RPC API z vaší PostgreSQL databáze za méně než minutu.
-		Vaše databáze je váš backend — žádný framework, žádný boilerplate.
+		Získejte funkční API nad svou databází PostgreSQL za pár minut &mdash; a volejte ho z obyčejné webové stránky.
+		Vaše databáze je váš backend: žádný framework, žádný boilerplate, žádná JavaScriptová knihovna.
+		Krok za krokem postavíme jeden „Hello World": funkci s parametrem, real-time notifikaci
+		a vygenerovaný soubor.
 	</p>
+	<p>Veškerý kód tohoto návodu je k dispozici jako hotový příklad:
+		<a href="../../demo/quickstart/hello_world.sql" download><code>hello_world.sql</code></a> (databáze) a
+		<a href="../../demo/quickstart/index.html" download><code>index.html</code></a> (webová stránka).
+		Každý endpoint je podrobně popsán na své referenční stránce: <a href="../json-rpc/">JSON-RPC</a>,
+		<a href="../real-time-notifications/">Real-time notifikace (SSE)</a> a <a href="../file-download/">Stahování souborů (/file)</a>.</p>
 
 	<h3>1. Instalace</h3>
 	<div class="deployment-option">
-		<h4>Stáhněte si binárku</h4>
+		<h4>Stáhněte binárku</h4>
 		<pre><code># macOS (Homebrew)
 brew install heptau/tap/pgarachne
 
-# nebo stáhněte nejnovější vydání pro váš OS:
+# or download the latest release for your OS:
 #   https://github.com/heptau/pgarachne/releases/latest</code></pre>
 	</div>
 
 	<h3>2. Příprava databáze</h3>
 	<div class="deployment-option">
-		<p>Vytvořte databázi a načtěte schéma PgArachne:</p>
+		<p>Vytvořte databázi, servisní roli, pod kterou se PgArachne připojuje, a nahrajte schéma PgArachne
+			(<code>sql/schema.sql</code> najdete v <a href="https://github.com/heptau/pgarachne" target="_blank">repozitáři</a>):</p>
 		<pre><code>createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
 psql -d my_database -f sql/schema.sql</code></pre>
 	</div>
 
 	<h3>3. Konfigurace a spuštění</h3>
 	<div class="deployment-option">
-		<p>Vytvořte soubor <code>pgarachne.env</code> (server ho najde v aktuálním adresáři):</p>
+		<p>Vytvořte soubor <code>pgarachne.env</code> (server ho najde v aktuálním adresáři).
+			Díky <code>STATIC_FILES_PATH</code> bude PgArachne obsluhovat i webovou stránku, kterou vytvoříte v kroku 5, takže stránka
+			a API sdílejí jeden origin a nemusíte nastavovat CORS:</p>
 		<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
+DB_SSLMODE=disable                         # local PostgreSQL without TLS only
+STATIC_FILES_PATH=/path/to/web             # folder with your index.html
 # Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
-		<p>Spusťte server:</p>
-		<pre><code>./pgarachne</code></pre>
+		<p>Spusťte server (heslo servisní role se čte z <code>PGPASSWORD</code> nebo z <code>~/.pgpass</code>):</p>
+		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
 	</div>
 
-	<h3>4. Definujte funkci</h3>
+	<h3>4. Hello World &mdash; funkce s parametrem</h3>
 	<div class="deployment-option">
-		<p>V databázi vytvořte roli a funkci. SQL komentář funkce ji dokumentuje pro LLM.</p>
+		<p>Každá metoda API je funkce PostgreSQL s jediným argumentem typu <code>jsonb</code>. Vytvořte roli pro webovou stránku
+			a funkci; JSON objekt, který klient pošle jako <code>params</code>, dorazí jako <code>payload</code>:</p>
 		<pre><code>CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
 RETURNS json LANGUAGE sql AS $$
-    SELECT '"Hello World"'::json;
+    SELECT json_build_object(
+        'message', 'Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || '!');
 $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+		<p>Přístup řídí samotný PostgreSQL: <code>demo_user</code> může volat přesně ty funkce, na které dostal
+			<code>EXECUTE</code> &mdash; nic jiného není dosažitelné.</p>
 	</div>
 
-	<h3>5. Zavolejte ji</h3>
+	<h3>5. Zavolejte ji &mdash; z curlu i z webové stránky</h3>
 	<div class="deployment-option">
-		<p>Váš API endpoint je živý:</p>
+		<p>Váš API endpoint je živý. Uživatelské jméno a heslo role PostgreSQL se posílají pomocí HTTP Basic autentizace:</p>
 		<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -u demo_user:user_password \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
-# → {"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{"name":"Alice"},"id":1}'
+# → {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}</code></pre>
+		<p>Totéž volání z prohlížeče pomocí vestavěného <code>fetch()</code>. Uložte tento kód jako <code>index.html</code> do složky
+			z <code>STATIC_FILES_PATH</code> a otevřete <code>http://localhost:8080/</code>:</p>
+		<pre><code>&lt;input id="name" value="Alice"&gt;
+&lt;button id="hello"&gt;Say hello&lt;/button&gt;
+&lt;pre id="out"&gt;&lt;/pre&gt;
+
+&lt;script&gt;
+// HTTP Basic header: "user:password" in base64 (TextEncoder handles non-ASCII)
+const bytes = new TextEncoder().encode("demo_user:user_password");
+const auth = "Basic " + btoa(String.fromCharCode(...bytes));
+const base = location.origin + "/db/my_database";      // /{API_PREFIX}/{database}
+
+async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+document.getElementById("hello").onclick = async () =&gt; {
+  const result = await rpc("api.hello_world", { name: document.getElementById("name").value });
+  document.getElementById("out").textContent = result.message;      // Hello, Alice!
+};
+&lt;/script&gt;</code></pre>
 	</div>
 
-	<h3>6. Připojte AI agenta (MCP)</h3>
+	<h3>6. Real-time &mdash; nechte databázi poslat zprávu (SSE)</h3>
 	<div class="deployment-option">
-		<p>Vystavte stejné funkce Claude Desktop nebo Cursoru jako nástroje přes MCP endpoint:</p>
+		<p>PostgreSQL umí publikovat zprávy pomocí <code>pg_notify</code>; PgArachne je přeposílá do prohlížečů jako Server-Sent Events.
+			Rozšiřte funkci: když volající předá <code>"notify": true</code>, publikuje pozdrav navíc
+			na kanál <code>hello</code>:</p>
+		<pre><code>CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE plpgsql AS $$
+DECLARE
+    greeting text := 'Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || '!';
+BEGIN
+    IF COALESCE((payload-&gt;&gt;'notify')::boolean, false) THEN
+        PERFORM pg_notify('hello', json_build_object('message', greeting)::text);
+    END IF;
+    RETURN json_build_object('message', greeting);
+END; $$;</code></pre>
+		<p>Na stránce se nejdřív přihlaste k odběru a pak zavolejte funkci. Vestavěný <code>EventSource</code> neumí poslat
+			hlavičku <code>Authorization</code>, proto se stream čte pomocí <code>fetch()</code> (asi 15 řádků):</p>
+		<pre><code>async function listen(channels, onMessage) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": auth },
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) &gt;= 0) {        // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));
+    }
+  }
+}
+
+listen("hello", (m) =&gt; console.log("event:", m.data.message));   // m = {channel, data}
+rpc("api.hello_world", { name: "Alice", notify: true });             // the event arrives immediately</code></pre>
+		<div class="tip">
+			<strong>Dobré vědět:</strong> <code>NOTIFY</code> je transakční &mdash; PostgreSQL ho doručí, až se transakce funkce
+			potvrdí (commit), tedy právě ve chvíli, kdy volání skončí. Přihlaste se k odběru <em>před</em> voláním: PostgreSQL si
+			notifikace pro posluchače, kteří ještě nejsou připojeni, neuchovává. Kanály SSE nejsou omezeny rolemi
+			(viz <a href="../real-time-notifications/">Real-time notifikace (SSE)</a>).
+		</div>
+	</div>
+
+	<h3>7. Stažení souboru</h3>
+	<div class="deployment-option">
+		<p>Funkci, která vrací řádky <code>(path, content, mime_type, store_only)</code>, lze stáhnout přes endpoint
+			<code>/file</code> &mdash; jako surové bajty, bez base64 uvnitř JSON. Tato vrací <code>hello-world.md</code>:</p>
+		<pre><code>CREATE OR REPLACE FUNCTION api.hello_world_file(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+    SELECT 'hello-world.md',
+           convert_to('# Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || E'!\n\nGenerated by PostgreSQL at ' || now() || E'.\n', 'UTF8'),
+           'text/markdown',
+           false;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world_file(jsonb) TO demo_user;</code></pre>
+		<p>Na stránce můžete obsah zobrazit nebo nabídnout ke stažení (vrátíte-li víc řádků, dostanete automaticky ZIP):</p>
+		<pre><code>async function getFile() {
+  const res = await fetch(base + "/file", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "api.hello_world_file", params: { name: "Alice" } }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+  return res.blob();
+}
+
+// show it:
+console.log(await (await getFile()).text());
+
+// or download it:
+const url = URL.createObjectURL(await getFile());
+const a = Object.assign(document.createElement("a"), { href: url, download: "hello-world.md" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);</code></pre>
+		<p>Vyzkoušejte to s curlem: <code>curl -u demo_user:user_password -H "Content-Type: application/json" -d '{"method":"api.hello_world_file"}' http://localhost:8080/db/my_database/file -OJ</code>.
+			Více v kapitole <a href="../file-download/">Stahování souborů (/file)</a>.</p>
+	</div>
+
+	<div class="warning">
+		<h3>Než půjdete do produkce</h3>
+		<ul>
+			<li><strong>Používejte HTTPS.</strong> Přihlašovací údaje Basic putují s každým požadavkem; viz <a href="../deployment-https/">Nasazení a HTTPS</a>. Změňte demo hesla.</li>
+			<li><strong>Přihlašovací údaje držte jen v paměti</strong> (JavaScriptová proměnná), nikdy v <code>localStorage</code>. Abyste heslo neposílali opakovaně,
+				nastavte <code>JWT_SECRET</code> a použijte <code>get_jwt</code> (viz <a href="../security-roles/">Bezpečnost a autentizace</a>).</li>
+			<li><strong>Webová stránka na jiném originu</strong> (CDN, jiný port)? Nastavte <code>ALLOWED_ORIGINS=https://app.example.com</code>; cross-origin požadavky jsou ve výchozím stavu blokované.</li>
+			<li><strong>Nejmenší oprávnění:</strong> jedna role PostgreSQL pro každý druh uživatele, <code>EXECUTE</code> jen na funkce, které potřebují, Row-Level Security pro data jednotlivých uživatelů a
+				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>, aby nové funkce nebyly zpřístupněny omylem.</li>
+		</ul>
+	</div>
+
+	<h3>8. Připojte AI agenta (MCP)</h3>
+	<div class="deployment-option">
+		<p>Zpřístupněte stejné funkce jako nástroje pro Claude Desktop nebo Cursor přes endpoint MCP:</p>
 		<pre><code>POST http://localhost:8080/db/my_database/mcp</code></pre>
-		<p>Kompletní návod k připojení najdete na <a href="../mcp/">MCP (Model Context Protocol)</a>.</p>
+		<p>Úplné pokyny k připojení najdete v kapitole <a href="../mcp/">Model Context Protocol (MCP)</a>.</p>
 	</div>
 
-	<h3>7. Získejte specifikaci OpenAPI (Swagger, Postman, codegen)</h3>
+	<h3>9. Získejte specifikaci OpenAPI (Swagger, Postman, generování kódu)</h3>
 	<div class="deployment-option">
-		<p>Každá vystavená funkce je také popsána jako dokument OpenAPI 3.1, filtrovaný podle toho, co smí autentizovaný volající zavolat:</p>
+		<p>Každá zpřístupněná funkce je popsána také v dokumentu OpenAPI 3.1, filtrovaném podle toho, co smí autentizovaný volající zavolat:</p>
 		<pre><code>curl http://localhost:8080/db/my_database/openapi.json \
   -u demo_user:user_password
-# nebo jako YAML: .../openapi.yaml</code></pre>
-		<p>Importujte URL přímo do Swagger UI, Postman nebo generátoru kódu OpenAPI. Každá metoda stále běží přes jediný JSON-RPC endpoint z kroku 5 — viz <a href="../architectural-decisions/">Architektonická rozhodnutí</a>, kde je vysvětleno, proč specifikace uvádí cestu pro každou metodu bez odpovídající skutečné route.</p>
+# or as YAML: .../openapi.yaml</code></pre>
+		<p>Importujte URL přímo do Swagger UI, Postmanu nebo generátoru kódu z OpenAPI. Každá metoda stále běží přes jediný endpoint JSON-RPC z kroku 5 — proč specifikace uvádí cestu pro každou metodu bez odpovídající skutečné trasy, vysvětlují <a href="../architectural-decisions/">Architektonická rozhodnutí</a>.</p>
 	</div>
 
-	<p>To je vše. Přečtěte si <a href="../hello-world-example/">Hello World</a> návod pro JWT autentizaci, nebo <a href="../comparison/">srovnání s PostgREST</a> pro pochopení, kam PgArachne zapadá.</p>
+	<p>To je vše. Přečtěte si <a href="../json-rpc/">referenci JSON-RPC</a> o formátu požadavků, psaní funkcí, chybách a idempotenci, nebo <a href="../comparison/">srovnání s PostgREST</a>, abyste pochopili, kam PgArachne zapadá.</p>
 </section>

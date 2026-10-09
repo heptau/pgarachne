@@ -1,0 +1,131 @@
+---
+title: "JSON-RPC"
+description: "Reference endpointu JSON-RPC 2.0 - formát požadavku a odpovědi, psaní funkcí, chyby, idempotence - PgArachne"
+aliases:
+  - /hello-world-example/
+menu:
+  main:
+    name: "JSON-RPC"
+    weight: 60
+---
+
+<section id="json-rpc">
+	<h2>JSON-RPC</h2>
+	<p class="section-intro">
+		<code>POST /{prefix}/{database}/jsonrpc</code> zavolá funkci PostgreSQL a vrátí její výsledek jako odpověď
+		<a href="https://www.jsonrpc.org/specification" target="_blank">JSON-RPC 2.0</a>. Tato stránka je
+		referenční; první funkční příklad najdete v <a href="../quickstart/">Rychlém startu</a>.
+	</p>
+
+	<h3>1. Požadavek</h3>
+	<pre><code>POST /db/my_database/jsonrpc
+Authorization: Basic ...            (or Bearer &lt;jwt / api token&gt;)
+Content-Type: application/json
+
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}</code></pre>
+	<table>
+		<thead><tr><th>Pole</th><th>Popis</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Povinné. <code>schema.function</code>, nejvýše 256 znaků. Povoleny jsou i uvozené identifikátory (<code>"my schema"."my fn"</code>). Schéma je povinné: samotné <code>hello_world</code> je zamítnuto s kódem 400. Dva názvy jsou speciální: <code>capabilities</code> a <code>get_jwt</code> (sekce 5).</td></tr>
+			<tr><td><code>params</code></td><td>Libovolná hodnota JSON, která se funkci předá beze změny jako její argument <code>jsonb</code>. Chybějící hodnota nebo <code>null</code> se změní na <code>{}</code>. Zvykem jsou objekty; fungují i pole a skalární hodnoty.</td></tr>
+			<tr><td><code>id</code></td><td>Libovolná hodnota JSON; zkopíruje se do odpovědi. Pokud chybí, odpověď obsahuje <code>"id": null</code> (neexistují notifikace typu „vyšli a zapomeň“).</td></tr>
+			<tr><td><code>jsonrpc</code></td><td>Obvykle <code>"2.0"</code>; na vstupu se nevaliduje, odpověď vždy obsahuje <code>"2.0"</code>.</td></tr>
+			<tr><td><code>idempotencyKey</code></td><td>Volitelné rozšíření (sekce 7). Nejvýše 256 znaků.</td></tr>
+		</tbody>
+	</table>
+	<p><strong>Dávkové požadavky</strong> (pole volání v JSON) nejsou podporovány a vrací 400 &mdash; posílejte jedno volání na jeden HTTP požadavek.</p>
+
+	<h3>2. Odpověď</h3>
+	<pre><code>HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}</code></pre>
+	<p>Na rozdíl od běžného JSON-RPC přes socket nastavují chyby také smysluplný <strong>HTTP stavový kód</strong>, takže klienti a proxy
+		mohou reagovat bez parsování těla. Hodnota <code>error.code</code> je <code>0</code>, pokud se neuplatňuje konkrétní kód JSON-RPC
+		(<code>-32601</code> neznámá funkce, <code>-32001</code> přístup odepřen, <code>-32000</code> duplicitní požadavek).
+		Úplný seznam je na stránce <a href="../error-codes/">Chybové kódy</a>.</p>
+
+	<h3>3. Psaní funkce</h3>
+	<p>Metoda je funkce PostgreSQL, která přijímá <strong>přesně jeden argument typu <code>jsonb</code></strong>
+		a vrací <code>json</code> nebo <code>jsonb</code>. Funkce s jinou signaturou <code>capabilities</code> nevypisuje
+		a nelze je zavolat.</p>
+	<pre><code>CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload-&gt;&gt;'id')::int
+    ) u;
+$$;
+
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
+	<ul>
+		<li><strong>Návratová hodnota.</strong> Výsledek JSON se odešle jako <code>result</code>. SQL <code>NULL</code> (jako výše, když nevyhovuje žádný řádek)
+			se změní na <code>"result": null</code>. Funkce musí vracet platný JSON: návratový typ <code>text</code> skončí chybou 500, pokud
+			text shodou okolností není JSON &mdash; pro řetězcový výsledek použijte <code>to_json('hi'::text)</code>.</li>
+		<li><strong>Chyby uvnitř funkce.</strong> <code>RAISE EXCEPTION</code> nebo jakákoli chyba SQL přeruší volání s HTTP 500 a obecnou
+			zprávou <code>Function call failed</code>; skutečná zpráva PostgreSQL se zapíše jen do logu serveru, takže detaily schématu nikam neunikají.
+			Očekávané obchodní chyby (nenalezeno, validace) hlaste raději v návratové hodnotě, například
+			<code>{"ok": false, "reason": "..."}</code>.</li>
+		<li><strong>Transakce.</strong> Každé volání běží v jedné transakci, která se při návratu funkce potvrdí a při jakékoli chybě vrátí zpět.</li>
+		<li><strong>Oprávnění.</strong> Volání běží jako autentizovaná role PostgreSQL, takže o tom, co volající smí, rozhodují <code>GRANT</code>, <code>REVOKE</code> a Row-Level Security.
+			Role potřebuje <code>USAGE</code> na schématu a <code>EXECUTE</code> na funkci. PostgreSQL ve výchozím stavu uděluje
+			<code>EXECUTE</code> na nové funkce všem, proto toto oprávnění odeberte
+			(<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>) a vystavené funkce držte ve vyhrazeném schématu &mdash; viz <a href="../security-roles/">Bezpečnost a autentizace</a>.</li>
+	</ul>
+
+	<h3>4. Popis funkce pro klienty a AI agenty</h3>
+	<p>První řádek komentáře funkce je její popis; objekt JSON za <code>--- PARAMS ---</code> popisuje parametry
+		(<code>properties</code> podle JSON Schema). Obojí se objeví v <code>capabilities</code>, ve specifikaci OpenAPI a v MCP <code>tools/list</code>:</p>
+	<pre><code>COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';</code></pre>
+	<p>Komentář s chybným JSON za značkou se ignoruje (funkce se vrátí k obecnému popisu parametrů) a nikdy nenaruší vyhledávání funkcí.</p>
+
+	<h3>5. Vestavěné metody</h3>
+	<h4><code>capabilities</code></h4>
+	<p>Vypíše funkce, které autentizovaná role smí volat (<code>EXECUTE</code> a <code>USAGE</code> na schématu); systémová schémata a funkce rozšíření jsou skryté.
+		Každá položka obsahuje <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> a
+		<code>kind</code> (<code>rpc</code>, nebo <code>file</code> pro <a href="../file-download/">souborové funkce</a>).</p>
+	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
+	<h4><code>get_jwt</code></h4>
+	<p>Vymění přihlašovací jméno a heslo PostgreSQL za JWT. Je dostupná jen tehdy, když je nastaveno <code>JWT_SECRET</code>; jinak vrací 404 / <code>-32601</code>.
+		Každý pokus se počítá do limitu přihlášení.</p>
+	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+
+	<h3>6. Autentizace</h3>
+	<p>Každý požadavek potřebuje hlavičku <code>Authorization</code>; požadavek bez ní je zamítnut s 401 dříve, než se otevře jakékoli připojení k databázi.</p>
+	<table>
+		<thead><tr><th>Hlavička</th><th>Co se stane</th></tr></thead>
+		<tbody>
+			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Pool připojení autentizovaný jako daný uživatel PostgreSQL. Nejjednodušší; žádné tokeny. Posílejte jen přes HTTPS.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>get_jwt</code> (nebo od vašeho poskytovatele identity). PgArachne přepne na roli z tokenu pomocí <code>SET LOCAL ROLE</code>; servisní role potřebuje <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Dlouhodobý token vytvořený přes <code>pgarachne.add_api_token(...)</code>, svázaný s rolí. Vhodný pro služby.</td></tr>
+		</tbody>
+	</table>
+	<p>Neúspěšné pokusy jsou omezovány (HTTP 429). Všechny podrobnosti, platnost tokenů a externí poskytovatel identity jsou na stránce <a href="../security-roles/">Bezpečnost a autentizace</a>.</p>
+
+	<h3>7. Idempotence</h3>
+	<p>Přidejte <code>"idempotencyKey": "order-42"</code>, aby bylo volání bezpečné opakovat. První volání s daným klíčem proběhne normálně; opakovaný klíč je zamítnut
+		<em>před</em> spuštěním funkce s HTTP 409 a <code>-32000</code> „This request has already been processed“. Klíč se ukládá ve stejné
+		transakci jako volání, takže volání, které selhalo (a bylo vráceno zpět), lze zopakovat se stejným klíčem. Klíče jsou odděleny podle rolí.</p>
+	<ul>
+		<li>S autentizací <strong>JWT nebo API tokenem</strong> to funguje bez další konfigurace.</li>
+		<li>S autentizací <strong>Basic</strong> klíč zapisuje samotný uživatel, takže potřebuje <code>USAGE</code> na schématu <code>pgarachne</code> a
+			<code>INSERT</code> na <code>pgarachne.requests</code> (jinak volání skončí chybou 500 <code>Idempotency check failed</code>).</li>
+		<li>Staré klíče se automaticky neodstraňují &mdash; naplánujte <code>pgarachne.cleanup_idempotency_keys()</code> (viz <a href="../idempotency-cleanup/">Údržba idempotency klíčů</a>).</li>
+	</ul>
+
+	<h3>8. Limity</h3>
+	<ul>
+		<li>Tělo požadavku: <code>MAX_REQUEST_BYTES</code> (výchozí 2&nbsp;MiB), jinak 413.</li>
+		<li><code>method</code> a <code>idempotencyKey</code>: každé 256 znaků.</li>
+		<li>Selhání autentizace: <code>LOGIN_RATE_LIMIT</code> / <code>LOGIN_RATE_LIMIT_PER_IP</code> na <code>LOGIN_RATE_WINDOW</code> (viz <a href="../configuration/">Konfigurace</a>).</li>
+	</ul>
+
+	<h3>9. Volání</h3>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'</code></pre>
+	<p>Z webové stránky použijte <code>fetch()</code> se stejnou hlavičkou a tělem; kompletní stránku pro zkopírování (včetně SSE a stahování souborů) najdete v
+		<a href="../quickstart/">Rychlém startu</a>.</p>
+</section>

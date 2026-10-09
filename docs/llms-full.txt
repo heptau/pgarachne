@@ -336,8 +336,16 @@ URL: https://www.pgarachne.com/en/quickstart/
 
 ## Quick Start
 
-Get a running JSON-RPC API from your PostgreSQL database in under a minute.
-Your database is your backend — no framework, no boilerplate.
+Get a working API from your PostgreSQL database in a few minutes — and call it from a plain web page.
+Your database is your backend: no framework, no boilerplate, no JavaScript library.
+We build one "Hello World" step by step: a function with a parameter, a real-time notification
+and a generated file.
+
+All code of this guide is available as a finished example:
+`hello_world.sql` (database) and
+`index.html` (web page).
+Each endpoint is described in detail on its own reference page: JSON-RPC,
+Real-time Notifications (SSE) and File Download.
 
 ### 1. Install
 
@@ -353,59 +361,210 @@ brew install heptau/tap/pgarachne
 
 ### 2. Set Up Your Database
 
-Create a database and load the PgArachne schema:
+Create a database, the service role PgArachne connects as, and load the PgArachne schema
+(`sql/schema.sql` is in the [repository](https://github.com/heptau/pgarachne)):
 
 ```
 createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
 psql -d my_database -f sql/schema.sql
 ```
 
 ### 3. Configure & Start
 
-Create a `pgarachne.env` file (the server finds it in the current directory):
+Create a `pgarachne.env` file (the server finds it in the current directory).
+`STATIC_FILES_PATH` lets PgArachne serve the web page you create in step 5 as well, so the page and
+the API share one origin and no CORS setup is needed:
 
 ```
 DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
+DB_SSLMODE=disable                         # local PostgreSQL without TLS only
+STATIC_FILES_PATH=/path/to/web             # folder with your index.html
 # Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
 # JWT_SECRET=...
 ```
 
-Start the server:
+Start the server (the service role's password is read from `PGPASSWORD` or `~/.pgpass`):
 
 ```
-./pgarachne
+PGPASSWORD=pgarachne_password ./pgarachne
 ```
 
-### 4. Define a Function
+### 4. Hello World — a Function with a Parameter
 
-In your database, create a role and a function. The function's SQL comment documents it for LLMs.
+Every API method is a PostgreSQL function with a single `jsonb` argument. Create a role for the web page and
+the function; the JSON object a client sends as `params` arrives as `payload`:
 
 ```
 CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
 RETURNS json LANGUAGE sql AS $$
-    SELECT '"Hello World"'::json;
+    SELECT json_build_object(
+        'message', 'Hello, ' || COALESCE(payload->>'name', 'World') || '!');
 $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
 ```
 
-### 5. Call It
+Access is controlled by PostgreSQL itself: `demo_user` can call exactly the functions it was granted
+`EXECUTE` on — nothing else is reachable.
 
-Your API endpoint is live:
+### 5. Call It — from curl and from a Web Page
+
+Your API endpoint is live. The user name and password of the PostgreSQL role are sent with HTTP Basic authentication:
 
 ```
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -u demo_user:user_password \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
-# → {"jsonrpc":"2.0","result":"Hello World","id":1}
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{"name":"Alice"},"id":1}'
+# → {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
 ```
 
-### 6. Connect an AI Agent (MCP)
+The same call from a browser, with the built-in `fetch()`. Save this as `index.html` in the folder
+from `STATIC_FILES_PATH` and open `http://localhost:8080/`:
+
+```
+<input id="name" value="Alice">
+<button id="hello">Say hello</button>
+<pre id="out"></pre>
+
+<script>
+// HTTP Basic header: "user:password" in base64 (TextEncoder handles non-ASCII)
+const bytes = new TextEncoder().encode("demo_user:user_password");
+const auth = "Basic " + btoa(String.fromCharCode(...bytes));
+const base = location.origin + "/db/my_database";      // /{API_PREFIX}/{database}
+
+async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+document.getElementById("hello").onclick = async () => {
+  const result = await rpc("api.hello_world", { name: document.getElementById("name").value });
+  document.getElementById("out").textContent = result.message;      // Hello, Alice!
+};
+</script>
+```
+
+### 6. Real-time — Let the Database Push a Message (SSE)
+
+PostgreSQL can publish messages with `pg_notify`; PgArachne forwards them to browsers as Server-Sent Events.
+Extend the function: when the caller passes `"notify": true`, it also publishes the greeting
+on the channel `hello`:
+
+```
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE plpgsql AS $$
+DECLARE
+    greeting text := 'Hello, ' || COALESCE(payload->>'name', 'World') || '!';
+BEGIN
+    IF COALESCE((payload->>'notify')::boolean, false) THEN
+        PERFORM pg_notify('hello', json_build_object('message', greeting)::text);
+    END IF;
+    RETURN json_build_object('message', greeting);
+END; $$;
+```
+
+In the page, subscribe first, then call the function. The built-in `EventSource` cannot send an
+`Authorization` header, so the stream is read with `fetch()` (about 15 lines):
+
+```
+async function listen(channels, onMessage) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": auth },
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) >= 0) {        // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));
+    }
+  }
+}
+
+listen("hello", (m) => console.log("event:", m.data.message));   // m = {channel, data}
+rpc("api.hello_world", { name: "Alice", notify: true });             // the event arrives immediately
+```
+
+Good to know: `NOTIFY` is transactional — PostgreSQL delivers it when the function's
+transaction commits, i.e. just as the call returns. Subscribe before you call: PostgreSQL does not keep
+notifications for listeners that are not connected yet. SSE channels are not role-scoped
+(see Real-time Notifications).
+
+### 7. Download a File
+
+A function that returns rows `(path, content, mime_type, store_only)` can be downloaded through the
+`/file` endpoint — as raw bytes, without base64 inside JSON. This one returns `hello-world.md`:
+
+```
+CREATE OR REPLACE FUNCTION api.hello_world_file(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+    SELECT 'hello-world.md',
+           convert_to('# Hello, ' || COALESCE(payload->>'name', 'World') || E'!\n\nGenerated by PostgreSQL at ' || now() || E'.\n', 'UTF8'),
+           'text/markdown',
+           false;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world_file(jsonb) TO demo_user;
+```
+
+In the page you can show the content or offer it as a download (return more rows and you get a ZIP automatically):
+
+```
+async function getFile() {
+  const res = await fetch(base + "/file", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "api.hello_world_file", params: { name: "Alice" } }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+  return res.blob();
+}
+
+// show it:
+console.log(await (await getFile()).text());
+
+// or download it:
+const url = URL.createObjectURL(await getFile());
+const a = Object.assign(document.createElement("a"), { href: url, download: "hello-world.md" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);
+```
+
+Try it with curl: `curl -u demo_user:user_password -H "Content-Type: application/json" -d '{"method":"api.hello_world_file"}' http://localhost:8080/db/my_database/file -OJ`.
+More in File Download.
+
+### Before you go to production
+
+- Use HTTPS. Basic credentials travel with every request; see Deployment & HTTPS. Change the demo passwords.
+
+- Keep credentials in memory only (a JavaScript variable), never in `localStorage`. To avoid resending the password,
+set `JWT_SECRET` and use `get_jwt` (see Security & Authentication).
+
+- Web page on another origin (a CDN, another port)? Set `ALLOWED_ORIGINS=https://app.example.com`; cross-origin requests are blocked by default.
+
+- Least privilege: one PostgreSQL role per kind of user, `EXECUTE` only on the functions they need, Row-Level Security for per-user data, and
+`ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` so new functions are not exposed by accident.
+
+### 8. Connect an AI Agent (MCP)
 
 Expose the same functions to Claude Desktop or Cursor as tools via the MCP endpoint:
 
@@ -415,7 +574,7 @@ POST http://localhost:8080/db/my_database/mcp
 
 See MCP (Model Context Protocol) for full connection instructions.
 
-### 7. Get an OpenAPI Spec (Swagger, Postman, codegen)
+### 9. Get an OpenAPI Spec (Swagger, Postman, codegen)
 
 Every exposed function is also described as an OpenAPI 3.1 document, filtered to what the authenticated caller may call:
 
@@ -427,249 +586,7 @@ curl http://localhost:8080/db/my_database/openapi.json \
 
 Import the URL directly into Swagger UI, Postman, or an OpenAPI code generator. Every method still runs through the single JSON-RPC endpoint from step 5 — see Architectural Decisions for why the spec lists a per-method path without a matching real route.
 
-That's it. Read the Hello World guide for the JWT authentication flow, or the comparison with PostgREST to understand where PgArachne fits.
-
-
----
-
-# Step-by-Step Browser Tutorial
-
-URL: https://www.pgarachne.com/en/browser-tutorial/
-
-## Step-by-Step Browser Tutorial
-
-The smallest possible working setup: a PostgreSQL database, PgArachne, and one plain HTML page that logs in
-with HTTP Basic authentication and uses three endpoints — JSON-RPC,
-SSE and file download. No framework and no JavaScript library.
-
-Download the finished example and follow along:
-`setup.sql` (database) and
-`index.html` (web page).
-
-### 1. Prerequisites
-
-- A running PostgreSQL server and the `pgarachne` binary (see Installation).
-
-- A modern browser. Everything below works with the built-in `fetch()` — nothing to download.
-
-### 2. Prepare the database
-
-PgArachne itself connects as a service role and loads its helper schema. Create both once:
-
-```
-createdb my_database
-psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
-psql -d my_database -f sql/schema.sql       # PgArachne helper schema (from the repository)
-psql -d my_database -f setup.sql            # the demo role and functions (download above)
-```
-
-`setup.sql` creates a login role `webuser` (the person using the web page), a schema
-`api` and three functions. How each one works is explained in steps 5–7.
-
-Permissions are the whole security model. A user can call a function only if PostgreSQL lets
-them: `USAGE` on the schema and `EXECUTE` on the function. In the demo
-`webuser` gets exactly those on three functions — nothing else is reachable.
-PostgreSQL grants `EXECUTE` on new functions to everyone by default; for real projects run
-`ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` and keep exposed functions in
-a dedicated schema (see Security).
-
-### 3. Configure and start PgArachne
-
-Create `pgarachne.env` next to the binary. `STATIC_FILES_PATH` makes PgArachne also serve
-the web page, so the page and the API share one origin (no CORS setup needed):
-
-```
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=pgarachne
-DB_SSLMODE=disable                 # local, non-TLS PostgreSQL only
-STATIC_FILES_PATH=/path/to/folder/with/index.html
-```
-
-The service role's password is read by the PostgreSQL driver from `PGPASSWORD` (or `~/.pgpass`).
-`JWT_SECRET` is not needed — this tutorial uses Basic authentication only.
-
-```
-PGPASSWORD=pgarachne_password ./pgarachne
-```
-
-Open `http://localhost:8080/` after you save `index.html` into that folder (step 8).
-The role `webuser` must be allowed to log in to PostgreSQL from the PgArachne host
-(`pg_hba.conf` with password authentication).
-
-### 4. Authentication: HTTP Basic
-
-The browser sends the PostgreSQL user and password with every request; PgArachne opens a connection as that
-user, so all PostgreSQL permissions (and Row-Level Security) apply directly.
-
-```
-// Authorization header. TextEncoder makes non-ASCII passwords work.
-function authHeader(user, pass) {
-  const bytes = new TextEncoder().encode(user + ":" + pass);
-  return "Basic " + btoa(String.fromCharCode(...bytes));
-}
-const base = location.origin + "/db/my_database";   // /{API_PREFIX}/{database}
-```
-
-Wrong credentials return HTTP `401` with a JSON error; repeated failures are rate limited
-(`429`).
-
-### 5. Endpoint 1 — JSON-RPC: call a function
-
-`POST /db/{database}/jsonrpc` calls `schema.function(jsonb)`. The function takes one
-`jsonb` argument and returns `json`.
-
-PostgreSQL (in `setup.sql`):
-
-```
-CREATE FUNCTION api.greet(params jsonb DEFAULT '{}'::jsonb) RETURNS json
-LANGUAGE sql AS $$
-  SELECT json_build_object(
-    'message', 'Hello, ' || COALESCE(params->>'name', 'world') || '!',
-    'database_user', current_user,
-    'server_time', now());
-$$;
-GRANT USAGE ON SCHEMA api TO webuser;
-GRANT EXECUTE ON FUNCTION api.greet(jsonb) TO webuser;
-```
-
-Browser:
-
-```
-async function rpc(method, params) {
-  const res = await fetch(base + "/jsonrpc", {
-    method: "POST",
-    headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
-  });
-  const body = await res.json();
-  if (!res.ok || body.error) throw new Error(body.error.message);
-  return body.result;
-}
-
-console.log(await rpc("api.greet", { name: "Alice" }));
-// { message: "Hello, Alice!", database_user: "webuser", server_time: "..." }
-```
-
-Test with curl:
-
-```
-curl -u webuser:webuser_password -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.greet","params":{"name":"Alice"},"id":1}' \
-  http://localhost:8080/db/my_database/jsonrpc
-```
-
-### 6. Endpoint 2 — SSE: receive real-time messages
-
-`GET /db/{database}/sse?channels=demo` streams PostgreSQL `NOTIFY` messages as
-Server-Sent Events. Any function can publish with `pg_notify`.
-
-PostgreSQL:
-
-```
-CREATE FUNCTION api.send_message(params jsonb DEFAULT '{}'::jsonb) RETURNS json
-LANGUAGE plpgsql AS $$
-BEGIN
-  PERFORM pg_notify('demo', json_build_object('from', current_user, 'text', params->>'text')::text);
-  RETURN '{"sent": true}'::json;
-END; $$;
-GRANT EXECUTE ON FUNCTION api.send_message(jsonb) TO webuser;
-```
-
-Browser. The built-in `EventSource` cannot send an `Authorization` header,
-so read the stream with `fetch()`:
-
-```
-async function listen(channels, onMessage, signal) {
-  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
-    headers: { "Authorization": authHeader(user, pass) }, signal,
-  });
-  if (!res.ok) throw new Error((await res.json()).error);
-  const reader = res.body.getReader(), decoder = new TextDecoder();
-  let buffer = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let end;
-    while ((end = buffer.indexOf("\n\n")) >= 0) {      // an event ends with a blank line
-      const event = buffer.slice(0, end);
-      buffer = buffer.slice(end + 2);
-      for (const line of event.split("\n"))
-        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));  // ":" lines are heartbeats
-    }
-  }
-}
-
-const controller = new AbortController();           // controller.abort() stops listening
-listen("demo", (m) => console.log(m), controller.signal);
-await rpc("api.send_message", { text: "Hello" });   // → { channel: "demo", data: { from: "webuser", text: "Hello" } }
-```
-
-Channels are not role-scoped: any authenticated user can subscribe to any channel name. Do not
-`NOTIFY` data that not every user may see (details in Real-time Notifications).
-
-Test with curl: `curl -N -u webuser:webuser_password "http://localhost:8080/db/my_database/sse?channels=demo"`,
-then call `api.send_message` from another terminal.
-
-### 7. Endpoint 3 — File: download a generated file
-
-`POST /db/{database}/file` returns raw bytes (or a ZIP when the function returns several files) —
-no base64 in JSON. The function returns rows `(path, content, mime_type, store_only)`.
-
-PostgreSQL:
-
-```
-CREATE FUNCTION api.export_report(params jsonb DEFAULT '{}'::jsonb)
-RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
-LANGUAGE sql AS $$
-  SELECT 'report.csv', convert_to('id,name' || E'\n' || '1,Alice' || E'\n' || '2,Bob' || E'\n', 'UTF8'),
-         'text/csv', false;
-$$;
-GRANT EXECUTE ON FUNCTION api.export_report(jsonb) TO webuser;
-```
-
-Return more rows to get a ZIP automatically. See File Download for all options.
-
-Browser:
-
-```
-const res = await fetch(base + "/file", {
-  method: "POST",
-  headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
-  body: JSON.stringify({ method: "api.export_report", params: {}, options: { filename: "report.csv" } }),
-});
-if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
-const url = URL.createObjectURL(await res.blob());
-const a = Object.assign(document.createElement("a"), { href: url, download: "report.csv" });
-document.body.appendChild(a); a.click(); a.remove();
-URL.revokeObjectURL(url);
-```
-
-Test with curl:
-
-```
-curl -u webuser:webuser_password -H "Content-Type: application/json" \
-  -d '{"method":"api.export_report"}' http://localhost:8080/db/my_database/file -OJ
-```
-
-### 8. Put it together
-
-Save `index.html` into the `STATIC_FILES_PATH`
-folder and open `http://localhost:8080/`. It contains the three snippets above wired to buttons
-(~100 lines, no dependencies). Enter the database name, keep `webuser` /
-`webuser_password`, and try each button: Call api.greet, Start listening then
-Send, and Download report.csv.
-
-### 9. Going to production
-
-- HTTPS: Basic credentials travel with every request — always use TLS (see Deployment & HTTPS) and change the demo password.
-
-- Keep credentials in memory only (a variable), not in `localStorage`. For sessions without resending the password, enable `JWT_SECRET` and use `get_jwt` (see Security).
-
-- Different origin for the web page (e.g. a CDN or another port): set `ALLOWED_ORIGINS=https://app.example.com`. Cross-origin requests are blocked by default.
-
-- Least privilege: one PostgreSQL role per kind of user, `EXECUTE` only on the functions they need, Row-Level Security for per-user data.
+That's it. Read the JSON-RPC reference for the request format, writing functions, errors and idempotency, or the comparison with PostgREST to understand where PgArachne fits.
 
 
 ---
@@ -919,112 +836,167 @@ Start the server:
 
 ---
 
-# JSON-RPC & Hello World
+# JSON-RPC
 
-URL: https://www.pgarachne.com/en/hello-world-example/
+URL: https://www.pgarachne.com/en/json-rpc/
 
-## JSON-RPC & Hello World
+## JSON-RPC
 
-This example creates a simple API endpoint associated with a database user. Two authentication
-approaches are shown: the classic JWT flow and the simpler direct-credentials flow.
+`POST /{prefix}/{database}/jsonrpc` calls a PostgreSQL function and returns its result as a
+[JSON-RPC 2.0](https://www.jsonrpc.org/specification) response. This page is the
+reference; for a first working example see the Quick Start.
 
-### 1. Create User and Function
-
-In your database (`my_database`):
+### 1. Request
 
 ```
--- 1. Create a user who will log in to the API
-CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
-GRANT USAGE ON SCHEMA api TO demo_user;
+POST /db/my_database/jsonrpc
+Authorization: Basic ...            (or Bearer <jwt / api token>)
+Content-Type: application/json
 
--- 2. Create the Hello World function
--- Input: empty jsonb, Output: json
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
-RETURNS json
-LANGUAGE sql
-AS $$
-    SELECT '"Hello World"'::json;
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}
+```
+
+Field | Description
+
+`method` | Required. `schema.function`, at most 256 characters. Quoted identifiers (`"my schema"."my fn"`) are allowed. The schema is mandatory: `hello_world` alone is rejected with 400. Two names are special: `capabilities` and `get_jwt` (section 5).
+
+`params` | Any JSON value, passed to the function unchanged as its `jsonb` argument. Missing or `null` becomes `{}`. Objects are the convention; arrays and scalars also work.
+
+`id` | Any JSON value; it is copied into the response. If it is missing the response contains `"id": null` (there are no fire-and-forget notifications).
+
+`jsonrpc` | Conventionally `"2.0"`; it is not validated on input, the response always carries `"2.0"`.
+
+`idempotencyKey` | Optional extension (section 7). At most 256 characters.
+
+Batch requests (a JSON array of calls) are not supported and return 400 — send one call per HTTP request.
+
+### 2. Response
+
+```
+HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}
+```
+
+Unlike plain JSON-RPC over a socket, errors also set a meaningful HTTP status, so clients and proxies can react
+without parsing the body. The `error.code` is `0` unless a specific JSON-RPC code applies
+(`-32601` unknown function, `-32001` permission denied, `-32000` duplicate request).
+The full list is on the Error Codes page.
+
+### 3. Writing a function
+
+A method is a PostgreSQL function that takes exactly one argument of type `jsonb`
+and returns `json` or `jsonb`. Functions with other signatures are neither listed by
+`capabilities` nor callable.
+
+```
+CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload->>'id')::int
+    ) u;
 $$;
 
--- 3. Grant permission to the user
-GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;
 ```
 
-Which authentication approach should you use?
+- Return value. The JSON result is sent as `result`. A SQL `NULL` (as above, when no row matches)
+becomes `"result": null`. The function must return valid JSON: a `text` return type fails with 500 unless the
+text happens to be JSON — use `to_json('hi'::text)` for a string result.
 
-Choose Option A (JWT) for browser-based or end-user sessions.
-Choose Option B (direct credentials) for local development, scripts,
-or internal services — no token management is required.
+- Errors inside the function. `RAISE EXCEPTION` or any SQL error aborts the call with HTTP 500 and the generic
+message `Function call failed`; the real PostgreSQL message is only written to the server log, so schema details do not leak.
+Report expected business errors (not found, validation) in the return value instead, for example
+`{"ok": false, "reason": "..."}`.
 
-### Option A: JWT Token Flow
+- Transactions. Each call runs in one transaction that is committed when the function returns and rolled back on any error.
 
-JWT authentication requires the PgArachne system user (`pgarachne`) to be able to switch
-to `demo_user`:
+- Permissions. The call runs as the authenticated PostgreSQL role, so `GRANT`, `REVOKE` and Row-Level Security decide
+what a caller can do. A role needs `USAGE` on the schema and `EXECUTE` on the function. PostgreSQL grants
+`EXECUTE` on new functions to everyone by default, so revoke that
+(`ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`) and keep exposed functions in a dedicated schema — see Security.
+
+### 4. Describing a function for clients and AI agents
+
+The first line of the function's comment is its description; a JSON object after `--- PARAMS ---` describes the parameters
+(JSON Schema `properties`). Both appear in `capabilities`, the OpenAPI spec and MCP `tools/list`:
 
 ```
--- Required for JWT auth only: allow PgArachne to switch to demo_user
-GRANT demo_user TO pgarachne;
+COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';
 ```
 
-#### Step 1 — Obtain a JWT
+A comment with malformed JSON after the marker is ignored (the function falls back to a generic parameter description) and never breaks discovery.
 
-Call the `get_jwt` JSON-RPC method with the user's credentials:
+### 5. Built-in methods
+
+#### `capabilities`
+
+Lists the functions the authenticated role may call (`EXECUTE` and schema `USAGE`); system schemas and extension functions are hidden.
+Each entry has `method`, `description`, `parameters`, `http_method`, `endpoint` and
+`kind` (`rpc`, or `file` for file functions).
+
+```
+{"jsonrpc":"2.0","method":"capabilities","id":1}
+```
+
+#### `get_jwt`
+
+Exchanges a PostgreSQL login and password for a JWT. It is only available when `JWT_SECRET` is configured; otherwise it returns 404 / `-32601`.
+Every attempt counts against the login rate limit.
+
+```
+{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}
+```
+
+### 6. Authentication
+
+Every request needs an `Authorization` header; a request without one is rejected with 401 before any database connection is opened.
+
+Header | What happens
+
+`Basic <base64(user:password)>` | A connection pool authenticated as that PostgreSQL user. Simplest; no tokens. Send it over HTTPS only.
+
+`Bearer <jwt>` | Token from `get_jwt` (or your own identity provider). PgArachne switches to the token's role with `SET LOCAL ROLE`; the service role needs `GRANT user TO pgarachne`.
+
+`Bearer <api token>` | Long-lived token minted with `pgarachne.add_api_token(...)`, bound to a role. Good for services.
+
+Failed attempts are rate limited (HTTP 429). All details, token lifetimes and an external identity provider are on the Security & Authentication page.
+
+### 7. Idempotency
+
+Add `"idempotencyKey": "order-42"` to make a call safe to retry. The first call with a key runs normally; a repeated key is rejected
+before the function runs with HTTP 409 and `-32000` "This request has already been processed". The key is stored in the same
+transaction as the call, so a call that failed (and rolled back) can be retried with the same key. Keys are namespaced per role.
+
+- With JWT or API token authentication this works out of the box.
+
+- With Basic authentication the user itself writes the key, so it needs `USAGE` on schema `pgarachne` and
+`INSERT` on `pgarachne.requests` (otherwise the call fails with 500 `Idempotency check failed`).
+
+- Old keys are not removed automatically — schedule `pgarachne.cleanup_idempotency_keys()` (see Idempotency Key Cleanup).
+
+### 8. Limits
+
+- Request body: `MAX_REQUEST_BYTES` (default 2 MiB), otherwise 413.
+
+- `method` and `idempotencyKey`: 256 characters each.
+
+- Authentication failures: `LOGIN_RATE_LIMIT` / `LOGIN_RATE_LIMIT_PER_IP` per `LOGIN_RATE_WINDOW` (see Configuration).
+
+### 9. Calling it
 
 ```
 curl -X POST http://localhost:8080/db/my_database/jsonrpc \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"demo_user","password":"user_password"},"id":1}'
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'
 ```
 
-Response:
-
-```
-{"jsonrpc":"2.0","result":{"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."},"id":1}
-```
-
-#### Step 2 — Call the Function
-
-Use the JWT in the `Authorization` header:
-
-```
-export TOKEN="YOUR_JWT_TOKEN_HERE"
-
-curl -X POST http://localhost:8080/db/my_database/jsonrpc \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
-```
-
-Response:
-
-```
-{"jsonrpc":"2.0","result":"Hello World","id":1}
-```
-
-### Option B: Direct Credentials (No JWT Required)
-
-Send the PostgreSQL username and password directly with every request using HTTP Basic
-Authentication. PgArachne opens a connection pool as that user — no `GRANT … TO pgarachne`
-is needed.
-
-```
-curl -X POST http://localhost:8080/db/my_database/jsonrpc \
-  -u demo_user:user_password \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
-```
-
-Response:
-
-```
-{"jsonrpc":"2.0","result":"Hello World","id":1}
-```
-
-The `-u user:password` flag in curl automatically sets the
-`Authorization: Basic …` header. Both options produce identical responses.
-
-See Security & Authentication — Direct Credentials
-for a full comparison of all authentication methods.
+From a web page use `fetch()` with the same header and body; a complete, copy-and-paste page (including SSE and file download) is in the
+Quick Start.
 
 
 ---

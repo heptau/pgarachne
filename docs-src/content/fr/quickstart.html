@@ -1,6 +1,8 @@
 ---
 title: "Démarrage rapide"
 description: "Démarrage rapide - PgArachne en 60 secondes - PgArachne"
+aliases:
+  - /browser-tutorial/
 menu:
   main:
     name: "Démarrage rapide"
@@ -10,77 +12,218 @@ menu:
 <section id="quickstart">
 	<h2>Démarrage rapide</h2>
 	<p class="section-intro">
-		Obtenez une API JSON-RPC depuis votre base PostgreSQL en moins d'une minute.
-		Votre base de données est votre backend — sans framework, sans boilerplate.
+		Obtenez en quelques minutes une API fonctionnelle à partir de votre base de données PostgreSQL &mdash; et appelez-la depuis une simple page web.
+		Votre base de données est votre backend : pas de framework, pas de code superflu, pas de bibliothèque JavaScript.
+		Nous construisons un « Hello World » pas à pas : une fonction avec un paramètre, une notification en temps réel
+		et un fichier généré.
 	</p>
+	<p>Tout le code de ce guide est disponible sous forme d'exemple terminé :
+		<a href="../../demo/quickstart/hello_world.sql" download><code>hello_world.sql</code></a> (base de données) et
+		<a href="../../demo/quickstart/index.html" download><code>index.html</code></a> (page web).
+		Chaque point d'accès est décrit en détail sur sa propre page de référence : <a href="../json-rpc/">JSON-RPC</a>,
+		<a href="../real-time-notifications/">Notifications temps réel (SSE)</a> et <a href="../file-download/">Téléchargement de fichiers (/file)</a>.</p>
 
 	<h3>1. Installation</h3>
 	<div class="deployment-option">
-		<h4>Téléchargez un binaire</h4>
+		<h4>Télécharger un binaire</h4>
 		<pre><code># macOS (Homebrew)
 brew install heptau/tap/pgarachne
 
-# ou téléchargez la dernière version pour votre OS :
+# or download the latest release for your OS:
 #   https://github.com/heptau/pgarachne/releases/latest</code></pre>
 	</div>
 
-	<h3>2. Préparez votre base de données</h3>
+	<h3>2. Préparer votre base de données</h3>
 	<div class="deployment-option">
-		<p>Créez une base et chargez le schéma PgArachne :</p>
+		<p>Créez une base de données, le rôle de service sous lequel PgArachne se connecte, puis chargez le schéma PgArachne
+			(<code>sql/schema.sql</code> se trouve dans le <a href="https://github.com/heptau/pgarachne" target="_blank">dépôt</a>) :</p>
 		<pre><code>createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
 psql -d my_database -f sql/schema.sql</code></pre>
 	</div>
 
-	<h3>3. Configurez et démarrez</h3>
+	<h3>3. Configurer et démarrer</h3>
 	<div class="deployment-option">
-		<p>Créez un fichier <code>pgarachne.env</code> (le serveur le trouve dans le répertoire courant) :</p>
+		<p>Créez un fichier <code>pgarachne.env</code> (le serveur le trouve dans le répertoire courant).
+			<code>STATIC_FILES_PATH</code> permet à PgArachne de servir également la page web que vous créerez à l'étape 5, de sorte que la page et
+			l'API partagent la même origine et qu'aucune configuration CORS n'est nécessaire :</p>
 		<pre><code>DB_HOST=localhost
 DB_PORT=5432
 DB_USER=pgarachne
+DB_SSLMODE=disable                         # local PostgreSQL without TLS only
+STATIC_FILES_PATH=/path/to/web             # folder with your index.html
 # Optional: enables JWT sessions (get_jwt); generate with openssl rand -hex 32
 # JWT_SECRET=...</code></pre>
-		<p>Démarrez le serveur :</p>
-		<pre><code>./pgarachne</code></pre>
+		<p>Démarrez le serveur (le mot de passe du rôle de service est lu depuis <code>PGPASSWORD</code> ou <code>~/.pgpass</code>) :</p>
+		<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
 	</div>
 
-	<h3>4. Définissez une fonction</h3>
+	<h3>4. Hello World &mdash; une fonction avec un paramètre</h3>
 	<div class="deployment-option">
-		<p>Dans votre base, créez un rôle et une fonction. Le commentaire SQL de la fonction la documente pour les LLM.</p>
+		<p>Chaque méthode de l'API est une fonction PostgreSQL avec un seul argument <code>jsonb</code>. Créez un rôle pour la page web et
+			la fonction ; l'objet JSON qu'un client envoie comme <code>params</code> arrive sous le nom <code>payload</code> :</p>
 		<pre><code>CREATE ROLE demo_user WITH LOGIN PASSWORD 'user_password';
 GRANT USAGE ON SCHEMA api TO demo_user;
 
-CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb)
+CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
 RETURNS json LANGUAGE sql AS $$
-    SELECT '"Hello World"'::json;
+    SELECT json_build_object(
+        'message', 'Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || '!');
 $$;
 GRANT EXECUTE ON FUNCTION api.hello_world(jsonb) TO demo_user;</code></pre>
+		<p>L'accès est contrôlé par PostgreSQL lui-même : <code>demo_user</code> peut appeler exactement les fonctions pour lesquelles il a reçu
+			<code>EXECUTE</code> &mdash; rien d'autre n'est accessible.</p>
 	</div>
 
-	<h3>5. Appelez-la</h3>
+	<h3>5. L'appeler &mdash; avec curl et depuis une page web</h3>
 	<div class="deployment-option">
-		<p>Votre endpoint API est en ligne :</p>
+		<p>Votre point d'accès API est actif. Le nom d'utilisateur et le mot de passe du rôle PostgreSQL sont envoyés avec l'authentification HTTP Basic :</p>
 		<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
   -u demo_user:user_password \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{},"id":1}'
-# → {"jsonrpc":"2.0","result":"Hello World","id":1}</code></pre>
+  -d '{"jsonrpc":"2.0","method":"api.hello_world","params":{"name":"Alice"},"id":1}'
+# → {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}</code></pre>
+		<p>Le même appel depuis un navigateur, avec le <code>fetch()</code> intégré. Enregistrez ceci sous <code>index.html</code> dans le dossier
+			indiqué par <code>STATIC_FILES_PATH</code> et ouvrez <code>http://localhost:8080/</code> :</p>
+		<pre><code>&lt;input id="name" value="Alice"&gt;
+&lt;button id="hello"&gt;Say hello&lt;/button&gt;
+&lt;pre id="out"&gt;&lt;/pre&gt;
+
+&lt;script&gt;
+// HTTP Basic header: "user:password" in base64 (TextEncoder handles non-ASCII)
+const bytes = new TextEncoder().encode("demo_user:user_password");
+const auth = "Basic " + btoa(String.fromCharCode(...bytes));
+const base = location.origin + "/db/my_database";      // /{API_PREFIX}/{database}
+
+async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+document.getElementById("hello").onclick = async () =&gt; {
+  const result = await rpc("api.hello_world", { name: document.getElementById("name").value });
+  document.getElementById("out").textContent = result.message;      // Hello, Alice!
+};
+&lt;/script&gt;</code></pre>
 	</div>
 
-	<h3>6. Connectez un agent IA (MCP)</h3>
+	<h3>6. Temps réel &mdash; laisser la base de données pousser un message (SSE)</h3>
 	<div class="deployment-option">
-		<p>Exposez les mêmes fonctions à Claude Desktop ou Cursor comme outils via l'endpoint MCP :</p>
+		<p>PostgreSQL peut publier des messages avec <code>pg_notify</code> ; PgArachne les transmet aux navigateurs sous forme de Server-Sent Events.
+			Étendez la fonction : lorsque l'appelant passe <code>"notify": true</code>, elle publie en plus le message d'accueil
+			sur le canal <code>hello</code> :</p>
+		<pre><code>CREATE OR REPLACE FUNCTION api.hello_world(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE plpgsql AS $$
+DECLARE
+    greeting text := 'Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || '!';
+BEGIN
+    IF COALESCE((payload-&gt;&gt;'notify')::boolean, false) THEN
+        PERFORM pg_notify('hello', json_build_object('message', greeting)::text);
+    END IF;
+    RETURN json_build_object('message', greeting);
+END; $$;</code></pre>
+		<p>Dans la page, abonnez-vous d'abord, puis appelez la fonction. Le <code>EventSource</code> intégré ne peut pas envoyer d'en-tête
+			<code>Authorization</code> ; le flux est donc lu avec <code>fetch()</code> (environ 15 lignes) :</p>
+		<pre><code>async function listen(channels, onMessage) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": auth },
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) &gt;= 0) {        // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));
+    }
+  }
+}
+
+listen("hello", (m) =&gt; console.log("event:", m.data.message));   // m = {channel, data}
+rpc("api.hello_world", { name: "Alice", notify: true });             // the event arrives immediately</code></pre>
+		<div class="tip">
+			<strong>Bon à savoir :</strong> <code>NOTIFY</code> est transactionnel &mdash; PostgreSQL le délivre lorsque la transaction
+			de la fonction est validée (commit), c'est-à-dire au moment même où l'appel retourne. Abonnez-vous <em>avant</em> d'appeler : PostgreSQL ne conserve pas
+			les notifications pour les écouteurs qui ne sont pas encore connectés. Les canaux SSE ne sont pas limités par rôle
+			(voir <a href="../real-time-notifications/">Notifications temps réel (SSE)</a>).
+		</div>
+	</div>
+
+	<h3>7. Télécharger un fichier</h3>
+	<div class="deployment-option">
+		<p>Une fonction qui renvoie des lignes <code>(path, content, mime_type, store_only)</code> peut être téléchargée via le point d'accès
+			<code>/file</code> &mdash; sous forme d'octets bruts, sans base64 dans du JSON. Celle-ci renvoie <code>hello-world.md</code> :</p>
+		<pre><code>CREATE OR REPLACE FUNCTION api.hello_world_file(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+    SELECT 'hello-world.md',
+           convert_to('# Hello, ' || COALESCE(payload-&gt;&gt;'name', 'World') || E'!\n\nGenerated by PostgreSQL at ' || now() || E'.\n', 'UTF8'),
+           'text/markdown',
+           false;
+$$;
+GRANT EXECUTE ON FUNCTION api.hello_world_file(jsonb) TO demo_user;</code></pre>
+		<p>Dans la page, vous pouvez afficher le contenu ou le proposer en téléchargement (si vous renvoyez plusieurs lignes, vous obtenez automatiquement un ZIP) :</p>
+		<pre><code>async function getFile() {
+  const res = await fetch(base + "/file", {
+    method: "POST",
+    headers: { "Authorization": auth, "Content-Type": "application/json" },
+    body: JSON.stringify({ method: "api.hello_world_file", params: { name: "Alice" } }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+  return res.blob();
+}
+
+// show it:
+console.log(await (await getFile()).text());
+
+// or download it:
+const url = URL.createObjectURL(await getFile());
+const a = Object.assign(document.createElement("a"), { href: url, download: "hello-world.md" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);</code></pre>
+		<p>Essayez avec curl : <code>curl -u demo_user:user_password -H "Content-Type: application/json" -d '{"method":"api.hello_world_file"}' http://localhost:8080/db/my_database/file -OJ</code>.
+			Plus de détails dans <a href="../file-download/">Téléchargement de fichiers (/file)</a>.</p>
+	</div>
+
+	<div class="warning">
+		<h3>Avant la mise en production</h3>
+		<ul>
+			<li><strong>Utilisez HTTPS.</strong> Les identifiants Basic circulent à chaque requête ; voir <a href="../deployment-https/">Déploiement &amp; HTTPS</a>. Changez les mots de passe de démonstration.</li>
+			<li><strong>Gardez les identifiants uniquement en mémoire</strong> (une variable JavaScript), jamais dans <code>localStorage</code>. Pour éviter de renvoyer le mot de passe,
+				définissez <code>JWT_SECRET</code> et utilisez <code>get_jwt</code> (voir <a href="../security-roles/">Sécurité &amp; Authentification</a>).</li>
+			<li><strong>Page web sur une autre origine</strong> (un CDN, un autre port) ? Définissez <code>ALLOWED_ORIGINS=https://app.example.com</code> ; les requêtes cross-origin sont bloquées par défaut.</li>
+			<li><strong>Moindre privilège :</strong> un rôle PostgreSQL par type d'utilisateur, <code>EXECUTE</code> uniquement sur les fonctions nécessaires, Row-Level Security pour les données propres à chaque utilisateur et
+				<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code> pour que les nouvelles fonctions ne soient pas exposées par accident.</li>
+		</ul>
+	</div>
+
+	<h3>8. Connecter un agent IA (MCP)</h3>
+	<div class="deployment-option">
+		<p>Exposez les mêmes fonctions à Claude Desktop ou Cursor en tant qu'outils via le point d'accès MCP :</p>
 		<pre><code>POST http://localhost:8080/db/my_database/mcp</code></pre>
-		<p>Voir <a href="../mcp/">MCP (Model Context Protocol)</a> pour les instructions complètes de connexion.</p>
+		<p>Consultez <a href="../mcp/">Model Context Protocol (MCP)</a> pour les instructions de connexion complètes.</p>
 	</div>
 
-	<h3>7. Obtenez une spécification OpenAPI (Swagger, Postman, codegen)</h3>
+	<h3>9. Obtenir une spécification OpenAPI (Swagger, Postman, génération de code)</h3>
 	<div class="deployment-option">
-		<p>Chaque fonction exposée est également décrite comme un document OpenAPI 3.1, filtré selon ce que l'appelant authentifié peut appeler :</p>
+		<p>Chaque fonction exposée est également décrite dans un document OpenAPI 3.1, filtré selon ce que l'appelant authentifié peut appeler :</p>
 		<pre><code>curl http://localhost:8080/db/my_database/openapi.json \
   -u demo_user:user_password
-# ou en YAML : .../openapi.yaml</code></pre>
-		<p>Importez l'URL directement dans Swagger UI, Postman, ou un générateur de code OpenAPI. Chaque méthode s'exécute toujours via l'unique endpoint JSON-RPC de l'étape 5 — voir <a href="../architectural-decisions/">Décisions d'Architecture</a> pour savoir pourquoi la spécification liste un chemin par méthode sans route réelle correspondante.</p>
+# or as YAML: .../openapi.yaml</code></pre>
+		<p>Importez l'URL directement dans Swagger UI, Postman ou un générateur de code OpenAPI. Chaque méthode passe toujours par l'unique point d'accès JSON-RPC de l'étape 5 — voir <a href="../architectural-decisions/">Décisions d'Architecture</a> pour comprendre pourquoi la spécification liste un chemin par méthode sans route réelle correspondante.</p>
 	</div>
 
-	<p>Voilà. Lisez le guide <a href="../hello-world-example/">Hello World</a> pour le flux JWT, ou la <a href="../comparison/">comparaison avec PostgREST</a> pour comprendre où PgArachne se situe.</p>
+	<p>Voilà. Lisez la <a href="../json-rpc/">référence JSON-RPC</a> pour le format des requêtes, l'écriture de fonctions, les erreurs et l'idempotence, ou la <a href="../comparison/">comparaison avec PostgREST</a> pour comprendre où PgArachne se situe.</p>
 </section>

@@ -560,8 +560,7 @@ func (s *Server) handleFunctionCall(c *gin.Context) {
 	// dismissed as a false positive in the repository's Security tab.
 	query := buildFunctionQuery(functionName)
 
-	var resultJSON json.RawMessage
-	err = tx.QueryRowContext(c.Request.Context(), query, paramsJSON).Scan(&resultJSON)
+	resultJSON, err := scanJSONResult(tx.QueryRowContext(c.Request.Context(), query, paramsJSON))
 	if err != nil {
 		slog.Error("Function call failed", "function", functionName, "error", err)
 		recordJSONRPC(functionName, "error")
@@ -821,6 +820,21 @@ func (s *Server) handleOpenAPISpecFormat(c *gin.Context, defaultFormat string) {
 // method does not exist. Matching on the SQLSTATE rather than the message
 // text keeps unrelated "does not exist" errors raised inside a function
 // (missing table, missing role, …) from being reported as a missing method.
+// scanJSONResult reads the single json column returned by a function call. A
+// SQL NULL result (e.g. a lookup that found no row) becomes the JSON value
+// null instead of a scan error, so it is returned as "result": null rather
+// than a 500.
+func scanJSONResult(row *sql.Row) (json.RawMessage, error) {
+	var raw []byte
+	if err := row.Scan(&raw); err != nil {
+		return nil, err
+	}
+	if raw == nil {
+		return json.RawMessage("null"), nil
+	}
+	return json.RawMessage(raw), nil
+}
+
 func isUndefinedFunctionError(err error) bool {
 	var pqErr *pq.Error
 	if !errors.As(err, &pqErr) {

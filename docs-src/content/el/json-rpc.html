@@ -1,0 +1,131 @@
+---
+title: "JSON-RPC"
+description: "Αναφορά τελικού σημείου JSON-RPC 2.0 - μορφή αιτήματος και απάντησης, συγγραφή συναρτήσεων, σφάλματα, ιδεμποτεντία - PgArachne"
+aliases:
+  - /hello-world-example/
+menu:
+  main:
+    name: "JSON-RPC"
+    weight: 60
+---
+
+<section id="json-rpc">
+	<h2>JSON-RPC</h2>
+	<p class="section-intro">
+		Το <code>POST /{prefix}/{database}/jsonrpc</code> καλεί μια συνάρτηση PostgreSQL και επιστρέφει το αποτέλεσμά της ως απάντηση
+		<a href="https://www.jsonrpc.org/specification" target="_blank">JSON-RPC 2.0</a>. Αυτή η σελίδα είναι η αναφορά·
+		για ένα πρώτο λειτουργικό παράδειγμα δείτε τη <a href="../quickstart/">Γρήγορη εκκίνηση</a>.
+	</p>
+
+	<h3>1. Αίτημα</h3>
+	<pre><code>POST /db/my_database/jsonrpc
+Authorization: Basic ...            (ή Bearer &lt;jwt / api token&gt;)
+Content-Type: application/json
+
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}</code></pre>
+	<table>
+		<thead><tr><th>Πεδίο</th><th>Περιγραφή</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Υποχρεωτικό. <code>schema.function</code>, το πολύ 256 χαρακτήρες. Επιτρέπονται αναγνωριστικά σε εισαγωγικά (<code>"my schema"."my fn"</code>). Το σχήμα είναι υποχρεωτικό: το <code>hello_world</code> μόνο του απορρίπτεται με 400. Δύο ονόματα είναι ειδικά: <code>capabilities</code> και <code>get_jwt</code> (ενότητα 5).</td></tr>
+			<tr><td><code>params</code></td><td>Οποιαδήποτε τιμή JSON, που περνά αμετάβλητη στη συνάρτηση ως όρισμα <code>jsonb</code>. Αν λείπει ή είναι <code>null</code> γίνεται <code>{}</code>. Η σύμβαση είναι αντικείμενα· λειτουργούν και πίνακες και βαθμωτές τιμές.</td></tr>
+			<tr><td><code>id</code></td><td>Οποιαδήποτε τιμή JSON· αντιγράφεται στην απάντηση. Αν λείπει, η απάντηση περιέχει <code>"id": null</code> (δεν υπάρχουν ειδοποιήσεις τύπου fire-and-forget).</td></tr>
+			<tr><td><code>jsonrpc</code></td><td>Συμβατικά <code>"2.0"</code>· δεν ελέγχεται στην είσοδο, η απάντηση φέρει πάντα <code>"2.0"</code>.</td></tr>
+			<tr><td><code>idempotencyKey</code></td><td>Προαιρετική επέκταση (ενότητα 7). Το πολύ 256 χαρακτήρες.</td></tr>
+		</tbody>
+	</table>
+	<p>Τα <strong>αιτήματα παρτίδας</strong> (πίνακας JSON με κλήσεις) δεν υποστηρίζονται και επιστρέφουν 400 &mdash; στείλτε μία κλήση ανά αίτημα HTTP.</p>
+
+	<h3>2. Απάντηση</h3>
+	<pre><code>HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}</code></pre>
+	<p>Σε αντίθεση με το απλό JSON-RPC πάνω από socket, τα σφάλματα ορίζουν επίσης ουσιαστικό <strong>κωδικό HTTP</strong>, ώστε πελάτες και proxies να αντιδρούν
+		χωρίς να αναλύουν το σώμα. Το <code>error.code</code> είναι <code>0</code> εκτός αν ισχύει συγκεκριμένος κωδικός JSON-RPC
+		(<code>-32601</code> άγνωστη συνάρτηση, <code>-32001</code> άρνηση πρόσβασης, <code>-32000</code> διπλότυπο αίτημα).
+		Η πλήρης λίστα βρίσκεται στη σελίδα <a href="../error-codes/">Κωδικοί Σφαλμάτων</a>.</p>
+
+	<h3>3. Συγγραφή μιας συνάρτησης</h3>
+	<p>Μια μέθοδος είναι μια συνάρτηση PostgreSQL που δέχεται <strong>ακριβώς ένα όρισμα τύπου <code>jsonb</code></strong>
+		και επιστρέφει <code>json</code> ή <code>jsonb</code>. Συναρτήσεις με άλλες υπογραφές ούτε εμφανίζονται στο
+		<code>capabilities</code> ούτε μπορούν να κληθούν.</p>
+	<pre><code>CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload-&gt;&gt;'id')::int
+    ) u;
+$$;
+
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
+	<ul>
+		<li><strong>Τιμή επιστροφής.</strong> Το αποτέλεσμα JSON αποστέλλεται ως <code>result</code>. Ένα SQL <code>NULL</code> (όπως παραπάνω, όταν καμία γραμμή δεν ταιριάζει)
+			γίνεται <code>"result": null</code>. Η συνάρτηση πρέπει να επιστρέφει έγκυρο JSON: ένας τύπος επιστροφής <code>text</code> αποτυγχάνει με 500 εκτός αν
+			το κείμενο τυχαίνει να είναι JSON &mdash; χρησιμοποιήστε <code>to_json('hi'::text)</code> για αποτέλεσμα συμβολοσειράς.</li>
+		<li><strong>Σφάλματα μέσα στη συνάρτηση.</strong> Το <code>RAISE EXCEPTION</code> ή οποιοδήποτε σφάλμα SQL διακόπτει την κλήση με HTTP 500 και το γενικό
+			μήνυμα <code>Function call failed</code>· το πραγματικό μήνυμα της PostgreSQL γράφεται μόνο στο αρχείο καταγραφής του διακομιστή, ώστε να μη διαρρέουν λεπτομέρειες του σχήματος.
+			Αναφέρετε τα αναμενόμενα επιχειρησιακά σφάλματα (δεν βρέθηκε, επικύρωση) μάλλον στην τιμή επιστροφής, για παράδειγμα
+			<code>{"ok": false, "reason": "..."}</code>.</li>
+		<li><strong>Συναλλαγές.</strong> Κάθε κλήση εκτελείται σε μία συναλλαγή που επικυρώνεται (commit) όταν η συνάρτηση επιστρέψει και ακυρώνεται (rollback) σε οποιοδήποτε σφάλμα.</li>
+		<li><strong>Δικαιώματα.</strong> Η κλήση εκτελείται ως ο πιστοποιημένος ρόλος PostgreSQL, επομένως τα <code>GRANT</code>, <code>REVOKE</code> και το Row-Level Security καθορίζουν
+			τι μπορεί να κάνει ο καλών. Ένας ρόλος χρειάζεται <code>USAGE</code> στο σχήμα και <code>EXECUTE</code> στη συνάρτηση. Η PostgreSQL δίνει από προεπιλογή
+			<code>EXECUTE</code> στις νέες συναρτήσεις σε όλους, γι' αυτό ανακαλέστε το
+			(<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>) και κρατήστε τις εκτεθειμένες συναρτήσεις σε ξεχωριστό σχήμα &mdash; δείτε <a href="../security-roles/">Ασφάλεια & Πιστοποίηση</a>.</li>
+	</ul>
+
+	<h3>4. Περιγραφή μιας συνάρτησης για πελάτες και πράκτορες AI</h3>
+	<p>Η πρώτη γραμμή του σχολίου της συνάρτησης είναι η περιγραφή της· ένα αντικείμενο JSON μετά το <code>--- PARAMS ---</code> περιγράφει τις παραμέτρους
+		(<code>properties</code> του JSON Schema). Και τα δύο εμφανίζονται στο <code>capabilities</code>, στην προδιαγραφή OpenAPI και στο MCP <code>tools/list</code>:</p>
+	<pre><code>COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';</code></pre>
+	<p>Ένα σχόλιο με κακοσχηματισμένο JSON μετά τον δείκτη αγνοείται (η συνάρτηση επιστρέφει σε μια γενική περιγραφή παραμέτρων) και δεν χαλάει ποτέ την ανακάλυψη.</p>
+
+	<h3>5. Ενσωματωμένες μέθοδοι</h3>
+	<h4><code>capabilities</code></h4>
+	<p>Απαριθμεί τις συναρτήσεις που μπορεί να καλέσει ο πιστοποιημένος ρόλος (<code>EXECUTE</code> και <code>USAGE</code> στο σχήμα)· τα σχήματα συστήματος και οι συναρτήσεις επεκτάσεων αποκρύπτονται.
+		Κάθε εγγραφή έχει <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> και
+		<code>kind</code> (<code>rpc</code>, ή <code>file</code> για <a href="../file-download/">συναρτήσεις αρχείων</a>).</p>
+	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
+	<h4><code>get_jwt</code></h4>
+	<p>Ανταλλάσσει ένα login και κωδικό PostgreSQL με ένα JWT. Είναι διαθέσιμη μόνο όταν έχει ρυθμιστεί το <code>JWT_SECRET</code>· διαφορετικά επιστρέφει 404 / <code>-32601</code>.
+		Κάθε απόπειρα προσμετράται στο όριο προσπαθειών σύνδεσης.</p>
+	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+
+	<h3>6. Πιστοποίηση</h3>
+	<p>Κάθε αίτημα χρειάζεται κεφαλίδα <code>Authorization</code>· ένα αίτημα χωρίς αυτήν απορρίπτεται με 401 πριν ανοίξει οποιαδήποτε σύνδεση με τη βάση δεδομένων.</p>
+	<table>
+		<thead><tr><th>Κεφαλίδα</th><th>Τι συμβαίνει</th></tr></thead>
+		<tbody>
+			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Μια δεξαμενή συνδέσεων πιστοποιημένη ως αυτός ο χρήστης PostgreSQL. Το απλούστερο· χωρίς tokens. Στείλτε το μόνο μέσω HTTPS.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token από το <code>get_jwt</code> (ή από τον δικό σας πάροχο ταυτότητας). Το PgArachne αλλάζει στον ρόλο του token με <code>SET LOCAL ROLE</code>· ο ρόλος υπηρεσίας χρειάζεται <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Μακράς διάρκειας token που δημιουργείται με <code>pgarachne.add_api_token(...)</code>, δεμένο σε έναν ρόλο. Κατάλληλο για υπηρεσίες.</td></tr>
+		</tbody>
+	</table>
+	<p>Οι αποτυχημένες απόπειρες περιορίζονται (HTTP 429). Όλες οι λεπτομέρειες, η διάρκεια ζωής των tokens και ένας εξωτερικός πάροχος ταυτότητας βρίσκονται στη σελίδα <a href="../security-roles/">Ασφάλεια & Πιστοποίηση</a>.</p>
+
+	<h3>7. Ιδεμποτεντία</h3>
+	<p>Προσθέστε <code>"idempotencyKey": "order-42"</code> για να μπορεί μια κλήση να επαναληφθεί με ασφάλεια. Η πρώτη κλήση με ένα κλειδί εκτελείται κανονικά· ένα επαναλαμβανόμενο κλειδί απορρίπτεται
+		<em>πριν</em> εκτελεστεί η συνάρτηση με HTTP 409 και <code>-32000</code> «This request has already been processed». Το κλειδί αποθηκεύεται στην ίδια
+		συναλλαγή με την κλήση, οπότε μια κλήση που απέτυχε (και ακυρώθηκε) μπορεί να επαναληφθεί με το ίδιο κλειδί. Τα κλειδιά ανήκουν ανά ρόλο.</p>
+	<ul>
+		<li>Με πιστοποίηση <strong>JWT ή token API</strong> λειτουργεί αμέσως.</li>
+		<li>Με πιστοποίηση <strong>Basic</strong> το κλειδί το γράφει ο ίδιος ο χρήστης, άρα χρειάζεται <code>USAGE</code> στο σχήμα <code>pgarachne</code> και
+			<code>INSERT</code> στο <code>pgarachne.requests</code> (διαφορετικά η κλήση αποτυγχάνει με 500 <code>Idempotency check failed</code>).</li>
+		<li>Τα παλιά κλειδιά δεν αφαιρούνται αυτόματα &mdash; προγραμματίστε το <code>pgarachne.cleanup_idempotency_keys()</code> (δείτε <a href="../idempotency-cleanup/">Εκκαθάριση Κλειδιών Ιδεμποτεντίας</a>).</li>
+	</ul>
+
+	<h3>8. Όρια</h3>
+	<ul>
+		<li>Σώμα αιτήματος: <code>MAX_REQUEST_BYTES</code> (προεπιλογή 2&nbsp;MiB), διαφορετικά 413.</li>
+		<li><code>method</code> και <code>idempotencyKey</code>: 256 χαρακτήρες το καθένα.</li>
+		<li>Αποτυχίες πιστοποίησης: <code>LOGIN_RATE_LIMIT</code> / <code>LOGIN_RATE_LIMIT_PER_IP</code> ανά <code>LOGIN_RATE_WINDOW</code> (δείτε <a href="../configuration/">Ρύθμιση</a>).</li>
+	</ul>
+
+	<h3>9. Κλήση</h3>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'</code></pre>
+	<p>Από μια ιστοσελίδα χρησιμοποιήστε <code>fetch()</code> με την ίδια κεφαλίδα και σώμα· μια πλήρης σελίδα για αντιγραφή και επικόλληση (συμπεριλαμβανομένων των SSE και της λήψης αρχείων) υπάρχει στη
+		<a href="../quickstart/">Γρήγορη εκκίνηση</a>.</p>
+</section>

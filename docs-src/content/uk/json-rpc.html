@@ -1,0 +1,131 @@
+---
+title: "JSON-RPC"
+description: "Довідник кінцевої точки JSON-RPC 2.0 - формат запиту і відповіді, написання функцій, помилки, ідемпотентність - PgArachne"
+aliases:
+  - /hello-world-example/
+menu:
+  main:
+    name: "JSON-RPC"
+    weight: 60
+---
+
+<section id="json-rpc">
+	<h2>JSON-RPC</h2>
+	<p class="section-intro">
+		<code>POST /{prefix}/{database}/jsonrpc</code> викликає функцію PostgreSQL і повертає її результат як відповідь
+		<a href="https://www.jsonrpc.org/specification" target="_blank">JSON-RPC 2.0</a>. Ця сторінка є довідником;
+		перший робочий приклад дивіться в розділі <a href="../quickstart/">Швидкий старт</a>.
+	</p>
+
+	<h3>1. Запит</h3>
+	<pre><code>POST /db/my_database/jsonrpc
+Authorization: Basic ...            (або Bearer &lt;jwt / api token&gt;)
+Content-Type: application/json
+
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}</code></pre>
+	<table>
+		<thead><tr><th>Поле</th><th>Опис</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Обов'язкове. <code>schema.function</code>, не більше 256 символів. Допускаються ідентифікатори в лапках (<code>"my schema"."my fn"</code>). Схема обов'язкова: самотнє <code>hello_world</code> відхиляється з кодом 400. Два імені особливі: <code>capabilities</code> і <code>get_jwt</code> (розділ 5).</td></tr>
+			<tr><td><code>params</code></td><td>Будь-яке значення JSON, яке передається функції без змін як її аргумент <code>jsonb</code>. Відсутнє або <code>null</code> стає <code>{}</code>. Загальноприйняті об'єкти; масиви та скалярні значення також працюють.</td></tr>
+			<tr><td><code>id</code></td><td>Будь-яке значення JSON; копіюється у відповідь. Якщо його немає, відповідь містить <code>"id": null</code> (сповіщень типу fire-and-forget не існує).</td></tr>
+			<tr><td><code>jsonrpc</code></td><td>Зазвичай <code>"2.0"</code>; на вході не перевіряється, відповідь завжди містить <code>"2.0"</code>.</td></tr>
+			<tr><td><code>idempotencyKey</code></td><td>Необов'язкове розширення (розділ 7). Не більше 256 символів.</td></tr>
+		</tbody>
+	</table>
+	<p><strong>Пакетні запити</strong> (масив JSON з викликами) не підтримуються й повертають 400 &mdash; надсилайте один виклик в одному HTTP-запиті.</p>
+
+	<h3>2. Відповідь</h3>
+	<pre><code>HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}</code></pre>
+	<p>На відміну від звичайного JSON-RPC через сокет, помилки також встановлюють змістовний <strong>HTTP-статус</strong>, тож клієнти й проксі можуть реагувати
+		без розбору тіла. <code>error.code</code> дорівнює <code>0</code>, якщо не застосовується конкретний код JSON-RPC
+		(<code>-32601</code> невідома функція, <code>-32001</code> відмовлено в доступі, <code>-32000</code> дубльований запит).
+		Повний список є на сторінці <a href="../error-codes/">Коди помилок</a>.</p>
+
+	<h3>3. Написання функції</h3>
+	<p>Метод &mdash; це функція PostgreSQL, яка приймає <strong>рівно один аргумент типу <code>jsonb</code></strong>
+		і повертає <code>json</code> або <code>jsonb</code>. Функції з іншими сигнатурами не перелічуються в
+		<code>capabilities</code> і не можуть бути викликані.</p>
+	<pre><code>CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload-&gt;&gt;'id')::int
+    ) u;
+$$;
+
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
+	<ul>
+		<li><strong>Значення, що повертається.</strong> Результат JSON надсилається як <code>result</code>. SQL-значення <code>NULL</code> (як вище, коли жоден рядок не підходить)
+			стає <code>"result": null</code>. Функція має повертати коректний JSON: тип <code>text</code> призводить до помилки 500, якщо
+			текст випадково не є JSON &mdash; для рядкового результату використовуйте <code>to_json('hi'::text)</code>.</li>
+		<li><strong>Помилки всередині функції.</strong> <code>RAISE EXCEPTION</code> або будь-яка помилка SQL перериває виклик з HTTP 500 і загальним
+			повідомленням <code>Function call failed</code>; справжнє повідомлення PostgreSQL записується лише в журнал сервера, тож подробиці схеми не витікають.
+			Очікувані бізнес-помилки (не знайдено, валідація) повідомляйте радше в значенні, що повертається, наприклад
+			<code>{"ok": false, "reason": "..."}</code>.</li>
+		<li><strong>Транзакції.</strong> Кожен виклик виконується в одній транзакції, яка фіксується, коли функція повертає результат, і відкочується за будь-якої помилки.</li>
+		<li><strong>Права доступу.</strong> Виклик виконується від імені автентифікованої ролі PostgreSQL, тож <code>GRANT</code>, <code>REVOKE</code> і Row-Level Security визначають,
+			що дозволено викликачу. Ролі потрібні <code>USAGE</code> на схему та <code>EXECUTE</code> на функцію. PostgreSQL за замовчуванням надає
+			<code>EXECUTE</code> на нові функції всім, тому скасуйте це
+			(<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>) і тримайте відкриті функції в окремій схемі &mdash; див. <a href="../security-roles/">Безпека та автентифікація</a>.</li>
+	</ul>
+
+	<h3>4. Опис функції для клієнтів і ШІ-агентів</h3>
+	<p>Перший рядок коментаря функції є її описом; об'єкт JSON після <code>--- PARAMS ---</code> описує параметри
+		(<code>properties</code> у JSON Schema). Обидва з'являються в <code>capabilities</code>, специфікації OpenAPI та MCP <code>tools/list</code>:</p>
+	<pre><code>COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';</code></pre>
+	<p>Коментар із некоректним JSON після маркера ігнорується (функція повертається до загального опису параметрів) і ніколи не ламає виявлення.</p>
+
+	<h3>5. Вбудовані методи</h3>
+	<h4><code>capabilities</code></h4>
+	<p>Перелічує функції, які автентифікована роль може викликати (<code>EXECUTE</code> і <code>USAGE</code> на схему); системні схеми та функції розширень приховані.
+		Кожен запис містить <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> і
+		<code>kind</code> (<code>rpc</code>, або <code>file</code> для <a href="../file-download/">файлових функцій</a>).</p>
+	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
+	<h4><code>get_jwt</code></h4>
+	<p>Обмінює логін і пароль PostgreSQL на JWT. Доступний лише за наявності налаштованого <code>JWT_SECRET</code>; інакше повертає 404 / <code>-32601</code>.
+		Кожна спроба враховується в ліміті спроб входу.</p>
+	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+
+	<h3>6. Автентифікація</h3>
+	<p>Кожен запит потребує заголовка <code>Authorization</code>; запит без нього відхиляється з кодом 401 ще до відкриття будь-якого з'єднання з базою даних.</p>
+	<table>
+		<thead><tr><th>Заголовок</th><th>Що відбувається</th></tr></thead>
+		<tbody>
+			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Пул з'єднань, автентифікований як цей користувач PostgreSQL. Найпростіше; без токенів. Надсилайте лише через HTTPS.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Токен із <code>get_jwt</code> (або від вашого провайдера ідентичності). PgArachne перемикається на роль із токена через <code>SET LOCAL ROLE</code>; службовій ролі потрібен <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Довготривалий токен, створений через <code>pgarachne.add_api_token(...)</code> і прив'язаний до ролі. Добре підходить для сервісів.</td></tr>
+		</tbody>
+	</table>
+	<p>Невдалі спроби обмежуються лімітом (HTTP 429). Усі подробиці, строки дії токенів і зовнішній провайдер ідентичності описані на сторінці <a href="../security-roles/">Безпека та автентифікація</a>.</p>
+
+	<h3>7. Ідемпотентність</h3>
+	<p>Додайте <code>"idempotencyKey": "order-42"</code>, щоб виклик можна було безпечно повторити. Перший виклик із ключем виконується як звичайно; повторений ключ відхиляється
+		<em>до</em> запуску функції з HTTP 409 і <code>-32000</code> «This request has already been processed». Ключ зберігається в тій самій
+		транзакції, що й виклик, тож виклик, який завершився помилкою (і був відкочений), можна повторити з тим самим ключем. Ключі розділені за ролями.</p>
+	<ul>
+		<li>Із автентифікацією <strong>JWT або токеном API</strong> це працює з коробки.</li>
+		<li>З автентифікацією <strong>Basic</strong> ключ записує сам користувач, тому йому потрібні <code>USAGE</code> на схему <code>pgarachne</code> та
+			<code>INSERT</code> на <code>pgarachne.requests</code> (інакше виклик завершується помилкою 500 <code>Idempotency check failed</code>).</li>
+		<li>Старі ключі не видаляються автоматично &mdash; заплануйте <code>pgarachne.cleanup_idempotency_keys()</code> (див. <a href="../idempotency-cleanup/">Очищення ключів ідемпотентності</a>).</li>
+	</ul>
+
+	<h3>8. Обмеження</h3>
+	<ul>
+		<li>Тіло запиту: <code>MAX_REQUEST_BYTES</code> (за замовчуванням 2&nbsp;МіБ), інакше 413.</li>
+		<li><code>method</code> та <code>idempotencyKey</code>: по 256 символів.</li>
+		<li>Збої автентифікації: <code>LOGIN_RATE_LIMIT</code> / <code>LOGIN_RATE_LIMIT_PER_IP</code> на <code>LOGIN_RATE_WINDOW</code> (див. <a href="../configuration/">Конфігурація</a>).</li>
+	</ul>
+
+	<h3>9. Виклик</h3>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'</code></pre>
+	<p>З веб-сторінки використовуйте <code>fetch()</code> з тим самим заголовком і тілом; повна сторінка для копіювання та вставлення (разом із SSE і завантаженням файлів) є в розділі
+		<a href="../quickstart/">Швидкий старт</a>.</p>
+</section>

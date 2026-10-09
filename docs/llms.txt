@@ -8,13 +8,12 @@ The complete English documentation is also available as a single plain-text file
 
 ## Docs
 
-- [Quick Start](https://www.pgarachne.com/en/quickstart/): Get a running JSON-RPC API in under a minute.
+- [Quick Start](https://www.pgarachne.com/en/quickstart/): Step-by-step Hello World: a PostgreSQL function with a parameter, a real-time SSE notification and a generated file, called from a plain web page.
 - [About & Architecture](https://www.pgarachne.com/en/about-architecture/): Project overview and how the JSON-RPC gateway is built.
 - [Architectural Decisions](https://www.pgarachne.com/en/architectural-decisions/): Why JSON-RPC, SSE, Go, and PostgreSQL functions were chosen over alternatives.
 - [Installation](https://www.pgarachne.com/en/installation/): Download prebuilt binaries or build from source.
 - [Configuration](https://www.pgarachne.com/en/configuration/): Environment variables and configuration reference.
-- [Step-by-Step Browser Tutorial](https://www.pgarachne.com/en/browser-tutorial/): Minimal setup with Basic auth and a plain HTML page using JSON-RPC, SSE and file download (no libraries).
-- [JSON-RPC & Hello World](https://www.pgarachne.com/en/hello-world-example/): Minimal end-to-end example of exposing a SQL function as an API endpoint.
+- [JSON-RPC](https://www.pgarachne.com/en/json-rpc/): Reference of the /jsonrpc endpoint: request and response format, writing functions, errors, authentication and idempotency.
 - [MCP (Model Context Protocol)](https://www.pgarachne.com/en/mcp/): Native MCP endpoint so AI clients can call PostgreSQL functions as tools.
 - [File Download](https://www.pgarachne.com/en/file-download/): Binary files and ZIP archives served by PostgreSQL functions via the /file endpoint.
 - [Real-time Notifications (SSE)](https://www.pgarachne.com/en/real-time-notifications/): Streaming PostgreSQL NOTIFY events to clients over Server-Sent Events.

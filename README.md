@@ -363,7 +363,7 @@ This requires a clean working tree and the [`gh`](https://cli.github.com/) CLI, 
 
 Generated documentation is available in the [`docs/`](docs/index.html) directory, including:
 
-*   **Quick Start**: Get a running JSON-RPC API in under a minute.
+*   **Quick Start**: Step-by-step Hello World — function with a parameter, SSE notification and file download, called from a plain web page (downloadable example included).
 *   **Configuration**: Full list of environment variables (`DB_HOST`, `JWT_SECRET`, etc.).
 *   **Browser Tutorial**: Step-by-step minimal setup (Basic auth, JSON-RPC, SSE, file download) with a ready-to-run HTML page and `setup.sql`.
 *   **File Download**: The `/file` endpoint for binary files and ZIP archives.

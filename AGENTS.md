@@ -208,7 +208,7 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 - `tools/pgarachne-explorer/` — interactive JSON-RPC explorer (PWA, dark/light theme, offline-capable). Served when `STATIC_FILES_PATH` points to this directory; URL is `/tools/pgarachne-explorer/` (or `/tools/api-explorer/` per Hugo docs)
 - `tools/test-sse/` — minimal HTML page for manually exercising the SSE endpoint from a browser
 - `docs-src/` — Hugo documentation sources (7 languages: cs, en, de, es, fr, it, pt)
-- `docs-src/static/demo/` — runnable browser demo (`index.html`, `setup.sql`) used by the Browser Tutorial page and downloadable from the site (`/demo/`); keep it in sync with the code snippets in `docs-src/content/*/browser-tutorial.html`
+- `docs-src/static/demo/quickstart/` — Hello World example (`hello_world.sql`, `index.html`) used by the Quick Start page; keep in sync with the snippets in `docs-src/content/*/quickstart.html`
 - `docs-src/i18n/*.yaml` — localised hero section strings; rendered with `| safeHTML` to allow `<br>` tags
 - `docs-src/layouts/index.html` — home page template; uses `| safeHTML` for i18n hero fields
 - `docs/` — generated static documentation site

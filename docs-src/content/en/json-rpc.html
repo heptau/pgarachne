@@ -1,0 +1,131 @@
+---
+title: "JSON-RPC"
+description: "JSON-RPC 2.0 endpoint reference - request and response format, writing functions, errors, idempotency - PgArachne"
+aliases:
+  - /hello-world-example/
+menu:
+  main:
+    name: "JSON-RPC"
+    weight: 60
+---
+
+<section id="json-rpc">
+	<h2>JSON-RPC</h2>
+	<p class="section-intro">
+		<code>POST /{prefix}/{database}/jsonrpc</code> calls a PostgreSQL function and returns its result as a
+		<a href="https://www.jsonrpc.org/specification" target="_blank">JSON-RPC 2.0</a> response. This page is the
+		reference; for a first working example see the <a href="../quickstart/">Quick Start</a>.
+	</p>
+
+	<h3>1. Request</h3>
+	<pre><code>POST /db/my_database/jsonrpc
+Authorization: Basic ...            (or Bearer &lt;jwt / api token&gt;)
+Content-Type: application/json
+
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}</code></pre>
+	<table>
+		<thead><tr><th>Field</th><th>Description</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Required. <code>schema.function</code>, at most 256 characters. Quoted identifiers (<code>"my schema"."my fn"</code>) are allowed. The schema is mandatory: <code>hello_world</code> alone is rejected with 400. Two names are special: <code>capabilities</code> and <code>get_jwt</code> (section 5).</td></tr>
+			<tr><td><code>params</code></td><td>Any JSON value, passed to the function unchanged as its <code>jsonb</code> argument. Missing or <code>null</code> becomes <code>{}</code>. Objects are the convention; arrays and scalars also work.</td></tr>
+			<tr><td><code>id</code></td><td>Any JSON value; it is copied into the response. If it is missing the response contains <code>"id": null</code> (there are no fire-and-forget notifications).</td></tr>
+			<tr><td><code>jsonrpc</code></td><td>Conventionally <code>"2.0"</code>; it is not validated on input, the response always carries <code>"2.0"</code>.</td></tr>
+			<tr><td><code>idempotencyKey</code></td><td>Optional extension (section 7). At most 256 characters.</td></tr>
+		</tbody>
+	</table>
+	<p><strong>Batch requests</strong> (a JSON array of calls) are not supported and return 400 &mdash; send one call per HTTP request.</p>
+
+	<h3>2. Response</h3>
+	<pre><code>HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}</code></pre>
+	<p>Unlike plain JSON-RPC over a socket, errors also set a meaningful <strong>HTTP status</strong>, so clients and proxies can react
+		without parsing the body. The <code>error.code</code> is <code>0</code> unless a specific JSON-RPC code applies
+		(<code>-32601</code> unknown function, <code>-32001</code> permission denied, <code>-32000</code> duplicate request).
+		The full list is on the <a href="../error-codes/">Error Codes</a> page.</p>
+
+	<h3>3. Writing a function</h3>
+	<p>A method is a PostgreSQL function that takes <strong>exactly one argument of type <code>jsonb</code></strong>
+		and returns <code>json</code> or <code>jsonb</code>. Functions with other signatures are neither listed by
+		<code>capabilities</code> nor callable.</p>
+	<pre><code>CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload-&gt;&gt;'id')::int
+    ) u;
+$$;
+
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
+	<ul>
+		<li><strong>Return value.</strong> The JSON result is sent as <code>result</code>. A SQL <code>NULL</code> (as above, when no row matches)
+			becomes <code>"result": null</code>. The function must return valid JSON: a <code>text</code> return type fails with 500 unless the
+			text happens to be JSON &mdash; use <code>to_json('hi'::text)</code> for a string result.</li>
+		<li><strong>Errors inside the function.</strong> <code>RAISE EXCEPTION</code> or any SQL error aborts the call with HTTP 500 and the generic
+			message <code>Function call failed</code>; the real PostgreSQL message is only written to the server log, so schema details do not leak.
+			Report expected business errors (not found, validation) in the return value instead, for example
+			<code>{"ok": false, "reason": "..."}</code>.</li>
+		<li><strong>Transactions.</strong> Each call runs in one transaction that is committed when the function returns and rolled back on any error.</li>
+		<li><strong>Permissions.</strong> The call runs as the authenticated PostgreSQL role, so <code>GRANT</code>, <code>REVOKE</code> and Row-Level Security decide
+			what a caller can do. A role needs <code>USAGE</code> on the schema and <code>EXECUTE</code> on the function. PostgreSQL grants
+			<code>EXECUTE</code> on new functions to everyone by default, so revoke that
+			(<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>) and keep exposed functions in a dedicated schema &mdash; see <a href="../security-roles/">Security</a>.</li>
+	</ul>
+
+	<h3>4. Describing a function for clients and AI agents</h3>
+	<p>The first line of the function's comment is its description; a JSON object after <code>--- PARAMS ---</code> describes the parameters
+		(JSON Schema <code>properties</code>). Both appear in <code>capabilities</code>, the OpenAPI spec and MCP <code>tools/list</code>:</p>
+	<pre><code>COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';</code></pre>
+	<p>A comment with malformed JSON after the marker is ignored (the function falls back to a generic parameter description) and never breaks discovery.</p>
+
+	<h3>5. Built-in methods</h3>
+	<h4><code>capabilities</code></h4>
+	<p>Lists the functions the authenticated role may call (<code>EXECUTE</code> and schema <code>USAGE</code>); system schemas and extension functions are hidden.
+		Each entry has <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> and
+		<code>kind</code> (<code>rpc</code>, or <code>file</code> for <a href="../file-download/">file functions</a>).</p>
+	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
+	<h4><code>get_jwt</code></h4>
+	<p>Exchanges a PostgreSQL login and password for a JWT. It is only available when <code>JWT_SECRET</code> is configured; otherwise it returns 404 / <code>-32601</code>.
+		Every attempt counts against the login rate limit.</p>
+	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+
+	<h3>6. Authentication</h3>
+	<p>Every request needs an <code>Authorization</code> header; a request without one is rejected with 401 before any database connection is opened.</p>
+	<table>
+		<thead><tr><th>Header</th><th>What happens</th></tr></thead>
+		<tbody>
+			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>A connection pool authenticated as that PostgreSQL user. Simplest; no tokens. Send it over HTTPS only.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token from <code>get_jwt</code> (or your own identity provider). PgArachne switches to the token's role with <code>SET LOCAL ROLE</code>; the service role needs <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Long-lived token minted with <code>pgarachne.add_api_token(...)</code>, bound to a role. Good for services.</td></tr>
+		</tbody>
+	</table>
+	<p>Failed attempts are rate limited (HTTP 429). All details, token lifetimes and an external identity provider are on the <a href="../security-roles/">Security &amp; Authentication</a> page.</p>
+
+	<h3>7. Idempotency</h3>
+	<p>Add <code>"idempotencyKey": "order-42"</code> to make a call safe to retry. The first call with a key runs normally; a repeated key is rejected
+		<em>before</em> the function runs with HTTP 409 and <code>-32000</code> "This request has already been processed". The key is stored in the same
+		transaction as the call, so a call that failed (and rolled back) can be retried with the same key. Keys are namespaced per role.</p>
+	<ul>
+		<li>With <strong>JWT or API token</strong> authentication this works out of the box.</li>
+		<li>With <strong>Basic</strong> authentication the user itself writes the key, so it needs <code>USAGE</code> on schema <code>pgarachne</code> and
+			<code>INSERT</code> on <code>pgarachne.requests</code> (otherwise the call fails with 500 <code>Idempotency check failed</code>).</li>
+		<li>Old keys are not removed automatically &mdash; schedule <code>pgarachne.cleanup_idempotency_keys()</code> (see <a href="../idempotency-cleanup/">Idempotency Key Cleanup</a>).</li>
+	</ul>
+
+	<h3>8. Limits</h3>
+	<ul>
+		<li>Request body: <code>MAX_REQUEST_BYTES</code> (default 2&nbsp;MiB), otherwise 413.</li>
+		<li><code>method</code> and <code>idempotencyKey</code>: 256 characters each.</li>
+		<li>Authentication failures: <code>LOGIN_RATE_LIMIT</code> / <code>LOGIN_RATE_LIMIT_PER_IP</code> per <code>LOGIN_RATE_WINDOW</code> (see <a href="../configuration/">Configuration</a>).</li>
+	</ul>
+
+	<h3>9. Calling it</h3>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'</code></pre>
+	<p>From a web page use <code>fetch()</code> with the same header and body; a complete, copy-and-paste page (including SSE and file download) is in the
+		<a href="../quickstart/">Quick Start</a>.</p>
+</section>

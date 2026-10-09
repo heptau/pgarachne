@@ -1,0 +1,131 @@
+---
+title: "JSON-RPC"
+description: "Opis punktu końcowego JSON-RPC 2.0 - format żądania i odpowiedzi, pisanie funkcji, błędy, idempotencja - PgArachne"
+aliases:
+  - /hello-world-example/
+menu:
+  main:
+    name: "JSON-RPC"
+    weight: 60
+---
+
+<section id="json-rpc">
+	<h2>JSON-RPC</h2>
+	<p class="section-intro">
+		<code>POST /{prefix}/{database}/jsonrpc</code> wywołuje funkcję PostgreSQL i zwraca jej wynik jako odpowiedź
+		<a href="https://www.jsonrpc.org/specification" target="_blank">JSON-RPC 2.0</a>. Ta strona jest opisem referencyjnym;
+		pierwszy działający przykład znajdziesz w <a href="../quickstart/">Szybkim starcie</a>.
+	</p>
+
+	<h3>1. Żądanie</h3>
+	<pre><code>POST /db/my_database/jsonrpc
+Authorization: Basic ...            (lub Bearer &lt;jwt / api token&gt;)
+Content-Type: application/json
+
+{"jsonrpc": "2.0", "method": "api.hello_world", "params": {"name": "Alice"}, "id": 1}</code></pre>
+	<table>
+		<thead><tr><th>Pole</th><th>Opis</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Wymagane. <code>schema.function</code>, najwyżej 256 znaków. Dozwolone są identyfikatory w cudzysłowie (<code>"my schema"."my fn"</code>). Schemat jest obowiązkowy: samo <code>hello_world</code> jest odrzucane kodem 400. Dwie nazwy są specjalne: <code>capabilities</code> i <code>get_jwt</code> (sekcja 5).</td></tr>
+			<tr><td><code>params</code></td><td>Dowolna wartość JSON, przekazywana funkcji bez zmian jako jej argument <code>jsonb</code>. Brak lub <code>null</code> staje się <code>{}</code>. Konwencją są obiekty; tablice i wartości skalarne również działają.</td></tr>
+			<tr><td><code>id</code></td><td>Dowolna wartość JSON; jest kopiowana do odpowiedzi. Jeśli jej brak, odpowiedź zawiera <code>"id": null</code> (nie ma powiadomień typu fire-and-forget).</td></tr>
+			<tr><td><code>jsonrpc</code></td><td>Zwykle <code>"2.0"</code>; nie jest walidowane na wejściu, odpowiedź zawsze niesie <code>"2.0"</code>.</td></tr>
+			<tr><td><code>idempotencyKey</code></td><td>Opcjonalne rozszerzenie (sekcja 7). Najwyżej 256 znaków.</td></tr>
+		</tbody>
+	</table>
+	<p><strong>Żądania wsadowe</strong> (tablica JSON z wywołaniami) nie są obsługiwane i zwracają 400 &mdash; wysyłaj jedno wywołanie na żądanie HTTP.</p>
+
+	<h3>2. Odpowiedź</h3>
+	<pre><code>HTTP 200  {"jsonrpc":"2.0","result":{"message":"Hello, Alice!"},"id":1}
+
+HTTP 404  {"jsonrpc":"2.0","error":{"code":-32601,"message":"Function does not exist"},"id":1}</code></pre>
+	<p>W odróżnieniu od zwykłego JSON-RPC przez gniazdo, błędy ustawiają także sensowny <strong>status HTTP</strong>, więc klienci i proxy mogą reagować
+		bez parsowania treści. <code>error.code</code> wynosi <code>0</code>, chyba że ma zastosowanie konkretny kod JSON-RPC
+		(<code>-32601</code> nieznana funkcja, <code>-32001</code> brak uprawnień, <code>-32000</code> zduplikowane żądanie).
+		Pełną listę znajdziesz na stronie <a href="../error-codes/">Kody błędów</a>.</p>
+
+	<h3>3. Pisanie funkcji</h3>
+	<p>Metoda to funkcja PostgreSQL przyjmująca <strong>dokładnie jeden argument typu <code>jsonb</code></strong>
+		i zwracająca <code>json</code> lub <code>jsonb</code>. Funkcje o innych sygnaturach nie są wymieniane przez
+		<code>capabilities</code> ani nie da się ich wywołać.</p>
+	<pre><code>CREATE OR REPLACE FUNCTION api.find_user(payload jsonb DEFAULT '{}'::jsonb)
+RETURNS json LANGUAGE sql STABLE AS $$
+    SELECT row_to_json(u) FROM (
+        SELECT id, name FROM app.users WHERE id = (payload-&gt;&gt;'id')::int
+    ) u;
+$$;
+
+GRANT USAGE ON SCHEMA api TO web_user;
+GRANT EXECUTE ON FUNCTION api.find_user(jsonb) TO web_user;</code></pre>
+	<ul>
+		<li><strong>Wartość zwracana.</strong> Wynik JSON jest wysyłany jako <code>result</code>. SQL-owe <code>NULL</code> (jak wyżej, gdy żaden wiersz nie pasuje)
+			staje się <code>"result": null</code>. Funkcja musi zwracać poprawny JSON: zwracany typ <code>text</code> kończy się błędem 500, chyba że
+			tekst akurat jest JSON-em &mdash; dla wyniku w postaci napisu użyj <code>to_json('hi'::text)</code>.</li>
+		<li><strong>Błędy wewnątrz funkcji.</strong> <code>RAISE EXCEPTION</code> lub dowolny błąd SQL przerywa wywołanie kodem HTTP 500 i ogólnym
+			komunikatem <code>Function call failed</code>; prawdziwy komunikat PostgreSQL trafia tylko do logu serwera, więc szczegóły schematu nie wyciekają.
+			Oczekiwane błędy biznesowe (nie znaleziono, walidacja) zgłaszaj raczej w wartości zwracanej, na przykład
+			<code>{"ok": false, "reason": "..."}</code>.</li>
+		<li><strong>Transakcje.</strong> Każde wywołanie działa w jednej transakcji, zatwierdzanej, gdy funkcja zwróci wynik, i wycofywanej przy każdym błędzie.</li>
+		<li><strong>Uprawnienia.</strong> Wywołanie działa jako uwierzytelniona rola PostgreSQL, więc <code>GRANT</code>, <code>REVOKE</code> i Row-Level Security decydują,
+			co wolno wywołującemu. Rola potrzebuje <code>USAGE</code> na schemacie i <code>EXECUTE</code> na funkcji. PostgreSQL domyślnie nadaje
+			<code>EXECUTE</code> na nowych funkcjach wszystkim, więc cofnij to
+			(<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code>) i trzymaj udostępniane funkcje w dedykowanym schemacie &mdash; zobacz <a href="../security-roles/">Bezpieczeństwo i uwierzytelnianie</a>.</li>
+	</ul>
+
+	<h3>4. Opisywanie funkcji dla klientów i agentów AI</h3>
+	<p>Pierwsza linia komentarza funkcji jest jej opisem; obiekt JSON po <code>--- PARAMS ---</code> opisuje parametry
+		(<code>properties</code> w JSON Schema). Oba pojawiają się w <code>capabilities</code>, w specyfikacji OpenAPI i w MCP <code>tools/list</code>:</p>
+	<pre><code>COMMENT ON FUNCTION api.find_user(jsonb) IS 'Looks up a user by id.
+--- PARAMS ---
+{"id": {"type": "integer", "description": "User id"}}';</code></pre>
+	<p>Komentarz z błędnym JSON-em po znaczniku jest ignorowany (funkcja wraca do ogólnego opisu parametrów) i nigdy nie psuje wykrywania.</p>
+
+	<h3>5. Wbudowane metody</h3>
+	<h4><code>capabilities</code></h4>
+	<p>Wyświetla funkcje, które uwierzytelniona rola może wywołać (<code>EXECUTE</code> i <code>USAGE</code> na schemacie); schematy systemowe i funkcje rozszerzeń są ukryte.
+		Każdy wpis ma <code>method</code>, <code>description</code>, <code>parameters</code>, <code>http_method</code>, <code>endpoint</code> oraz
+		<code>kind</code> (<code>rpc</code> lub <code>file</code> dla <a href="../file-download/">funkcji plikowych</a>).</p>
+	<pre><code>{"jsonrpc":"2.0","method":"capabilities","id":1}</code></pre>
+	<h4><code>get_jwt</code></h4>
+	<p>Wymienia login i hasło PostgreSQL na JWT. Jest dostępna tylko wtedy, gdy skonfigurowano <code>JWT_SECRET</code>; w przeciwnym razie zwraca 404 / <code>-32601</code>.
+		Każda próba wlicza się do limitu prób logowania.</p>
+	<pre><code>{"jsonrpc":"2.0","method":"get_jwt","params":{"login":"web_user","password":"..."},"id":1}
+→ {"jsonrpc":"2.0","result":{"token":"eyJhbGciOi..."},"id":1}</code></pre>
+
+	<h3>6. Uwierzytelnianie</h3>
+	<p>Każde żądanie wymaga nagłówka <code>Authorization</code>; żądanie bez niego jest odrzucane kodem 401, zanim zostanie otwarte jakiekolwiek połączenie z bazą danych.</p>
+	<table>
+		<thead><tr><th>Nagłówek</th><th>Co się dzieje</th></tr></thead>
+		<tbody>
+			<tr><td><code>Basic &lt;base64(user:password)&gt;</code></td><td>Pula połączeń uwierzytelniona jako ten użytkownik PostgreSQL. Najprostsze; bez tokenów. Wysyłaj tylko przez HTTPS.</td></tr>
+			<tr><td><code>Bearer &lt;jwt&gt;</code></td><td>Token z <code>get_jwt</code> (lub z własnego dostawcy tożsamości). PgArachne przełącza się na rolę z tokenu przez <code>SET LOCAL ROLE</code>; rola serwisowa potrzebuje <code>GRANT user TO pgarachne</code>.</td></tr>
+			<tr><td><code>Bearer &lt;api token&gt;</code></td><td>Długotrwały token utworzony przez <code>pgarachne.add_api_token(...)</code>, powiązany z rolą. Dobry dla usług.</td></tr>
+		</tbody>
+	</table>
+	<p>Nieudane próby są ograniczane limitem (HTTP 429). Wszystkie szczegóły, czasy życia tokenów i zewnętrzny dostawca tożsamości są na stronie <a href="../security-roles/">Bezpieczeństwo i uwierzytelnianie</a>.</p>
+
+	<h3>7. Idempotencja</h3>
+	<p>Dodaj <code>"idempotencyKey": "order-42"</code>, aby wywołanie można było bezpiecznie ponowić. Pierwsze wywołanie z danym kluczem wykonuje się normalnie; powtórzony klucz jest odrzucany
+		<em>przed</em> uruchomieniem funkcji kodem HTTP 409 i <code>-32000</code> „This request has already been processed". Klucz jest zapisywany w tej samej
+		transakcji co wywołanie, więc wywołanie, które się nie powiodło (i zostało wycofane), można ponowić z tym samym kluczem. Klucze są rozdzielone per rola.</p>
+	<ul>
+		<li>Przy uwierzytelnianiu <strong>JWT lub tokenem API</strong> działa to od razu.</li>
+		<li>Przy uwierzytelnianiu <strong>Basic</strong> klucz zapisuje sam użytkownik, więc potrzebuje <code>USAGE</code> na schemacie <code>pgarachne</code> oraz
+			<code>INSERT</code> na <code>pgarachne.requests</code> (w przeciwnym razie wywołanie kończy się błędem 500 <code>Idempotency check failed</code>).</li>
+		<li>Stare klucze nie są usuwane automatycznie &mdash; zaplanuj <code>pgarachne.cleanup_idempotency_keys()</code> (zobacz <a href="../idempotency-cleanup/">Czyszczenie kluczy idempotencji</a>).</li>
+	</ul>
+
+	<h3>8. Limity</h3>
+	<ul>
+		<li>Treść żądania: <code>MAX_REQUEST_BYTES</code> (domyślnie 2&nbsp;MiB), w przeciwnym razie 413.</li>
+		<li><code>method</code> i <code>idempotencyKey</code>: po 256 znaków.</li>
+		<li>Niepowodzenia uwierzytelniania: <code>LOGIN_RATE_LIMIT</code> / <code>LOGIN_RATE_LIMIT_PER_IP</code> na <code>LOGIN_RATE_WINDOW</code> (zobacz <a href="../configuration/">Konfiguracja</a>).</li>
+	</ul>
+
+	<h3>9. Wywołanie</h3>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/jsonrpc \
+  -u web_user:password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.find_user","params":{"id":1},"id":1}'</code></pre>
+	<p>Ze strony internetowej użyj <code>fetch()</code> z tym samym nagłówkiem i treścią; kompletna strona do skopiowania i wklejenia (wraz z SSE i pobieraniem plików) jest w
+		<a href="../quickstart/">Szybkim starcie</a>.</p>
+</section>
