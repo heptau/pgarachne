@@ -16,6 +16,7 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Changed
 
+- Dependencies: refreshed all Go modules to their latest minor/patch releases (gin-contrib/cors 1.7.9, prometheus/client_golang 1.25.0, validator 10.30.5, go-json 0.11.2, and indirect updates).
 - Dependencies: `golang.org/x/net` v0.58.0 → v0.60.0 (with `x/sys`, `x/text`) to fix govulncheck findings GO-2026-6603/6611/6612/6617; CI's `setup-go` now uses `check-latest: true` so fresh Go stdlib security patches (1.26.9) are picked up immediately.
 - **Upgrade note:** re-apply `sql/schema.sql` (it is idempotent) to get the new `kind` field in `capabilities()` and the `/file` operation in the OpenAPI spec; the binary also works against the old schema, it just won't report `kind`. Additive only — existing JSON-RPC and MCP clients are unaffected, except that functions following the file contract no longer appear in MCP `tools/list`.
 - Docs: configuration (`FILE_MAX_BYTES`, `FILE_MAX_ENTRIES`, endpoint list), metrics (`pgarachne_file_requests_total`), error codes (HTTP 413), About/Architecture and Architectural Decisions (URL structure) updated in all 10 languages; README, `config/example.pgarachne.env` and `llms.txt` updated.
