@@ -1,0 +1,85 @@
+---
+title: "Завантаження файлів (/file)"
+description: "Бінарні файли та ZIP із функцій PostgreSQL - PgArachne"
+menu:
+  main:
+    name: "Завантаження файлів"
+    weight: 72
+---
+
+<section id="file-download">
+	<h2>Завантаження файлів</h2>
+	<p>Ендпоінт <code>/file</code> віддає бінарні файли, згенеровані функцією PostgreSQL, без base64 всередині
+		JSON-RPC. Один повернений файл надсилається як є; кілька файлів пакуються в ZIP-архів на льоту.</p>
+	<pre><code>POST /{prefix}/{database}/file</code></pre>
+	<p>Автентифікація, перемикання ролі (<code>SET LOCAL ROLE</code>), обмеження частоти запитів і ліміт розміру
+		запиту ідентичні <code>/jsonrpc</code>. Викликач повинен мати <code>EXECUTE</code> на функцію.</p>
+
+	<h3>Запит</h3>
+	<pre><code>{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "optional"
+}</code></pre>
+	<table>
+		<thead><tr><th>Поле</th><th>Опис</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Обов'язкове. <code>schema.function</code>, викликається як <code>fn(params::jsonb)</code>.</td></tr>
+			<tr><td><code>params</code></td><td>Передається функції як <code>jsonb</code> (за умовчанням <code>{}</code>).</td></tr>
+			<tr><td><code>options.filename</code></td><td>Ім'я завантаженого файлу/ZIP. За умовчанням: власне ім'я файлу або <code>export-YYYYMMDD-HHMMSS.zip</code>.</td></tr>
+			<tr><td><code>options.force_zip</code></td><td>Завжди повертати ZIP, навіть для одного файлу.</td></tr>
+			<tr><td><code>options.compression_level</code></td><td><code>0</code> = без стиснення, <code>1</code>–<code>9</code>; за умовчанням <code>6</code>.</td></tr>
+		</tbody>
+	</table>
+
+	<h3>Контракт бази даних</h3>
+	<p>Функція приймає один аргумент <code>jsonb</code> і повертає набір рядків. <code>path</code> та
+		<code>content</code> обов'язкові; <code>mime_type</code> і <code>store_only</code> необов'язкові.</p>
+	<pre><code>CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;</code></pre>
+	<ul>
+		<li><code>path</code> має бути простим відносним шляхом: без порожніх сегментів і <code>..</code>, без початкового <code>/</code>,
+			без зворотних скісних рисок і керівних символів, унікальним у межах відповіді. Інакше запит завершується помилкою 500.</li>
+		<li><code>content</code> зі значенням <code>NULL</code> означає порожній файл.</li>
+		<li><code>mime_type</code> використовується лише якщо це коректний медіатип, інакше визначається за розширенням
+			(запасне значення <code>application/octet-stream</code>).</li>
+		<li><code>store_only = true</code> зберігає запис ZIP без стиснення (потрібно, наприклад, для файлу <code>mimetype</code> в EPUB).</li>
+	</ul>
+
+	<h3>Відповідь</h3>
+	<table>
+		<thead><tr><th>Рядки</th><th><code>force_zip</code></th><th>Результат</th></tr></thead>
+		<tbody>
+			<tr><td>0</td><td>будь-яке</td><td>404 (помилка JSON)</td></tr>
+			<tr><td>1</td><td>false</td><td>сам файл з його медіатипом</td></tr>
+			<tr><td>1</td><td>true</td><td>ZIP з одним записом</td></tr>
+			<tr><td>≥ 2</td><td>будь-яке</td><td>ZIP (<code>application/zip</code>)</td></tr>
+		</tbody>
+	</table>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Помилки завжди повертаються у форматі JSON, ніколи як бінарні дані: <code>400</code> некоректний запит, <code>401</code> не автентифіковано,
+		<code>403</code> немає дозволу, <code>404</code> невідома функція або немає рядків, <code>413</code> відповідь
+		перевищує <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> функція завершилася помилкою або
+		повернула некоректну структуру.</p>
+
+	<div class="warning">
+		<h3>Безпечно за конструкцією</h3>
+		<p>База даних керує лише іменами файлів, вмістом і медіатипами — ніколи HTTP-заголовками. Відповіді завжди мають
+			<code>Content-Disposition: attachment</code> разом з <code>X-Content-Type-Options: nosniff</code>,
+			<code>Content-Security-Policy: sandbox</code> і <code>Cache-Control: no-store</code>, тож функція,
+			що повертає <code>text/html</code> або SVG, не може виконати скрипт в origin API. Імена файлів санітизуються.
+			Весь результат буферизується в пам'яті (обмежений <code>FILE_MAX_BYTES</code>); сам ZIP передається потоком.</p>
+	</div>
+
+	<h3>Виявлення</h3>
+	<p>Функція, що повертає набір рядків зі стовпцями результату <code>path</code> і <code>content</code>, відображається в
+		<code>capabilities</code> з <code>"kind": "file"</code> та ендпоінтом <code>/file</code>. Специфікація OpenAPI
+		описує реальну операцію <code>POST /{prefix}/{database}/file</code> (лише для ролей, які можуть виконувати файлову
+		функцію); файлові функції не відкриваються як інструменти MCP.</p>
+</section>

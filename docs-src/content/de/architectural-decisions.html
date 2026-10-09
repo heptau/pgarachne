@@ -144,7 +144,7 @@ menu:
 		<h3>6. URL-Struktur: <code>/{prefix}/{datenbank}/{endpunkt}</code></h3>
 		<p>
 			PgArachne leitet alle Endpunkte unter einem konfigurierbaren Präfix-Segment weiter:
-			<code>/db/{datenbank}/jsonrpc</code>, <code>/db/{datenbank}/sse</code>, <code>/db/{datenbank}/mcp</code>.
+			<code>/db/{datenbank}/jsonrpc</code>, <code>/db/{datenbank}/file</code>, <code>/db/{datenbank}/sse</code>, <code>/db/{datenbank}/mcp</code>.
 			Der Präfix ist standardmäßig <code>db</code> und kann über <code>API_PREFIX</code> geändert werden.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Reverse-Proxy-Routing:</strong> Eine einzelne PgArachne-Instanz kann mehrere Datenbanken bedienen. Ein Reverse-Proxy (Nginx, Caddy, Traefik) kann nach Präfix oder Datenbankname routen, ohne den Request-Body zu inspizieren — entscheidend für Load Balancing und pfadbasierte Regeln.</li>
 			<li><strong>Horizontale Skalierbarkeit:</strong> Mit dem Datenbanknamen im URL-Pfad können mehrere PgArachne-Instanzen betrieben werden, wobei der Datenverkehr über Standard-Proxy-Regeln zu datenbankspezifischen Instanzen geleitet wird — ohne Sticky Sessions oder Body-Inspektion.</li>
-			<li><strong>Protokoll-Multiplexing pro Datenbank:</strong> Die Gruppierung von <code>/jsonrpc</code>, <code>/sse</code> und <code>/mcp</code> unter demselben <code>/{prefix}/{datenbank}/</code>-Namensraum ermöglicht es, datenbankspezifische Authentifizierung, Rate Limiting und Zugriffskontrolle auf Proxy-Ebene anzuwenden.</li>
+			<li><strong>Protokoll-Multiplexing pro Datenbank:</strong> Die Gruppierung von <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> und <code>/mcp</code> unter demselben <code>/{prefix}/{datenbank}/</code>-Namensraum ermöglicht es, datenbankspezifische Authentifizierung, Rate Limiting und Zugriffskontrolle auf Proxy-Ebene anzuwenden.</li>
 			<li><strong>Konfigurierbarer Präfix:</strong> Deployments, die bereits <code>/api/</code> als Präfix in ihrer Infrastruktur verwenden, können <code>API_PREFIX=api</code> setzen.</li>
 			<li><strong>Beobachtbarkeit:</strong> Log-Aggregatoren und Metriksysteme können den Datenverkehr direkt anhand des Datenbanknamens aus der URL gruppieren und filtern, ohne JSON-Bodies zu parsen.</li>
 		</ul>

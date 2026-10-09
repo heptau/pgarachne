@@ -1,0 +1,85 @@
+---
+title: "Λήψη Αρχείων (/file)"
+description: "Δυαδικά αρχεία και ZIP από συναρτήσεις PostgreSQL - PgArachne"
+menu:
+  main:
+    name: "Λήψη Αρχείων"
+    weight: 72
+---
+
+<section id="file-download">
+	<h2>Λήψη Αρχείων</h2>
+	<p>Το endpoint <code>/file</code> σερβίρει δυαδικά αρχεία που παράγονται από μια συνάρτηση PostgreSQL — χωρίς base64 μέσα
+		στο JSON-RPC. Ένα επιστρεφόμενο αρχείο αποστέλλεται ως έχει· πολλά αρχεία πακετάρονται σε αρχείο ZIP εν κινήσει.</p>
+	<pre><code>POST /{prefix}/{database}/file</code></pre>
+	<p>Η πιστοποίηση, η εναλλαγή ρόλου (<code>SET LOCAL ROLE</code>), το rate limiting και το όριο μεγέθους του request
+		είναι ίδια με το <code>/jsonrpc</code>. Ο καλών χρειάζεται <code>EXECUTE</code> στη συνάρτηση.</p>
+
+	<h3>Request</h3>
+	<pre><code>{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "optional"
+}</code></pre>
+	<table>
+		<thead><tr><th>Πεδίο</th><th>Περιγραφή</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Υποχρεωτικό. <code>schema.function</code>, καλείται ως <code>fn(params::jsonb)</code>.</td></tr>
+			<tr><td><code>params</code></td><td>Περνά στη συνάρτηση ως <code>jsonb</code> (προεπιλογή <code>{}</code>).</td></tr>
+			<tr><td><code>options.filename</code></td><td>Όνομα του αρχείου/ZIP που λαμβάνεται. Προεπιλογή: το ίδιο το όνομα του αρχείου ή <code>export-YYYYMMDD-HHMMSS.zip</code>.</td></tr>
+			<tr><td><code>options.force_zip</code></td><td>Επιστρέφει πάντα ZIP, ακόμη και για ένα αρχείο.</td></tr>
+			<tr><td><code>options.compression_level</code></td><td><code>0</code> = μόνο αποθήκευση, <code>1</code>–<code>9</code>· προεπιλογή <code>6</code>.</td></tr>
+		</tbody>
+	</table>
+
+	<h3>Συμβόλαιο βάσης δεδομένων</h3>
+	<p>Η συνάρτηση δέχεται ένα όρισμα <code>jsonb</code> και επιστρέφει ένα σύνολο γραμμών. Τα <code>path</code> και
+		<code>content</code> είναι υποχρεωτικά· τα <code>mime_type</code> και <code>store_only</code> είναι προαιρετικά.</p>
+	<pre><code>CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;</code></pre>
+	<ul>
+		<li>Το <code>path</code> πρέπει να είναι απλή σχετική διαδρομή: χωρίς κενά τμήματα ή <code>..</code>, χωρίς αρχικό <code>/</code>,
+			χωρίς backslashes ή χαρακτήρες ελέγχου, μοναδική μέσα στην απάντηση. Διαφορετικά το request αποτυγχάνει με 500.</li>
+		<li>Το <code>content</code> με τιμή <code>NULL</code> σημαίνει κενό αρχείο.</li>
+		<li>Το <code>mime_type</code> χρησιμοποιείται μόνο αν είναι έγκυρος τύπος μέσου, αλλιώς προκύπτει από την επέκταση
+			(εφεδρικά <code>application/octet-stream</code>).</li>
+		<li>Το <code>store_only = true</code> αποθηκεύει την εγγραφή ZIP χωρίς συμπίεση (απαιτείται π.χ. για το αρχείο <code>mimetype</code> του EPUB).</li>
+	</ul>
+
+	<h3>Απάντηση</h3>
+	<table>
+		<thead><tr><th>Γραμμές</th><th><code>force_zip</code></th><th>Αποτέλεσμα</th></tr></thead>
+		<tbody>
+			<tr><td>0</td><td>οποιοδήποτε</td><td>404 (σφάλμα JSON)</td></tr>
+			<tr><td>1</td><td>false</td><td>το ίδιο το αρχείο, με τον τύπο μέσου του</td></tr>
+			<tr><td>1</td><td>true</td><td>ZIP με μία εγγραφή</td></tr>
+			<tr><td>≥ 2</td><td>οποιοδήποτε</td><td>ZIP (<code>application/zip</code>)</td></tr>
+		</tbody>
+	</table>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Τα σφάλματα επιστρέφονται πάντα ως JSON, ποτέ ως δυαδικά δεδομένα: <code>400</code> μη έγκυρο request, <code>401</code> μη πιστοποιημένος,
+		<code>403</code> χωρίς δικαίωμα, <code>404</code> άγνωστη συνάρτηση ή καθόλου γραμμές, <code>413</code> η απάντηση
+		υπερβαίνει το <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> η συνάρτηση απέτυχε ή
+		επέστρεψε μη έγκυρη δομή.</p>
+
+	<div class="warning">
+		<h3>Ασφαλές εκ κατασκευής</h3>
+		<p>Η βάση δεδομένων ελέγχει μόνο ονόματα αρχείων, περιεχόμενα και τύπους μέσων — ποτέ τις κεφαλίδες HTTP. Οι απαντήσεις έχουν πάντα
+			<code>Content-Disposition: attachment</code> μαζί με <code>X-Content-Type-Options: nosniff</code>,
+			<code>Content-Security-Policy: sandbox</code> και <code>Cache-Control: no-store</code>, έτσι ώστε μια συνάρτηση
+			που επιστρέφει <code>text/html</code> ή SVG να μην μπορεί να εκτελέσει script στο origin του API. Τα ονόματα αρχείων καθαρίζονται (sanitised).
+			Ολόκληρο το αποτέλεσμα αποθηκεύεται προσωρινά στη μνήμη (με όριο το <code>FILE_MAX_BYTES</code>)· το ίδιο το ZIP αποστέλλεται σε ροή.</p>
+	</div>
+
+	<h3>Ανακάλυψη</h3>
+	<p>Μια συνάρτηση που επιστρέφει σύνολο γραμμών με στήλες αποτελέσματος <code>path</code> και <code>content</code> αναφέρεται από το
+		<code>capabilities</code> με <code>"kind": "file"</code> και endpoint <code>/file</code>. Η προδιαγραφή OpenAPI
+		τεκμηριώνει μια πραγματική λειτουργία <code>POST /{prefix}/{database}/file</code> (μόνο για ρόλους που μπορούν να εκτελέσουν
+		συνάρτηση αρχείου)· οι συναρτήσεις αρχείων δεν εκτίθενται ως εργαλεία MCP.</p>
+</section>

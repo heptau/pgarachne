@@ -121,7 +121,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
-				<td>Πρώτο τμήμα διαδρομής URL για όλα τα endpoints βάσης δεδομένων (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Προεπιλογή: <code>db</code>, δίνοντας διαδρομές όπως <code>/db/:database/jsonrpc</code>. Επιτρέπονται μόνο γράμματα, ψηφία, ενωτικά και κάτω παύλες.</td>
+				<td>Πρώτο τμήμα διαδρομής URL για όλα τα endpoints βάσης δεδομένων (<code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code>, <code>/mcp</code>). Προεπιλογή: <code>db</code>, δίνοντας διαδρομές όπως <code>/db/:database/jsonrpc</code>. Επιτρέπονται μόνο γράμματα, ψηφία, ενωτικά και κάτω παύλες.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -192,6 +192,16 @@ DB_USER=pgarachne
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
 				<td>Έμπιστες IP/CIDR proxy για τον χειρισμό του <code>X-Forwarded-For</code>. Χωρισμένες με κόμμα. Αν είναι κενό, οι forwarded headers αγνοούνται και η IP client λαμβάνεται από την άμεση σύνδεση.</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστο συνολικό μη συμπιεσμένο μέγεθος μιας απάντησης <a href="../file-download/"><code>/file</code></a> σε bytes. Προεπιλογή: <code>67108864</code> (64 MiB).</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_ENTRIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Προαιρετικό" aria-label="Προαιρετικό">○</span></td>
+				<td>Μέγιστο πλήθος αρχείων σε μια απάντηση <code>/file</code>. Προεπιλογή: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>

@@ -121,7 +121,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
-				<td>First URL path segment for all database endpoints (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Default: <code>db</code>, giving routes like <code>/db/:database/jsonrpc</code>. Only letters, digits, hyphens and underscores are allowed.</td>
+				<td>First URL path segment for all database endpoints (<code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code>, <code>/mcp</code>). Default: <code>db</code>, giving routes like <code>/db/:database/jsonrpc</code>. Only letters, digits, hyphens and underscores are allowed.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -192,6 +192,16 @@ DB_USER=pgarachne
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
 				<td>Trusted proxy IPs/CIDRs for <code>X-Forwarded-For</code> handling. Comma-separated. If empty, forwarded headers are ignored and client IP is taken from the direct connection.</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Max total uncompressed size of a <a href="../file-download/"><code>/file</code></a> response in bytes. Default: <code>67108864</code> (64 MiB).</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_ENTRIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Optional" aria-label="Optional">○</span></td>
+				<td>Max number of files in a <code>/file</code> response. Default: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>

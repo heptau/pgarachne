@@ -1,0 +1,189 @@
+---
+title: "Step-by-Step Browser Tutorial"
+description: "Minimal step-by-step guide - PostgreSQL, PgArachne and a web page using JSON-RPC, SSE and file download - PgArachne"
+menu:
+  main:
+    name: "Browser Tutorial"
+    weight: 37
+---
+
+<section id="browser-tutorial">
+	<h2>Step-by-Step Browser Tutorial</h2>
+	<p class="section-intro">
+		The smallest possible working setup: a PostgreSQL database, PgArachne, and one plain HTML page that logs in
+		with HTTP Basic authentication and uses three endpoints &mdash; <strong>JSON-RPC</strong>,
+		<strong>SSE</strong> and <strong>file download</strong>. No framework and no JavaScript library.
+	</p>
+	<p>Download the finished example and follow along:
+		<a href="../../demo/setup.sql" download><code>setup.sql</code></a> (database) and
+		<a href="../../demo/index.html" download><code>index.html</code></a> (web page).</p>
+
+	<h3>1. Prerequisites</h3>
+	<ul>
+		<li>A running PostgreSQL server and the <code>pgarachne</code> binary (see <a href="../installation/">Installation</a>).</li>
+		<li>A modern browser. Everything below works with the built-in <code>fetch()</code> &mdash; nothing to download.</li>
+	</ul>
+
+	<h3>2. Prepare the database</h3>
+	<p>PgArachne itself connects as a <em>service role</em> and loads its helper schema. Create both once:</p>
+	<pre><code>createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
+psql -d my_database -f sql/schema.sql       # PgArachne helper schema (from the repository)
+psql -d my_database -f setup.sql            # the demo role and functions (download above)</code></pre>
+	<p><code>setup.sql</code> creates a login role <code>webuser</code> (the person using the web page), a schema
+		<code>api</code> and three functions. How each one works is explained in steps 5&ndash;7.</p>
+
+	<div class="tip">
+		<strong>Permissions are the whole security model.</strong> A user can call a function only if PostgreSQL lets
+		them: <code>USAGE</code> on the schema and <code>EXECUTE</code> on the function. In the demo
+		<code>webuser</code> gets exactly those on three functions &mdash; nothing else is reachable.
+		PostgreSQL grants <code>EXECUTE</code> on new functions to everyone by default; for real projects run
+		<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code> and keep exposed functions in
+		a dedicated schema (see <a href="../security-roles/">Security</a>).
+	</div>
+
+	<h3>3. Configure and start PgArachne</h3>
+	<p>Create <code>pgarachne.env</code> next to the binary. <code>STATIC_FILES_PATH</code> makes PgArachne also serve
+		the web page, so the page and the API share one origin (no CORS setup needed):</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+DB_SSLMODE=disable                 # local, non-TLS PostgreSQL only
+STATIC_FILES_PATH=/path/to/folder/with/index.html</code></pre>
+	<p>The service role's password is read by the PostgreSQL driver from <code>PGPASSWORD</code> (or <code>~/.pgpass</code>).
+		<code>JWT_SECRET</code> is not needed &mdash; this tutorial uses Basic authentication only.</p>
+	<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
+	<p>Open <code>http://localhost:8080/</code> after you save <code>index.html</code> into that folder (step 8).
+		The role <code>webuser</code> must be allowed to log in to PostgreSQL from the PgArachne host
+		(<code>pg_hba.conf</code> with password authentication).</p>
+
+	<h3>4. Authentication: HTTP Basic</h3>
+	<p>The browser sends the PostgreSQL user and password with every request; PgArachne opens a connection as that
+		user, so all PostgreSQL permissions (and Row-Level Security) apply directly.</p>
+	<pre><code>// Authorization header. TextEncoder makes non-ASCII passwords work.
+function authHeader(user, pass) {
+  const bytes = new TextEncoder().encode(user + ":" + pass);
+  return "Basic " + btoa(String.fromCharCode(...bytes));
+}
+const base = location.origin + "/db/my_database";   // /{API_PREFIX}/{database}</code></pre>
+	<p>Wrong credentials return HTTP <code>401</code> with a JSON error; repeated failures are rate limited
+		(<code>429</code>).</p>
+
+	<h3>5. Endpoint 1 &mdash; JSON-RPC: call a function</h3>
+	<p><code>POST /db/{database}/jsonrpc</code> calls <code>schema.function(jsonb)</code>. The function takes one
+		<code>jsonb</code> argument and returns <code>json</code>.</p>
+	<p><strong>PostgreSQL</strong> (in <code>setup.sql</code>):</p>
+	<pre><code>CREATE FUNCTION api.greet(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE sql AS $$
+  SELECT json_build_object(
+    'message', 'Hello, ' || COALESCE(params-&gt;&gt;'name', 'world') || '!',
+    'database_user', current_user,
+    'server_time', now());
+$$;
+GRANT USAGE ON SCHEMA api TO webuser;
+GRANT EXECUTE ON FUNCTION api.greet(jsonb) TO webuser;</code></pre>
+	<p><strong>Browser:</strong></p>
+	<pre><code>async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+console.log(await rpc("api.greet", { name: "Alice" }));
+// { message: "Hello, Alice!", database_user: "webuser", server_time: "..." }</code></pre>
+	<p><strong>Test with curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.greet","params":{"name":"Alice"},"id":1}' \
+  http://localhost:8080/db/my_database/jsonrpc</code></pre>
+
+	<h3>6. Endpoint 2 &mdash; SSE: receive real-time messages</h3>
+	<p><code>GET /db/{database}/sse?channels=demo</code> streams PostgreSQL <code>NOTIFY</code> messages as
+		Server-Sent Events. Any function can publish with <code>pg_notify</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.send_message(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM pg_notify('demo', json_build_object('from', current_user, 'text', params-&gt;&gt;'text')::text);
+  RETURN '{"sent": true}'::json;
+END; $$;
+GRANT EXECUTE ON FUNCTION api.send_message(jsonb) TO webuser;</code></pre>
+	<p><strong>Browser.</strong> The built-in <code>EventSource</code> cannot send an <code>Authorization</code> header,
+		so read the stream with <code>fetch()</code>:</p>
+	<pre><code>async function listen(channels, onMessage, signal) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": authHeader(user, pass) }, signal,
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) &gt;= 0) {      // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));  // ":" lines are heartbeats
+    }
+  }
+}
+
+const controller = new AbortController();           // controller.abort() stops listening
+listen("demo", (m) =&gt; console.log(m), controller.signal);
+await rpc("api.send_message", { text: "Hello" });   // → { channel: "demo", data: { from: "webuser", text: "Hello" } }</code></pre>
+	<div class="warning">
+		<strong>Channels are not role-scoped:</strong> any authenticated user can subscribe to any channel name. Do not
+		<code>NOTIFY</code> data that not every user may see (details in <a href="../real-time-notifications/">Real-time Notifications</a>).
+	</div>
+	<p><strong>Test with curl:</strong> <code>curl -N -u webuser:webuser_password "http://localhost:8080/db/my_database/sse?channels=demo"</code>,
+		then call <code>api.send_message</code> from another terminal.</p>
+
+	<h3>7. Endpoint 3 &mdash; File: download a generated file</h3>
+	<p><code>POST /db/{database}/file</code> returns raw bytes (or a ZIP when the function returns several files) &mdash;
+		no base64 in JSON. The function returns rows <code>(path, content, mime_type, store_only)</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.export_report(params jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('id,name' || E'\n' || '1,Alice' || E'\n' || '2,Bob' || E'\n', 'UTF8'),
+         'text/csv', false;
+$$;
+GRANT EXECUTE ON FUNCTION api.export_report(jsonb) TO webuser;</code></pre>
+	<p>Return more rows to get a ZIP automatically. See <a href="../file-download/">File Download</a> for all options.</p>
+	<p><strong>Browser:</strong></p>
+	<pre><code>const res = await fetch(base + "/file", {
+  method: "POST",
+  headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+  body: JSON.stringify({ method: "api.export_report", params: {}, options: { filename: "report.csv" } }),
+});
+if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+const url = URL.createObjectURL(await res.blob());
+const a = Object.assign(document.createElement("a"), { href: url, download: "report.csv" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);</code></pre>
+	<p><strong>Test with curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"method":"api.export_report"}' http://localhost:8080/db/my_database/file -OJ</code></pre>
+
+	<h3>8. Put it together</h3>
+	<p>Save <a href="../../demo/index.html" download><code>index.html</code></a> into the <code>STATIC_FILES_PATH</code>
+		folder and open <code>http://localhost:8080/</code>. It contains the three snippets above wired to buttons
+		(~100 lines, no dependencies). Enter the database name, keep <code>webuser</code> /
+		<code>webuser_password</code>, and try each button: <em>Call api.greet</em>, <em>Start listening</em> then
+		<em>Send</em>, and <em>Download report.csv</em>.</p>
+
+	<h3>9. Going to production</h3>
+	<ul>
+		<li><strong>HTTPS:</strong> Basic credentials travel with every request &mdash; always use TLS (see <a href="../deployment-https/">Deployment &amp; HTTPS</a>) and change the demo password.</li>
+		<li><strong>Keep credentials in memory only</strong> (a variable), not in <code>localStorage</code>. For sessions without resending the password, enable <code>JWT_SECRET</code> and use <code>get_jwt</code> (see <a href="../security-roles/">Security</a>).</li>
+		<li><strong>Different origin</strong> for the web page (e.g. a CDN or another port): set <code>ALLOWED_ORIGINS=https://app.example.com</code>. Cross-origin requests are blocked by default.</li>
+		<li><strong>Least privilege:</strong> one PostgreSQL role per kind of user, <code>EXECUTE</code> only on the functions they need, Row-Level Security for per-user data.</li>
+	</ul>
+</section>

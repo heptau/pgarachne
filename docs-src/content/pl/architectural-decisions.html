@@ -144,7 +144,7 @@ menu:
 		<h3>6. Struktura URL: <code>/{prefix}/{database}/{endpoint}</code></h3>
 		<p>
 			PgArachne kieruje wszystkie endpointy pod konfigurowalny segment prefiksu:
-			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
+			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/file</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
 			Prefiks domyślnie ma wartość <code>db</code> i można go zmienić za pomocą <code>API_PREFIX</code>.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Routing przez reverse proxy:</strong> Jedna instancja PgArachne może obsługiwać wiele baz danych. Reverse proxy (Nginx, Caddy, Traefik) może kierować ruch na podstawie prefiksu lub nazwy bazy danych bez inspekcji ciała żądania, co jest kluczowe dla load balancingu i reguł routingu bazujących na ścieżce.</li>
 			<li><strong>Skalowalność horyzontalna:</strong> Mając nazwę bazy danych w ścieżce URL, można uruchomić wiele instancji PgArachne i kierować ruch do konkretnych instancji na podstawie bazy danych za pomocą standardowych reguł proxy — bez sticky sessions czy inspekcji ciała żądania.</li>
-			<li><strong>Multipleksowanie protokołów per baza danych:</strong> Grupowanie <code>/jsonrpc</code>, <code>/sse</code> i <code>/mcp</code> pod tą samą przestrzenią nazw <code>/{prefix}/{database}/</code> naturalnie umożliwia zastosowanie autoryzacji, rate limitingu i kontroli dostępu per baza danych na poziomie proxy.</li>
+			<li><strong>Multipleksowanie protokołów per baza danych:</strong> Grupowanie <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> i <code>/mcp</code> pod tą samą przestrzenią nazw <code>/{prefix}/{database}/</code> naturalnie umożliwia zastosowanie autoryzacji, rate limitingu i kontroli dostępu per baza danych na poziomie proxy.</li>
 			<li><strong>Konfigurowalny prefiks:</strong> Wdrożenia, które już używają <code>/api/</code> jako prefiksu w swojej infrastrukturze, mogą ustawić <code>API_PREFIX=api</code>, aby dopasować się do swoich konwencji.</li>
 			<li><strong>Obserwowalność:</strong> Agregatory logów i systemy metryk mogą grupować i filtrować ruch po nazwie bazy danych bezpośrednio z URL bez parsowania ciał JSON.</li>
 		</ul>

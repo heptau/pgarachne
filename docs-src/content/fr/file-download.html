@@ -1,0 +1,85 @@
+---
+title: "Téléchargement de fichiers (/file)"
+description: "Téléchargements de fichiers binaires et de ZIP depuis des fonctions PostgreSQL - PgArachne"
+menu:
+  main:
+    name: "Téléchargement de fichiers"
+    weight: 72
+---
+
+<section id="file-download">
+	<h2>Téléchargement de fichiers</h2>
+	<p>L'endpoint <code>/file</code> sert des fichiers binaires générés par une fonction PostgreSQL — sans base64 dans
+		JSON-RPC. Un seul fichier retourné est envoyé tel quel ; plusieurs fichiers sont empaquetés à la volée dans une archive ZIP.</p>
+	<pre><code>POST /{prefix}/{database}/file</code></pre>
+	<p>L'authentification, le changement de rôle (<code>SET LOCAL ROLE</code>), le rate limiting et la limite de taille des requêtes sont
+		identiques à <code>/jsonrpc</code>. L'appelant doit disposer de <code>EXECUTE</code> sur la fonction.</p>
+
+	<h3>Requête</h3>
+	<pre><code>{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "optional"
+}</code></pre>
+	<table>
+		<thead><tr><th>Champ</th><th>Description</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Obligatoire. <code>schema.function</code>, appelée comme <code>fn(params::jsonb)</code>.</td></tr>
+			<tr><td><code>params</code></td><td>Transmis à la fonction en <code>jsonb</code> (par défaut <code>{}</code>).</td></tr>
+			<tr><td><code>options.filename</code></td><td>Nom du fichier/ZIP téléchargé. Par défaut : le nom propre du fichier, ou <code>export-YYYYMMDD-HHMMSS.zip</code>.</td></tr>
+			<tr><td><code>options.force_zip</code></td><td>Toujours retourner un ZIP, même pour un seul fichier.</td></tr>
+			<tr><td><code>options.compression_level</code></td><td><code>0</code> = stockage seul, <code>1</code>–<code>9</code> ; par défaut <code>6</code>.</td></tr>
+		</tbody>
+	</table>
+
+	<h3>Contrat avec la base de données</h3>
+	<p>La fonction prend un argument <code>jsonb</code> et retourne un ensemble de lignes. <code>path</code> et
+		<code>content</code> sont obligatoires ; <code>mime_type</code> et <code>store_only</code> sont optionnels.</p>
+	<pre><code>CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;</code></pre>
+	<ul>
+		<li><code>path</code> doit être un simple chemin relatif : pas de segments vides ou <code>..</code>, pas de <code>/</code> initial,
+			pas d'antislash ni de caractères de contrôle, unique dans la réponse. Sinon la requête échoue avec une erreur 500.</li>
+		<li><code>content</code> <code>NULL</code> correspond à un fichier vide.</li>
+		<li><code>mime_type</code> n'est utilisé que s'il s'agit d'un type de média bien formé, sinon il est déduit de l'extension
+			(repli sur <code>application/octet-stream</code>).</li>
+		<li><code>store_only = true</code> stocke l'entrée ZIP sans compression (nécessaire p. ex. pour le fichier <code>mimetype</code> d'EPUB).</li>
+	</ul>
+
+	<h3>Réponse</h3>
+	<table>
+		<thead><tr><th>Lignes</th><th><code>force_zip</code></th><th>Résultat</th></tr></thead>
+		<tbody>
+			<tr><td>0</td><td>indifférent</td><td>404 (erreur JSON)</td></tr>
+			<tr><td>1</td><td>false</td><td>le fichier lui-même, avec son type de média</td></tr>
+			<tr><td>1</td><td>true</td><td>ZIP avec une seule entrée</td></tr>
+			<tr><td>≥ 2</td><td>indifférent</td><td>ZIP (<code>application/zip</code>)</td></tr>
+		</tbody>
+	</table>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Les erreurs sont toujours en JSON, jamais en binaire : <code>400</code> requête invalide, <code>401</code> non authentifié,
+		<code>403</code> permission refusée, <code>404</code> fonction inconnue ou aucune ligne, <code>413</code> la réponse
+		dépasse <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> échec de la fonction ou
+		structure retournée invalide.</p>
+
+	<div class="warning">
+		<h3>Sûr par conception</h3>
+		<p>La base de données ne contrôle que les noms de fichiers, les contenus et les types de média — jamais les en-têtes HTTP. Les réponses sont toujours
+			<code>Content-Disposition: attachment</code> avec <code>X-Content-Type-Options: nosniff</code>,
+			<code>Content-Security-Policy: sandbox</code> et <code>Cache-Control: no-store</code>, de sorte qu'une fonction
+			retournant <code>text/html</code> ou du SVG ne peut pas exécuter de script dans l'origine de l'API. Les noms de fichiers sont assainis.
+			Le résultat complet est mis en tampon en mémoire (plafonné par <code>FILE_MAX_BYTES</code>) ; le ZIP lui-même est diffusé en flux.</p>
+	</div>
+
+	<h3>Découverte</h3>
+	<p>Une fonction retournant un ensemble avec les colonnes de résultat <code>path</code> et <code>content</code> est signalée par
+		<code>capabilities</code> avec <code>"kind": "file"</code> et l'endpoint <code>/file</code>. La spécification OpenAPI
+		documente une véritable opération <code>POST /{prefix}/{database}/file</code> (uniquement pour les rôles pouvant exécuter une fonction
+		de fichier) ; les fonctions de fichier ne sont pas exposées comme outils MCP.</p>
+</section>

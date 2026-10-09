@@ -144,7 +144,7 @@ menu:
 		<h3>6. Estrutura de URL: <code>/{prefixo}/{banco_de_dados}/{endpoint}</code></h3>
 		<p>
 			O PgArachne roteia todos os endpoints sob um segmento de prefixo configurável:
-			<code>/db/{banco_de_dados}/jsonrpc</code>, <code>/db/{banco_de_dados}/sse</code>, <code>/db/{banco_de_dados}/mcp</code>.
+			<code>/db/{banco_de_dados}/jsonrpc</code>, <code>/db/{banco_de_dados}/file</code>, <code>/db/{banco_de_dados}/sse</code>, <code>/db/{banco_de_dados}/mcp</code>.
 			O prefixo padrão é <code>db</code> e pode ser alterado via <code>API_PREFIX</code>.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Roteamento por proxy reverso:</strong> Uma única instância do PgArachne pode servir múltiplos bancos de dados. Um proxy reverso pode rotear por prefixo ou nome do banco de dados sem inspecionar o corpo da requisição, o que é essencial para balanceamento de carga.</li>
 			<li><strong>Escalabilidade horizontal:</strong> Com o nome do banco de dados no caminho da URL, é possível executar múltiplas instâncias do PgArachne e direcionar o tráfego por banco de dados usando regras de proxy padrão, sem sessões persistentes.</li>
-			<li><strong>Multiplexação de protocolos por banco de dados:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sob o mesmo namespace <code>/{prefixo}/{banco_de_dados}/</code> permite aplicar autenticação, rate limiting e controle de acesso por banco de dados no nível do proxy.</li>
+			<li><strong>Multiplexação de protocolos por banco de dados:</strong> Agrupar <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> e <code>/mcp</code> sob o mesmo namespace <code>/{prefixo}/{banco_de_dados}/</code> permite aplicar autenticação, rate limiting e controle de acesso por banco de dados no nível do proxy.</li>
 			<li><strong>Prefixo configurável:</strong> Deployments que já usam <code>/api/</code> podem configurar <code>API_PREFIX=api</code>.</li>
 			<li><strong>Observabilidade:</strong> Sistemas de log e métricas podem agrupar o tráfego por nome de banco de dados diretamente da URL sem analisar corpos JSON.</li>
 		</ul>

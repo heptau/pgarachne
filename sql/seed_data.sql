@@ -23,3 +23,26 @@ $$;
 COMMENT ON FUNCTION api.server_info(jsonb) IS 'Returns PostgreSQL server information.
 --- PARAMS ---
 {}';
+
+-- -----------------------------------------------------------------------------
+-- Function: api.export_documents
+-- Description: Example /file function. Set-returning function with the file
+-- contract (path, content, mime_type, store_only); one row is served directly,
+-- several rows are packed into a ZIP.
+-- Params: {"count": 2, "bad_path": "../evil.txt"}  (bad_path is test-only)
+-- -----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION api.export_documents(params jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql
+AS $$
+    SELECT
+        COALESCE(params->>'bad_path', 'doc-' || n || '.txt'),
+        convert_to('Document ' || n, 'UTF8'),
+        'text/plain'::text,
+        false
+    FROM generate_series(1, COALESCE((params->>'count')::int, 2)) AS n;
+$$;
+
+COMMENT ON FUNCTION api.export_documents(jsonb) IS 'Example file export (POST /file).
+--- PARAMS ---
+{}';

@@ -56,6 +56,7 @@ menu:
 		<strong>Struktura endpointů:</strong> Všechny databázové endpointy sdílejí společný prefix (výchozí <code>db</code>, konfigurovatelný přes <code>API_PREFIX</code>):
 		<div class="code-box">
 			<div>POST /{prefix}/{databaze}/jsonrpc <span style="color:#666;font-size:0.9em;">— brána JSON-RPC 2.0</span></div>
+			<div>POST /{prefix}/{databaze}/file &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stažení binárního souboru / ZIP</span></div>
 			<div>GET &nbsp;/{prefix}/{databaze}/sse &nbsp;&nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— stream PostgreSQL NOTIFY</span></div>
 			<div>POST /{prefix}/{databaze}/mcp &nbsp;&nbsp;<span style="color:#666;font-size:0.9em;">— Model Context Protocol</span></div>
 		</div>

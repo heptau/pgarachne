@@ -55,6 +55,7 @@ menu:
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td><code>SET LOCAL ROLE</code> fehlgeschlagen (<code>-32001</code>).</td></tr>
 		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>Zielmethode fehlt (<code>-32601</code>), oder <code>get_jwt</code> wurde aufgerufen, obwohl <code>JWT_SECRET</code> nicht konfiguriert ist.</td></tr>
 		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Login- bzw. Authentifizierungs-Rate-Limit überschritten (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
+		<tr><td><code>413</code></td><td>Request body too large / Response too large / Too many files in response</td><td>Anfrage überschreitet <code>MAX_REQUEST_BYTES</code>, oder eine <a href="../file-download/"><code>/file</code></a>-Antwort überschreitet <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>.</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Ausführung oder Commit fehlgeschlagen.</td></tr>
 		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Datenbank oder Listener vorübergehend nicht verfügbar.</td></tr>
 	</table>

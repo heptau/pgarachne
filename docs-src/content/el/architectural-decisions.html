@@ -144,7 +144,7 @@ menu:
 		<h3>6. Δομή URL: <code>/{prefix}/{database}/{endpoint}</code></h3>
 		<p>
 			Το PgArachne δρομολογεί όλα τα endpoints κάτω από ένα ρυθμιζόμενο τμήμα προθέματος:
-			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
+			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/file</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
 			Το πρόθεμα έχει προεπιλογή <code>db</code> και μπορεί να αλλάξει μέσω <code>API_PREFIX</code>.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Δρομολόγηση μέσω reverse proxy:</strong> Ένα μόνο instance PgArachne μπορεί να εξυπηρετήσει πολλαπλές βάσεις δεδομένων. Ένας reverse proxy (Nginx, Caddy, Traefik) μπορεί να δρομολογήσει βάσει προθέματος ή ονόματος βάσης δεδομένων χωρίς να επιθεωρεί το σώμα του request, κάτι κρίσιμο για load balancing και κανόνες δρομολόγησης βάσει path.</li>
 			<li><strong>Οριζόντια Κλιμακωσιμότητα:</strong> Με το όνομα της βάσης δεδομένων στο URL path, μπορείτε να τρέξετε πολλαπλά instances PgArachne και να δρομολογήσετε traffic σε συγκεκριμένα instances ανά βάση δεδομένων χρησιμοποιώντας τυπικούς κανόνες proxy — χωρίς sticky sessions ή επιθεώρηση body.</li>
-			<li><strong>Protocol multiplexing ανά βάση δεδομένων:</strong> Η ομαδοποίηση των <code>/jsonrpc</code>, <code>/sse</code> και <code>/mcp</code> κάτω από τον ίδιο namespace <code>/{prefix}/{database}/</code> κάνει φυσιολογική την εφαρμογή authentication, rate limiting και access control ανά βάση δεδομένων στο επίπεδο του proxy.</li>
+			<li><strong>Protocol multiplexing ανά βάση δεδομένων:</strong> Η ομαδοποίηση των <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> και <code>/mcp</code> κάτω από τον ίδιο namespace <code>/{prefix}/{database}/</code> κάνει φυσιολογική την εφαρμογή authentication, rate limiting και access control ανά βάση δεδομένων στο επίπεδο του proxy.</li>
 			<li><strong>Ρυθμιζόμενο πρόθεμα:</strong> Deployments που χρησιμοποιούν ήδη το <code>/api/</code> ως πρόθεμα στην υποδομή τους μπορούν να ορίσουν <code>API_PREFIX=api</code> για να ταιριάξουν με τις συμβάσεις τους.</li>
 			<li><strong>Παρατηρησιμότητα:</strong> Τα εργαλεία συγκέντρωσης logs και συστήματα μετρικών μπορούν να ομαδοποιήσουν και να φιλτράρουν το traffic βάσει ονόματος βάσης δεδομένων απευθείας από το URL, χωρίς να αναλύουν JSON bodies.</li>
 		</ul>

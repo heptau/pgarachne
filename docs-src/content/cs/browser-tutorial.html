@@ -1,0 +1,189 @@
+---
+title: "Návod krok za krokem (prohlížeč)"
+description: "Minimální návod krok za krokem - PostgreSQL, PgArachne a webová stránka s JSON-RPC, SSE a stahováním souborů - PgArachne"
+menu:
+  main:
+    name: "Návod pro prohlížeč"
+    weight: 37
+---
+
+<section id="browser-tutorial">
+	<h2>Návod krok za krokem (prohlížeč)</h2>
+	<p class="section-intro">
+		Nejmenší možné fungující nasazení: databáze PostgreSQL, PgArachne a jedna obyčejná HTML stránka, která se
+		přihlašuje přes HTTP Basic autentizaci a používá tři endpointy &mdash; <strong>JSON-RPC</strong>,
+		<strong>SSE</strong> a <strong>stahování souborů</strong>. Bez frameworku a bez JavaScriptové knihovny.
+	</p>
+	<p>Stáhněte si hotový příklad a postupujte podle návodu:
+		<a href="../../demo/setup.sql" download><code>setup.sql</code></a> (databáze) a
+		<a href="../../demo/index.html" download><code>index.html</code></a> (webová stránka).</p>
+
+	<h3>1. Předpoklady</h3>
+	<ul>
+		<li>Běžící server PostgreSQL a binárka <code>pgarachne</code> (viz <a href="../installation/">Instalace</a>).</li>
+		<li>Moderní prohlížeč. Vše níže funguje s vestavěným <code>fetch()</code> &mdash; není co stahovat.</li>
+	</ul>
+
+	<h3>2. Příprava databáze</h3>
+	<p>PgArachne se k databázi připojuje jako <em>servisní role</em> a potřebuje své pomocné schéma. Obojí vytvořte jednou:</p>
+	<pre><code>createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
+psql -d my_database -f sql/schema.sql       # pomocné schéma PgArachne (z repozitáře)
+psql -d my_database -f setup.sql            # demo role a funkce (ke stažení výše)</code></pre>
+	<p><code>setup.sql</code> vytvoří přihlašovací roli <code>webuser</code> (uživatel webové stránky), schéma
+		<code>api</code> a tři funkce. Jak která funguje, vysvětlují kroky 5&ndash;7.</p>
+
+	<div class="tip">
+		<strong>Celý bezpečnostní model tvoří oprávnění.</strong> Uživatel smí funkci zavolat jen tehdy, když mu to
+		PostgreSQL dovolí: <code>USAGE</code> na schématu a <code>EXECUTE</code> na funkci. V ukázce má
+		<code>webuser</code> přesně tato práva na třech funkcích &mdash; nic dalšího není dostupné.
+		PostgreSQL ve výchozím stavu přidává <code>EXECUTE</code> na nové funkce všem; v reálných projektech spusťte
+		<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code> a vystavené funkce držte
+		ve vyhrazeném schématu (viz <a href="../security-roles/">Bezpečnost a autentizace</a>).
+	</div>
+
+	<h3>3. Konfigurace a spuštění PgArachne</h3>
+	<p>Vytvořte soubor <code>pgarachne.env</code> vedle binárky. <code>STATIC_FILES_PATH</code> způsobí, že PgArachne
+		servíruje i webovou stránku, takže stránka a API sdílejí jeden origin (není třeba nastavovat CORS):</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+DB_SSLMODE=disable                 # jen lokální PostgreSQL bez TLS
+STATIC_FILES_PATH=/path/to/folder/with/index.html</code></pre>
+	<p>Heslo servisní role čte databázový ovladač z <code>PGPASSWORD</code> (nebo z <code>~/.pgpass</code>).
+		<code>JWT_SECRET</code> není potřeba &mdash; návod používá jen Basic autentizaci.</p>
+	<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
+	<p>Po uložení <code>index.html</code> do této složky (krok 8) otevřete <code>http://localhost:8080/</code>.
+		Role <code>webuser</code> se musí moct přihlásit k PostgreSQL z počítače, kde běží PgArachne
+		(<code>pg_hba.conf</code> s heslovou autentizací).</p>
+
+	<h3>4. Autentizace: HTTP Basic</h3>
+	<p>Prohlížeč posílá uživatele a heslo do PostgreSQL s každým požadavkem; PgArachne otevře spojení jako tento
+		uživatel, takže přímo platí všechna oprávnění PostgreSQL (i Row-Level Security).</p>
+	<pre><code>// Hlavička Authorization. TextEncoder zajistí funkčnost hesel s diakritikou.
+function authHeader(user, pass) {
+  const bytes = new TextEncoder().encode(user + ":" + pass);
+  return "Basic " + btoa(String.fromCharCode(...bytes));
+}
+const base = location.origin + "/db/my_database";   // /{API_PREFIX}/{database}</code></pre>
+	<p>Špatné přihlašovací údaje vrátí HTTP <code>401</code> s JSON chybou; opakované neúspěchy jsou omezeny
+		(<code>429</code>).</p>
+
+	<h3>5. Endpoint 1 &mdash; JSON-RPC: zavolání funkce</h3>
+	<p><code>POST /db/{database}/jsonrpc</code> zavolá <code>schema.function(jsonb)</code>. Funkce přijímá jeden
+		argument typu <code>jsonb</code> a vrací <code>json</code>.</p>
+	<p><strong>PostgreSQL</strong> (v <code>setup.sql</code>):</p>
+	<pre><code>CREATE FUNCTION api.greet(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE sql AS $$
+  SELECT json_build_object(
+    'message', 'Hello, ' || COALESCE(params-&gt;&gt;'name', 'world') || '!',
+    'database_user', current_user,
+    'server_time', now());
+$$;
+GRANT USAGE ON SCHEMA api TO webuser;
+GRANT EXECUTE ON FUNCTION api.greet(jsonb) TO webuser;</code></pre>
+	<p><strong>Prohlížeč:</strong></p>
+	<pre><code>async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+console.log(await rpc("api.greet", { name: "Alice" }));
+// { message: "Hello, Alice!", database_user: "webuser", server_time: "..." }</code></pre>
+	<p><strong>Test pomocí curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.greet","params":{"name":"Alice"},"id":1}' \
+  http://localhost:8080/db/my_database/jsonrpc</code></pre>
+
+	<h3>6. Endpoint 2 &mdash; SSE: příjem zpráv v reálném čase</h3>
+	<p><code>GET /db/{database}/sse?channels=demo</code> streamuje zprávy PostgreSQL <code>NOTIFY</code> jako
+		Server-Sent Events. Publikovat může libovolná funkce přes <code>pg_notify</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.send_message(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM pg_notify('demo', json_build_object('from', current_user, 'text', params-&gt;&gt;'text')::text);
+  RETURN '{"sent": true}'::json;
+END; $$;
+GRANT EXECUTE ON FUNCTION api.send_message(jsonb) TO webuser;</code></pre>
+	<p><strong>Prohlížeč.</strong> Vestavěný <code>EventSource</code> neumí poslat hlavičku <code>Authorization</code>,
+		proto stream čteme pomocí <code>fetch()</code>:</p>
+	<pre><code>async function listen(channels, onMessage, signal) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": authHeader(user, pass) }, signal,
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) &gt;= 0) {      // událost končí prázdným řádkem
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));  // řádky začínající ":" jsou heartbeat
+    }
+  }
+}
+
+const controller = new AbortController();           // controller.abort() ukončí naslouchání
+listen("demo", (m) =&gt; console.log(m), controller.signal);
+await rpc("api.send_message", { text: "Hello" });   // → { channel: "demo", data: { from: "webuser", text: "Hello" } }</code></pre>
+	<div class="warning">
+		<strong>Kanály nejsou vázané na role:</strong> každý přihlášený uživatel může odebírat libovolný kanál. Neposílejte
+		přes <code>NOTIFY</code> data, která nesmí vidět každý (podrobnosti v <a href="../real-time-notifications/">Real-time notifikace (SSE)</a>).
+	</div>
+	<p><strong>Test pomocí curl:</strong> <code>curl -N -u webuser:webuser_password "http://localhost:8080/db/my_database/sse?channels=demo"</code>,
+		poté z jiného terminálu zavolejte <code>api.send_message</code>.</p>
+
+	<h3>7. Endpoint 3 &mdash; File: stažení vygenerovaného souboru</h3>
+	<p><code>POST /db/{database}/file</code> vrací surová data (nebo ZIP, pokud funkce vrátí víc souborů) &mdash;
+		žádné base64 v JSON. Funkce vrací řádky <code>(path, content, mime_type, store_only)</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.export_report(params jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('id,name' || E'\n' || '1,Alice' || E'\n' || '2,Bob' || E'\n', 'UTF8'),
+         'text/csv', false;
+$$;
+GRANT EXECUTE ON FUNCTION api.export_report(jsonb) TO webuser;</code></pre>
+	<p>Vrátíte-li víc řádků, vznikne automaticky ZIP. Všechny volby viz <a href="../file-download/">Stahování souborů</a>.</p>
+	<p><strong>Prohlížeč:</strong></p>
+	<pre><code>const res = await fetch(base + "/file", {
+  method: "POST",
+  headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+  body: JSON.stringify({ method: "api.export_report", params: {}, options: { filename: "report.csv" } }),
+});
+if (!res.ok) throw new Error((await res.json()).error.message);   // chyby jsou JSON, nikdy binární data
+const url = URL.createObjectURL(await res.blob());
+const a = Object.assign(document.createElement("a"), { href: url, download: "report.csv" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);</code></pre>
+	<p><strong>Test pomocí curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"method":"api.export_report"}' http://localhost:8080/db/my_database/file -OJ</code></pre>
+
+	<h3>8. Složení dohromady</h3>
+	<p>Uložte <a href="../../demo/index.html" download><code>index.html</code></a> do složky
+		<code>STATIC_FILES_PATH</code> a otevřete <code>http://localhost:8080/</code>. Obsahuje tři výše uvedené ukázky
+		napojené na tlačítka (~100 řádků, žádné závislosti). Zadejte název databáze, ponechte <code>webuser</code> /
+		<code>webuser_password</code> a vyzkoušejte každé tlačítko: <em>Call api.greet</em>, <em>Start listening</em> a pak
+		<em>Send</em>, a <em>Download report.csv</em>.</p>
+
+	<h3>9. Přechod do produkce</h3>
+	<ul>
+		<li><strong>HTTPS:</strong> Basic údaje putují s každým požadavkem &mdash; vždy používejte TLS (viz <a href="../deployment-https/">Nasazení a HTTPS</a>) a změňte heslo z ukázky.</li>
+		<li><strong>Přihlašovací údaje držte jen v paměti</strong> (proměnná), ne v <code>localStorage</code>. Pro relace bez opakovaného posílání hesla zapněte <code>JWT_SECRET</code> a použijte <code>get_jwt</code> (viz <a href="../security-roles/">Bezpečnost a autentizace</a>).</li>
+		<li><strong>Jiný origin</strong> webové stránky (např. CDN nebo jiný port): nastavte <code>ALLOWED_ORIGINS=https://app.example.com</code>. Cross-origin požadavky jsou ve výchozím stavu blokované.</li>
+		<li><strong>Nejmenší oprávnění:</strong> jedna role PostgreSQL pro každý typ uživatele, <code>EXECUTE</code> jen na potřebné funkce, Row-Level Security pro data jednotlivých uživatelů.</li>
+	</ul>
+</section>

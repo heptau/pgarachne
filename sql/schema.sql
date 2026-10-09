@@ -200,7 +200,15 @@ BEGIN
 			n.nspname AS schema_name,
 			p.proname AS function_name,
 			obj_description(p.oid, 'pg_proc') AS full_comment,
-			pg_get_function_arguments(p.oid) as args
+			pg_get_function_arguments(p.oid) as args,
+			-- A set-returning function whose result columns include "path" and
+			-- "content" follows the file contract served by POST /file (not by
+			-- /jsonrpc, whose ::json cast cannot represent a row set).
+			(p.proretset AND p.proargmodes IS NOT NULL AND (
+				SELECT count(DISTINCT a.name) = 2
+				FROM unnest(p.proargnames, p.proargmodes) AS a(name, mode)
+				WHERE a.mode IN ('t', 'o') AND a.name IN ('path', 'content')
+			)) AS is_file
 		FROM pg_proc AS p
 		JOIN pg_namespace AS n ON p.pronamespace = n.oid
 		-- What is listed is exactly what the calling role may call: PostgreSQL
@@ -245,7 +253,9 @@ BEGIN
 			'required', jsonb_build_array()
 		),
 		'http_method', 'POST',
-        'endpoint', '/' || pgarachne.api_prefix() || '/' || current_catalog || '/jsonrpc'
+		'kind', CASE WHEN af.is_file THEN 'file' ELSE 'rpc' END,
+        'endpoint', '/' || pgarachne.api_prefix() || '/' || current_catalog ||
+			CASE WHEN af.is_file THEN '/file' ELSE '/jsonrpc' END
 	)) INTO result
 	FROM api_functions af;
 
@@ -253,7 +263,7 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION pgarachne.capabilities(jsonb) IS 'Returns available JSON-RPC methods.';
+COMMENT ON FUNCTION pgarachne.capabilities(jsonb) IS 'Returns available JSON-RPC methods (kind "rpc") and file-download methods (kind "file", served by POST /file).';
 GRANT EXECUTE ON FUNCTION pgarachne.capabilities(jsonb) TO public;
 
 
@@ -276,6 +286,10 @@ DECLARE
     method_paths    JSONB;
     path_template   TEXT;
     methods_list    TEXT;
+    rpc_methods     JSONB;
+    file_methods    JSONB;
+    file_paths      JSONB;
+    file_path       TEXT;
 BEGIN
     -- Deliberately SECURITY INVOKER (the default — no SECURITY DEFINER
     -- clause above): capabilities() filters by has_function_privilege
@@ -293,6 +307,13 @@ BEGIN
     -- "capabilities" entry that lists the database itself.
     methods_array := COALESCE(pgarachne.capabilities()::jsonb, '[]'::jsonb);
 
+    -- Methods of kind "file" are served by POST /file, everything else by
+    -- /jsonrpc. They are documented separately below.
+    SELECT COALESCE(jsonb_agg(e) FILTER (WHERE e->>'kind' IS DISTINCT FROM 'file'), '[]'::jsonb),
+           COALESCE(jsonb_agg(e) FILTER (WHERE e->>'kind' = 'file'), '[]'::jsonb)
+    INTO rpc_methods, file_methods
+    FROM jsonb_array_elements(methods_array) AS e;
+
     -- Build the per-method extension block. Each entry carries the
     -- JSON-RPC method name, its first-line description, and the
     -- parameters schema parsed from the function's --- PARAMS ---
@@ -303,14 +324,14 @@ BEGIN
         'parameters',  COALESCE(method_entry->'parameters', '{}'::jsonb)
     )), '[]'::jsonb)
     INTO method_descriptions
-    FROM jsonb_array_elements(methods_array) AS method_entry;
+    FROM jsonb_array_elements(rpc_methods) AS method_entry;
 
     -- Aggregate the method names into a comma-separated string for the
     -- human-readable description. Order follows the source order, so
     -- the most "official" methods (capabilities, etc.) appear first.
     SELECT string_agg(method_entry->>'method', ', ' ORDER BY ord)
     INTO methods_list
-    FROM jsonb_array_elements(methods_array)
+    FROM jsonb_array_elements(rpc_methods)
     WITH ORDINALITY AS t(method_entry, ord);
 
     path_template := '/' || pgarachne.api_prefix() || '/' || CURRENT_CATALOG || '/jsonrpc';
@@ -375,7 +396,60 @@ BEGIN
         )
     ), '{}'::jsonb)
     INTO method_paths
-    FROM jsonb_array_elements(methods_array) AS method_entry;
+    FROM jsonb_array_elements(rpc_methods) AS method_entry;
+
+    -- Real POST /file operation, present only when the caller may execute at
+    -- least one file function. Responses are binary (a single file in its own
+    -- media type, or application/zip); errors are always JSON.
+    file_path := '/' || pgarachne.api_prefix() || '/' || CURRENT_CATALOG || '/file';
+    file_paths := CASE WHEN jsonb_array_length(file_methods) = 0 THEN '{}'::jsonb ELSE
+        jsonb_build_object(file_path, jsonb_build_object('post', jsonb_build_object(
+            'summary',     'Download a file or ZIP produced by a database function',
+            'description', 'The method must return rows (path, content, mime_type, store_only). One row is returned as-is, several rows (or options.force_zip) as a ZIP archive.',
+            'tags',        jsonb_build_array('File'),
+            'requestBody', jsonb_build_object('required', true, 'content', jsonb_build_object(
+                'application/json', jsonb_build_object('schema', jsonb_build_object(
+                    'type', 'object',
+                    'required', jsonb_build_array('method'),
+                    'properties', jsonb_build_object(
+                        'method', jsonb_build_object('type', 'string', 'description', 'schema.function returning file rows'),
+                        'params', jsonb_build_object('type', 'object', 'description', 'Passed to the function as jsonb.'),
+                        'idempotencyKey', jsonb_build_object('type', 'string'),
+                        'options', jsonb_build_object('type', 'object', 'properties', jsonb_build_object(
+                            'filename', jsonb_build_object('type', 'string'),
+                            'force_zip', jsonb_build_object('type', 'boolean', 'default', false),
+                            'compression_level', jsonb_build_object('type', 'integer', 'minimum', 0, 'maximum', 9, 'default', 6)
+                        ))
+                    )
+                ))
+            )),
+            'responses', jsonb_build_object(
+                '200', jsonb_build_object('description', 'The file, or a ZIP archive of several files',
+                    'content', jsonb_build_object(
+                        'application/octet-stream', jsonb_build_object('schema', jsonb_build_object('type', 'string', 'format', 'binary')),
+                        'application/zip', jsonb_build_object('schema', jsonb_build_object('type', 'string', 'format', 'binary')))),
+                '400', jsonb_build_object('description', 'Invalid request',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                '401', jsonb_build_object('description', 'Missing or invalid Authorization header',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                '403', jsonb_build_object('description', 'Not permitted to call this method',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                '404', jsonb_build_object('description', 'Unknown method, or the function returned no rows',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                '413', jsonb_build_object('description', 'Response exceeds FILE_MAX_BYTES / FILE_MAX_ENTRIES',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError')))),
+                '500', jsonb_build_object('description', 'Function failed or returned an invalid file structure',
+                    'content', jsonb_build_object('application/json', jsonb_build_object('schema', jsonb_build_object('$ref', '#/components/schemas/JsonRpcError'))))
+            ),
+            'security', jsonb_build_array(jsonb_build_object('BearerAuth', '{}'::jsonb)),
+            'x-pgarachne-methods', (
+                SELECT jsonb_agg(jsonb_build_object(
+                    'name',        m->>'method',
+                    'description', COALESCE(m->>'description', 'No description'),
+                    'parameters',  COALESCE(m->'parameters', '{}'::jsonb)))
+                FROM jsonb_array_elements(file_methods) AS m)
+        )))
+    END;
 
     RETURN jsonb_build_object(
         'openapi', '3.1.0',
@@ -441,7 +515,7 @@ BEGIN
                     'x-pgarachne-methods', method_descriptions
                 )
             )
-        ) || method_paths,
+        ) || method_paths || file_paths,
         'components', jsonb_build_object(
             'schemas', jsonb_build_object(
                 'JsonRpcRequest', jsonb_build_object(

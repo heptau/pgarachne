@@ -1,0 +1,189 @@
+---
+title: "Покроковий посібник для браузера"
+description: "Мінімальний покроковий посібник - PostgreSQL, PgArachne і вебсторінка з JSON-RPC, SSE та завантаженням файлів - PgArachne"
+menu:
+  main:
+    name: "Посібник для браузера"
+    weight: 37
+---
+
+<section id="browser-tutorial">
+	<h2>Покроковий посібник для браузера</h2>
+	<p class="section-intro">
+		Найменша можлива робоча конфігурація: база даних PostgreSQL, PgArachne і одна проста HTML-сторінка, яка входить
+		через HTTP Basic-автентифікацію та використовує три ендпоінти &mdash; <strong>JSON-RPC</strong>,
+		<strong>SSE</strong> і <strong>завантаження файлів</strong>. Без фреймворків і без JavaScript-бібліотек.
+	</p>
+	<p>Завантажте готовий приклад і робіть усе разом зі мною:
+		<a href="../../demo/setup.sql" download><code>setup.sql</code></a> (база даних) і
+		<a href="../../demo/index.html" download><code>index.html</code></a> (вебсторінка).</p>
+
+	<h3>1. Передумови</h3>
+	<ul>
+		<li>Запущений сервер PostgreSQL і бінарний файл <code>pgarachne</code> (див. <a href="../installation/">Встановлення</a>).</li>
+		<li>Сучасний браузер. Усе нижче працює з вбудованим <code>fetch()</code> &mdash; нічого завантажувати не потрібно.</li>
+	</ul>
+
+	<h3>2. Підготуйте базу даних</h3>
+	<p>Сам PgArachne підключається як <em>сервісна роль</em> і завантажує свою допоміжну схему. Створіть обидві один раз:</p>
+	<pre><code>createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
+psql -d my_database -f sql/schema.sql       # PgArachne helper schema (from the repository)
+psql -d my_database -f setup.sql            # the demo role and functions (download above)</code></pre>
+	<p><code>setup.sql</code> створює роль для входу <code>webuser</code> (користувач вебсторінки), схему
+		<code>api</code> і три функції. Як працює кожна з них, пояснено в кроках 5&ndash;7.</p>
+
+	<div class="tip">
+		<strong>Права доступу &mdash; це вся модель безпеки.</strong> Користувач може викликати функцію лише тоді, коли
+		PostgreSQL це дозволяє: <code>USAGE</code> на схему та <code>EXECUTE</code> на функцію. У демо
+		<code>webuser</code> отримує саме ці права на три функції &mdash; більше нічого не доступно.
+		PostgreSQL за замовчуванням надає <code>EXECUTE</code> на нові функції всім; для реальних проєктів виконайте
+		<code>ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC</code> і тримайте відкриті функції в
+		окремій схемі (див. <a href="../security-roles/">Безпека та автентифікація</a>).
+	</div>
+
+	<h3>3. Налаштуйте та запустіть PgArachne</h3>
+	<p>Створіть <code>pgarachne.env</code> поруч із бінарним файлом. <code>STATIC_FILES_PATH</code> змушує PgArachne також
+		віддавати вебсторінку, тож сторінка й API мають одне походження (налаштовувати CORS не потрібно):</p>
+	<pre><code>DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+DB_SSLMODE=disable                 # local, non-TLS PostgreSQL only
+STATIC_FILES_PATH=/path/to/folder/with/index.html</code></pre>
+	<p>Пароль сервісної ролі драйвер PostgreSQL читає з <code>PGPASSWORD</code> (або <code>~/.pgpass</code>).
+		<code>JWT_SECRET</code> не потрібен &mdash; цей посібник використовує лише Basic-автентифікацію.</p>
+	<pre><code>PGPASSWORD=pgarachne_password ./pgarachne</code></pre>
+	<p>Відкрийте <code>http://localhost:8080/</code> після того, як збережете <code>index.html</code> у цю теку (крок 8).
+		Роль <code>webuser</code> має мати змогу входити в PostgreSQL з хоста PgArachne
+		(<code>pg_hba.conf</code> з автентифікацією за паролем).</p>
+
+	<h3>4. Автентифікація: HTTP Basic</h3>
+	<p>Браузер надсилає ім'я користувача й пароль PostgreSQL з кожним запитом; PgArachne відкриває з'єднання від імені
+		цього користувача, тому всі права PostgreSQL (і Row-Level Security) діють безпосередньо.</p>
+	<pre><code>// Authorization header. TextEncoder makes non-ASCII passwords work.
+function authHeader(user, pass) {
+  const bytes = new TextEncoder().encode(user + ":" + pass);
+  return "Basic " + btoa(String.fromCharCode(...bytes));
+}
+const base = location.origin + "/db/my_database";   // /{API_PREFIX}/{database}</code></pre>
+	<p>Неправильні облікові дані повертають HTTP <code>401</code> з JSON-помилкою; повторні невдалі спроби обмежуються
+		(<code>429</code>).</p>
+
+	<h3>5. Ендпоінт 1 &mdash; JSON-RPC: виклик функції</h3>
+	<p><code>POST /db/{database}/jsonrpc</code> викликає <code>schema.function(jsonb)</code>. Функція приймає один
+		аргумент <code>jsonb</code> і повертає <code>json</code>.</p>
+	<p><strong>PostgreSQL</strong> (у <code>setup.sql</code>):</p>
+	<pre><code>CREATE FUNCTION api.greet(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE sql AS $$
+  SELECT json_build_object(
+    'message', 'Hello, ' || COALESCE(params-&gt;&gt;'name', 'world') || '!',
+    'database_user', current_user,
+    'server_time', now());
+$$;
+GRANT USAGE ON SCHEMA api TO webuser;
+GRANT EXECUTE ON FUNCTION api.greet(jsonb) TO webuser;</code></pre>
+	<p><strong>Браузер:</strong></p>
+	<pre><code>async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+console.log(await rpc("api.greet", { name: "Alice" }));
+// { message: "Hello, Alice!", database_user: "webuser", server_time: "..." }</code></pre>
+	<p><strong>Перевірка через curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.greet","params":{"name":"Alice"},"id":1}' \
+  http://localhost:8080/db/my_database/jsonrpc</code></pre>
+
+	<h3>6. Ендпоінт 2 &mdash; SSE: отримання повідомлень у реальному часі</h3>
+	<p><code>GET /db/{database}/sse?channels=demo</code> передає повідомлення PostgreSQL <code>NOTIFY</code> як
+		Server-Sent Events. Будь-яка функція може публікувати через <code>pg_notify</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.send_message(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM pg_notify('demo', json_build_object('from', current_user, 'text', params-&gt;&gt;'text')::text);
+  RETURN '{"sent": true}'::json;
+END; $$;
+GRANT EXECUTE ON FUNCTION api.send_message(jsonb) TO webuser;</code></pre>
+	<p><strong>Браузер.</strong> Вбудований <code>EventSource</code> не вміє надсилати заголовок <code>Authorization</code>,
+		тому читайте потік через <code>fetch()</code>:</p>
+	<pre><code>async function listen(channels, onMessage, signal) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": authHeader(user, pass) }, signal,
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) &gt;= 0) {      // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));  // ":" lines are heartbeats
+    }
+  }
+}
+
+const controller = new AbortController();           // controller.abort() stops listening
+listen("demo", (m) =&gt; console.log(m), controller.signal);
+await rpc("api.send_message", { text: "Hello" });   // → { channel: "demo", data: { from: "webuser", text: "Hello" } }</code></pre>
+	<div class="warning">
+		<strong>Канали не обмежені ролями:</strong> будь-який автентифікований користувач може підписатися на будь-який
+		канал. Не надсилайте через <code>NOTIFY</code> дані, які можуть бачити не всі користувачі (докладніше в розділі <a href="../real-time-notifications/">Сповіщення в реальному часі (SSE)</a>).
+	</div>
+	<p><strong>Перевірка через curl:</strong> <code>curl -N -u webuser:webuser_password "http://localhost:8080/db/my_database/sse?channels=demo"</code>,
+		потім викличте <code>api.send_message</code> з іншого термінала.</p>
+
+	<h3>7. Ендпоінт 3 &mdash; File: завантаження згенерованого файлу</h3>
+	<p><code>POST /db/{database}/file</code> повертає сирі байти (або ZIP, якщо функція повертає кілька файлів) &mdash;
+		без base64 у JSON. Функція повертає рядки <code>(path, content, mime_type, store_only)</code>.</p>
+	<p><strong>PostgreSQL:</strong></p>
+	<pre><code>CREATE FUNCTION api.export_report(params jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('id,name' || E'\n' || '1,Alice' || E'\n' || '2,Bob' || E'\n', 'UTF8'),
+         'text/csv', false;
+$$;
+GRANT EXECUTE ON FUNCTION api.export_report(jsonb) TO webuser;</code></pre>
+	<p>Поверніть більше рядків, щоб автоматично отримати ZIP. Усі параметри дивіться в розділі <a href="../file-download/">Завантаження файлів (/file)</a>.</p>
+	<p><strong>Браузер:</strong></p>
+	<pre><code>const res = await fetch(base + "/file", {
+  method: "POST",
+  headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+  body: JSON.stringify({ method: "api.export_report", params: {}, options: { filename: "report.csv" } }),
+});
+if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+const url = URL.createObjectURL(await res.blob());
+const a = Object.assign(document.createElement("a"), { href: url, download: "report.csv" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);</code></pre>
+	<p><strong>Перевірка через curl:</strong></p>
+	<pre><code>curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"method":"api.export_report"}' http://localhost:8080/db/my_database/file -OJ</code></pre>
+
+	<h3>8. Зберіть усе разом</h3>
+	<p>Збережіть <a href="../../demo/index.html" download><code>index.html</code></a> у теку <code>STATIC_FILES_PATH</code>
+		і відкрийте <code>http://localhost:8080/</code>. Він містить три наведені вище фрагменти, підключені до кнопок
+		(~100 рядків, без залежностей). Введіть назву бази даних, залиште <code>webuser</code> /
+		<code>webuser_password</code> і спробуйте кожну кнопку: <em>Call api.greet</em>, <em>Start listening</em>, потім
+		<em>Send</em>, і <em>Download report.csv</em>.</p>
+
+	<h3>9. Перехід у продакшн</h3>
+	<ul>
+		<li><strong>HTTPS:</strong> облікові дані Basic передаються з кожним запитом &mdash; завжди використовуйте TLS (див. <a href="../deployment-https/">Розгортання та HTTPS</a>) і змініть демо-пароль.</li>
+		<li><strong>Зберігайте облікові дані лише в пам'яті</strong> (у змінній), а не в <code>localStorage</code>. Для сесій без повторного надсилання пароля увімкніть <code>JWT_SECRET</code> і використовуйте <code>get_jwt</code> (див. <a href="../security-roles/">Безпека та автентифікація</a>).</li>
+		<li><strong>Інше походження</strong> вебсторінки (наприклад, CDN або інший порт): задайте <code>ALLOWED_ORIGINS=https://app.example.com</code>. Міждоменні запити за замовчуванням заблоковані.</li>
+		<li><strong>Мінімальні привілеї:</strong> одна роль PostgreSQL на кожен тип користувачів, <code>EXECUTE</code> лише на потрібні їм функції, Row-Level Security для даних окремих користувачів.</li>
+	</ul>
+</section>

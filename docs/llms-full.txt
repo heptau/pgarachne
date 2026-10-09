@@ -48,6 +48,8 @@ Endpoint structure: All database endpoints share a common prefix (default `db`, 
 
 POST /{prefix}/{database}/jsonrpc — JSON-RPC 2.0 gateway
 
+POST /{prefix}/{database}/file   — binary file / ZIP download
+
 GET  /{prefix}/{database}/sse    — PostgreSQL NOTIFY stream
 
 POST /{prefix}/{database}/mcp   — Model Context Protocol
@@ -206,7 +208,7 @@ For real-time notifications, PgArachne implements Server-Sent Events (SSE).
 ### 6. URL Structure: `/{prefix}/{database}/{endpoint}`
 
 PgArachne routes all endpoints under a configurable prefix segment:
-`/db/{database}/jsonrpc`, `/db/{database}/sse`, `/db/{database}/mcp`.
+`/db/{database}/jsonrpc`, `/db/{database}/file`, `/db/{database}/sse`, `/db/{database}/mcp`.
 The prefix defaults to `db` and can be changed via `API_PREFIX`.
 
 #### Why this structure:
@@ -215,7 +217,7 @@ The prefix defaults to `db` and can be changed via `API_PREFIX`.
 
 - Horizontal scalability: With the database name in the URL path, you can run multiple PgArachne instances and route traffic to specific instances per database using standard proxy rules — no sticky sessions or body inspection required.
 
-- Protocol multiplexing per database: Grouping `/jsonrpc`, `/sse`, and `/mcp` under the same `/{prefix}/{database}/` namespace makes it natural to apply per-database authentication, rate limiting, and access control at the proxy layer.
+- Protocol multiplexing per database: Grouping `/jsonrpc`, `/file`, `/sse`, and `/mcp` under the same `/{prefix}/{database}/` namespace makes it natural to apply per-database authentication, rate limiting, and access control at the proxy layer.
 
 - Configurable prefix: Deployments that already use `/api/` as a prefix in their infrastructure can set `API_PREFIX=api` to match their conventions.
 
@@ -430,6 +432,248 @@ That's it. Read the Hello World guide for the JWT authentication flow, or the co
 
 ---
 
+# Step-by-Step Browser Tutorial
+
+URL: https://www.pgarachne.com/en/browser-tutorial/
+
+## Step-by-Step Browser Tutorial
+
+The smallest possible working setup: a PostgreSQL database, PgArachne, and one plain HTML page that logs in
+with HTTP Basic authentication and uses three endpoints — JSON-RPC,
+SSE and file download. No framework and no JavaScript library.
+
+Download the finished example and follow along:
+`setup.sql` (database) and
+`index.html` (web page).
+
+### 1. Prerequisites
+
+- A running PostgreSQL server and the `pgarachne` binary (see Installation).
+
+- A modern browser. Everything below works with the built-in `fetch()` — nothing to download.
+
+### 2. Prepare the database
+
+PgArachne itself connects as a service role and loads its helper schema. Create both once:
+
+```
+createdb my_database
+psql -d my_database -c "CREATE ROLE pgarachne LOGIN PASSWORD 'pgarachne_password'"
+psql -d my_database -f sql/schema.sql       # PgArachne helper schema (from the repository)
+psql -d my_database -f setup.sql            # the demo role and functions (download above)
+```
+
+`setup.sql` creates a login role `webuser` (the person using the web page), a schema
+`api` and three functions. How each one works is explained in steps 5–7.
+
+Permissions are the whole security model. A user can call a function only if PostgreSQL lets
+them: `USAGE` on the schema and `EXECUTE` on the function. In the demo
+`webuser` gets exactly those on three functions — nothing else is reachable.
+PostgreSQL grants `EXECUTE` on new functions to everyone by default; for real projects run
+`ALTER DEFAULT PRIVILEGES REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` and keep exposed functions in
+a dedicated schema (see Security).
+
+### 3. Configure and start PgArachne
+
+Create `pgarachne.env` next to the binary. `STATIC_FILES_PATH` makes PgArachne also serve
+the web page, so the page and the API share one origin (no CORS setup needed):
+
+```
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=pgarachne
+DB_SSLMODE=disable                 # local, non-TLS PostgreSQL only
+STATIC_FILES_PATH=/path/to/folder/with/index.html
+```
+
+The service role's password is read by the PostgreSQL driver from `PGPASSWORD` (or `~/.pgpass`).
+`JWT_SECRET` is not needed — this tutorial uses Basic authentication only.
+
+```
+PGPASSWORD=pgarachne_password ./pgarachne
+```
+
+Open `http://localhost:8080/` after you save `index.html` into that folder (step 8).
+The role `webuser` must be allowed to log in to PostgreSQL from the PgArachne host
+(`pg_hba.conf` with password authentication).
+
+### 4. Authentication: HTTP Basic
+
+The browser sends the PostgreSQL user and password with every request; PgArachne opens a connection as that
+user, so all PostgreSQL permissions (and Row-Level Security) apply directly.
+
+```
+// Authorization header. TextEncoder makes non-ASCII passwords work.
+function authHeader(user, pass) {
+  const bytes = new TextEncoder().encode(user + ":" + pass);
+  return "Basic " + btoa(String.fromCharCode(...bytes));
+}
+const base = location.origin + "/db/my_database";   // /{API_PREFIX}/{database}
+```
+
+Wrong credentials return HTTP `401` with a JSON error; repeated failures are rate limited
+(`429`).
+
+### 5. Endpoint 1 — JSON-RPC: call a function
+
+`POST /db/{database}/jsonrpc` calls `schema.function(jsonb)`. The function takes one
+`jsonb` argument and returns `json`.
+
+PostgreSQL (in `setup.sql`):
+
+```
+CREATE FUNCTION api.greet(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE sql AS $$
+  SELECT json_build_object(
+    'message', 'Hello, ' || COALESCE(params->>'name', 'world') || '!',
+    'database_user', current_user,
+    'server_time', now());
+$$;
+GRANT USAGE ON SCHEMA api TO webuser;
+GRANT EXECUTE ON FUNCTION api.greet(jsonb) TO webuser;
+```
+
+Browser:
+
+```
+async function rpc(method, params) {
+  const res = await fetch(base + "/jsonrpc", {
+    method: "POST",
+    headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+    body: JSON.stringify({ jsonrpc: "2.0", method, params, id: 1 }),
+  });
+  const body = await res.json();
+  if (!res.ok || body.error) throw new Error(body.error.message);
+  return body.result;
+}
+
+console.log(await rpc("api.greet", { name: "Alice" }));
+// { message: "Hello, Alice!", database_user: "webuser", server_time: "..." }
+```
+
+Test with curl:
+
+```
+curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"api.greet","params":{"name":"Alice"},"id":1}' \
+  http://localhost:8080/db/my_database/jsonrpc
+```
+
+### 6. Endpoint 2 — SSE: receive real-time messages
+
+`GET /db/{database}/sse?channels=demo` streams PostgreSQL `NOTIFY` messages as
+Server-Sent Events. Any function can publish with `pg_notify`.
+
+PostgreSQL:
+
+```
+CREATE FUNCTION api.send_message(params jsonb DEFAULT '{}'::jsonb) RETURNS json
+LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM pg_notify('demo', json_build_object('from', current_user, 'text', params->>'text')::text);
+  RETURN '{"sent": true}'::json;
+END; $$;
+GRANT EXECUTE ON FUNCTION api.send_message(jsonb) TO webuser;
+```
+
+Browser. The built-in `EventSource` cannot send an `Authorization` header,
+so read the stream with `fetch()`:
+
+```
+async function listen(channels, onMessage, signal) {
+  const res = await fetch(base + "/sse?channels=" + encodeURIComponent(channels), {
+    headers: { "Authorization": authHeader(user, pass) }, signal,
+  });
+  if (!res.ok) throw new Error((await res.json()).error);
+  const reader = res.body.getReader(), decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let end;
+    while ((end = buffer.indexOf("\n\n")) >= 0) {      // an event ends with a blank line
+      const event = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      for (const line of event.split("\n"))
+        if (line.startsWith("data: ")) onMessage(JSON.parse(line.slice(6)));  // ":" lines are heartbeats
+    }
+  }
+}
+
+const controller = new AbortController();           // controller.abort() stops listening
+listen("demo", (m) => console.log(m), controller.signal);
+await rpc("api.send_message", { text: "Hello" });   // → { channel: "demo", data: { from: "webuser", text: "Hello" } }
+```
+
+Channels are not role-scoped: any authenticated user can subscribe to any channel name. Do not
+`NOTIFY` data that not every user may see (details in Real-time Notifications).
+
+Test with curl: `curl -N -u webuser:webuser_password "http://localhost:8080/db/my_database/sse?channels=demo"`,
+then call `api.send_message` from another terminal.
+
+### 7. Endpoint 3 — File: download a generated file
+
+`POST /db/{database}/file` returns raw bytes (or a ZIP when the function returns several files) —
+no base64 in JSON. The function returns rows `(path, content, mime_type, store_only)`.
+
+PostgreSQL:
+
+```
+CREATE FUNCTION api.export_report(params jsonb DEFAULT '{}'::jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('id,name' || E'\n' || '1,Alice' || E'\n' || '2,Bob' || E'\n', 'UTF8'),
+         'text/csv', false;
+$$;
+GRANT EXECUTE ON FUNCTION api.export_report(jsonb) TO webuser;
+```
+
+Return more rows to get a ZIP automatically. See File Download for all options.
+
+Browser:
+
+```
+const res = await fetch(base + "/file", {
+  method: "POST",
+  headers: { "Authorization": authHeader(user, pass), "Content-Type": "application/json" },
+  body: JSON.stringify({ method: "api.export_report", params: {}, options: { filename: "report.csv" } }),
+});
+if (!res.ok) throw new Error((await res.json()).error.message);   // errors are JSON, never binary
+const url = URL.createObjectURL(await res.blob());
+const a = Object.assign(document.createElement("a"), { href: url, download: "report.csv" });
+document.body.appendChild(a); a.click(); a.remove();
+URL.revokeObjectURL(url);
+```
+
+Test with curl:
+
+```
+curl -u webuser:webuser_password -H "Content-Type: application/json" \
+  -d '{"method":"api.export_report"}' http://localhost:8080/db/my_database/file -OJ
+```
+
+### 8. Put it together
+
+Save `index.html` into the `STATIC_FILES_PATH`
+folder and open `http://localhost:8080/`. It contains the three snippets above wired to buttons
+(~100 lines, no dependencies). Enter the database name, keep `webuser` /
+`webuser_password`, and try each button: Call api.greet, Start listening then
+Send, and Download report.csv.
+
+### 9. Going to production
+
+- HTTPS: Basic credentials travel with every request — always use TLS (see Deployment & HTTPS) and change the demo password.
+
+- Keep credentials in memory only (a variable), not in `localStorage`. For sessions without resending the password, enable `JWT_SECRET` and use `get_jwt` (see Security).
+
+- Different origin for the web page (e.g. a CDN or another port): set `ALLOWED_ORIGINS=https://app.example.com`. Cross-origin requests are blocked by default.
+
+- Least privilege: one PostgreSQL role per kind of user, `EXECUTE` only on the functions they need, Row-Level Security for per-user data.
+
+
+---
+
 # Installation
 
 URL: https://www.pgarachne.com/en/installation/
@@ -592,7 +836,7 @@ HTTP Server
 
 `HTTP_PORT` | ○ | Port to listen on. Default: `8080`.
 
-`API_PREFIX` | ○ | First URL path segment for all database endpoints (`/jsonrpc`, `/sse`, `/mcp`). Default: `db`, giving routes like `/db/:database/jsonrpc`. Only letters, digits, hyphens and underscores are allowed.
+`API_PREFIX` | ○ | First URL path segment for all database endpoints (`/jsonrpc`, `/file`, `/sse`, `/mcp`). Default: `db`, giving routes like `/db/:database/jsonrpc`. Only letters, digits, hyphens and underscores are allowed.
 
 `PID_FILE` | ○ | Path to daemon PID file used by `-start`/`-stop`. Default: OS user cache dir (fallback: temp dir).
 
@@ -622,6 +866,10 @@ Security (JWT & login)
 Login rate limiting is per instance (in-memory). In multi-instance deployments, use a shared limiter if you need global enforcement.
 
 `TRUSTED_PROXIES` | ○ | Trusted proxy IPs/CIDRs for `X-Forwarded-For` handling. Comma-separated. If empty, forwarded headers are ignored and client IP is taken from the direct connection.
+
+`FILE_MAX_BYTES` | ○ | Max total uncompressed size of a `/file` response in bytes. Default: `67108864` (64 MiB).
+
+`FILE_MAX_ENTRIES` | ○ | Max number of files in a `/file` response. Default: `1000`.
 
 `MAX_REQUEST_BYTES` | ○ | Max request body size in bytes. Default: `2097152`.
 
@@ -965,6 +1213,109 @@ you execute `COMMIT`.
 
 ---
 
+# File Download (/file)
+
+URL: https://www.pgarachne.com/en/file-download/
+
+## File Download
+
+The `/file` endpoint serves binary files generated by a PostgreSQL function — no base64 inside
+JSON-RPC. One returned file is sent as-is; several files are packed into a ZIP archive on the fly.
+
+```
+POST /{prefix}/{database}/file
+```
+
+Authentication, role switching (`SET LOCAL ROLE`), rate limiting and the request size limit are
+identical to `/jsonrpc`. The caller needs `EXECUTE` on the function.
+
+### Request
+
+```
+{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "optional"
+}
+```
+
+Field | Description
+
+`method` | Required. `schema.function`, called as `fn(params::jsonb)`.
+
+`params` | Passed to the function as `jsonb` (default `{}`).
+
+`options.filename` | Name of the downloaded file/ZIP. Default: the file's own name, or `export-YYYYMMDD-HHMMSS.zip`.
+
+`options.force_zip` | Always return a ZIP, even for a single file.
+
+`options.compression_level` | `0` = store only, `1`–`9`; default `6`.
+
+### Database contract
+
+The function takes one `jsonb` argument and returns a set of rows. `path` and
+`content` are required; `mime_type` and `store_only` are optional.
+
+```
+CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;
+```
+
+- `path` must be a plain relative path: no empty or `..` segments, no leading `/`,
+no backslashes or control characters, unique within the response. Otherwise the request fails with 500.
+
+- `content` `NULL` is an empty file.
+
+- `mime_type` is used only if it is a well-formed media type, otherwise guessed from the extension
+(fallback `application/octet-stream`).
+
+- `store_only = true` stores the ZIP entry uncompressed (needed e.g. for the EPUB `mimetype` file).
+
+### Response
+
+Rows | `force_zip` | Result
+
+0 | any | 404 (JSON error)
+
+1 | false | the file itself, with its media type
+
+1 | true | ZIP with one entry
+
+≥ 2 | any | ZIP (`application/zip`)
+
+```
+curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ
+```
+
+Errors are always JSON, never binary: `400` invalid request, `401` unauthenticated,
+`403` no permission, `404` unknown function or no rows, `413` the response
+exceeds `FILE_MAX_BYTES` / `FILE_MAX_ENTRIES`, `500` function failed or
+returned an invalid structure.
+
+### Safe by construction
+
+The database controls only file names, contents and media types — never HTTP headers. Responses are always
+`Content-Disposition: attachment` with `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: sandbox` and `Cache-Control: no-store`, so a function
+returning `text/html` or SVG cannot run script in the API's origin. File names are sanitised.
+The whole result is buffered in memory (capped by `FILE_MAX_BYTES`); the ZIP itself is streamed.
+
+### Discovery
+
+A set-returning function with `path` and `content` result columns is reported by
+`capabilities` with `"kind": "file"` and endpoint `/file`. The OpenAPI spec
+documents a real `POST /{prefix}/{database}/file` operation (only for roles that can execute a file
+function); file functions are not exposed as MCP tools.
+
+
+---
+
 # Idempotency Key Cleanup
 
 URL: https://www.pgarachne.com/en/idempotency-cleanup/
@@ -1206,6 +1557,8 @@ PgArachne exports Prometheus metrics on a dedicated metrics listener (default `1
 - `pgarachne_auth_requests_total`, `pgarachne_login_attempts_total`
 
 - `pgarachne_jsonrpc_requests_total`
+
+- `pgarachne_file_requests_total` — `/file` calls by method and result (`success`, `empty`, `error`, `duplicate`)
 
 - `pgarachne_sse_clients`, `pgarachne_sse_channels`, `pgarachne_sse_client_drops_total`
 
@@ -1523,6 +1876,8 @@ HTTP | Typical message | When it happens
 `404` | Function does not exist / get_jwt is disabled | Target method is missing (`-32601`), or `get_jwt` was called while `JWT_SECRET` is not configured.
 
 `429` | Too many login attempts / Too many failed authentication attempts | Login or authentication rate limit exceeded (`LOGIN_RATE_LIMIT`, `LOGIN_RATE_LIMIT_PER_IP`).
+
+`413` | Request body too large / Response too large / Too many files in response | Request exceeds `MAX_REQUEST_BYTES`, or a `/file` response exceeds `FILE_MAX_BYTES` / `FILE_MAX_ENTRIES`.
 
 `500` | Function call failed / Transaction commit failed | Execution or commit failed.
 

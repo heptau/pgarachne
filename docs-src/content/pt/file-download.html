@@ -1,0 +1,70 @@
+---
+title: "Download de arquivos (/file)"
+description: "Downloads de arquivos binários e ZIP a partir de funções PostgreSQL - PgArachne"
+menu:
+  main:
+    name: "Download de arquivos"
+    weight: 72
+---
+
+<section id="file-download">
+	<h2>Download de arquivos</h2>
+	<p>O endpoint <code>/file</code> serve arquivos binários gerados por uma função PostgreSQL — sem base64 dentro do JSON-RPC. Um único arquivo retornado é enviado como está; vários arquivos são empacotados em um arquivo ZIP em tempo real.</p>
+	<pre><code>POST /{prefixo}/{banco_de_dados}/file</code></pre>
+	<p>Autenticação, troca de papel (<code>SET LOCAL ROLE</code>), rate limiting e limite de tamanho da requisição são idênticos aos de <code>/jsonrpc</code>. O chamador precisa de <code>EXECUTE</code> na função.</p>
+
+	<h3>Requisição</h3>
+	<pre><code>{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "optional"
+}</code></pre>
+	<table>
+		<thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Obrigatório. <code>schema.function</code>, chamada como <code>fn(params::jsonb)</code>.</td></tr>
+			<tr><td><code>params</code></td><td>Passado à função como <code>jsonb</code> (padrão <code>{}</code>).</td></tr>
+			<tr><td><code>options.filename</code></td><td>Nome do arquivo/ZIP baixado. Padrão: o nome do próprio arquivo, ou <code>export-YYYYMMDD-HHMMSS.zip</code>.</td></tr>
+			<tr><td><code>options.force_zip</code></td><td>Sempre retorna um ZIP, mesmo para um único arquivo.</td></tr>
+			<tr><td><code>options.compression_level</code></td><td><code>0</code> = apenas armazenar, <code>1</code>–<code>9</code>; padrão <code>6</code>.</td></tr>
+		</tbody>
+	</table>
+
+	<h3>Contrato com o banco de dados</h3>
+	<p>A função recebe um argumento <code>jsonb</code> e retorna um conjunto de linhas. <code>path</code> e <code>content</code> são obrigatórios; <code>mime_type</code> e <code>store_only</code> são opcionais.</p>
+	<pre><code>CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;</code></pre>
+	<ul>
+		<li><code>path</code> deve ser um caminho relativo simples: sem segmentos vazios ou <code>..</code>, sem <code>/</code> inicial, sem barras invertidas ou caracteres de controle, único dentro da resposta. Caso contrário, a requisição falha com 500.</li>
+		<li><code>content</code> <code>NULL</code> é um arquivo vazio.</li>
+		<li><code>mime_type</code> é usado apenas se for um media type bem formado; caso contrário, é deduzido da extensão (fallback <code>application/octet-stream</code>).</li>
+		<li><code>store_only = true</code> armazena a entrada do ZIP sem compressão (necessário, por exemplo, para o arquivo <code>mimetype</code> do EPUB).</li>
+	</ul>
+
+	<h3>Resposta</h3>
+	<table>
+		<thead><tr><th>Linhas</th><th><code>force_zip</code></th><th>Resultado</th></tr></thead>
+		<tbody>
+			<tr><td>0</td><td>qualquer</td><td>404 (erro JSON)</td></tr>
+			<tr><td>1</td><td>false</td><td>o próprio arquivo, com seu media type</td></tr>
+			<tr><td>1</td><td>true</td><td>ZIP com uma entrada</td></tr>
+			<tr><td>≥ 2</td><td>qualquer</td><td>ZIP (<code>application/zip</code>)</td></tr>
+		</tbody>
+	</table>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Os erros são sempre JSON, nunca binário: <code>400</code> requisição inválida, <code>401</code> não autenticado, <code>403</code> sem permissão, <code>404</code> função desconhecida ou nenhuma linha, <code>413</code> a resposta excede <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> a função falhou ou retornou uma estrutura inválida.</p>
+
+	<div class="warning">
+		<h3>Seguro por construção</h3>
+		<p>O banco de dados controla apenas nomes de arquivos, conteúdos e media types — nunca cabeçalhos HTTP. As respostas são sempre <code>Content-Disposition: attachment</code> com <code>X-Content-Type-Options: nosniff</code>, <code>Content-Security-Policy: sandbox</code> e <code>Cache-Control: no-store</code>, de modo que uma função que retorna <code>text/html</code> ou SVG não pode executar script na origem da API. Os nomes de arquivo são sanitizados. O resultado inteiro é mantido em memória (limitado por <code>FILE_MAX_BYTES</code>); o ZIP em si é transmitido por streaming.</p>
+	</div>
+
+	<h3>Descoberta</h3>
+	<p>Uma função set-returning com as colunas de resultado <code>path</code> e <code>content</code> é reportada por <code>capabilities</code> com <code>"kind": "file"</code> e endpoint <code>/file</code>. A especificação OpenAPI documenta uma operação real <code>POST /{prefixo}/{banco_de_dados}/file</code> (apenas para papéis que podem executar uma função de arquivo); as funções de arquivo não são expostas como ferramentas MCP.</p>
+</section>

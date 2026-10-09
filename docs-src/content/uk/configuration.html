@@ -121,7 +121,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
-				<td>Перший сегмент шляху URL для всіх ендпоінтів бази даних (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). За умовчанням: <code>db</code>, що дає маршрути типу <code>/db/:database/jsonrpc</code>. Дозволені лише букви, цифри, дефіси та підкреслення.</td>
+				<td>Перший сегмент шляху URL для всіх ендпоінтів бази даних (<code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code>, <code>/mcp</code>). За умовчанням: <code>db</code>, що дає маршрути типу <code>/db/:database/jsonrpc</code>. Дозволені лише букви, цифри, дефіси та підкреслення.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -192,6 +192,16 @@ DB_USER=pgarachne
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
 				<td>Довірені IP-адреси/CIDR проксі для обробки <code>X-Forwarded-For</code>. Розділені комами. Якщо порожньо, forwarded-заголовки ігноруються, а IP клієнта береться з прямого з'єднання.</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальний сумарний нестиснутий розмір відповіді <a href="../file-download/"><code>/file</code></a> у байтах. За умовчанням: <code>67108864</code> (64 MiB).</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_ENTRIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Необов'язково" aria-label="Необов'язково">○</span></td>
+				<td>Максимальна кількість файлів у відповіді <code>/file</code>. За умовчанням: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>

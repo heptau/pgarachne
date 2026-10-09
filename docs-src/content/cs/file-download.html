@@ -1,0 +1,85 @@
+---
+title: "Stahování souborů (/file)"
+description: "Binární soubory a ZIP z PostgreSQL funkcí - PgArachne"
+menu:
+  main:
+    name: "Stahování souborů"
+    weight: 72
+---
+
+<section id="file-download">
+	<h2>Stahování souborů</h2>
+	<p>Endpoint <code>/file</code> vrací binární soubory generované PostgreSQL funkcí — bez base64 uvnitř JSON-RPC.
+		Jeden soubor se pošle přímo, více souborů se za běhu zabalí do ZIP archivu.</p>
+	<pre><code>POST /{prefix}/{database}/file</code></pre>
+	<p>Autentizace, přepnutí role (<code>SET LOCAL ROLE</code>), rate limiting i limit velikosti požadavku jsou stejné
+		jako u <code>/jsonrpc</code>. Volající musí mít <code>EXECUTE</code> na funkci.</p>
+
+	<h3>Požadavek</h3>
+	<pre><code>{
+  "method": "api.export_documents",
+  "params": { "count": 3 },
+  "options": { "filename": "export.zip", "force_zip": false, "compression_level": 6 },
+  "idempotencyKey": "volitelné"
+}</code></pre>
+	<table>
+		<thead><tr><th>Pole</th><th>Popis</th></tr></thead>
+		<tbody>
+			<tr><td><code>method</code></td><td>Povinné. <code>schema.function</code>, volá se jako <code>fn(params::jsonb)</code>.</td></tr>
+			<tr><td><code>params</code></td><td>Předají se funkci jako <code>jsonb</code> (výchozí <code>{}</code>).</td></tr>
+			<tr><td><code>options.filename</code></td><td>Název stahovaného souboru/ZIPu. Výchozí: název souboru, nebo <code>export-YYYYMMDD-HHMMSS.zip</code>.</td></tr>
+			<tr><td><code>options.force_zip</code></td><td>Vždy vrátit ZIP, i pro jediný soubor.</td></tr>
+			<tr><td><code>options.compression_level</code></td><td><code>0</code> = bez komprese, <code>1</code>–<code>9</code>; výchozí <code>6</code>.</td></tr>
+		</tbody>
+	</table>
+
+	<h3>Kontrakt na straně databáze</h3>
+	<p>Funkce má jeden argument <code>jsonb</code> a vrací sadu řádků. Povinné jsou <code>path</code> a
+		<code>content</code>, volitelné <code>mime_type</code> a <code>store_only</code>.</p>
+	<pre><code>CREATE FUNCTION api.export_documents(params jsonb)
+RETURNS TABLE (path text, content bytea, mime_type text, store_only boolean)
+LANGUAGE sql AS $$
+  SELECT 'report.csv', convert_to('a,b' || E'\n' || '1,2', 'UTF8'), 'text/csv', false;
+$$;</code></pre>
+	<ul>
+		<li><code>path</code> musí být obyčejná relativní cesta: žádné prázdné ani <code>..</code> segmenty, žádné
+			počáteční <code>/</code>, zpětná lomítka ani řídicí znaky, unikátní v rámci odpovědi. Jinak požadavek skončí chybou 500.</li>
+		<li><code>content</code> <code>NULL</code> je prázdný soubor.</li>
+		<li><code>mime_type</code> se použije jen jako validní media type, jinak se odhadne z přípony
+			(záloha <code>application/octet-stream</code>).</li>
+		<li><code>store_only = true</code> uloží položku ZIPu bez komprese (nutné např. pro soubor <code>mimetype</code> v EPUB).</li>
+	</ul>
+
+	<h3>Odpověď</h3>
+	<table>
+		<thead><tr><th>Řádků</th><th><code>force_zip</code></th><th>Výsledek</th></tr></thead>
+		<tbody>
+			<tr><td>0</td><td>jakékoli</td><td>404 (JSON chyba)</td></tr>
+			<tr><td>1</td><td>false</td><td>samotný soubor s jeho media type</td></tr>
+			<tr><td>1</td><td>true</td><td>ZIP s jednou položkou</td></tr>
+			<tr><td>≥ 2</td><td>jakékoli</td><td>ZIP (<code>application/zip</code>)</td></tr>
+		</tbody>
+	</table>
+	<pre><code>curl -X POST http://localhost:8080/db/my_database/file \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"method":"api.export_documents","params":{"count":3}}' -OJ</code></pre>
+	<p>Chyby jsou vždy JSON, nikdy binární data: <code>400</code> neplatný požadavek, <code>401</code> nepřihlášen,
+		<code>403</code> chybí oprávnění, <code>404</code> neexistující funkce nebo žádné řádky, <code>413</code> odpověď
+		překračuje <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>, <code>500</code> funkce selhala nebo vrátila
+		neplatnou strukturu.</p>
+
+	<div class="warning">
+		<h3>Bezpečné ze své podstaty</h3>
+		<p>Databáze řídí jen názvy, obsah a media type souborů — nikdy HTTP hlavičky. Odpovědi mají vždy
+			<code>Content-Disposition: attachment</code>, <code>X-Content-Type-Options: nosniff</code>,
+			<code>Content-Security-Policy: sandbox</code> a <code>Cache-Control: no-store</code>, takže funkce vracející
+			<code>text/html</code> nebo SVG nemůže spustit skript v originu API. Názvy souborů se sanitizují.
+			Celý výsledek se drží v paměti (limit <code>FILE_MAX_BYTES</code>); samotný ZIP se streamuje.</p>
+	</div>
+
+	<h3>Objevování</h3>
+	<p>Funkce vracející sadu řádků se sloupci <code>path</code> a <code>content</code> je v <code>capabilities</code>
+		uvedena jako <code>"kind": "file"</code> s endpointem <code>/file</code>. OpenAPI spec obsahuje skutečnou operaci
+		<code>POST /{prefix}/{database}/file</code> (jen pro role, které smí některou file funkci spustit); file funkce se
+		nenabízejí jako MCP nástroje.</p>
+</section>

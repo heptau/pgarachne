@@ -55,6 +55,7 @@ menu:
 		<tr><td><code>403</code></td><td>Permission denied for the specified role</td><td>Selhalo <code>SET LOCAL ROLE</code> (<code>-32001</code>).</td></tr>
 		<tr><td><code>404</code></td><td>Function does not exist / get_jwt is disabled</td><td>Volaná metoda neexistuje (<code>-32601</code>), nebo bylo voláno <code>get_jwt</code>, aniž by byl nastaven <code>JWT_SECRET</code>.</td></tr>
 		<tr><td><code>429</code></td><td>Too many login attempts / Too many failed authentication attempts</td><td>Překročen limit pokusů o přihlášení nebo autentizaci (<code>LOGIN_RATE_LIMIT</code>, <code>LOGIN_RATE_LIMIT_PER_IP</code>).</td></tr>
+		<tr><td><code>413</code></td><td>Request body too large / Response too large / Too many files in response</td><td>Požadavek překračuje <code>MAX_REQUEST_BYTES</code>, nebo odpověď <a href="../file-download/"><code>/file</code></a> překračuje <code>FILE_MAX_BYTES</code> / <code>FILE_MAX_ENTRIES</code>.</td></tr>
 		<tr><td><code>500</code></td><td>Function call failed / Transaction commit failed</td><td>Selhalo provedení nebo commit.</td></tr>
 		<tr><td><code>503</code></td><td>Database connection failed / Database unavailable</td><td>Databáze nebo listener dočasně nedostupné.</td></tr>
 	</table>

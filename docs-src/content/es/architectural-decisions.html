@@ -144,7 +144,7 @@ menu:
 		<h3>6. Estructura de URL: <code>/{prefijo}/{base_de_datos}/{endpoint}</code></h3>
 		<p>
 			PgArachne enruta todos los endpoints bajo un segmento de prefijo configurable:
-			<code>/db/{base_de_datos}/jsonrpc</code>, <code>/db/{base_de_datos}/sse</code>, <code>/db/{base_de_datos}/mcp</code>.
+			<code>/db/{base_de_datos}/jsonrpc</code>, <code>/db/{base_de_datos}/file</code>, <code>/db/{base_de_datos}/sse</code>, <code>/db/{base_de_datos}/mcp</code>.
 			El prefijo por defecto es <code>db</code> y puede cambiarse mediante <code>API_PREFIX</code>.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Enrutamiento por reverse proxy:</strong> Un único servidor PgArachne puede servir múltiples bases de datos. Un reverse proxy puede enrutar por prefijo o nombre de base de datos sin inspeccionar el cuerpo de la petición, lo que es clave para el balanceo de carga.</li>
 			<li><strong>Escalabilidad horizontal:</strong> Con el nombre de la base de datos en la ruta URL, se pueden ejecutar múltiples instancias de PgArachne y dirigir el tráfico a instancias específicas usando reglas de proxy estándar, sin sesiones persistentes.</li>
-			<li><strong>Multiplexado de protocolos por base de datos:</strong> Agrupar <code>/jsonrpc</code>, <code>/sse</code> y <code>/mcp</code> bajo el mismo espacio de nombres permite aplicar autenticación, rate limiting y control de acceso por base de datos a nivel de proxy.</li>
+			<li><strong>Multiplexado de protocolos por base de datos:</strong> Agrupar <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> y <code>/mcp</code> bajo el mismo espacio de nombres permite aplicar autenticación, rate limiting y control de acceso por base de datos a nivel de proxy.</li>
 			<li><strong>Prefijo configurable:</strong> Los despliegues que ya usan <code>/api/</code> pueden configurar <code>API_PREFIX=api</code>.</li>
 			<li><strong>Observabilidad:</strong> Los sistemas de logs y métricas pueden agrupar y filtrar el tráfico por nombre de base de datos directamente desde la URL sin parsear cuerpos JSON.</li>
 		</ul>

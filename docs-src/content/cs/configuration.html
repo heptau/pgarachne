@@ -122,7 +122,7 @@ DB_USER=pgarachne
 			<tr>
 				<td><code>API_PREFIX</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
-				<td>První segment URL cesty pro všechny databázové endpointy (<code>/jsonrpc</code>, <code>/sse</code>, <code>/mcp</code>). Výchozí: <code>db</code>, výsledné cesty jako <code>/db/:databaze/jsonrpc</code>. Povoleny jsou pouze písmena, číslice, pomlčky a podtržítka.</td>
+				<td>První segment URL cesty pro všechny databázové endpointy (<code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code>, <code>/mcp</code>). Výchozí: <code>db</code>, výsledné cesty jako <code>/db/:databaze/jsonrpc</code>. Povoleny jsou pouze písmena, číslice, pomlčky a podtržítka.</td>
 			</tr>
 			<tr>
 				<td><code>PID_FILE</code></td>
@@ -195,6 +195,16 @@ DB_USER=pgarachne
 				<td><code>TRUSTED_PROXIES</code></td>
 				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
 				<td>Důvěryhodné proxy IP/CIDR pro zpracování <code>X-Forwarded-For</code>. Čárkou oddělené. Pokud je hodnota prázdná, forwardované hlavičky se ignorují a IP klienta se bere z přímého spojení.</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_BYTES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Maximální celková nekomprimovaná velikost odpovědi <a href="../file-download/"><code>/file</code></a> v bajtech. Výchozí: <code>67108864</code> (64 MiB).</td>
+			</tr>
+			<tr>
+				<td><code>FILE_MAX_ENTRIES</code></td>
+				<td class="req-col"><span class="req-flag req-no" title="Volitelné" aria-label="Volitelné">○</span></td>
+				<td>Maximální počet souborů v odpovědi <code>/file</code>. Výchozí: <code>1000</code>.</td>
 			</tr>
 			<tr>
 				<td><code>MAX_REQUEST_BYTES</code></td>

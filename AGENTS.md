@@ -97,6 +97,7 @@ Common optional:
 - `MCP_SQL_ERROR_DETAIL` (default `false`; `true` includes raw PostgreSQL error messages in MCP tool errors — helps LLM agents self-correct, but leaks schema details to authenticated callers)
 - `DIRECT_POOL_LIMIT` (default `1000`; max distinct Basic-Auth credential pools)
 - `DB_SSLROOTCERT`, `DB_SSLCERT`, `DB_SSLKEY` (optional TLS cert paths)
+- `FILE_MAX_BYTES` (default 64 MiB) / `FILE_MAX_ENTRIES` (default 1000) — caps for `/file` responses
 - `MAX_REQUEST_BYTES` (default body size limit, protects against oversized request DoS)
 - `TRUSTED_PROXIES` (recommended when running behind reverse proxy; affects client IP handling)
 - `METRICS_ENABLED` (default `true`)
@@ -107,6 +108,7 @@ Common optional:
 ## HTTP Endpoints
 - `GET /health` — health check
 - `POST /{prefix}/:database/jsonrpc` — JSON-RPC 2.0 gateway (including `get_jwt`)
+- `POST /{prefix}/:database/file` — binary download (`internal/server/file.go`). Calls `SELECT * FROM schema.fn($1::jsonb)` on a set-returning function with columns `path`, `content` (required) and `mime_type`, `store_only` (optional). 1 row → served directly; ≥2 rows or `options.force_zip` → ZIP (`archive/zip`, streamed). Same `authenticateForDatabase` + `setupRequestTx` as JSON-RPC. Rows are buffered (caps `FILE_MAX_BYTES` / `FILE_MAX_ENTRIES`); DB never controls headers — always `attachment` + `nosniff` + `CSP: sandbox`; `validateEntryPath`/`safeMIME`/`sanitizeDownloadName` guard DB-supplied values; errors are JSON (0 rows → 404). `capabilities()` marks such functions `kind: "file"` (set-returning with `path`+`content` OUT columns); they are excluded from the `/jsonrpc` OpenAPI paths and MCP `tools/list`. Planned phase 2 (issue #7): `GET /{prefix}/:database/get/{token}` with dedicated scoped link tokens (hash-stored, bound to role+function+params, read-only) reusing the same response writer.
 - `GET /{prefix}/:database/sse` — SSE stream for PostgreSQL `NOTIFY` channels (`channels` query param required). Authenticates the caller but, unlike every other endpoint here, does **not** `SET LOCAL ROLE` or check per-channel permissions — all SSE clients for a database share one `LISTEN` connection opened as `DB_USER`, so any authenticated caller can subscribe to any channel name. This is by design (Postgres channels aren't objects with their own GRANTs) and documented in `docs-src/content/en/real-time-notifications.html`; don't "fix" it locally without reading that note first.
 - `POST /{prefix}/:database/mcp` — MCP (Model Context Protocol) Streamable HTTP endpoint
 - `GET /{prefix}/:database/openapi.json` (or `/openapi.yaml`, or `?format=yaml`) — OpenAPI 3.1 spec generated on the fly by `pgarachne.generate_openapi_spec`. Requires the same auth as `/jsonrpc` (Basic / Bearer JWT / API token); the returned spec is filtered to the methods the authenticated role may execute, same as MCP `tools/list`. Served as `application/json` by default, or `application/yaml` for the YAML variant.
@@ -183,6 +185,7 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 - `cmd/pgarachne/main.go` — CLI entrypoint, logging, config, daemon flags
 - `internal/server/server.go` — routes, auth, JSON-RPC execution
 - `internal/server/mcp.go` — MCP Streamable HTTP handler; `mcpDatabaseMethods` map for extensibility
+- `internal/server/file.go` — `/file` endpoint: row validation, single-file/ZIP response
 - `internal/server/sse.go` — SSE hub, per-database `pq.Listener`, client broadcast, metrics, `Shutdown(ctx)` for graceful termination. Locking rule: `dbListener.mu` (maps) is never held across a LISTEN/UNLISTEN round-trip (`subMu` serialises those), and `run()` / the pq event callback never call into the listener — `dropClient` only closes `client.done`, the handler goroutine unregisters. Breaking this deadlocks pq's connection loop.
 - `internal/database/database.go` — connection pool per database, `CloseAll()` for graceful shutdown. Pools are opened and pinged *outside* the global mutexes, so a slow server or a wrong-password attempt never stalls other requests.
 - `internal/server/metrics.go` — Prometheus collectors + HTTP/method-level middleware
@@ -205,6 +208,7 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 - `tools/pgarachne-explorer/` — interactive JSON-RPC explorer (PWA, dark/light theme, offline-capable). Served when `STATIC_FILES_PATH` points to this directory; URL is `/tools/pgarachne-explorer/` (or `/tools/api-explorer/` per Hugo docs)
 - `tools/test-sse/` — minimal HTML page for manually exercising the SSE endpoint from a browser
 - `docs-src/` — Hugo documentation sources (7 languages: cs, en, de, es, fr, it, pt)
+- `docs-src/static/demo/` — runnable browser demo (`index.html`, `setup.sql`) used by the Browser Tutorial page and downloadable from the site (`/demo/`); keep it in sync with the code snippets in `docs-src/content/*/browser-tutorial.html`
 - `docs-src/i18n/*.yaml` — localised hero section strings; rendered with `| safeHTML` to allow `<br>` tags
 - `docs-src/layouts/index.html` — home page template; uses `| safeHTML` for i18n hero fields
 - `docs/` — generated static documentation site

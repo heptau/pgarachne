@@ -144,7 +144,7 @@ menu:
 		<h3>6. Struttura URL: <code>/{prefisso}/{database}/{endpoint}</code></h3>
 		<p>
 			PgArachne instrada tutti gli endpoint sotto un segmento di prefisso configurabile:
-			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
+			<code>/db/{database}/jsonrpc</code>, <code>/db/{database}/file</code>, <code>/db/{database}/sse</code>, <code>/db/{database}/mcp</code>.
 			Il prefisso predefinito è <code>db</code> e può essere modificato tramite <code>API_PREFIX</code>.
 		</p>
 
@@ -152,7 +152,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Routing tramite reverse proxy:</strong> Un'unica istanza PgArachne può servire più database. Un reverse proxy può instradare per prefisso o nome database senza ispezionare il corpo della richiesta, essenziale per il bilanciamento del carico.</li>
 			<li><strong>Scalabilità orizzontale:</strong> Con il nome del database nel percorso URL, è possibile eseguire più istanze PgArachne e instradare il traffico a istanze specifiche tramite regole di proxy standard, senza sessioni persistenti.</li>
-			<li><strong>Multiplexing di protocolli per database:</strong> Raggruppare <code>/jsonrpc</code>, <code>/sse</code> e <code>/mcp</code> sotto lo stesso namespace <code>/{prefisso}/{database}/</code> consente di applicare autenticazione, rate limiting e controllo accessi per database a livello di proxy.</li>
+			<li><strong>Multiplexing di protocolli per database:</strong> Raggruppare <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> e <code>/mcp</code> sotto lo stesso namespace <code>/{prefisso}/{database}/</code> consente di applicare autenticazione, rate limiting e controllo accessi per database a livello di proxy.</li>
 			<li><strong>Prefisso configurabile:</strong> I deployment che usano già <code>/api/</code> possono impostare <code>API_PREFIX=api</code>.</li>
 			<li><strong>Osservabilità:</strong> I sistemi di log e metriche possono raggruppare il traffico per nome database direttamente dall'URL senza analizzare i corpi JSON.</li>
 		</ul>

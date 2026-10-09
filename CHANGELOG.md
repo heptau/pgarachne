@@ -9,10 +9,15 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ### Added
 
+- Docs site: new "Step-by-Step Browser Tutorial" page (`browser-tutorial.html`, all 10 languages) walking through database setup, configuration and a dependency-free browser page using Basic auth, JSON-RPC, SSE (via `fetch()` streaming, since `EventSource` cannot send an `Authorization` header) and `/file`. Downloadable runnable example in `docs-src/static/demo/` (`index.html`, `setup.sql`), published as `/demo/`.
+- `POST /{prefix}/{database}/file` (issue #12): downloads binary files from set-returning PostgreSQL functions returning `(path, content bytea, mime_type, store_only)`. One row is served directly, several rows (or `options.force_zip`) as a streamed ZIP; `options.filename` and `options.compression_level` supported. Same auth, role switching, rate limiting and idempotency as `/jsonrpc`. Responses are forced to `attachment` with `nosniff` and `CSP: sandbox`; paths, media types and filenames are validated; new `FILE_MAX_BYTES` (64 MiB) and `FILE_MAX_ENTRIES` (1000) limits; Prometheus counter `pgarachne_file_requests_total`.
+- `capabilities()` entries now carry `kind` (`rpc` or `file`); file functions advertise the `/file` endpoint, get a real `/file` operation in the OpenAPI spec (and no virtual `/rpc/*` path), and are hidden from MCP `tools/list`. Example function `api.export_documents` added to `sql/seed_data.sql`; docs page `file-download.html` (EN, CS).
 - Docs site: `architectural-decisions.html` (all 10 languages) gained a "Why PostgreSQL" decision explaining why PgArachne is built exclusively on PostgreSQL (built-in role/`EXECUTE` permission model, Row-Level Security, `jsonb`, transactions, `LISTEN`/`NOTIFY`, catalog introspection, extensions) and why not other databases, including NoSQL stores and a database-agnostic layer.
 
 ### Changed
 
+- **Upgrade note:** re-apply `sql/schema.sql` (it is idempotent) to get the new `kind` field in `capabilities()` and the `/file` operation in the OpenAPI spec; the binary also works against the old schema, it just won't report `kind`. Additive only — existing JSON-RPC and MCP clients are unaffected, except that functions following the file contract no longer appear in MCP `tools/list`.
+- Docs: configuration (`FILE_MAX_BYTES`, `FILE_MAX_ENTRIES`, endpoint list), metrics (`pgarachne_file_requests_total`), error codes (HTTP 413), About/Architecture and Architectural Decisions (URL structure) updated in all 10 languages; README, `config/example.pgarachne.env` and `llms.txt` updated.
 - Docs site: the decisions in `architectural-decisions.html` (all 10 languages) are reordered from data layer to protocols — PostgreSQL, PostgreSQL functions, Go, JSON-RPC, SSE, URL structure, MCP, OpenAPI — and renumbered; in-text cross-references updated.
 - Docs site: `whats-new.html` (all 10 languages) now lists the `v2.2.0` release, and the macOS Toolbar page's expected release moved from Q2 2026 to "by the end of 2026" (all 10 languages).
 

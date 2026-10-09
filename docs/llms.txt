@@ -13,8 +13,10 @@ The complete English documentation is also available as a single plain-text file
 - [Architectural Decisions](https://www.pgarachne.com/en/architectural-decisions/): Why JSON-RPC, SSE, Go, and PostgreSQL functions were chosen over alternatives.
 - [Installation](https://www.pgarachne.com/en/installation/): Download prebuilt binaries or build from source.
 - [Configuration](https://www.pgarachne.com/en/configuration/): Environment variables and configuration reference.
+- [Step-by-Step Browser Tutorial](https://www.pgarachne.com/en/browser-tutorial/): Minimal setup with Basic auth and a plain HTML page using JSON-RPC, SSE and file download (no libraries).
 - [JSON-RPC & Hello World](https://www.pgarachne.com/en/hello-world-example/): Minimal end-to-end example of exposing a SQL function as an API endpoint.
 - [MCP (Model Context Protocol)](https://www.pgarachne.com/en/mcp/): Native MCP endpoint so AI clients can call PostgreSQL functions as tools.
+- [File Download](https://www.pgarachne.com/en/file-download/): Binary files and ZIP archives served by PostgreSQL functions via the /file endpoint.
 - [Real-time Notifications (SSE)](https://www.pgarachne.com/en/real-time-notifications/): Streaming PostgreSQL NOTIFY events to clients over Server-Sent Events.
 - [Security & Authentication](https://www.pgarachne.com/en/security-roles/): JWT authentication mapped to native PostgreSQL roles, and Row-Level Security.
 - [Deployment & HTTPS](https://www.pgarachne.com/en/deployment-https/): Running PgArachne behind a reverse proxy with TLS.

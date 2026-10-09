@@ -46,10 +46,17 @@ var (
 		},
 		[]string{"method", "result"},
 	)
+	fileRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "pgarachne_file_requests_total",
+			Help: "File download endpoint calls by result.",
+		},
+		[]string{"method", "result"},
+	)
 )
 
 func init() {
-	prometheus.MustRegister(httpRequestsTotal, httpRequestDuration, authRequestsTotal, loginAttemptsTotal, jsonrpcRequestsTotal)
+	prometheus.MustRegister(httpRequestsTotal, httpRequestDuration, authRequestsTotal, loginAttemptsTotal, jsonrpcRequestsTotal, fileRequestsTotal)
 }
 
 func httpMetricsMiddleware() gin.HandlerFunc {
@@ -88,3 +95,13 @@ func recordJSONRPC(method, result string) {
 }
 
 var pgMethodMetricRe = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_$]*\.[A-Za-z_][A-Za-z0-9_$]*$`)
+
+func recordFile(method, result string) {
+	if method == "" {
+		method = "unknown"
+	}
+	if !pgMethodMetricRe.MatchString(method) {
+		method = "other"
+	}
+	fileRequestsTotal.WithLabelValues(method, result).Inc()
+}

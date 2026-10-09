@@ -143,7 +143,7 @@ menu:
 		<h3>6. Struktura URL: <code>/{prefix}/{databaze}/{endpoint}</code></h3>
 		<p>
 			PgArachne směruje všechny endpointy pod konfigurovatelný prefixový segment:
-			<code>/db/{databaze}/jsonrpc</code>, <code>/db/{databaze}/sse</code>, <code>/db/{databaze}/mcp</code>.
+			<code>/db/{databaze}/jsonrpc</code>, <code>/db/{databaze}/file</code>, <code>/db/{databaze}/sse</code>, <code>/db/{databaze}/mcp</code>.
 			Výchozí prefix je <code>db</code> a lze ho změnit přes proměnnou <code>API_PREFIX</code>.
 		</p>
 
@@ -151,7 +151,7 @@ menu:
 		<ul style="margin-left: 20px;">
 			<li><strong>Směrování přes reverse proxy:</strong> Jedna instance PgArachne může obsluhovat více databází. Reverse proxy (Nginx, Caddy, Traefik) může směrovat podle prefixu nebo názvu databáze bez nutnosti inspekce těla požadavku, což je klíčové pro load balancing a path-based pravidla.</li>
 			<li><strong>Horizontální škálovatelnost:</strong> S názvem databáze v URL cestě lze provozovat více instancí PgArachne a směrovat provoz do konkrétních instancí podle databáze pomocí standardních proxy pravidel — bez sticky sessions nebo inspekce těla.</li>
-			<li><strong>Multiplexování protokolů na databázi:</strong> Seskupení <code>/jsonrpc</code>, <code>/sse</code> a <code>/mcp</code> pod stejný jmenný prostor <code>/{prefix}/{databaze}/</code> umožňuje přirozeně aplikovat per-databázové ověřování, rate limiting a řízení přístupu na úrovni proxy.</li>
+			<li><strong>Multiplexování protokolů na databázi:</strong> Seskupení <code>/jsonrpc</code>, <code>/file</code>, <code>/sse</code> a <code>/mcp</code> pod stejný jmenný prostor <code>/{prefix}/{databaze}/</code> umožňuje přirozeně aplikovat per-databázové ověřování, rate limiting a řízení přístupu na úrovni proxy.</li>
 			<li><strong>Konfigurovatelný prefix:</strong> Nasazení, která již používají <code>/api/</code> jako prefix ve své infrastruktuře, mohou nastavit <code>API_PREFIX=api</code>.</li>
 			<li><strong>Pozorovatelnost:</strong> Agregátory logů a metrické systémy mohou seskupovat a filtrovat provoz podle názvu databáze přímo z URL bez parsování JSON těl.</li>
 		</ul>

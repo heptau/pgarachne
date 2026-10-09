@@ -246,6 +246,9 @@ func (s *Server) buildRouter() *gin.Engine {
 	// JSON-RPC 2.0 gateway
 	router.POST("/"+prefix+"/:database/jsonrpc", s.handleFunctionCall)
 	router.POST("/"+prefix+"/:database/jsonrpc/", s.handleFunctionCall)
+	// Binary download (single file or ZIP) from set-returning functions.
+	router.POST("/"+prefix+"/:database/file", s.handleFile)
+	router.POST("/"+prefix+"/:database/file/", s.handleFile)
 	// SSE stream for PostgreSQL NOTIFY
 	router.GET("/"+prefix+"/:database/sse", s.handleSSE)
 

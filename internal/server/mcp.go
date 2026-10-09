@@ -224,6 +224,9 @@ type capabilityEntry struct {
 	Method      string          `json:"method"`
 	Description string          `json:"description"`
 	Parameters  json.RawMessage `json:"parameters"`
+	// Kind is "rpc" (callable via /jsonrpc and as an MCP tool) or "file"
+	// (binary download via POST /file; not representable as a text tool).
+	Kind string `json:"kind"`
 }
 
 // ---------------------------------------------------------------------------
@@ -524,6 +527,9 @@ func (s *Server) handleMCPToolsList(c *gin.Context, req mcpRequest, db *sql.DB, 
 
 	tools := make([]mcpTool, 0, len(caps))
 	for _, cap := range caps {
+		if cap.Kind == "file" {
+			continue
+		}
 		// Fall back to a minimal valid JSON Schema when the function has no
 		// parameter declaration.
 		inputSchema := cap.Parameters

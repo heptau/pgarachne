@@ -53,14 +53,19 @@ type Config struct {
 	LoginRateWindow     time.Duration
 	TrustedProxies      []string
 	MaxRequestBytes     int64
-	MetricsEnabled      bool
-	MetricsListenAddr   string
-	SSEMaxChannels      int
-	SSEHeartbeat        time.Duration
-	SSEIdleTimeout      time.Duration
-	SSEMaxClients       int
-	SSEClientBuffer     int
-	SSESendTimeout      time.Duration
+	// FileMaxBytes / FileMaxEntries cap the total uncompressed payload and the
+	// row count a /file response may contain. The gateway buffers rows from
+	// PostgreSQL, so these bound memory per request.
+	FileMaxBytes      int64
+	FileMaxEntries    int
+	MetricsEnabled    bool
+	MetricsListenAddr string
+	SSEMaxChannels    int
+	SSEHeartbeat      time.Duration
+	SSEIdleTimeout    time.Duration
+	SSEMaxClients     int
+	SSEClientBuffer   int
+	SSESendTimeout    time.Duration
 	// MCPSQLErrorDetail controls whether MCP tool/resource errors include the
 	// raw PostgreSQL error message. Detailed errors help LLM agents
 	// self-correct, but they can leak schema details (table and constraint
@@ -267,6 +272,23 @@ func Load(configPath string) (*Config, error) {
 			return nil, fmt.Errorf("invalid MAX_REQUEST_BYTES value: '%s', must be > 0", maxBodyStr)
 		}
 		cfg.MaxRequestBytes = value
+	}
+
+	cfg.FileMaxBytes = 64 * 1024 * 1024 // 64MB default
+	if v := os.Getenv("FILE_MAX_BYTES"); v != "" {
+		value, err := strconv.ParseInt(v, 10, 64)
+		if err != nil || value <= 0 {
+			return nil, fmt.Errorf("invalid FILE_MAX_BYTES value: '%s', must be a positive integer", v)
+		}
+		cfg.FileMaxBytes = value
+	}
+	cfg.FileMaxEntries = 1000
+	if v := os.Getenv("FILE_MAX_ENTRIES"); v != "" {
+		value, err := strconv.Atoi(v)
+		if err != nil || value <= 0 {
+			return nil, fmt.Errorf("invalid FILE_MAX_ENTRIES value: '%s', must be a positive integer", v)
+		}
+		cfg.FileMaxEntries = value
 	}
 
 	cfg.MCPSQLErrorDetail = false
