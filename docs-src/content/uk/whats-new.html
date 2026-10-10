@@ -11,6 +11,15 @@ menu:
 	<h2>Що нового</h2>
 	<p>Детальнішу інформацію про зміни в кожній версії можна знайти на <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v3.0.0</p>
+	<ul>
+		<li>🔑 <strong>Новий endpoint входу (breaking)</strong>: метод JSON-RPC <code>get_jwt</code> замінено на <code>POST /{prefix}/{database}/token</code>, який приймає логін і пароль PostgreSQL як HTTP Basic-автентифікацію — облікові дані більше не передаються в тілі запиту, а зворотний проксі може обмежувати входи за URL. <code>get_jwt</code> на <code>/jsonrpc</code> тепер відповідає 404 / <code>-32601</code>. Міграція: <code>curl -X POST …/token -u login:password</code>.</li>
+		<li>📥 <strong>Завантаження файлів</strong>: новий endpoint <code>POST /{prefix}/{database}/file</code> віддає бінарні файли з функцій PostgreSQL, що повертають набори рядків — один рядок напряму, кілька рядків як потоковий ZIP — з тією самою автентифікацією, перемиканням ролей і обмеженням частоти, що й JSON-RPC. <code>capabilities()</code> повідомляє <code>kind: "file"</code>. Застосуйте <code>sql/schema.sql</code> повторно (він ідемпотентний), щоб отримати нові поля.</li>
+		<li>🧰 <strong>Інструменти</strong>: новий <strong>JWT Signer</strong>, що підписує токени локально в браузері з уведеного вручну <code>JWT_SECRET</code> (без доступу до мережі, секрет ніколи не зберігається), скриншоти та хостовані версії кожного інструмента (<code>explorer.</code>, <code>sse-tester.</code>, <code>jwt-getter.</code>, <code>jwt-signer.pgarachne.com</code>), клікабельні картки й перехресні посилання. Каталоги в <code>tools/</code> перейменовано на <code>explorer</code>, <code>jwt-getter</code> і <code>sse-tester</code> — оновіть <code>STATIC_FILES_PATH</code>, якщо ви їх віддаєте.</li>
+		<li>🐛 <strong>Виправлення та посилення</strong>: функція, що повертає SQL <code>NULL</code>, тепер дає <code>"result": null</code> замість HTTP 500; шляхи ZIP у <code>/file</code> відхиляють імена, ворожі до Windows, і колізії без урахування регістру; порожні результати відкочуються (rollback).</li>
+		<li>📚 <strong>Документація та залежності</strong>: покроковий Quick Start, сторінка JSON-RPC як чиста довідка, архітектурне рішення «Чому PostgreSQL», поради щодо зворотного проксі для великих завантажень і оновлені модулі Go (оновлення безпеки <code>golang.org/x/net</code>).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.2.0</p>
 	<ul>
 		<li>🔑 <strong>Необов'язковий JWT</strong>: <code>JWT_SECRET</code> більше не обов'язковий. Без нього підтримка JWT вимкнена (<code>get_jwt</code> повертає 404 / <code>-32601</code>), а клієнти використовують облікові дані HTTP Basic або API-токени.</li>

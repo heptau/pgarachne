@@ -11,6 +11,15 @@ menu:
 	<h2>Novinky</h2>
 	<p>Podrobnější informace o změnách v jednotlivých verzích naleznete přímo v <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v3.0.0</p>
+	<ul>
+		<li>🔑 <strong>Nový přihlašovací endpoint (breaking)</strong>: JSON-RPC metoda <code>get_jwt</code> je nahrazena <code>POST /{prefix}/{database}/token</code>, který přijímá PostgreSQL login a heslo jako HTTP Basic autentizaci — přihlašovací údaje už necestují v těle požadavku a reverzní proxy může omezovat přihlášení podle URL. <code>get_jwt</code> na <code>/jsonrpc</code> nyní vrací 404 / <code>-32601</code>. Migrace: <code>curl -X POST …/token -u login:password</code>.</li>
+		<li>📥 <strong>Stahování souborů</strong>: nový endpoint <code>POST /{prefix}/{database}/file</code> vrací binární soubory z PostgreSQL funkcí vracejících množinu řádků — jeden řádek přímo, více řádků jako streamovaný ZIP — se stejnou autentizací, přepínáním rolí a rate limitem jako JSON-RPC. <code>capabilities()</code> hlásí <code>kind: "file"</code>. Pro nová pole znovu aplikujte <code>sql/schema.sql</code> (je idempotentní).</li>
+		<li>🧰 <strong>Nástroje</strong>: nový <strong>JWT Signer</strong>, který podepisuje tokeny lokálně v prohlížeči z ručně zadaného <code>JWT_SECRET</code> (bez síťového přístupu, klíč se nikdy neukládá), screenshoty a hostované verze všech nástrojů (<code>explorer.</code>, <code>sse-tester.</code>, <code>jwt-getter.</code>, <code>jwt-signer.pgarachne.com</code>), klikací karty nástrojů a vzájemné odkazy. Složky v <code>tools/</code> se přejmenovaly na <code>explorer</code>, <code>jwt-getter</code> a <code>sse-tester</code> — pokud je servírujete, upravte <code>STATIC_FILES_PATH</code>.</li>
+		<li>🐛 <strong>Opravy a zpřísnění</strong>: funkce vracející SQL <code>NULL</code> nově vrací <code>"result": null</code> místo HTTP 500 a ZIP cesty v <code>/file</code> odmítají názvy nepřátelské Windows a kolize bez ohledu na velikost písmen; prázdné výsledky se vrací zpět (rollback).</li>
+		<li>📚 <strong>Dokumentace a závislosti</strong>: Quick Start krok za krokem, stránka JSON-RPC jako čistá reference, architektonické rozhodnutí „Proč PostgreSQL“, doporučení pro reverzní proxy u velkých stahování a aktualizované Go moduly (bezpečnostní update <code>golang.org/x/net</code>).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.2.0</p>
 	<ul>
 		<li>🔑 <strong>Volitelné JWT</strong>: <code>JWT_SECRET</code> už není povinný. Bez něj je podpora JWT vypnutá (<code>get_jwt</code> vrací 404 / <code>-32601</code>) a klienti používají HTTP Basic přihlášení nebo API tokeny.</li>

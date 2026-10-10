@@ -30,7 +30,7 @@ Dates are the day the corresponding Git tag was created (UTC).
 - **Upgrade note:** re-apply `sql/schema.sql` (it is idempotent) to get the new `kind` field in `capabilities()` and the `/file` operation in the OpenAPI spec. The new binary also works against the old schema (verified: JSON-RPC and `/file` calls succeed), but then file functions are not marked `kind: "file"` and, as before, are still listed in `capabilities`, the OpenAPI spec and MCP `tools/list`. Existing JSON-RPC and MCP clients are otherwise unaffected.
 - Docs: configuration (`FILE_MAX_BYTES`, `FILE_MAX_ENTRIES`, endpoint list), metrics (`pgarachne_file_requests_total`), error codes (HTTP 413), About/Architecture and Architectural Decisions (URL structure) updated in all 10 languages; README, `config/example.pgarachne.env` and `llms.txt` updated.
 - Docs site: the decisions in `architectural-decisions.html` (all 10 languages) are reordered from data layer to protocols — PostgreSQL, PostgreSQL functions, Go, JSON-RPC, SSE, URL structure, MCP, OpenAPI — and renumbered; in-text cross-references updated.
-- Docs site: `whats-new.html` (all 10 languages) now lists the `v2.2.0` release, and the macOS Toolbar page's expected release moved from Q2 2026 to "by the end of 2026" (all 10 languages).
+- Docs site: `whats-new.html` (all 10 languages) now lists the `v3.0.0` release (new `/token` login endpoint, `/file` downloads, JWT Signer and tool changes) and the `v2.2.0` release, and the macOS Toolbar page's expected release moved from Q2 2026 to "by the end of 2026" (all 10 languages).
 
 ## [2.2.0] - 2026-10-05
 

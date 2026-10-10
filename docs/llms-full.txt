@@ -1984,6 +1984,18 @@ URL: https://www.pgarachne.com/en/whats-new/
 
 More detailed information about changes in each version can be found in [GitHub Releases](https://github.com/heptau/pgarachne/releases).
 
+v3.0.0
+
+- 🔑 New login endpoint (breaking): the JSON-RPC method `get_jwt` is replaced by `POST /{prefix}/{database}/token`, which takes the PostgreSQL login and password as HTTP Basic authentication — credentials no longer travel in request bodies, and a reverse proxy can rate-limit logins by URL. `get_jwt` on `/jsonrpc` now answers 404 / `-32601`. Migrate with `curl -X POST …/token -u login:password`.
+
+- 📥 File downloads: new `POST /{prefix}/{database}/file` endpoint serves binary files from set-returning PostgreSQL functions — one row directly, several rows as a streamed ZIP — with the same authentication, role switching and rate limiting as JSON-RPC. `capabilities()` reports `kind: "file"`. Re-apply `sql/schema.sql` (it is idempotent) to get the new fields.
+
+- 🧰 Tools: new JWT Signer that signs tokens locally in the browser from a hand-entered `JWT_SECRET` (no network access, secret never stored), screenshots and hosted versions of every tool (`explorer.`, `sse-tester.`, `jwt-getter.`, `jwt-signer.pgarachne.com`), clickable tool cards and cross-links. The `tools/` folders were renamed to `explorer`, `jwt-getter` and `sse-tester` — update `STATIC_FILES_PATH` if you serve them.
+
+- 🐛 Fixes and hardening: a function returning SQL `NULL` now yields `"result": null` instead of HTTP 500, and `/file` ZIP paths reject Windows-hostile names and case-insensitive collisions; empty results are rolled back.
+
+- 📚 Docs and dependencies: step-by-step Quick Start, JSON-RPC page as a pure reference, a "Why PostgreSQL" architectural decision, reverse-proxy guidance for large downloads, and refreshed Go modules (`golang.org/x/net` security update).
+
 v2.2.0
 
 - 🔑 Optional JWT: `JWT_SECRET` is no longer required. Without it JWT support is disabled (`get_jwt` returns 404 / `-32601`) and clients use HTTP Basic credentials or API tokens.

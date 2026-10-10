@@ -11,6 +11,15 @@ menu:
 	        <h2>Neuigkeiten</h2>
         <p>Detailliertere Informationen zu den Änderungen in den einzelnen Versionen finden Sie direkt in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v3.0.0</p>
+	<ul>
+		<li>🔑 <strong>Neuer Login-Endpunkt (Breaking)</strong>: Die JSON-RPC-Methode <code>get_jwt</code> wird durch <code>POST /{prefix}/{database}/token</code> ersetzt, der PostgreSQL-Login und -Passwort als HTTP-Basic-Authentifizierung entgegennimmt — Zugangsdaten reisen nicht mehr im Request-Body, und ein Reverse-Proxy kann Logins per URL begrenzen. <code>get_jwt</code> auf <code>/jsonrpc</code> antwortet jetzt mit 404 / <code>-32601</code>. Migration: <code>curl -X POST …/token -u login:password</code>.</li>
+		<li>📥 <strong>Dateidownloads</strong>: Der neue Endpunkt <code>POST /{prefix}/{database}/file</code> liefert Binärdateien aus mengenliefernden PostgreSQL-Funktionen — eine Zeile direkt, mehrere Zeilen als gestreamtes ZIP — mit derselben Authentifizierung, Rollenumschaltung und Ratenbegrenzung wie JSON-RPC. <code>capabilities()</code> meldet <code>kind: "file"</code>. Wenden Sie <code>sql/schema.sql</code> erneut an (idempotent), um die neuen Felder zu erhalten.</li>
+		<li>🧰 <strong>Werkzeuge</strong>: neuer <strong>JWT Signer</strong>, der Tokens lokal im Browser aus einem von Hand eingegebenen <code>JWT_SECRET</code> signiert (kein Netzwerkzugriff, Secret wird nie gespeichert), Screenshots und gehostete Versionen aller Werkzeuge (<code>explorer.</code>, <code>sse-tester.</code>, <code>jwt-getter.</code>, <code>jwt-signer.pgarachne.com</code>), klickbare Karten und Querverweise. Die Ordner in <code>tools/</code> heißen jetzt <code>explorer</code>, <code>jwt-getter</code> und <code>sse-tester</code> — passen Sie <code>STATIC_FILES_PATH</code> an, falls Sie sie ausliefern.</li>
+		<li>🐛 <strong>Fixes und Härtung</strong>: Eine Funktion, die SQL-<code>NULL</code> liefert, ergibt jetzt <code>"result": null</code> statt HTTP 500; ZIP-Pfade in <code>/file</code> lehnen Windows-feindliche Namen und Kollisionen ohne Beachtung der Groß-/Kleinschreibung ab; leere Ergebnisse werden zurückgerollt.</li>
+		<li>📚 <strong>Doku und Abhängigkeiten</strong>: Schritt-für-Schritt-Quick-Start, JSON-RPC-Seite als reine Referenz, die Architekturentscheidung „Warum PostgreSQL“, Reverse-Proxy-Hinweise für große Downloads und aktualisierte Go-Module (Sicherheitsupdate <code>golang.org/x/net</code>).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.2.0</p>
 	<ul>
 		<li>🔑 <strong>Optionales JWT</strong>: <code>JWT_SECRET</code> ist nicht mehr erforderlich. Ohne ihn ist JWT deaktiviert (<code>get_jwt</code> liefert 404 / <code>-32601</code>) und Clients nutzen HTTP-Basic-Zugangsdaten oder API-Tokens.</li>

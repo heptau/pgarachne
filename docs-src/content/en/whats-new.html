@@ -11,6 +11,15 @@ menu:
 	<h2>What's New</h2>
 	<p>More detailed information about changes in each version can be found in <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v3.0.0</p>
+	<ul>
+		<li>🔑 <strong>New login endpoint (breaking)</strong>: the JSON-RPC method <code>get_jwt</code> is replaced by <code>POST /{prefix}/{database}/token</code>, which takes the PostgreSQL login and password as HTTP Basic authentication — credentials no longer travel in request bodies, and a reverse proxy can rate-limit logins by URL. <code>get_jwt</code> on <code>/jsonrpc</code> now answers 404 / <code>-32601</code>. Migrate with <code>curl -X POST …/token -u login:password</code>.</li>
+		<li>📥 <strong>File downloads</strong>: new <code>POST /{prefix}/{database}/file</code> endpoint serves binary files from set-returning PostgreSQL functions — one row directly, several rows as a streamed ZIP — with the same authentication, role switching and rate limiting as JSON-RPC. <code>capabilities()</code> reports <code>kind: "file"</code>. Re-apply <code>sql/schema.sql</code> (it is idempotent) to get the new fields.</li>
+		<li>🧰 <strong>Tools</strong>: new <strong>JWT Signer</strong> that signs tokens locally in the browser from a hand-entered <code>JWT_SECRET</code> (no network access, secret never stored), screenshots and hosted versions of every tool (<code>explorer.</code>, <code>sse-tester.</code>, <code>jwt-getter.</code>, <code>jwt-signer.pgarachne.com</code>), clickable tool cards and cross-links. The <code>tools/</code> folders were renamed to <code>explorer</code>, <code>jwt-getter</code> and <code>sse-tester</code> — update <code>STATIC_FILES_PATH</code> if you serve them.</li>
+		<li>🐛 <strong>Fixes and hardening</strong>: a function returning SQL <code>NULL</code> now yields <code>"result": null</code> instead of HTTP 500, and <code>/file</code> ZIP paths reject Windows-hostile names and case-insensitive collisions; empty results are rolled back.</li>
+		<li>📚 <strong>Docs and dependencies</strong>: step-by-step Quick Start, JSON-RPC page as a pure reference, a "Why PostgreSQL" architectural decision, reverse-proxy guidance for large downloads, and refreshed Go modules (<code>golang.org/x/net</code> security update).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.2.0</p>
 	<ul>
 		<li>🔑 <strong>Optional JWT</strong>: <code>JWT_SECRET</code> is no longer required. Without it JWT support is disabled (<code>get_jwt</code> returns 404 / <code>-32601</code>) and clients use HTTP Basic credentials or API tokens.</li>

@@ -11,6 +11,15 @@ menu:
 	<h2>Nouveautés</h2>
         <p>De plus amples informations sur les changements apportés à chaque version se trouvent directement sur <a href="https://github.com/heptau/pgarachne/releases" target="_blank">GitHub Releases</a>.</p>
 
+	<p class="whats-new-subtitle">v3.0.0</p>
+	<ul>
+		<li>🔑 <strong>Nouveau endpoint de connexion (breaking)</strong> : la méthode JSON-RPC <code>get_jwt</code> est remplacée par <code>POST /{prefix}/{database}/token</code>, qui prend le login et le mot de passe PostgreSQL en authentification HTTP Basic — les identifiants ne circulent plus dans le corps des requêtes et un reverse proxy peut limiter les connexions par URL. <code>get_jwt</code> sur <code>/jsonrpc</code> répond désormais 404 / <code>-32601</code>. Migration : <code>curl -X POST …/token -u login:password</code>.</li>
+		<li>📥 <strong>Téléchargement de fichiers</strong> : le nouvel endpoint <code>POST /{prefix}/{database}/file</code> sert des fichiers binaires issus de fonctions PostgreSQL retournant des ensembles de lignes — une ligne directement, plusieurs lignes en ZIP streamé — avec la même authentification, le même changement de rôle et la même limitation de débit que JSON-RPC. <code>capabilities()</code> signale <code>kind: "file"</code>. Réappliquez <code>sql/schema.sql</code> (idempotent) pour obtenir les nouveaux champs.</li>
+		<li>🧰 <strong>Outils</strong> : nouveau <strong>JWT Signer</strong>, qui signe les jetons localement dans le navigateur à partir d'un <code>JWT_SECRET</code> saisi à la main (aucun accès réseau, secret jamais stocké), captures d'écran et versions hébergées de chaque outil (<code>explorer.</code>, <code>sse-tester.</code>, <code>jwt-getter.</code>, <code>jwt-signer.pgarachne.com</code>), cartes cliquables et liens croisés. Les dossiers de <code>tools/</code> ont été renommés <code>explorer</code>, <code>jwt-getter</code> et <code>sse-tester</code> — adaptez <code>STATIC_FILES_PATH</code> si vous les servez.</li>
+		<li>🐛 <strong>Correctifs et durcissement</strong> : une fonction retournant un <code>NULL</code> SQL produit désormais <code>"result": null</code> au lieu d'un HTTP 500 ; les chemins ZIP de <code>/file</code> rejettent les noms hostiles à Windows et les collisions insensibles à la casse ; les résultats vides sont annulés (rollback).</li>
+		<li>📚 <strong>Docs et dépendances</strong> : Quick Start pas à pas, page JSON-RPC devenue pure référence, décision d'architecture « Pourquoi PostgreSQL », conseils de reverse proxy pour les gros téléchargements et modules Go mis à jour (mise à jour de sécurité de <code>golang.org/x/net</code>).</li>
+	</ul>
+
 	<p class="whats-new-subtitle">v2.2.0</p>
 	<ul>
 		<li>🔑 <strong>JWT optionnel</strong> : <code>JWT_SECRET</code> n'est plus obligatoire. Sans lui, JWT est désactivé (<code>get_jwt</code> renvoie 404 / <code>-32601</code>) et les clients utilisent des identifiants HTTP Basic ou des jetons d'API.</li>
