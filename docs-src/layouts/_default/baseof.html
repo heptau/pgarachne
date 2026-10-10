@@ -15,6 +15,7 @@
 	     page-relative "../" form. Only fully-qualified absURL/absLangURL survive
 	     that rewrite, so the 404 branch below uses those. */}}
 	{{ $is404 := eq .Kind "404" }}
+	<link rel="icon" type="image/svg+xml" href="{{ if $is404 }}{{ "assets/pgarachne-logo.svg" | absURL }}{{ else }}{{ "assets/pgarachne-logo.svg" | relURL }}{{ end }}">
 	<link rel="icon" type="image/png" href="{{ if $is404 }}{{ "assets/pgarachne-icon.png" | absURL }}{{ else }}{{ "assets/pgarachne-icon.png" | relURL }}{{ end }}">
 	<link rel="manifest" href="{{ if $is404 }}{{ "manifest.json" | absURL }}{{ else }}{{ "manifest.json" | relURL }}{{ end }}">
 	<meta name="theme-color" content="#0066cc">

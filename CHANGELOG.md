@@ -7,6 +7,10 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Changed
+
+- Docs: the vector logo (`pgarachne-logo.svg`) replaces the raster WebP in the home page hero and the README, and is also offered as an SVG favicon (PNG kept as fallback). The WebP stays for `og:image`/`twitter:image`, the PNG for `apple-touch-icon` and the web manifest, since social crawlers and installers do not accept SVG.
+
 ## [3.0.0] - 2026-10-10
 
 ### Added

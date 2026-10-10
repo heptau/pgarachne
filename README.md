@@ -16,7 +16,7 @@
 [![Server](https://img.shields.io/badge/Server-MCP-D97757?logo=anthropic&logoColor=white)](https://www.pgarachne.com#mcp)
 
 <div align="center">
-  <img src="docs-src/static/assets/pgarachne-logo.webp" alt="PgArachne Logo" width="200"/>
+  <img src="docs-src/static/assets/pgarachne-logo.svg" alt="PgArachne Logo" width="200"/>
   <h1>PgArachne</h1>
   <p><strong>Turn PostgreSQL into a secure API. Instantly.</strong></p>
   <p>Zero boilerplate. High performance. The middleware that maps HTTP requests directly to database functions.</p>
