@@ -7,6 +7,8 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-10-10
+
 ### Added
 
 - New browser tool **JWT Signer** (`tools/jwt-signer/index.html`, docs page in all 10 languages, hosted at `jwt-signer.pgarachne.com`): signs HS256 JWTs (`db_role`, `db_name`, `iat`, `exp`, optional `iss`/`aud` and extra claims) locally with a `JWT_SECRET` typed in by hand, with no request to PgArachne or the database. Negative lifetimes produce already expired tokens for testing. The secret is never stored (not in `localStorage`, cookies or the URL); a Content Security Policy with `connect-src 'none'` forbids all network access, nothing external is loaded, and the page carries prominent warnings against pasting production secrets into hosted pages.
