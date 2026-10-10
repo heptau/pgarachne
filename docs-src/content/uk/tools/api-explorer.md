@@ -5,10 +5,14 @@ description: "PgArachne Explorer - PgArachne"
 
 <section id="explorer">
 <h2>PgArachne Explorer</h2>
-<p><strong>Explorer</strong> — це потужний веб-інтерфейс, що входить до каталогу <code>tools/pgarachne-explorer</code>. Це не
+<p><strong>Explorer</strong> — це потужний веб-інтерфейс, що входить до каталогу <code>tools/explorer</code>. Це не
 		просто інструмент документації — це повністю функціональний <strong>демонстраційний застосунок</strong>, побудований на HTML/JS,
 		який спілкується з базою даних виключно через PgArachne. Хостована версія також доступна на
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-explorer.webp" alt="PgArachne Explorer" loading="lazy">
+</figure>
+
 
 <p><strong>Що він уміє?</strong></p>
 <ul>
@@ -27,6 +31,6 @@ description: "PgArachne Explorer - PgArachne"
 
 <div class="tip">
 <strong>Як увімкнути:</strong> Встановіть змінну середовища <code>STATIC_FILES_PATH</code>, щоб вона вказувала на
-каталог <code>tools/pgarachne-explorer</code> на вашому диску. Потім відвідайте <code>http://localhost:8080</code>.
+каталог <code>tools/explorer</code> на вашому диску. Потім відвідайте <code>http://localhost:8080</code>.
 </div>
 </section>

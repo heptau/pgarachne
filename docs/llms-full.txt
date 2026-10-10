@@ -1398,6 +1398,12 @@ Exchange a PostgreSQL username and password for a short-lived JWT via the `/toke
 
 Learn more about JWT Getter
 
+### JWT Signer
+
+Generate JWTs locally in the browser by entering `JWT_SECRET` by hand — no database or server needed. Set the role, database, lifetime and extra claims, even an already expired token for testing. Includes full security warnings.
+
+Learn more about JWT Signer
+
 ### PgArachne Toolbar (macOS)
 
 A native macOS application that lives in your menu bar. Manage multiple PgArachne instances, view live logs, and monitor metrics with a single click.
@@ -1413,7 +1419,9 @@ URL: https://www.pgarachne.com/en/tools/get-jwt/
 
 ## JWT Getter
 
-The JWT Getter is a minimal single-file browser tool located in `tools/get-jwt`. It exchanges a PostgreSQL username and password for a short-lived JWT by calling `POST /{prefix}/{database}/token` with HTTP Basic credentials — and shows you the decoded payload and expiry time.
+The JWT Getter is a minimal single-file browser tool located in `tools/jwt-getter`. It exchanges a PostgreSQL username and password for a short-lived JWT by calling `POST /{prefix}/{database}/token` with HTTP Basic credentials — and shows you the decoded payload and expiry time.
+
+Online version: [jwt-getter.pgarachne.com](https://jwt-getter.pgarachne.com)
 
 ### When to use it
 
@@ -1441,7 +1449,42 @@ Note: a JWT only works if PgArachne may switch to the user's role, which require
 
 ### How to enable it
 
-Set `STATIC_FILES_PATH` to `tools/get-jwt` and visit `http://localhost:8080`, or open `index.html` directly in a browser.
+Set `STATIC_FILES_PATH` to `tools/jwt-getter` and visit `http://localhost:8080`, or open `index.html` directly in a browser.
+
+
+---
+
+# JWT Signer
+
+URL: https://www.pgarachne.com/en/tools/jwt-signer/
+
+## JWT Signer
+
+The JWT Signer is a single-file browser tool located in `tools/jwt-signer`. Unlike the JWT Getter, it never contacts PgArachne or the database: you enter the `JWT_SECRET` by hand and the token is signed (HS256) directly in your browser.
+
+Online version: [jwt-signer.pgarachne.com](https://jwt-signer.pgarachne.com)
+
+Handle your JWT secret with care
+
+- `JWT_SECRET` is the master key of your API: anyone who knows it can sign a token for any database role, including superusers.
+
+- Never paste a production secret into a web page you do not fully control. Use the hosted version with development / test secrets only. For production, save `index.html` and open it locally (it works offline), or sign tokens on the server.
+
+- Everything runs in your browser. The page forbids all network access (Content Security Policy `connect-src 'none'`), loads no external resources and never stores the secret — not in `localStorage`, cookies or the URL. Only the role, database, lifetime, issuer and audience are remembered.
+
+- A token signed here is accepted by PgArachne exactly like one issued by `/token`. Keep lifetimes short and never share tokens signed with a real secret.
+
+### When to use it
+
+- Testing and development when you do not want (or cannot) log in with a database password.
+
+- Verifying how your client handles expiry: a negative lifetime produces an already expired token.
+
+- Trying out `iss` / `aud` and extra claims against a server configured to require them.
+
+- Generating a random 256-bit secret for a new `JWT_SECRET` with one click.
+
+How to enable it: Set `STATIC_FILES_PATH` to `tools/jwt-signer` and visit `http://localhost:8080`, or open `index.html` directly in a browser — it works without any server.
 
 
 ---
@@ -1452,7 +1495,7 @@ URL: https://www.pgarachne.com/en/tools/api-explorer/
 
 ## PgArachne Explorer
 
-The Explorer is a powerful web GUI included in the `tools/pgarachne-explorer` directory. It is not
+The Explorer is a powerful web GUI included in the `tools/explorer` directory. It is not
 merely a documentation tool — it is a fully functional demo application built with HTML/JS
 that communicates with the database exclusively via PgArachne. A hosted version is also available at
 [explorer.pgarachne.com](https://explorer.pgarachne.com).
@@ -1477,7 +1520,7 @@ You can pre-fill the connection settings using the `?url=` parameter, for exampl
 `?url=http://localhost:8080/db/my_database`. This will automatically split the URL into API Host, Prefix, and Database fields.
 
 How to enable it: Set the `STATIC_FILES_PATH` environment variable to point to the
-`tools/pgarachne-explorer` folder on your disk. Then visit `http://localhost:8080`.
+`tools/explorer` folder on your disk. Then visit `http://localhost:8080`.
 
 
 ---
@@ -1515,7 +1558,9 @@ URL: https://www.pgarachne.com/en/tools/sse-tester/
 
 ## SSE Tester
 
-The SSE Tester is a single-file browser tool located in `tools/test-sse`. It lets you subscribe to any number of PostgreSQL `NOTIFY` channels over a live Server-Sent Events connection and watch the incoming events in real time.
+The SSE Tester is a single-file browser tool located in `tools/sse-tester`. It lets you subscribe to any number of PostgreSQL `NOTIFY` channels over a live Server-Sent Events connection and watch the incoming events in real time.
+
+Online version: [sse-tester.pgarachne.com](https://sse-tester.pgarachne.com)
 
 ### Features
 
@@ -1537,7 +1582,7 @@ The tool verifies credentials before revealing the subscription panel. Clicking 
 
 - Bearer Token tab — sends `Authorization: Bearer <token>`. Paste a JWT (obtained via the JWT Getter) or a long-lived API token.
 
-How to enable it: Set `STATIC_FILES_PATH` to `tools/test-sse` and visit `http://localhost:8080`. Alternatively, open `index.html` directly in a browser — all functionality works without a local server.
+How to enable it: Set `STATIC_FILES_PATH` to `tools/sse-tester` and visit `http://localhost:8080`. Alternatively, open `index.html` directly in a browser — all functionality works without a local server.
 
 
 ---

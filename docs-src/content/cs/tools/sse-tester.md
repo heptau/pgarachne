@@ -5,7 +5,13 @@ description: "PgArachne SSE Tester - Dokumentace"
 
 <section id="sse-tester">
 <h2>SSE Tester</h2>
-<p><strong>SSE Tester</strong> je jednoduchý nástroj pro prohlížeč umístěný ve složce <code>tools/test-sse</code>. Umožňuje přihlásit se k odběru libovolného počtu PostgreSQL <code>NOTIFY</code> kanálů přes živé <a href="../../real-time-notifications/">Server-Sent Events</a> spojení a sledovat příchozí události v reálném čase.</p>
+<p><strong>SSE Tester</strong> je jednoduchý nástroj pro prohlížeč umístěný ve složce <code>tools/sse-tester</code>. Umožňuje přihlásit se k odběru libovolného počtu PostgreSQL <code>NOTIFY</code> kanálů přes živé <a href="../../real-time-notifications/">Server-Sent Events</a> spojení a sledovat příchozí události v reálném čase.</p>
+<p>Online verze: <a href="https://sse-tester.pgarachne.com" target="_blank" rel="noopener">sse-tester.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-sse-tester.webp" alt="SSE Tester" loading="lazy">
+</figure>
+
 
 <h3>Funkce</h3>
 <ul>
@@ -25,6 +31,6 @@ description: "PgArachne SSE Tester - Dokumentace"
 </ul>
 
 <div class="tip">
-<strong>Jak nástroj zprovoznit:</strong> Nastavte <code>STATIC_FILES_PATH</code> na <code>tools/test-sse</code> a navštivte <code>http://localhost:8080</code>. Nebo otevřete <code>index.html</code> přímo v prohlížeči — vše funguje bez lokálního serveru.
+<strong>Jak nástroj zprovoznit:</strong> Nastavte <code>STATIC_FILES_PATH</code> na <code>tools/sse-tester</code> a navštivte <code>http://localhost:8080</code>. Nebo otevřete <code>index.html</code> přímo v prohlížeči — vše funguje bez lokálního serveru.
 </div>
 </section>

@@ -5,10 +5,14 @@ description: "PgArachne Explorer - PgArachne"
 
 <section id="explorer">
 <h2>PgArachne Explorer</h2>
-<p><strong>Explorer</strong> je webové rozhraní přiložené ve složce <code>tools/pgarachne-explorer</code>. Nejedná se
+<p><strong>Explorer</strong> je webové rozhraní přiložené ve složce <code>tools/explorer</code>. Nejedná se
 		jen o dokumentaci; je to plně funkční <strong>demo aplikace</strong> postavená na HTML/JS,
 		která komunikuje s databází výhradně prostřednictvím PgArachne. Online verzi můžete vyzkoušet na adrese 
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-explorer.webp" alt="PgArachne Explorer" loading="lazy">
+</figure>
+
 
 <p><strong>Co umí?</strong></p>
 <ul>
@@ -27,6 +31,6 @@ description: "PgArachne Explorer - PgArachne"
 
 <div class="tip">
 <strong>Jak jej povolit:</strong> Nastavte proměnnou prostředí <code>STATIC_FILES_PATH</code> tak, aby směřovala na
-		složku <code>tools/pgarachne-explorer</code> na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
+		složku <code>tools/explorer</code> na vašem disku. Poté navštivte <code>http://localhost:8080</code>.
 </div>
 </section>

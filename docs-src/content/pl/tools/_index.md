@@ -15,25 +15,31 @@ menu:
 <div class="card">
 <h3>PgArachne Explorer</h3>
 <p>W pełni funkcjonalny interfejs webowy do przeglądania API, testowania funkcji i wyświetlania automatycznie generowanej dokumentacji. Wspiera zarówno uwierzytelnianie bezpośrednimi danymi logowania (HTTP Basic Auth), jak i tokenem Bearer.</p>
-<p><a href="api-explorer/" class="btn">Więcej o Explorerze</a></p>
+<p><a href="api-explorer/" class="btn stretched-link">Więcej o Explorerze</a></p>
 </div>
 
 <div class="card">
 <h3>SSE Tester</h3>
 <p>Zapisz się do jednego lub wielu kanałów PostgreSQL NOTIFY przez działające na żywo połączenie Server-Sent Events. Wspiera wszystkie trzy metody uwierzytelniania i wyświetla zdarzenia JSON z podświetlaniem składni.</p>
-<p><a href="sse-tester/" class="btn">Więcej o SSE Testerze</a></p>
+<p><a href="sse-tester/" class="btn stretched-link">Więcej o SSE Testerze</a></p>
 </div>
 
 <div class="card">
 <h3>JWT Getter</h3>
 <p>Wymień nazwę użytkownika i hasło PostgreSQL na krótkotrwały JWT za pomocą endpointu <code>/token</code> (dane HTTP Basic). Pokazuje zdekodowany payload oraz czas wygaśnięcia — przydatne przy debugowaniu przepływów opartych na tokenach.</p>
-<p><a href="get-jwt/" class="btn">Więcej o JWT Getterze</a></p>
+<p><a href="get-jwt/" class="btn stretched-link">Więcej o JWT Getterze</a></p>
+</div>
+
+<div class="card">
+<h3>JWT Signer</h3>
+<p>Generuj JWT lokalnie w przeglądarce, wpisując <code>JWT_SECRET</code> ręcznie — bez bazy danych i serwera. Ustaw rolę, bazę, ważność i dodatkowe claimy, także token już wygasły do testów. Zawiera wszystkie ostrzeżenia bezpieczeństwa.</p>
+<p><a href="jwt-signer/" class="btn stretched-link">Więcej o JWT Signer</a></p>
 </div>
 
 <div class="card">
 <h3>PgArachne Toolbar (macOS)</h3>
 <p>Natywna aplikacja macOS działająca w pasku menu. Zarządzaj wieloma instancjami PgArachne, przeglądaj logi na żywo i monitoruj metryki jednym kliknięciem.</p>
-<p><a href="macos-toolbar/" class="btn">Poznaj funkcje Toolbar</a></p>
+<p><a href="macos-toolbar/" class="btn stretched-link">Poznaj funkcje Toolbar</a></p>
 </div>
 </div>
 </section>

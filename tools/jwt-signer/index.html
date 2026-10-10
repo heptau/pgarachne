@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<!-- The secret never leaves this page: no network access is allowed at all,
+	     no external fonts or scripts are loaded, and the secret is never stored. -->
+	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; form-action 'none'; base-uri 'none'">
+	<meta name="referrer" content="no-referrer">
+	<title>PgArachne JWT Signer</title>
+	<style>
+		:root {
+			--bg-body: #0f111a;
+			--bg-card: #161b22;
+			--bg-input: #0d1117;
+			--fg: #c9d1d9;
+			--fg-heading: #e6edf3;
+			--fg-muted: #8b949e;
+			--border: #30363d;
+			--border-h2: #21262d;
+			--accent: #58a6ff;
+			--accent-glow: rgba(88, 166, 255, 0.15);
+			--btn-primary: #238636;
+			--btn-primary-hover: #2ea043;
+			--btn-secondary: #30363d;
+			--btn-secondary-hover: #3d444d;
+			--btn-danger: #da3633;
+			--status-ok: #3fb950;
+			--warn-bg: rgba(210, 153, 34, 0.12);
+			--warn-border: #d29922;
+			--warn-fg: #e3b341;
+			--json-key: #79c0ff;
+			--json-string: #a5d6ff;
+			--json-number: #f0883e;
+			--json-boolean: #ff7b72;
+			--json-null: #8b949e;
+		}
+
+		@media (prefers-color-scheme: light) {
+			:root {
+				--bg-body: #f6f8fa;
+				--bg-card: #ffffff;
+				--bg-input: #f6f8fa;
+				--fg: #1f2328;
+				--fg-heading: #1f2328;
+				--fg-muted: #656d76;
+				--border: #d0d7de;
+				--border-h2: #d8dee4;
+				--accent: #0969da;
+				--accent-glow: rgba(9, 105, 218, 0.12);
+				--btn-primary: #1a7f37;
+				--btn-primary-hover: #218c3a;
+				--btn-secondary: #e9ecef;
+				--btn-secondary-hover: #d0d7de;
+				--btn-danger: #cf222e;
+				--status-ok: #1a7f37;
+				--warn-bg: #fff8c5;
+				--warn-border: #bf8700;
+				--warn-fg: #7d4e00;
+				--json-key: #0550ae;
+				--json-string: #0a3069;
+				--json-number: #953800;
+				--json-boolean: #cf222e;
+				--json-null: #656d76;
+			}
+		}
+
+		*, *::before, *::after { box-sizing: border-box; }
+
+		body {
+			font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+			max-width: 700px;
+			margin: 0 auto;
+			padding: 24px;
+			background: var(--bg-body);
+			color: var(--fg);
+			line-height: 1.5;
+		}
+
+		h1 {
+			font-size: 1.6rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 20px;
+			display: flex;
+			align-items: center;
+			gap: 10px;
+		}
+
+		h1::before { content: '✍️'; font-size: 1.4rem; }
+
+		h2 {
+			font-size: 1rem;
+			font-weight: 600;
+			color: var(--fg-heading);
+			margin: 0 0 16px;
+			padding-bottom: 8px;
+			border-bottom: 1px solid var(--border-h2);
+		}
+
+		.warning {
+			margin-bottom: 20px;
+			padding: 14px 18px;
+			border: 1px solid var(--warn-border);
+			border-left-width: 4px;
+			border-radius: 8px;
+			background: var(--warn-bg);
+			color: var(--warn-fg);
+			font-size: 0.85rem;
+		}
+
+		.warning > strong { display: block; margin-bottom: 6px; font-size: 0.95rem; }
+		.warning ul { margin: 6px 0 0; padding-left: 20px; }
+		.warning li { margin: 3px 0; }
+		.warning code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 0.8rem; }
+
+		.card {
+			margin-bottom: 20px;
+			border: 1px solid var(--border);
+			padding: 20px;
+			border-radius: 10px;
+			background: var(--bg-card);
+		}
+
+		label {
+			display: block;
+			margin: 12px 0 4px;
+			font-size: 0.82rem;
+			font-weight: 500;
+			color: var(--fg-muted);
+		}
+
+		label:first-of-type { margin-top: 0; }
+
+		.hint { font-size: 0.75rem; color: var(--fg-muted); margin: 4px 0 0; }
+
+		input[type="text"],
+		input[type="password"],
+		input[type="number"],
+		select,
+		textarea {
+			width: 100%;
+			padding: 9px 12px;
+			border: 1px solid var(--border);
+			border-radius: 6px;
+			background: var(--bg-input);
+			color: var(--fg-heading);
+			font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+			font-size: 0.85rem;
+			transition: border-color 0.2s ease, box-shadow 0.2s ease;
+		}
+
+		textarea { resize: vertical; min-height: 70px; }
+
+		input:focus, select:focus, textarea:focus {
+			outline: none;
+			border-color: var(--accent);
+			box-shadow: 0 0 0 3px var(--accent-glow);
+		}
+
+		.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+		.row-ttl { display: grid; grid-template-columns: 1fr 140px; gap: 12px; }
+
+		@media (max-width: 520px) {
+			.row, .row-ttl { grid-template-columns: 1fr; }
+		}
+
+		.secret-row { display: flex; gap: 8px; }
+		.secret-row input { flex: 1; }
+
+		button {
+			padding: 9px 16px;
+			background: var(--btn-primary);
+			color: #fff;
+			border: 1px solid rgba(240, 246, 252, 0.1);
+			cursor: pointer;
+			border-radius: 6px;
+			font-family: inherit;
+			font-size: 0.82rem;
+			font-weight: 500;
+			transition: background 0.15s ease, transform 0.1s ease;
+			display: inline-flex;
+			align-items: center;
+			gap: 6px;
+			white-space: nowrap;
+		}
+
+		button:hover { background: var(--btn-primary-hover); transform: translateY(-1px); }
+		button:active { transform: translateY(0); }
+
+		.btn-secondary { background: var(--btn-secondary); }
+		@media (prefers-color-scheme: light) { .btn-secondary { color: var(--fg); } }
+		.btn-secondary:hover { background: var(--btn-secondary-hover); }
+
+		.btn-small { padding: 5px 10px; font-size: 0.75rem; }
+
+		.button-group {
+			display: flex;
+			gap: 10px;
+			align-items: center;
+			margin-top: 16px;
+			flex-wrap: wrap;
+		}
+
+		.result-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: 8px;
+		}
+
+		.result-header h2 { margin: 0; border: none; padding: 0; }
+
+		.token-box, #payload-box {
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 14px 16px;
+			background: var(--bg-input);
+			font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+			font-size: 0.82rem;
+			word-break: break-all;
+			white-space: pre-wrap;
+			line-height: 1.6;
+			color: var(--fg);
+		}
+
+		.token-box { min-height: 60px; }
+		.token-box.success { border-color: var(--status-ok); color: var(--accent); }
+		.token-box.error { border-color: var(--btn-danger); color: var(--btn-danger); }
+
+		.payload-section { margin-top: 16px; }
+
+		.payload-section h3 {
+			font-size: 0.85rem;
+			font-weight: 600;
+			color: var(--fg-muted);
+			margin: 0 0 8px;
+			text-transform: uppercase;
+			letter-spacing: 0.04em;
+		}
+
+		.expiry-badge {
+			display: inline-block;
+			padding: 4px 10px;
+			border-radius: 4px;
+			font-size: 0.78rem;
+			font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+			margin-top: 10px;
+		}
+
+		.expiry-badge.ok { background: rgba(63,185,80,0.15); color: var(--status-ok); border: 1px solid var(--status-ok); }
+		.expiry-badge.expired { background: rgba(218,54,51,0.15); color: var(--btn-danger); border: 1px solid var(--btn-danger); }
+
+		.json-key { color: var(--json-key); }
+		.json-string { color: var(--json-string); }
+		.json-number { color: var(--json-number); }
+		.json-boolean { color: var(--json-boolean); }
+		.json-null { color: var(--json-null); }
+
+		.hidden { display: none !important; }
+
+		.footer {
+			margin-top: 32px;
+			padding-top: 12px;
+			border-top: 1px solid var(--border);
+			text-align: center;
+			font-size: 0.75rem;
+			color: var(--fg-muted);
+		}
+
+		.footer a { color: var(--fg-muted); text-decoration: none; }
+		.footer a:hover { color: var(--accent); }
+	</style>
+</head>
+
+<body>
+	<h1>PgArachne JWT Signer</h1>
+
+	<div class="warning" role="note">
+		<strong>⚠ Handle your JWT secret with care</strong>
+		<ul>
+			<li><code>JWT_SECRET</code> is the master key of your API: anyone who knows it can sign a token for <em>any</em> database role, including superusers.</li>
+			<li><strong>Do not paste a production secret into a web page you do not fully control.</strong> Use this tool with development / test secrets only. For production, save this file and open it locally (it works offline), or sign tokens on the server.</li>
+			<li>Everything runs in your browser. The page forbids all network access (Content Security Policy <code>connect-src 'none'</code>), loads nothing external, and <strong>never stores the secret</strong> &mdash; not in <code>localStorage</code>, cookies, or the URL. It disappears when you close or reload the tab.</li>
+			<li>A token signed here is accepted by PgArachne exactly like one issued by <code>/token</code>, including its role and lifetime. Keep lifetimes short and never share tokens signed with a real secret.</li>
+		</ul>
+	</div>
+
+	<div class="card">
+		<h2>Secret &amp; Claims</h2>
+
+		<label for="secret">JWT secret (<code>JWT_SECRET</code>)</label>
+		<div class="secret-row">
+			<input type="password" id="secret" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore placeholder="at least 32 bytes">
+			<button type="button" class="btn-secondary btn-small" onclick="toggleSecret()" id="toggle-btn">Show</button>
+			<button type="button" class="btn-secondary btn-small" onclick="randomSecret()">Generate random</button>
+		</div>
+		<p class="hint" id="secret-hint">Used only to compute the HS256 signature in this tab. Not saved anywhere.</p>
+
+		<div class="row" style="margin-top: 12px;">
+			<div>
+				<label for="dbRole">Database role (<code>db_role</code>)</label>
+				<input type="text" id="dbRole" autocapitalize="off" autocorrect="off" placeholder="my_role">
+			</div>
+			<div>
+				<label for="dbName">Database (<code>db_name</code>)</label>
+				<input type="text" id="dbName" autocapitalize="off" autocorrect="off" placeholder="my_database">
+			</div>
+		</div>
+
+		<label for="ttl">Valid for</label>
+		<div class="row-ttl">
+			<input type="number" id="ttl" value="8" step="1">
+			<select id="ttlUnit">
+				<option value="1">seconds</option>
+				<option value="60">minutes</option>
+				<option value="3600" selected>hours</option>
+				<option value="86400">days</option>
+			</select>
+		</div>
+		<p class="hint">A negative value produces an already expired token &mdash; handy for testing how your client handles <code>401</code>s.</p>
+
+		<div class="row" style="margin-top: 12px;">
+			<div>
+				<label for="iss">Issuer (<code>iss</code>), optional</label>
+				<input type="text" id="iss" autocapitalize="off" autocorrect="off">
+			</div>
+			<div>
+				<label for="aud">Audience (<code>aud</code>), optional</label>
+				<input type="text" id="aud" autocapitalize="off" autocorrect="off">
+			</div>
+		</div>
+		<p class="hint">Only needed if the server is configured to require them.</p>
+
+		<label for="extra">Extra claims (JSON object), optional</label>
+		<textarea id="extra" spellcheck="false" placeholder='{"sub": "alice"}'></textarea>
+
+		<div class="button-group">
+			<button type="button" onclick="signToken()" id="sign-btn">&#9654; Sign JWT</button>
+			<button type="button" class="btn-secondary" onclick="clearAll()">&#10005; Clear everything</button>
+		</div>
+	</div>
+
+	<div class="result-header">
+		<h2>JWT Token</h2>
+		<button type="button" class="btn-secondary btn-small" onclick="copyToken()" id="copy-btn">&#9094; Copy</button>
+	</div>
+	<div class="token-box" id="token-box">Token will appear here&hellip;</div>
+	<div id="expiry-area"></div>
+
+	<div class="payload-section hidden" id="payload-section">
+		<h3>Decoded payload</h3>
+		<div id="payload-box"></div>
+	</div>
+
+	<footer class="footer">
+		Part of <a href="https://www.pgarachne.com" target="_blank" rel="noopener">PgArachne</a> &mdash; expose PostgreSQL functions as a JSON-RPC API
+		<br>Other tools: <a href="https://explorer.pgarachne.com" target="_blank" rel="noopener">Explorer</a> &middot; <a href="https://sse-tester.pgarachne.com" target="_blank" rel="noopener">SSE Tester</a> &middot; <a href="https://jwt-getter.pgarachne.com" target="_blank" rel="noopener">JWT Getter</a> &middot; <a href="https://www.pgarachne.com/#tools" target="_blank" rel="noopener">Documentation</a>
+	</footer>
+
+	<script>
+		var currentToken = null;
+		var enc = new TextEncoder();
+
+		/* ---- base64url ---- */
+		function b64url(bytes) {
+			var s = '';
+			for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+			return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+		}
+		function b64urlJson(obj) { return b64url(enc.encode(JSON.stringify(obj))); }
+
+		/* ---- JSON highlight ---- */
+		function syntaxHighlight(json) {
+			return json.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(
+				/("(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+				function (match) {
+					var cls = 'json-number';
+					if (/^"/.test(match)) { cls = /:$/.test(match) ? 'json-key' : 'json-string'; }
+					else if (/true|false/.test(match)) { cls = 'json-boolean'; }
+					else if (/null/.test(match)) { cls = 'json-null'; }
+					return '<span class="' + cls + '">' + match + '</span>';
+				}
+			);
+		}
+
+		/* ---- Persisted fields: everything EXCEPT the secret ---- */
+		var PERSISTED = ['dbRole', 'dbName', 'ttl', 'ttlUnit', 'iss', 'aud'];
+		function lsGet(k) { try { return localStorage.getItem('jwtsigner_' + k); } catch (e) { return null; } }
+		function lsSet(k, v) { try { localStorage.setItem('jwtsigner_' + k, v); } catch (e) { } }
+
+		/* ---- Secret helpers ---- */
+		function toggleSecret() {
+			var el = document.getElementById('secret');
+			var show = el.type === 'password';
+			el.type = show ? 'text' : 'password';
+			document.getElementById('toggle-btn').textContent = show ? 'Hide' : 'Show';
+		}
+
+		function randomSecret() {
+			var a = new Uint8Array(32);
+			crypto.getRandomValues(a);
+			var hex = '';
+			for (var i = 0; i < a.length; i++) hex += ('0' + a[i].toString(16)).slice(-2);
+			var el = document.getElementById('secret');
+			el.value = hex;
+			el.type = 'text';
+			document.getElementById('toggle-btn').textContent = 'Hide';
+			document.getElementById('secret-hint').textContent =
+				'New random secret (64 hex characters). Put the same value into JWT_SECRET of your PgArachne instance.';
+		}
+
+		/* ---- Signing (HS256, same token shape as the server's /token endpoint) ---- */
+		async function signToken() {
+			var secret = document.getElementById('secret').value;
+			var role = document.getElementById('dbRole').value.trim();
+			var db = document.getElementById('dbName').value.trim();
+			var ttl = parseFloat(document.getElementById('ttl').value);
+			var unit = parseInt(document.getElementById('ttlUnit').value, 10);
+			var iss = document.getElementById('iss').value.trim();
+			var aud = document.getElementById('aud').value.trim();
+			var extraText = document.getElementById('extra').value.trim();
+
+			if (!secret) return showError('Enter the JWT secret.');
+			if (enc.encode(secret).length < 32) {
+				document.getElementById('secret-hint').textContent =
+					'Note: PgArachne requires JWT_SECRET of at least 32 bytes — it will not start with a shorter one.';
+			}
+			if (!role || !db) return showError('db_role and db_name are required.');
+			if (!isFinite(ttl) || ttl === 0) return showError('Enter a non-zero lifetime.');
+			if (!(window.crypto && crypto.subtle)) {
+				return showError('Web Crypto is unavailable. Open this page over https:// or from a local file.');
+			}
+
+			var extra = {};
+			if (extraText) {
+				try { extra = JSON.parse(extraText); } catch (e) { return showError('Extra claims: invalid JSON (' + e.message + ').'); }
+				if (extra === null || typeof extra !== 'object' || Array.isArray(extra)) {
+					return showError('Extra claims must be a JSON object.');
+				}
+			}
+
+			var now = Math.floor(Date.now() / 1000);
+			var claims = { db_role: role, db_name: db, iat: now, exp: now + Math.round(ttl * unit) };
+			if (iss) claims.iss = iss;
+			if (aud) claims.aud = aud;
+			Object.keys(extra).forEach(function (k) { claims[k] = extra[k]; });
+
+			try {
+				var signingInput = b64urlJson({ alg: 'HS256', typ: 'JWT' }) + '.' + b64urlJson(claims);
+				var key = await crypto.subtle.importKey('raw', enc.encode(secret),
+					{ name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+				var sig = await crypto.subtle.sign('HMAC', key, enc.encode(signingInput));
+				showToken(signingInput + '.' + b64url(new Uint8Array(sig)), claims);
+				PERSISTED.forEach(function (id) { lsSet(id, document.getElementById(id).value); });
+			} catch (e) {
+				showError('Signing failed: ' + e.message);
+			}
+		}
+
+		function showToken(token, claims) {
+			currentToken = token;
+			var box = document.getElementById('token-box');
+			box.className = 'token-box success';
+			box.textContent = token;
+
+			var area = document.getElementById('expiry-area');
+			area.innerHTML = '';
+			var exp = new Date(claims.exp * 1000);
+			var diff = Math.round((exp - new Date()) / 1000);
+			var badge = document.createElement('span');
+			if (diff > 0) {
+				var hh = Math.floor(diff / 3600), mm = Math.floor((diff % 3600) / 60), ss = diff % 60;
+				badge.className = 'expiry-badge ok';
+				badge.textContent = 'Expires: ' + exp.toLocaleString() + ' (in ' +
+					(hh ? hh + 'h ' : '') + (mm ? mm + 'm ' : '') + ss + 's)';
+			} else {
+				badge.className = 'expiry-badge expired';
+				badge.textContent = 'Expired: ' + exp.toLocaleString();
+			}
+			area.appendChild(badge);
+
+			document.getElementById('payload-box').innerHTML = syntaxHighlight(JSON.stringify(claims, null, 2));
+			document.getElementById('payload-section').classList.remove('hidden');
+		}
+
+		function showError(msg) {
+			var box = document.getElementById('token-box');
+			box.className = 'token-box error';
+			box.textContent = msg;
+			document.getElementById('expiry-area').innerHTML = '';
+			document.getElementById('payload-section').classList.add('hidden');
+			currentToken = null;
+		}
+
+		function clearAll() {
+			var s = document.getElementById('secret');
+			s.value = '';
+			s.type = 'password';
+			document.getElementById('toggle-btn').textContent = 'Show';
+			document.getElementById('extra').value = '';
+			document.getElementById('secret-hint').textContent = 'Used only to compute the HS256 signature in this tab. Not saved anywhere.';
+			var box = document.getElementById('token-box');
+			box.className = 'token-box';
+			box.textContent = 'Token will appear here…';
+			document.getElementById('expiry-area').innerHTML = '';
+			document.getElementById('payload-section').classList.add('hidden');
+			currentToken = null;
+		}
+
+		function copyToken() {
+			if (!currentToken) return;
+			navigator.clipboard.writeText(currentToken).then(function () {
+				var btn = document.getElementById('copy-btn');
+				var orig = btn.textContent;
+				btn.textContent = '✓ Copied';
+				setTimeout(function () { btn.textContent = orig; }, 1400);
+			});
+		}
+
+		window.onload = function () {
+			var defaults = { dbRole: '', dbName: 'my_database', ttl: '8', ttlUnit: '3600', iss: '', aud: '' };
+			PERSISTED.forEach(function (id) {
+				var v = lsGet(id);
+				document.getElementById(id).value = (v !== null && v !== '') ? v : defaults[id];
+			});
+			document.getElementById('secret').value = '';
+		};
+
+		/* Never keep the secret in a bfcache-restored page. */
+		window.addEventListener('pageshow', function (e) {
+			if (e.persisted) clearAll();
+		});
+	</script>
+</body>
+
+</html>

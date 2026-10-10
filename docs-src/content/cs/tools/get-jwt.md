@@ -5,7 +5,13 @@ description: "PgArachne JWT Getter - Dokumentace"
 
 <section id="get-jwt">
 <h2>JWT Getter</h2>
-<p><strong>JWT Getter</strong> je minimalistický nástroj pro prohlížeč umístěný ve složce <code>tools/get-jwt</code>. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním <code>POST /{prefix}/{database}/token</code> s přihlašovacími údaji HTTP Basic — a zobrazuje dekódovaný payload i čas expirace.</p>
+<p><strong>JWT Getter</strong> je minimalistický nástroj pro prohlížeč umístěný ve složce <code>tools/jwt-getter</code>. Vyměňuje PostgreSQL uživatelské jméno a heslo za krátkodobý JWT voláním <code>POST /{prefix}/{database}/token</code> s přihlašovacími údaji HTTP Basic — a zobrazuje dekódovaný payload i čas expirace.</p>
+<p>Online verze: <a href="https://jwt-getter.pgarachne.com" target="_blank" rel="noopener">jwt-getter.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-jwt-getter.webp" alt="JWT Getter" loading="lazy">
+</figure>
+
 
 <h3>Kdy jej použít</h3>
 <ul>
@@ -28,5 +34,5 @@ description: "PgArachne JWT Getter - Dokumentace"
 </ul>
 
 <h3>Zprovoznění</h3>
-<p>Nastavte <code>STATIC_FILES_PATH</code> na <code>tools/get-jwt</code> a navštivte <code>http://localhost:8080</code>, nebo otevřete <code>index.html</code> přímo v prohlížeči.</p>
+<p>Nastavte <code>STATIC_FILES_PATH</code> na <code>tools/jwt-getter</code> a navštivte <code>http://localhost:8080</code>, nebo otevřete <code>index.html</code> přímo v prohlížeči.</p>
 </section>

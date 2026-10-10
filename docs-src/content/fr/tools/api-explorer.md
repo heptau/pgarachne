@@ -5,10 +5,14 @@ description: "Explorateur PgArachne - PgArachne"
 
 <section id="explorer">
 <h2>Explorateur PgArachne</h2>
-<p>L’<strong>Explorer</strong> est une interface web puissante incluse dans le répertoire <code>tools/pgarachne-explorer</code>. Ce n’est
+<p>L’<strong>Explorer</strong> est une interface web puissante incluse dans le répertoire <code>tools/explorer</code>. Ce n’est
 		pas seulement de la documentation ; c’est une <strong>application de démonstration</strong> entièrement
 		fonctionnelle construite en HTML/JS qui communique avec la base de données exclusivement via PgArachne. Vous pouvez également utiliser la version hébergée sur 
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-explorer.webp" alt="PgArachne Explorer" loading="lazy">
+</figure>
+
 
 <p><strong>Que peut-il faire ?</strong></p>
 <ul>
@@ -28,6 +32,6 @@ description: "Explorateur PgArachne - PgArachne"
 
 <div class="tip">
 <strong>Comment l’activer :</strong> Définissez la variable d’environnement <code>STATIC_FILES_PATH</code>
-		pour pointer vers le dossier <code>tools/pgarachne-explorer</code> sur votre disque. Puis visitez <code>http://localhost:8080</code>.
+		pour pointer vers le dossier <code>tools/explorer</code> sur votre disque. Puis visitez <code>http://localhost:8080</code>.
 </div>
 </section>

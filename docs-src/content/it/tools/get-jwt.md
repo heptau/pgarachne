@@ -5,7 +5,13 @@ description: "PgArachne JWT Getter - Documentazione"
 
 <section id="get-jwt">
 <h2>JWT Getter</h2>
-<p>Il <strong>JWT Getter</strong> è uno strumento minimalista per browser situato in <code>tools/get-jwt</code>. Scambia nome utente e password PostgreSQL con un JWT di breve durata chiamando <code>POST /{prefix}/{database}/token</code> con credenziali HTTP Basic — e mostra il payload decodificato e la scadenza.</p>
+<p>Il <strong>JWT Getter</strong> è uno strumento minimalista per browser situato in <code>tools/jwt-getter</code>. Scambia nome utente e password PostgreSQL con un JWT di breve durata chiamando <code>POST /{prefix}/{database}/token</code> con credenziali HTTP Basic — e mostra il payload decodificato e la scadenza.</p>
+<p>Versione online: <a href="https://jwt-getter.pgarachne.com" target="_blank" rel="noopener">jwt-getter.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-jwt-getter.webp" alt="JWT Getter" loading="lazy">
+</figure>
+
 
 <h3>Quando usarlo</h3>
 <p>Usa il JWT Getter quando hai bisogno di un token per uno di questi scopi:</p>
@@ -29,5 +35,5 @@ description: "PgArachne JWT Getter - Documentazione"
 </ul>
 
 <h3>Come abilitarlo</h3>
-<p>Imposta <code>STATIC_FILES_PATH</code> su <code>tools/get-jwt</code> e visita <code>http://localhost:8080</code>, oppure apri <code>index.html</code> direttamente nel browser.</p>
+<p>Imposta <code>STATIC_FILES_PATH</code> su <code>tools/jwt-getter</code> e visita <code>http://localhost:8080</code>, oppure apri <code>index.html</code> direttamente nel browser.</p>
 </section>

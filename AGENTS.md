@@ -206,8 +206,9 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 - `sql/users.sql` — optional demo roles + initial API token
 - `scripts/setup_test_db.sh` — applies `schema.sql`, `mcp_functions.sql`, and `seed_data.sql` to the test database
 - `scripts/run_tests.sh` — spins up Docker Postgres, calls `setup_test_db.sh`, runs `go test ./...`
-- `tools/pgarachne-explorer/` — interactive JSON-RPC explorer (PWA, dark/light theme, offline-capable). Served when `STATIC_FILES_PATH` points to this directory; URL is `/tools/pgarachne-explorer/` (or `/tools/api-explorer/` per Hugo docs)
-- `tools/test-sse/` — minimal HTML page for manually exercising the SSE endpoint from a browser
+- `tools/explorer/` — interactive JSON-RPC explorer (PWA, dark/light theme, offline-capable). Served when `STATIC_FILES_PATH` points to this directory; URL is `/tools/explorer/` (or `/tools/api-explorer/` per Hugo docs)
+- `tools/jwt-signer/` — offline JWT Signer: signs HS256 tokens in the browser from a hand-entered `JWT_SECRET` (Web Crypto). Must stay network-free (CSP `connect-src 'none'`, no external assets) and must never persist the secret; its hosted copy is `jwt-signer.pgarachne.com`
+- `tools/sse-tester/` — minimal HTML page for manually exercising the SSE endpoint from a browser
 - `docs-src/` — Hugo documentation sources (7 languages: cs, en, de, es, fr, it, pt)
 - `docs-src/static/demo/quickstart/` — Hello World example (`hello_world.sql`, `index.html`) used by the Quick Start page; keep in sync with the snippets in `docs-src/content/*/quickstart.html`
 - `docs-src/i18n/*.yaml` — localised hero section strings; rendered with `| safeHTML` to allow `<br>` tags

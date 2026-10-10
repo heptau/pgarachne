@@ -5,7 +5,13 @@ description: "PgArachne SSE Tester - Documentation"
 
 <section id="sse-tester">
 <h2>SSE Tester</h2>
-<p>The <strong>SSE Tester</strong> is a single-file browser tool located in <code>tools/test-sse</code>. It lets you subscribe to any number of PostgreSQL <code>NOTIFY</code> channels over a live <a href="../../real-time-notifications/">Server-Sent Events</a> connection and watch the incoming events in real time.</p>
+<p>The <strong>SSE Tester</strong> is a single-file browser tool located in <code>tools/sse-tester</code>. It lets you subscribe to any number of PostgreSQL <code>NOTIFY</code> channels over a live <a href="../../real-time-notifications/">Server-Sent Events</a> connection and watch the incoming events in real time.</p>
+<p>Online version: <a href="https://sse-tester.pgarachne.com" target="_blank" rel="noopener">sse-tester.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-sse-tester.webp" alt="SSE Tester" loading="lazy">
+</figure>
+
 
 <h3>Features</h3>
 <ul>
@@ -25,6 +31,6 @@ description: "PgArachne SSE Tester - Documentation"
 </ul>
 
 <div class="tip">
-<strong>How to enable it:</strong> Set <code>STATIC_FILES_PATH</code> to <code>tools/test-sse</code> and visit <code>http://localhost:8080</code>. Alternatively, open <code>index.html</code> directly in a browser — all functionality works without a local server.
+<strong>How to enable it:</strong> Set <code>STATIC_FILES_PATH</code> to <code>tools/sse-tester</code> and visit <code>http://localhost:8080</code>. Alternatively, open <code>index.html</code> directly in a browser — all functionality works without a local server.
 </div>
 </section>

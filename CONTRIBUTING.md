@@ -95,10 +95,10 @@ need bespoke logic (such as `tools/call`) live in their own handler.
 
 ## Tools in `tools/`
 
-- `tools/pgarachne-explorer/` — interactive JSON-RPC explorer (PWA, dark/light
+- `tools/explorer/` — interactive JSON-RPC explorer (PWA, dark/light
   theme, offline-capable). Served as static files when `STATIC_FILES_PATH`
   is configured.
-- `tools/test-sse/` — minimal HTML page for manually exercising the SSE
+- `tools/sse-tester/` — minimal HTML page for manually exercising the SSE
   endpoint from a browser.
 
 ## Database Setup for Local Development

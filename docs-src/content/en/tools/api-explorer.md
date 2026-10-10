@@ -5,10 +5,14 @@ description: "PgArachne Explorer - PgArachne"
 
 <section id="explorer">
 <h2>PgArachne Explorer</h2>
-<p>The <strong>Explorer</strong> is a powerful web GUI included in the <code>tools/pgarachne-explorer</code> directory. It is not
+<p>The <strong>Explorer</strong> is a powerful web GUI included in the <code>tools/explorer</code> directory. It is not
 		merely a documentation tool — it is a fully functional <strong>demo application</strong> built with HTML/JS
 		that communicates with the database exclusively via PgArachne. A hosted version is also available at
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-explorer.webp" alt="PgArachne Explorer" loading="lazy">
+</figure>
+
 
 <p><strong>What can it do?</strong></p>
 <ul>
@@ -27,6 +31,6 @@ description: "PgArachne Explorer - PgArachne"
 
 <div class="tip">
 <strong>How to enable it:</strong> Set the <code>STATIC_FILES_PATH</code> environment variable to point to the
-<code>tools/pgarachne-explorer</code> folder on your disk. Then visit <code>http://localhost:8080</code>.
+<code>tools/explorer</code> folder on your disk. Then visit <code>http://localhost:8080</code>.
 </div>
 </section>

@@ -5,10 +5,14 @@ description: "PgArachne Explorer - PgArachne"
 
 <section id="explorer">
 <h2>PgArachne Explorer</h2>
-<p>Το <strong>Explorer</strong> είναι ένα ισχυρό web GUI που περιλαμβάνεται στον κατάλογο <code>tools/pgarachne-explorer</code>. Δεν είναι
+<p>Το <strong>Explorer</strong> είναι ένα ισχυρό web GUI που περιλαμβάνεται στον κατάλογο <code>tools/explorer</code>. Δεν είναι
 		απλά ένα εργαλείο τεκμηρίωσης — είναι μια πλήρως λειτουργική <strong>εφαρμογή επίδειξης</strong> χτισμένη με HTML/JS
 		που επικοινωνεί με τη βάση δεδομένων αποκλειστικά μέσω του PgArachne. Μια φιλοξενούμενη έκδοση είναι επίσης διαθέσιμη στο
 <a href="https://explorer.pgarachne.com" target="_blank">explorer.pgarachne.com</a>.</p>
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-explorer.webp" alt="PgArachne Explorer" loading="lazy">
+</figure>
+
 
 <p><strong>Τι μπορεί να κάνει;</strong></p>
 <ul>
@@ -27,6 +31,6 @@ description: "PgArachne Explorer - PgArachne"
 
 <div class="tip">
 <strong>Πώς να το ενεργοποιήσετε:</strong> Ρυθμίστε τη μεταβλητή περιβάλλοντος <code>STATIC_FILES_PATH</code> ώστε να δείχνει στον
-φάκελο <code>tools/pgarachne-explorer</code> στον δίσκο σας. Στη συνέχεια, επισκεφθείτε το <code>http://localhost:8080</code>.
+φάκελο <code>tools/explorer</code> στον δίσκο σας. Στη συνέχεια, επισκεφθείτε το <code>http://localhost:8080</code>.
 </div>
 </section>

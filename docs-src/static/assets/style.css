@@ -654,6 +654,24 @@ html[data-theme="dark"] .code-box {
 	margin-top: 0;
 }
 
+.tools-grid .card {
+	position: relative;
+	cursor: pointer;
+}
+
+/* Whole card acts as the link: the anchor's overlay covers the card. */
+.stretched-link::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+}
+
+.tools-grid .card:has(.stretched-link:focus-visible) {
+	outline: 3px solid var(--teal);
+	outline-offset: 3px;
+}
+
 .tools-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -2028,5 +2046,21 @@ html[data-theme="dark"] .card:hover {
 
 .feature-card:hover {
 	transform: translateY(-3px);
+	box-shadow: var(--shadow-main);
+}
+
+/* Tool screenshots on the Tools sub-pages */
+.tool-screenshot {
+	margin: 24px 0;
+	text-align: center;
+}
+
+.tool-screenshot img {
+	max-width: 100%;
+	max-height: 640px;
+	width: auto;
+	height: auto;
+	border-radius: 12px;
+	border: 1px solid rgba(128, 128, 128, 0.3);
 	box-shadow: var(--shadow-main);
 }

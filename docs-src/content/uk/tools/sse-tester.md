@@ -5,7 +5,13 @@ description: "PgArachne SSE Tester - Documentation"
 
 <section id="sse-tester">
 <h2>SSE Tester</h2>
-<p><strong>SSE Tester</strong> — це однофайловий браузерний інструмент, розташований у <code>tools/test-sse</code>. Він дозволяє підписатися на будь-яку кількість каналів PostgreSQL <code>NOTIFY</code> через живе з'єднання <a href="../../real-time-notifications/">Server-Sent Events</a> і спостерігати за вхідними подіями в реальному часі.</p>
+<p><strong>SSE Tester</strong> — це однофайловий браузерний інструмент, розташований у <code>tools/sse-tester</code>. Він дозволяє підписатися на будь-яку кількість каналів PostgreSQL <code>NOTIFY</code> через живе з'єднання <a href="../../real-time-notifications/">Server-Sent Events</a> і спостерігати за вхідними подіями в реальному часі.</p>
+<p>Онлайн-версія: <a href="https://sse-tester.pgarachne.com" target="_blank" rel="noopener">sse-tester.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-sse-tester.webp" alt="SSE Tester" loading="lazy">
+</figure>
+
 
 <h3>Можливості</h3>
 <ul>
@@ -25,6 +31,6 @@ description: "PgArachne SSE Tester - Documentation"
 </ul>
 
 <div class="tip">
-<strong>Як увімкнути:</strong> Встановіть <code>STATIC_FILES_PATH</code> на <code>tools/test-sse</code> і відвідайте <code>http://localhost:8080</code>. Або відкрийте <code>index.html</code> безпосередньо в браузері — усі функції працюють без локального сервера.
+<strong>Як увімкнути:</strong> Встановіть <code>STATIC_FILES_PATH</code> на <code>tools/sse-tester</code> і відвідайте <code>http://localhost:8080</code>. Або відкрийте <code>index.html</code> безпосередньо в браузері — усі функції працюють без локального сервера.
 </div>
 </section>

@@ -5,7 +5,13 @@ description: "PgArachne SSE Tester - Τεκμηρίωση"
 
 <section id="sse-tester">
 <h2>SSE Tester</h2>
-<p>Το <strong>SSE Tester</strong> είναι ένα εργαλείο browser σε ένα αρχείο, που βρίσκεται στο <code>tools/test-sse</code>. Σας επιτρέπει να εγγραφείτε σε οποιονδήποτε αριθμό καναλιών <code>NOTIFY</code> της PostgreSQL μέσω μιας ζωντανής σύνδεσης <a href="../../real-time-notifications/">Server-Sent Events</a> και να παρακολουθείτε τα εισερχόμενα συμβάντα σε πραγματικό χρόνο.</p>
+<p>Το <strong>SSE Tester</strong> είναι ένα εργαλείο browser σε ένα αρχείο, που βρίσκεται στο <code>tools/sse-tester</code>. Σας επιτρέπει να εγγραφείτε σε οποιονδήποτε αριθμό καναλιών <code>NOTIFY</code> της PostgreSQL μέσω μιας ζωντανής σύνδεσης <a href="../../real-time-notifications/">Server-Sent Events</a> και να παρακολουθείτε τα εισερχόμενα συμβάντα σε πραγματικό χρόνο.</p>
+<p>Διαδικτυακή έκδοση: <a href="https://sse-tester.pgarachne.com" target="_blank" rel="noopener">sse-tester.pgarachne.com</a></p>
+
+<figure class="tool-screenshot">
+<img src="/assets/pgarachne-tool-sse-tester.webp" alt="SSE Tester" loading="lazy">
+</figure>
+
 
 <h3>Λειτουργίες</h3>
 <ul>
@@ -25,6 +31,6 @@ description: "PgArachne SSE Tester - Τεκμηρίωση"
 </ul>
 
 <div class="tip">
-<strong>Πώς να το ενεργοποιήσετε:</strong> Ρυθμίστε το <code>STATIC_FILES_PATH</code> σε <code>tools/test-sse</code> και επισκεφθείτε το <code>http://localhost:8080</code>. Εναλλακτικά, ανοίξτε απευθείας το <code>index.html</code> σε έναν browser — όλες οι λειτουργίες δουλεύουν χωρίς τοπικό server.
+<strong>Πώς να το ενεργοποιήσετε:</strong> Ρυθμίστε το <code>STATIC_FILES_PATH</code> σε <code>tools/sse-tester</code> και επισκεφθείτε το <code>http://localhost:8080</code>. Εναλλακτικά, ανοίξτε απευθείας το <code>index.html</code> σε έναν browser — όλες οι λειτουργίες δουλεύουν χωρίς τοπικό server.
 </div>
 </section>
