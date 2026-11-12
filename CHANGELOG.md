@@ -7,6 +7,8 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-11-12
+
 ### Fixed
 
 - SSE streams were cut off after 60 seconds: the HTTP server's `WriteTimeout` is an absolute deadline for the whole response and nothing lifted it for `/sse`. The stream now sets its own write deadline, pushed forward before every event and heartbeat (10 s per write), so it lives until the client leaves or `SSE_IDLE_TIMEOUT` fires, while a client that stopped reading still cannot block the handler.
