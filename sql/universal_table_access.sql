@@ -103,7 +103,11 @@ BEGIN
 		SELECT * FROM jsonb_each_text(_filters)
 	LOOP
 		-- Note: This only supports equality checks. Safe due to %I and %L.
-		_where := _where || format(' AND %I = %L', _key, _val);
+		-- A JSON null filters on IS NULL ("col = NULL" never matches a row).
+		_where := _where || CASE
+			WHEN _val IS NULL THEN format(' AND %I IS NULL', _key)
+			ELSE format(' AND %I = %L', _key, _val)
+		END;
 	END LOOP;
 
 	-- Construct the query
@@ -250,7 +254,11 @@ BEGIN
 	FOR _key, _val IN
 		SELECT * FROM jsonb_each_text(_filters)
 	LOOP
-		_where := _where || format(' AND %I = %L', _key, _val);
+		-- A JSON null filters on IS NULL ("col = NULL" never matches a row).
+		_where := _where || CASE
+			WHEN _val IS NULL THEN format(' AND %I IS NULL', _key)
+			ELSE format(' AND %I = %L', _key, _val)
+		END;
 	END LOOP;
 
 	-- Use CTE to handle multiple updated rows and return them as a JSON array
@@ -310,7 +318,11 @@ BEGIN
 	FOR _key, _val IN
 		SELECT * FROM jsonb_each_text(_filters)
 	LOOP
-		_where := _where || format(' AND %I = %L', _key, _val);
+		-- A JSON null filters on IS NULL ("col = NULL" never matches a row).
+		_where := _where || CASE
+			WHEN _val IS NULL THEN format(' AND %I IS NULL', _key)
+			ELSE format(' AND %I = %L', _key, _val)
+		END;
 	END LOOP;
 
 	-- Use CTE to handle multiple deleted rows and return them as a JSON array

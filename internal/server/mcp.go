@@ -750,12 +750,14 @@ func (s *Server) callPgarachneFunc(
 		return nil, fmt.Errorf("set role %s: %w", dbRole, err)
 	}
 
-	var raw json.RawMessage
-	if err := tx.QueryRowContext(
+	// scanJSONResult maps a SQL NULL result to JSON null; scanning NULL
+	// straight into a json.RawMessage is a driver error.
+	raw, err := scanJSONResult(tx.QueryRowContext(
 		ctx,
 		fmt.Sprintf("SELECT %s($1::jsonb)::json", sqlFunc),
 		[]byte(params),
-	).Scan(&raw); err != nil {
+	))
+	if err != nil {
 		return nil, err
 	}
 

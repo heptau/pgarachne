@@ -71,13 +71,7 @@ func (s *Server) Run() error {
 	router := s.buildRouter()
 	metricsRouter := s.buildMetricsRouter()
 
-	srv := &http.Server{
-		Handler:           router,
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       15 * time.Second,
-		WriteTimeout:      60 * time.Second, // generous for SSE; ResponseController overrides per-stream
-		IdleTimeout:       2 * time.Minute,
-	}
+	srv := s.newHTTPServer(router)
 	metricsSrv := &http.Server{
 		Handler:           metricsRouter,
 		ReadHeaderTimeout: 5 * time.Second,
@@ -129,24 +123,29 @@ func (s *Server) Run() error {
 	slog.Info("Shutting down server...")
 
 	// The context is used to inform the server it has 5 seconds to finish
-	// the request it is currently handling
+	// the request it is currently handling. A failed drain must not skip the
+	// rest of the cleanup below, so the error is kept and returned at the end.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+	var shutdownErr error
 	if err := srv.Shutdown(ctx); err != nil {
 		slog.Error("Server forced to shutdown", "error", err)
-		return err
+		shutdownErr = err
 	}
 	if s.Cfg.MetricsEnabled {
 		if err := metricsSrv.Shutdown(ctx); err != nil {
 			slog.Error("Metrics server forced to shutdown", "error", err)
-			return err
+			if shutdownErr == nil {
+				shutdownErr = err
+			}
 		}
 	}
 
-	// SSE hub and DB pools get their own deadline. The HTTP server is
-	// already drained, so SSE/DB shutdown only has to release sockets
-	// and goroutines — it should be fast (sub-second in practice). We
-	// keep a generous timeout in case a slow Postgres is involved.
+	// The SSE hub was already shut down by the hook newHTTPServer registers
+	// (otherwise open streams would keep srv.Shutdown waiting); this second,
+	// idempotent call catches a stream that slipped in while the server was
+	// draining. It only has to release sockets and goroutines, so it should
+	// be fast — the timeout is for a slow Postgres.
 	sseCtx, sseCancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer sseCancel()
 	if err := s.sseHub.Shutdown(sseCtx); err != nil {
@@ -159,7 +158,34 @@ func (s *Server) Run() error {
 	database.CloseAll()
 
 	slog.Info("Server exiting")
-	return nil
+	return shutdownErr
+}
+
+// newHTTPServer builds the public HTTP server around handler.
+//
+// WriteTimeout bounds ordinary request/response cycles; SSE streams outlive
+// it by design and manage their own per-write deadline (see handleSSE).
+//
+// SSE streams also never end on their own, and http.Server.Shutdown waits for
+// every active request. The registered hook therefore drops all SSE clients
+// as soon as Shutdown starts, so their handlers return and the server can
+// drain instead of running into the shutdown deadline.
+func (s *Server) newHTTPServer(handler http.Handler) *http.Server {
+	srv := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       15 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+	}
+	srv.RegisterOnShutdown(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := s.sseHub.Shutdown(ctx); err != nil {
+			slog.Warn("SSE hub shutdown incomplete", "error", err)
+		}
+	})
+	return srv
 }
 
 func (s *Server) buildRouter() *gin.Engine {
@@ -209,7 +235,10 @@ func (s *Server) buildRouter() *gin.Engine {
 	allowAnyOrigin := len(s.Cfg.AllowedOrigins) == 1 && s.Cfg.AllowedOrigins[0] == "*"
 	router.Use(cors.New(cors.Config{
 		AllowMethods: []string{"POST", "OPTIONS", "GET"},
-		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		// The Mcp-* headers are mandatory on every MCP request (see
+		// mcpValidateRequest); without them here a browser-based MCP client
+		// fails its CORS preflight.
+		AllowHeaders: []string{"Origin", "Content-Type", "Accept", "Authorization", "MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"},
 		// Do not allow credentials with wildcard origins.
 		AllowCredentials: !allowAnyOrigin,
 		AllowOriginFunc: func(origin string) bool {
@@ -232,7 +261,11 @@ func (s *Server) buildRouter() *gin.Engine {
 			c.Abort()
 			return
 		}
-		c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, s.Cfg.MaxRequestBytes)
+		// A zero limit (Config built without Load) means "no limit", not
+		// "reject every body" — MaxBytesReader(…, 0) would do the latter.
+		if s.Cfg.MaxRequestBytes > 0 {
+			c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, s.Cfg.MaxRequestBytes)
+		}
 		c.Next()
 	})
 	router.Use(httpMetricsMiddleware())
@@ -825,11 +858,6 @@ func (s *Server) handleOpenAPISpecFormat(c *gin.Context, defaultFormat string) {
 	c.String(http.StatusOK, spec)
 }
 
-// isUndefinedFunctionError reports whether err is PostgreSQL's
-// undefined_function (42883) or invalid_schema_name (3F000), i.e. the called
-// method does not exist. Matching on the SQLSTATE rather than the message
-// text keeps unrelated "does not exist" errors raised inside a function
-// (missing table, missing role, …) from being reported as a missing method.
 // scanJSONResult reads the single json column returned by a function call. A
 // SQL NULL result (e.g. a lookup that found no row) becomes the JSON value
 // null instead of a scan error, so it is returned as "result": null rather
@@ -845,6 +873,11 @@ func scanJSONResult(row *sql.Row) (json.RawMessage, error) {
 	return json.RawMessage(raw), nil
 }
 
+// isUndefinedFunctionError reports whether err is PostgreSQL's
+// undefined_function (42883) or invalid_schema_name (3F000), i.e. the called
+// method does not exist. Matching on the SQLSTATE rather than the message
+// text keeps unrelated "does not exist" errors raised inside a function
+// (missing table, missing role, …) from being reported as a missing method.
 func isUndefinedFunctionError(err error) bool {
 	var pqErr *pq.Error
 	if !errors.As(err, &pqErr) {

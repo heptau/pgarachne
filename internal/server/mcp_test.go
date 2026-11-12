@@ -14,6 +14,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/heptau/pgarachne/internal/config"
+	"github.com/lib/pq"
 )
 
 // ---------------------------------------------------------------------------
@@ -1442,4 +1443,69 @@ func deleteTestPrompt(env *testEnv, name string) error {
 	defer db.Close()
 	_, err = db.Exec(`DELETE FROM pgarachne.prompts WHERE name = $1`, name)
 	return err
+}
+
+// TestMCPResourcesListIncludesPgPrefixedSchema pins that resources/list hides
+// only real system schemas ("pg_…"), not every schema whose name starts with
+// "pg". The filter used an unescaped LIKE 'pg_%', where the underscore is a
+// single-character wildcard, so tables in schemas such as pgboss were never
+// listed.
+func TestMCPResourcesListIncludesPgPrefixedSchema(t *testing.T) {
+	env := requireTestEnv(t)
+	defer env.close()
+
+	token, err := loginAndGetToken(env, env.testUser, env.testPass)
+	if err != nil {
+		t.Fatalf("login: %v", err)
+	}
+
+	db, err := sql.Open("postgres", buildConnStr(env.cfg, env.dbName))
+	if err != nil {
+		t.Fatalf("open db: %v", err)
+	}
+	defer db.Close()
+	for _, stmt := range []string{
+		`CREATE SCHEMA IF NOT EXISTS pgprefixed_test`,
+		`CREATE TABLE IF NOT EXISTS pgprefixed_test.items (id int)`,
+		`GRANT USAGE ON SCHEMA pgprefixed_test TO ` + pq.QuoteIdentifier(env.testUser),
+		`GRANT SELECT ON pgprefixed_test.items TO ` + pq.QuoteIdentifier(env.testUser),
+	} {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("setup %q: %v", stmt, err)
+		}
+	}
+	defer func() {
+		if _, err := db.Exec(`DROP SCHEMA IF EXISTS pgprefixed_test CASCADE`); err != nil {
+			t.Logf("cleanup: %v", err)
+		}
+	}()
+
+	resp := mcpDo(t, env.mcpURL(), token, map[string]interface{}{
+		"jsonrpc": "2.0",
+		"id":      1,
+		"method":  "resources/list",
+		"params":  map[string]interface{}{},
+	})
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		t.Fatalf("status = %d, want 200", resp.StatusCode)
+	}
+	out := decodeMCPResponse(t, resp)
+	result, _ := out["result"].(map[string]interface{})
+	resources, _ := result["resources"].([]interface{})
+
+	found := false
+	for _, raw := range resources {
+		res, _ := raw.(map[string]interface{})
+		uri, _ := res["uri"].(string)
+		if uri == "db:///pgprefixed_test/items" {
+			found = true
+		}
+		if strings.HasPrefix(uri, "db:///pg_") {
+			t.Errorf("system relation listed: %s", uri)
+		}
+	}
+	if !found {
+		t.Errorf("db:///pgprefixed_test/items missing from resources/list (%d resources)", len(resources))
+	}
 }

@@ -7,6 +7,17 @@ Dates are the day the corresponding Git tag was created (UTC).
 
 ## [Unreleased]
 
+### Fixed
+
+- SSE streams were cut off after 60 seconds: the HTTP server's `WriteTimeout` is an absolute deadline for the whole response and nothing lifted it for `/sse`. The stream now sets its own write deadline, pushed forward before every event and heartbeat (10 s per write), so it lives until the client leaves or `SSE_IDLE_TIMEOUT` fires, while a client that stopped reading still cannot block the handler.
+- Graceful shutdown with a connected SSE client ran into the 5 s drain deadline (an SSE stream never ends on its own), reported "Server forced to shutdown", skipped closing the SSE listeners and database pools and exited with status 1. SSE clients are now dropped as soon as shutdown starts, and a failed drain no longer skips the rest of the cleanup.
+- MCP `resources/list` hid every table in a schema whose name merely starts with `pg` (`pgboss`, `pgmq`, …): the system-schema filter used `LIKE 'pg_%'` with an unescaped underscore, which is a single-character wildcard. Re-apply `sql/mcp_functions.sql`.
+- `api.universal_read` / `universal_update` / `universal_delete` (`sql/universal_table_access.sql`): a JSON `null` in `filters` was rendered as `column = NULL`, which never matches, so `{"deleted_at": null}` silently selected no rows. It now filters on `IS NULL`. Re-apply the file if you use these helpers.
+- CORS preflight now allows the `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` request headers. They are mandatory on every MCP request, so browser-based MCP clients on another origin could not call `/mcp` at all.
+- `/sse` answered HTTP 429 with the raw driver error when a `LISTEN` failed on the database side; it now answers 503 `SSE listener unavailable` (429 is kept for the `SSE_MAX_CLIENTS` cap).
+- MCP `tools/list`, `resources/*` and `prompts/*`: a backing SQL function returning SQL `NULL` no longer fails with a driver scan error.
+- `pgarachne -start=true` (the `flag=value` spelling) no longer passes the flag on to the background process.
+
 ### Changed
 
 - Docs: the vector logo (`pgarachne-logo.svg`) replaces the raster WebP in the home page hero and the README, and is also offered as an SVG favicon (PNG kept as fallback). The WebP stays for `og:image`/`twitter:image`, the PNG for `apple-touch-icon` and the web manifest, since social crawlers and installers do not accept SVG.

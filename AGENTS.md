@@ -66,7 +66,7 @@ Optional PostgREST-like CRUD helpers: `api.universal_read`, `api.universal_creat
 parameter and dispatches to any `schema.table` the role has privileges on.
 `universal_read` validates each comma-separated `select` item as `*` or a plain
 column name and re-emits it with `quote_ident`; `order` is validated against a
-column-list/ASC/DESC whitelist. `universal_update`/`universal_delete` refuse an
+column-list/ASC/DESC whitelist. In `filters`, a JSON `null` means `IS NULL`. `universal_update`/`universal_delete` refuse an
 empty `filters` object unless `"all": true` is passed. Treat these as convenience helpers; review the SQL before exposing
 them on a public endpoint.
 
@@ -240,6 +240,10 @@ All endpoints follow `/{prefix}/{database}/{protocol}` (e.g. `/db/mydb/jsonrpc`,
 ## AI_CONTEXT Maintenance Rule
 - This file should be updated automatically after meaningful architectural, security, release, routing, configuration, or documentation workflow changes.
 - Do not wait for a special request when the update is clearly relevant.
+
+## SSE Stream Lifetime
+- The public `http.Server` is built by `Server.newHTTPServer` (`server.go`), used by `Run()` and by the lifecycle tests in `internal/server/sse_lifecycle_test.go`. Its `WriteTimeout` (60s) is an absolute deadline per response, so `handleSSE` replaces it with a rolling per-write deadline (`sseWriteTimeout`, via `http.NewResponseController`) before every event/heartbeat. Any new long-lived streaming handler must do the same or it is cut off after 60s.
+- `newHTTPServer` registers an `OnShutdown` hook that calls `sseHub.Shutdown`: `http.Server.Shutdown` waits for active requests and SSE streams never end by themselves, so without the hook the drain hits its deadline. `Run()` calls `sseHub.Shutdown` once more after the drain (idempotent) and never skips `database.CloseAll()` on a drain error.
 
 ## SSE Shutdown Semantics
 - `sseHub.Shutdown(ctx)` drops all clients (signals `client.done`), closes every `pq.Listener`, and detaches the `dbs` map. New SSE requests issued after `Shutdown` begins see a fresh, empty hub.

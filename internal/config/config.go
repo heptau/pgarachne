@@ -463,7 +463,8 @@ func Load(configPath string) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("could not resolve absolute path for STATIC_FILES_PATH='%s': %w", staticPath, err)
 		}
-		info, err := os.Stat(absPath)
+		// STATIC_FILES_PATH comes from the operator's own configuration.
+		info, err := os.Stat(absPath) //nolint:gosec // G703: operator-controlled config path
 		if os.IsNotExist(err) {
 			return nil, fmt.Errorf("FATAL: The resolved static files path does not exist: %s", absPath)
 		}

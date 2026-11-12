@@ -39,9 +39,13 @@ func Start() {
 	// Prepare arguments for the child process
 	args := []string{}
 	for _, arg := range os.Args[1:] {
-		if arg != "-start" && arg != "--start" {
-			args = append(args, arg)
+		// The flag package also accepts the -start=true form; leaving it in
+		// would make the child try to daemonise again.
+		name, _, _ := strings.Cut(arg, "=")
+		if name == "-start" || name == "--start" {
+			continue
 		}
+		args = append(args, arg)
 	}
 
 	// Relaunching our own binary with the user's own arguments (minus -start)

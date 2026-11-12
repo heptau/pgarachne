@@ -24,6 +24,10 @@ const (
 	defaultSSEMaxClients  = 1000
 	defaultSSEBufferSize  = 64
 	defaultSSESendTimeout = 2 * time.Second
+	// sseWriteTimeout bounds a single write to an SSE client. It replaces the
+	// server-wide WriteTimeout, which is an absolute deadline for the whole
+	// response and would otherwise cut every stream off after a minute.
+	sseWriteTimeout = 10 * time.Second
 )
 
 var (
@@ -234,6 +238,11 @@ func (l *dbListener) hasChannels() bool {
 // closed (last client left, or hub shutdown) after the caller obtained it.
 var errSSEListenerClosed = errors.New("SSE listener closed")
 
+// errSSETooManyClients is returned by addClient when the per-database client
+// cap is reached. Every other addClient failure is a LISTEN problem on the
+// database side.
+var errSSETooManyClients = errors.New("too many SSE clients")
+
 func (l *dbListener) isClosed() bool {
 	select {
 	case <-l.closed:
@@ -254,7 +263,7 @@ func (l *dbListener) addClient(channels []string, client *sseClient, maxClients 
 	l.mu.Lock()
 	if maxClients > 0 && len(l.clients) >= maxClients {
 		l.mu.Unlock()
-		return fmt.Errorf("too many SSE clients (max %d)", maxClients)
+		return fmt.Errorf("%w (max %d)", errSSETooManyClients, maxClients)
 	}
 	var missing []string
 	for _, channel := range channels {
@@ -515,8 +524,15 @@ func (s *Server) handleSSE(c *gin.Context) {
 		}
 		err = listener.addClient(channels, client, maxClients)
 	}
-	if err != nil {
+	if errors.Is(err, errSSETooManyClients) {
 		c.JSON(http.StatusTooManyRequests, gin.H{"error": err.Error()})
+		return
+	}
+	if err != nil {
+		// LISTEN failed (already logged by addClient): a database-side
+		// problem, not something the client can fix by backing off, and the
+		// driver error is not for the client to see.
+		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "SSE listener unavailable"})
 		return
 	}
 	defer func() {
@@ -537,6 +553,19 @@ func (s *Server) handleSSE(c *gin.Context) {
 	c.Writer.Header().Set("Connection", "keep-alive")
 	c.Writer.Header().Set("X-Accel-Buffering", "no")
 	c.Status(http.StatusOK)
+
+	// The server's WriteTimeout is an absolute deadline counted from the
+	// start of the request, so left alone it ends every stream after one
+	// minute. Replace it with a deadline that is pushed forward before each
+	// write: the stream can live indefinitely, while a client that stopped
+	// reading still cannot block this goroutine for long.
+	rc := http.NewResponseController(c.Writer)
+	extendWriteDeadline := func() {
+		if err := rc.SetWriteDeadline(time.Now().Add(sseWriteTimeout)); err != nil {
+			slog.Debug("SSE: cannot set write deadline", "error", err)
+		}
+	}
+	extendWriteDeadline()
 	flusher.Flush()
 
 	heartbeat := s.Cfg.SSEHeartbeat
@@ -553,6 +582,7 @@ func (s *Server) handleSSE(c *gin.Context) {
 	idleTimer := time.NewTimer(idleTimeout)
 	defer idleTimer.Stop()
 
+	extendWriteDeadline()
 	if err := writeSSEComment(c.Writer, "connected"); err != nil {
 		return
 	}
@@ -562,6 +592,7 @@ func (s *Server) handleSSE(c *gin.Context) {
 	for {
 		select {
 		case msg := <-client.ch:
+			extendWriteDeadline()
 			n, err := writeSSEData(c.Writer, msg)
 			if err != nil {
 				return
@@ -576,6 +607,7 @@ func (s *Server) handleSSE(c *gin.Context) {
 			idleTimer.Reset(idleTimeout)
 			flusher.Flush()
 		case <-heartbeatTicker.C:
+			extendWriteDeadline()
 			if err := writeSSEComment(c.Writer, "ping"); err != nil {
 				return
 			}

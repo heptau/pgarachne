@@ -80,7 +80,10 @@ BEGIN
         JOIN pg_namespace n ON c.relnamespace = n.oid
         WHERE c.relkind IN ('r', 'v', 'm', 'p')   -- tables, views, matviews, partitioned
           AND n.nspname NOT IN ('pg_catalog', 'information_schema', 'pgarachne')
-          AND n.nspname NOT LIKE 'pg_%'
+          -- The underscore must be escaped: unescaped it is a single-character
+          -- wildcard, so 'pg_%' would also hide ordinary schemas whose name
+          -- merely starts with "pg" (pgboss, pgmq, ...).
+          AND n.nspname NOT LIKE 'pg\_%'
           AND has_table_privilege(current_user, c.oid, 'SELECT')
     ) sub;
 
